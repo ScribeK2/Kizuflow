@@ -1,10 +1,10 @@
 # Kizuflow
 
-A straightforward, no-nonsense workflow creator for customer service representatives (CSRs) to build and simulate post-onboarding training and client troubleshooting flows. Built as a simple Ruby on Rails monolith that focuses on core functionality without unnecessary complexity.
+A straightforward, no-nonsense workflow creator for call/chat centers to build and simulate post-onboarding training and client troubleshooting flows. Built as a simple Ruby on Rails monolith that focuses on core functionality without unnecessary complexity.
 
 ## Overview
 
-Kizuflow enables CSRs to create custom workflows with drag-and-drop step management, run simulations to test workflows, and export results. The application is designed for practical use by non-technical users who need quick, customizable workflows for training new clients post-onboarding and troubleshooting common issues.
+Kizuflow enables call/chat centers to create custom workflows with drag-and-drop step management, run simulations to test workflows, and export results. The application is designed for practical use by non-technical users who need quick, customizable workflows for training new clients post-onboarding and troubleshooting common issues.
 
 ## Features
 
