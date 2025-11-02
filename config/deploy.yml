@@ -1,0 +1,18 @@
+service: kizuflow
+
+image: your-registry/kizuflow
+
+servers:
+  web:
+    hosts:
+      - your-server.com
+    cmd: bin/rails server
+
+env:
+  secret:
+    - RAILS_MASTER_KEY
+    - DATABASE_PASSWORD
+
+volumes:
+  - storage:/rails/storage
+

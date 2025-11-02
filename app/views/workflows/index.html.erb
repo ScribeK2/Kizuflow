@@ -1,0 +1,77 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header Section -->
+  <div class="mb-8 flex justify-between items-center animate-fade-in">
+    <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+      Workflows
+    </h1>
+    <%= link_to new_workflow_path, class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center" do %>
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      New Workflow
+    <% end %>
+  </div>
+
+  <% if @workflows.any? %>
+    <div class="glass-card overflow-hidden animate-fade-in-up">
+      <ul class="divide-y divide-white/20 dark:divide-gray-700/30">
+        <% @workflows.each_with_index do |workflow, index| %>
+          <li class="hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
+            <div class="px-6 py-5 sm:px-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center flex-1 min-w-0">
+                  <div class="flex-shrink-0 mr-4">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="ml-4 flex-1 min-w-0">
+                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                      <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200" %>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      <%= truncate(workflow.description_text.presence || "No description", length: 100) %>
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      <%= pluralize(workflow.steps&.length || 0, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-3 ml-4">
+                  <%= link_to workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-50/80 dark:hover:bg-blue-900/40 transition-all duration-200 hover:scale-105" do %>
+                    View
+                  <% end %>
+                  <%= link_to edit_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+                    Edit
+                  <% end %>
+                  <%= link_to workflow_path(workflow), data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/20 rounded-lg hover:bg-red-50/80 dark:hover:bg-red-900/40 transition-all duration-200 hover:scale-105" do %>
+                    Delete
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% else %>
+    <div class="glass-card p-12 text-center animate-fade-in-up">
+      <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows</h3>
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new workflow.</p>
+      <div class="mt-6">
+        <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          New Workflow
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+

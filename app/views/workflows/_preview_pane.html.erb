@@ -1,0 +1,184 @@
+<div class="preview-pane bg-gray-50 border rounded-lg p-4">
+  <h4 class="text-sm font-semibold text-gray-700 mb-2">Live Preview</h4>
+  
+  <% if step && step["type"] %>
+    <% case step["type"] %>
+    <% when "question" %>
+      <div class="space-y-3">
+        <% if step["title"].present? %>
+          <h5 class="font-medium text-gray-900"><%= step["title"] %></h5>
+        <% end %>
+        
+        <% if step["description"].present? %>
+          <div class="text-sm text-gray-600">
+            <%= simple_format(step["description"]) %>
+          </div>
+        <% end %>
+        
+        <% if step["question"].present? %>
+          <p class="font-medium text-gray-800"><%= step["question"] %></p>
+        <% end %>
+        
+        <!-- Preview based on answer type -->
+        <div class="mt-3">
+          <% case step["answer_type"] %>
+          <% when "text" %>
+            <input type="text" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white" 
+                   placeholder="Your answer..." 
+                   disabled />
+          <% when "yes_no" %>
+            <div class="flex gap-2">
+              <button class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors" disabled>
+                Yes
+              </button>
+              <button class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors" disabled>
+                No
+              </button>
+            </div>
+          <% when "multiple_choice" %>
+            <div class="space-y-2">
+              <% if step["options"].present? && step["options"].is_a?(Array) %>
+                <% step["options"].each do |option| %>
+                  <label class="flex items-center gap-2 p-2 border rounded-md hover:bg-gray-100 cursor-not-allowed">
+                    <input type="radio" name="preview_<%= index %>" disabled class="cursor-not-allowed" />
+                    <span class="text-sm"><%= option["label"] || option["value"] || "Option" %></span>
+                  </label>
+                <% end %>
+              <% else %>
+                <p class="text-xs text-gray-500 italic">No options defined yet</p>
+              <% end %>
+            </div>
+          <% when "dropdown" %>
+            <select class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white" disabled>
+              <option>Select an option</option>
+              <% if step["options"].present? && step["options"].is_a?(Array) %>
+                <% step["options"].each do |option| %>
+                  <option><%= option["label"] || option["value"] %></option>
+                <% end %>
+              <% end %>
+            </select>
+          <% when "date" %>
+            <input type="date" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white" 
+                   disabled />
+          <% when "number" %>
+            <input type="number" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white" 
+                   placeholder="Enter a number" 
+                   disabled />
+          <% when "file" %>
+            <div class="border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
+              <p class="text-sm text-gray-500">📎 File Upload</p>
+              <input type="file" class="mt-2" disabled />
+            </div>
+          <% else %>
+            <p class="text-xs text-gray-500 italic">Select an answer type to see preview</p>
+          <% end %>
+        </div>
+        
+        <% if step["variable_name"].present? %>
+          <div class="mt-2 text-xs text-gray-500">
+            <span class="font-mono bg-gray-200 px-2 py-1 rounded">Variable: <%= step["variable_name"] %></span>
+          </div>
+        <% end %>
+      </div>
+      
+    <% when "action" %>
+      <div class="space-y-2">
+        <% if step["title"].present? %>
+          <h5 class="font-medium text-gray-900"><%= step["title"] %></h5>
+        <% end %>
+        
+        <% if step["description"].present? %>
+          <div class="text-sm text-gray-600">
+            <%= simple_format(step["description"]) %>
+          </div>
+        <% end %>
+        
+        <% if step["action_type"].present? %>
+          <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+            <%= step["action_type"].humanize %>
+          </div>
+        <% end %>
+        
+        <% if step["instructions"].present? %>
+          <div class="mt-2 p-3 bg-white border rounded-md">
+            <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= step["instructions"] %></p>
+          </div>
+        <% end %>
+        
+        <% if step["attachments"].present? && step["attachments"].is_a?(Array) && step["attachments"].any? %>
+          <div class="mt-3">
+            <p class="text-xs font-medium text-gray-500 mb-2">Attachments:</p>
+            <div class="space-y-1">
+              <% step["attachments"].each do |attachment_id| %>
+                <% if attachment_id.present? %>
+                  <% begin %>
+                    <% blob = ActiveStorage::Blob.find_signed(attachment_id) %>
+                    <div class="flex items-center gap-2 p-2 bg-white border rounded-md text-sm">
+                      <span class="text-gray-600">📎</span>
+                      <span class="text-gray-700"><%= blob.filename %></span>
+                      <span class="text-xs text-gray-500">(<%= number_to_human_size(blob.byte_size) %>)</span>
+                    </div>
+                  <% rescue => e %>
+                    <div class="flex items-center gap-2 p-2 bg-gray-100 border rounded-md text-sm text-gray-500">
+                      <span>📎</span>
+                      <span>File attachment</span>
+                    </div>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+    <% when "decision" %>
+      <div class="space-y-2">
+        <% if step["title"].present? %>
+          <h5 class="font-medium text-gray-900"><%= step["title"] %></h5>
+        <% end %>
+        
+        <% if step["description"].present? %>
+          <div class="text-sm text-gray-600">
+            <%= simple_format(step["description"]) %>
+          </div>
+        <% end %>
+        
+        <div class="mt-3 p-3 bg-white border rounded-md">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-medium text-gray-500">Condition:</span>
+            <code class="text-xs bg-gray-100 px-2 py-1 rounded">
+              <%= step["condition"].present? ? step["condition"] : "No condition set" %>
+            </code>
+          </div>
+          
+          <div class="space-y-1 mt-3">
+            <% if step["true_path"].present? %>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-800 text-xs font-bold">✓</span>
+                <span class="text-gray-600">If true:</span>
+                <span class="font-medium text-green-700">→ <%= step["true_path"] %></span>
+              </div>
+            <% end %>
+            
+            <% if step["false_path"].present? %>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-800 text-xs font-bold">✗</span>
+                <span class="text-gray-600">If false:</span>
+                <span class="font-medium text-red-700">→ <%= step["false_path"] %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      
+    <% else %>
+      <p class="text-sm text-gray-500">Select a step type to see preview</p>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-gray-500 text-center py-4">Start filling in the form to see a live preview</p>
+  <% end %>
+</div>
+

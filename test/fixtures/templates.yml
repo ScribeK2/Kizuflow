@@ -1,0 +1,21 @@
+one:
+  name: "Test Template"
+  description: "A test template"
+  category: "post-onboarding"
+  is_public: true
+  workflow_data: <%= [{ type: "question", title: "Question 1" }].to_json %>
+
+two:
+  name: "Private Template"
+  description: "A private template"
+  category: "troubleshooting"
+  is_public: false
+  workflow_data: <%= [{ type: "decision", title: "Decision 1" }].to_json %>
+
+three:
+  name: "Public Template"
+  description: "A public template"
+  category: "post-onboarding"
+  is_public: true
+  workflow_data: <%= [].to_json %>
+

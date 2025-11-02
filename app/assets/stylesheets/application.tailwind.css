@@ -1,0 +1,385 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Force class-based dark mode - Tailwind v4 uses media queries by default */
+/* Since Tailwind compiles dark: classes into @media (prefers-color-scheme: dark),
+   we need to override that behavior to use class-based instead.
+   We'll add CSS that replicates dark mode styles but scoped to .dark class */
+html.dark {
+  color-scheme: dark;
+}
+
+/* Override media query dark mode - only apply when .dark class is present */
+/* This ensures dark mode is controlled by the .dark class, not system preference */
+@media (prefers-color-scheme: dark) {
+  html:not(.dark) {
+    /* Force light mode even if system prefers dark */
+    color-scheme: light;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  html.dark {
+    /* Force dark mode even if system prefers light */
+    color-scheme: dark;
+  }
+}
+
+/* Validation error styling */
+.field-container .error-message {
+  @apply text-red-600 dark:text-red-400 text-xs mt-1;
+}
+
+.field-container input.border-red-500,
+.field-container textarea.border-red-500,
+.field-container select.border-red-500 {
+  @apply border-red-500 dark:border-red-400 focus:ring-red-500 dark:focus:ring-red-400 focus:border-red-500 dark:focus:border-red-400;
+}
+
+/* Prevent overflow in grid layouts */
+.grid.grid-cols-1.md\:grid-cols-2 > div:first-child {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* Ensure option items don't overflow */
+.option-item {
+  min-width: 0;
+}
+
+.option-item input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Trix Editor Custom Styling */
+trix-editor {
+  @apply border border-gray-300 dark:border-gray-600 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+  min-height: 8rem;
+  background-color: #ffffff !important;
+}
+
+html.dark trix-editor {
+  background-color: #374151 !important; /* dark:bg-gray-700 */
+  color: #f3f4f6 !important; /* dark:text-gray-100 */
+}
+
+/* Ensure Trix editor content area shows formatting properly - use regular CSS for nested selectors */
+html:not(.dark) trix-editor {
+  color: #111827 !important; /* text-gray-900 */
+  background-color: #ffffff !important;
+}
+
+html.dark trix-editor {
+  color: #f3f4f6 !important; /* text-gray-100 */
+  background-color: #374151 !important; /* dark:bg-gray-700 */
+}
+
+trix-editor h1 {
+  font-size: 1.25rem; /* text-xl */
+  font-weight: 700; /* font-bold */
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+trix-editor h2 {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 600; /* font-semibold */
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+trix-editor ul, trix-editor ol {
+  margin-left: 1.5rem; /* ml-6 */
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+trix-editor li {
+  margin-bottom: 0.25rem; /* mb-1 */
+}
+
+trix-editor blockquote {
+  border-left: 4px solid #d1d5db; /* border-l-4 border-gray-300 */
+  padding-left: 1rem; /* pl-4 */
+  font-style: italic; /* italic */
+  margin: 0.5rem 0; /* my-2 */
+}
+
+html:not(.dark) trix-editor blockquote {
+  border-left-color: #d1d5db !important; /* border-gray-300 */
+}
+
+html.dark trix-editor blockquote {
+  border-left-color: #4b5563 !important; /* dark:border-gray-600 */
+}
+
+trix-editor code {
+  background-color: #f3f4f6; /* bg-gray-100 */
+  padding: 0.125rem 0.25rem; /* px-1 */
+  border-radius: 0.25rem; /* rounded */
+  font-size: 0.875rem; /* text-sm */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; /* font-mono */
+}
+
+html:not(.dark) trix-editor code {
+  background-color: #f3f4f6 !important; /* bg-gray-100 */
+  color: #111827 !important; /* text-gray-900 */
+}
+
+html.dark trix-editor code {
+  background-color: #374151 !important; /* dark:bg-gray-700 */
+  color: #f3f4f6 !important; /* dark:text-gray-100 */
+}
+
+trix-editor pre {
+  background-color: #f3f4f6; /* bg-gray-100 */
+  padding: 0.75rem; /* p-3 */
+  border-radius: 0.25rem; /* rounded */
+  overflow-x: auto; /* overflow-x-auto */
+  margin: 0.5rem 0; /* my-2 */
+}
+
+html:not(.dark) trix-editor pre {
+  background-color: #f3f4f6 !important; /* bg-gray-100 */
+  color: #111827 !important; /* text-gray-900 */
+}
+
+html.dark trix-editor pre {
+  background-color: #374151 !important; /* dark:bg-gray-700 */
+  color: #f3f4f6 !important; /* dark:text-gray-100 */
+}
+
+/* Trix Toolbar Styling */
+trix-toolbar {
+  @apply border border-gray-300 dark:border-gray-600 rounded-t-md bg-gray-50 dark:bg-gray-900;
+  background-color: #f9fafb !important; /* bg-gray-50 - light mode default */
+}
+
+/* Force light mode toolbar background */
+html:not(.dark) trix-toolbar {
+  background-color: #f9fafb !important; /* bg-gray-50 */
+}
+
+/* Force dark mode toolbar background */
+html.dark trix-toolbar {
+  background-color: #1f2937 !important; /* dark:bg-gray-800 - lighter than gray-900 for better contrast */
+  border-color: #4b5563 !important; /* dark:border-gray-600 */
+}
+
+trix-toolbar .trix-button-group {
+  @apply border-gray-300 dark:border-gray-600;
+  border-color: #d1d5db !important; /* border-gray-300 - light mode default */
+}
+
+/* Force light mode button group borders */
+html:not(.dark) trix-toolbar .trix-button-group {
+  border-color: #d1d5db !important; /* border-gray-300 */
+}
+
+/* Force dark mode button group borders */
+html.dark trix-toolbar .trix-button-group {
+  border-color: #4b5563 !important; /* dark:border-gray-600 */
+}
+
+/* Trix toolbar buttons - ensure they're visible in both modes */
+trix-toolbar .trix-button {
+  background-color: transparent !important;
+  border: none !important;
+  opacity: 1 !important;
+}
+
+/* Force light mode button colors */
+html:not(.dark) trix-toolbar .trix-button {
+  color: #374151 !important; /* text-gray-700 */
+  fill: #374151 !important; /* For SVG icons */
+}
+
+/* Force dark mode button colors - use brighter colors for better visibility */
+html.dark trix-toolbar .trix-button {
+  color: #f3f4f6 !important; /* dark:text-gray-100 - brighter than gray-200 */
+  fill: #f3f4f6 !important; /* For SVG icons */
+  opacity: 1 !important;
+}
+
+/* Make sure button icons are visible */
+html.dark trix-toolbar .trix-button svg {
+  fill: #f3f4f6 !important;
+  color: #f3f4f6 !important;
+}
+
+trix-toolbar .trix-button:hover {
+  background-color: #e5e7eb !important; /* hover:bg-gray-200 - light mode */
+}
+
+html.dark trix-toolbar .trix-button:hover {
+  background-color: #374151 !important; /* dark:hover:bg-gray-700 */
+}
+
+trix-toolbar .trix-button.trix-active {
+  background-color: #dbeafe !important; /* bg-blue-100 - light mode */
+  color: #1e40af !important; /* text-blue-800 */
+}
+
+html.dark trix-toolbar .trix-button.trix-active {
+  background-color: #1e3a8a !important; /* dark:bg-blue-900 */
+  color: #93c5fd !important; /* dark:text-blue-200 */
+}
+
+trix-toolbar .trix-button:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+html.dark trix-toolbar .trix-button:disabled {
+  opacity: 0.2 !important;
+}
+
+/* Trix button icons */
+trix-toolbar .trix-button-group-spacer {
+  border-color: #d1d5db !important; /* border-gray-300 */
+}
+
+html.dark trix-toolbar .trix-button-group-spacer {
+  border-color: #4b5563 !important; /* dark:border-gray-600 */
+}
+
+/* Trix dialog styling */
+trix-toolbar .trix-dialog {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important; /* border-gray-300 */
+  color: #111827 !important; /* text-gray-900 */
+}
+
+html.dark trix-toolbar .trix-dialog {
+  background-color: #1f2937 !important; /* dark:bg-gray-800 */
+  border-color: #4b5563 !important; /* dark:border-gray-600 */
+  color: #f3f4f6 !important; /* dark:text-gray-100 */
+}
+
+trix-toolbar .trix-input {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+html.dark trix-toolbar .trix-input {
+  background-color: #374151 !important; /* dark:bg-gray-700 */
+  border-color: #4b5563 !important; /* dark:border-gray-600 */
+  color: #f3f4f6 !important; /* dark:text-gray-100 */
+}
+
+.trix-content {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.trix-content h1 {
+  @apply text-xl font-bold mb-2;
+}
+
+.trix-content h2 {
+  @apply text-lg font-semibold mb-2;
+}
+
+.trix-content ul, .trix-content ol {
+  @apply ml-6 mb-2;
+}
+
+.trix-content li {
+  @apply mb-1;
+}
+
+.trix-content blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2;
+}
+
+.trix-content code {
+  @apply bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm font-mono;
+}
+
+.trix-content pre {
+  @apply bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto my-2;
+}
+
+/* Progress scrollbar styling */
+.progress-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+  -webkit-overflow-scrolling: touch;
+}
+
+.progress-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.progress-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.progress-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 3px;
+}
+
+.progress-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Template card title truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom glassmorphism utilities */
+@layer utilities {
+  .glass-card {
+    @apply backdrop-blur-md bg-white/30 dark:bg-gray-800/30 border border-white/20 dark:border-gray-700/30 rounded-xl shadow-lg;
+  }
+  
+  .glass-modal {
+    @apply backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-white/30 dark:border-gray-700/30 rounded-2xl shadow-2xl;
+  }
+
+  /* Smooth scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar for dark mode */
+  .dark .progress-scroll {
+    scrollbar-color: #475569 #1e293b;
+  }
+
+  .dark .progress-scroll::-webkit-scrollbar-track {
+    background: #1e293b;
+  }
+
+  .dark .progress-scroll::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+
+  .dark .progress-scroll::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+}
+
+/* Additional animations */
+@layer components {
+  .hover-lift {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+
+  .hover-glow {
+    @apply transition-shadow duration-300 hover:shadow-neon-blue;
+  }
+}
+

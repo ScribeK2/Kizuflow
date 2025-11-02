@@ -1,0 +1,160 @@
+<%# Decision-specific fields partial %>
+<%# This partial handles all fields for decision steps, including multi-branch support %>
+<%# Supports both legacy (true_path/false_path) and new (branches) formats %>
+
+<%# Check if this step uses branches (new format) or true_path/false_path (legacy) %>
+<% has_branches = step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].any? %>
+<% branches = step['branches'] || [] %>
+
+<div class="field-container" 
+     data-controller="multi-branch" 
+     data-multi-branch-workflow-id-value="<%= defined?(workflow) ? workflow.id : nil %>"
+     data-multi-branch-variables-url-value="<%= defined?(workflow) && workflow.persisted? ? variables_workflow_path(workflow) : '' %>">
+  
+  <div class="flex items-center justify-between mb-3">
+    <label class="block text-sm font-medium text-gray-700">Decision Branches</label>
+    <button type="button" 
+            class="text-sm text-blue-600 hover:text-blue-800"
+            data-action="click->multi-branch#addBranch">
+      + Add Branch
+    </button>
+  </div>
+  
+  <%# Branches container %>
+  <div data-multi-branch-target="branchesContainer" class="space-y-2">
+    <% if has_branches %>
+      <% branches.each_with_index do |branch, index| %>
+        <% branch_condition = branch['condition'] || branch[:condition] || "" %>
+        <% branch_path = branch['path'] || branch[:path] || "" %>
+        <div class="branch-item border rounded p-3 mb-3 bg-gray-50" data-branch-index="<%= index %>">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Branch <%= index + 1 %></span>
+            <button type="button" 
+                    class="text-red-500 hover:text-red-700 text-sm"
+                    data-action="click->multi-branch#removeBranch"
+                    data-branch-index="<%= index %>">
+              Remove
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-1 gap-3">
+            <%# Rule builder for this branch %>
+            <div data-controller="rule-builder" 
+                 data-rule-builder-workflow-id-value="<%= defined?(workflow) ? workflow.id : nil %>"
+                 data-rule-builder-variables-url-value="<%= defined?(workflow) && workflow.persisted? ? variables_workflow_path(workflow) : '' %>">
+              <label class="block text-xs text-gray-600 mb-1">Condition</label>
+              <input type="hidden" 
+                     name="workflow[steps][][branches][][condition]" 
+                     value="<%= branch_condition %>"
+                     data-rule-builder-target="conditionInput"
+                     data-step-form-target="field">
+              
+              <div class="grid grid-cols-3 gap-2 items-end">
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Variable</label>
+                  <select data-rule-builder-target="variableSelect" 
+                          class="w-full border rounded px-2 py-1 text-sm"
+                          data-action="change->rule-builder#buildCondition">
+                    <option value="">-- Select variable --</option>
+                    <% if defined?(workflow) && workflow.respond_to?(:variables) %>
+                      <% workflow.variables.each do |var| %>
+                        <% selected = branch_condition.present? && branch_condition.match?(/^#{Regexp.escape(var)}\s/) ? 'selected' : '' %>
+                        <option value="<%= var %>" <%= selected %>><%= var %></option>
+                      <% end %>
+                    <% end %>
+                  </select>
+                </div>
+                
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Operator</label>
+                  <select data-rule-builder-target="operatorSelect" 
+                          class="w-full border rounded px-2 py-1 text-sm"
+                          data-action="change->rule-builder#buildCondition">
+                    <option value="">-- Select --</option>
+                    <option value="==" <%= 'selected' if branch_condition.include?('==') %>>Equals (==)</option>
+                    <option value="!=" <%= 'selected' if branch_condition.include?('!=') %>>Not Equals (!=)</option>
+                    <option value=">" <%= 'selected' if branch_condition.match?(/\s>\s/) && !branch_condition.match?(/>\s*=/) %>>Greater Than (>)</option>
+                    <option value=">=" <%= 'selected' if branch_condition.include?('>=') %>>Greater or Equal (>=)</option>
+                    <option value="<" <%= 'selected' if branch_condition.match?(/\s<\s/) && !branch_condition.match?(/<\s*=/) %>>Less Than (<)</option>
+                    <option value="<=" <%= 'selected' if branch_condition.include?('<=') %>>Less or Equal (<=)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Value</label>
+                  <input type="text" 
+                         data-rule-builder-target="valueInput" 
+                         placeholder="Value"
+                         value="<%= branch_condition.match(/['"]([^'"]*)['"]/)&.captures&.first || branch_condition.match(/\d+/)&.to_s || "" %>"
+                         class="w-full border rounded px-2 py-1 text-sm"
+                         data-action="input->rule-builder#buildCondition">
+                </div>
+              </div>
+              
+              <div class="mt-1 p-1 bg-gray-100 rounded text-xs font-mono text-gray-700">
+                <span class="text-gray-500">Condition:</span>
+                <span data-rule-builder-target="conditionDisplay"><%= branch_condition.presence || "Not set" %></span>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-xs text-gray-600 mb-1">Go to:</label>
+              <select name="workflow[steps][][branches][][path]" 
+                      class="w-full border rounded px-2 py-1 text-sm"
+                      data-step-form-target="field"
+                      data-multi-branch-target="branchPathSelect">
+                <option value="">-- Select step --</option>
+                <% if defined?(available_steps) && available_steps.present? %>
+                  <% available_steps.each do |available_step| %>
+                    <% if available_step['title'].present? && available_step['title'] != step['title'] %>
+                      <option value="<%= available_step['title'] %>" <%= 'selected' if branch_path == available_step['title'] %>>
+                        <%= available_step['title'] %>
+                      </option>
+                    <% end %>
+                  <% end %>
+                <% end %>
+                <% if branch_path.present? && (!defined?(available_steps) || !available_steps.any? { |s| s['title'] == branch_path }) %>
+                  <option value="<%= branch_path %>" selected><%= branch_path %></option>
+                <% end %>
+              </select>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+  
+  <%# Else path (default path when no conditions match) %>
+  <div class="mt-4" data-multi-branch-target="elsePathContainer">
+    <label class="block text-sm font-medium text-gray-700">Else (default), go to:</label>
+    <div class="field-container mt-1" data-controller="searchable-dropdown" data-searchable-dropdown-placeholder-value="-- Select step --">
+      <select name="workflow[steps][][else_path]" 
+              class="w-full border rounded px-3 py-2"
+              data-step-form-target="field"
+              data-searchable-dropdown-target="select">
+        <option value="">-- Select step --</option>
+        <% if defined?(available_steps) && available_steps.present? %>
+          <% available_steps.each do |available_step| %>
+            <% if available_step['title'].present? && available_step['title'] != step['title'] %>
+              <option value="<%= available_step['title'] %>" <%= 'selected' if step['else_path'] == available_step['title'] %>>
+                <%= available_step['title'] %>
+              </option>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% if step['else_path'].present? && (!defined?(available_steps) || !available_steps.any? { |s| s['title'] == step['else_path'] }) %>
+          <option value="<%= step['else_path'] %>" selected><%= step['else_path'] %></option>
+        <% end %>
+      </select>
+    </div>
+    <p class="mt-1 text-xs text-gray-500">Optional: Path to take when no branch conditions match</p>
+  </div>
+  
+  <%# Legacy true_path/false_path fields (hidden, for backward compatibility) %>
+  <%# These will be converted to branches on save if branches array is empty %>
+  <input type="hidden" name="workflow[steps][][true_path]" value="<%= step['true_path'] %>">
+  <input type="hidden" name="workflow[steps][][false_path]" value="<%= step['false_path'] %>">
+  
+  <p class="mt-2 text-xs text-gray-500">Available variables come from question steps with variable names</p>
+</div>
+

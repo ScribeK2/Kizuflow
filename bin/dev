@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# bin/dev script for running Rails server with Tailwind CSS watcher
+# This is the recommended way to run Rails with tailwindcss-rails in development
+
+if ! command -v rails &> /dev/null; then
+  echo "Rails not found. Make sure you're in the project directory and Rails is installed."
+  exit 1
+fi
+
+# Build Tailwind CSS first
+echo "Building Tailwind CSS..."
+rails tailwindcss:build
+
+# Start Rails server
+echo "Starting Rails server..."
+exec rails server
+

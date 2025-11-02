@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html class="h-full" data-controller="dark-mode">
+  <head>
+    <title>Kizuflow - Workflow Builder</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= action_cable_meta_tag %>
+    
+    <!-- Initialize dark mode before page renders to prevent flash -->
+    <script>
+      (function() {
+        const savedTheme = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <%= stylesheet_link_tag "actiontext", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <script type="module">import "application"</script>
+  </head>
+
+  <body class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300 font-sans antialiased bg-fixed">
+    <!-- Navigation Bar with Glassmorphism -->
+    <nav class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-white/20 dark:border-gray-700/30 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            <div class="flex-shrink-0 flex items-center">
+              <%= link_to root_path, class: "text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300" do %>
+                Kizuflow
+              <% end %>
+            </div>
+            <div class="hidden sm:ml-8 sm:flex sm:space-x-6">
+              <%= link_to "Dashboard", root_path, class: "border-transparent text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 hover:border-blue-500 dark:hover:border-blue-400" %>
+              <%= link_to "Workflows", workflows_path, class: "border-transparent text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 hover:border-blue-500 dark:hover:border-blue-400" %>
+              <%= link_to "Templates", templates_path, class: "border-transparent text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 hover:border-blue-500 dark:hover:border-blue-400" %>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <!-- Dark Mode Toggle -->
+            <button 
+              type="button"
+              data-action="click->dark-mode#toggle"
+              class="p-2 rounded-lg bg-white/50 dark:bg-gray-800/50 border border-white/20 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label="Toggle dark mode"
+            >
+              <!-- Sun Icon (shown in dark mode to switch to light) -->
+              <svg data-dark-mode-target="sunIcon" class="w-5 h-5 text-yellow-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+              <!-- Moon Icon (shown in light mode to switch to dark) -->
+              <svg data-dark-mode-target="moonIcon" class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+              </svg>
+            </button>
+            
+            <% if user_signed_in? %>
+              <span class="hidden md:inline text-sm text-gray-700 dark:text-gray-300 font-medium">Signed in as <%= current_user.email %></span>
+              <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
+                Sign out
+              <% end %>
+            <% else %>
+              <%= link_to "Sign in", new_user_session_path, class: "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 hover:bg-white/50 dark:hover:bg-gray-800/50" %>
+              <%= link_to "Sign up", new_user_registration_path, class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content with top padding for fixed nav -->
+    <div class="pt-16 min-h-screen">
+      <!-- Flash Messages with Glassmorphism -->
+      <% if notice %>
+        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 animate-fade-in-up">
+          <div class="backdrop-blur-md bg-green-500/90 dark:bg-green-600/90 border border-green-400/30 dark:border-green-500/30 text-white px-6 py-3 rounded-xl shadow-lg shadow-green-500/20 max-w-2xl mx-auto" role="alert">
+            <span class="block sm:inline font-medium"><%= notice %></span>
+          </div>
+        </div>
+      <% end %>
+
+      <% if alert %>
+        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 animate-fade-in-up">
+          <div class="backdrop-blur-md bg-red-500/90 dark:bg-red-600/90 border border-red-400/30 dark:border-red-500/30 text-white px-6 py-3 rounded-xl shadow-lg shadow-red-500/20 max-w-2xl mx-auto" role="alert">
+            <span class="block sm:inline font-medium"><%= alert %></span>
+          </div>
+        </div>
+      <% end %>
+
+      <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <%= yield %>
+      </main>
+    </div>
+  </body>
+</html>

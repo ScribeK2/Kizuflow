@@ -1,0 +1,39 @@
+test:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+local:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>
+
+# Use rails credentials:edit --environment development to add the AWS keys below as credentials
+# amazon:
+#   service: S3
+#   access_key_id: <%= Rails.application.credentials.dig(:aws, :access_key_id) %>
+#   secret_access_key: <%= Rails.application.credentials.dig(:aws, :secret_access_key) %>
+#   region: us-east-1
+#   bucket: your_own_bucket
+
+# Remember not to checkin your GCS key file to a repository
+# google:
+#   service: GCS
+#   project: your_project
+#   credentials: <%= Rails.root.join("path/to/gcs.keyfile") %>
+#   bucket: your_own_bucket
+
+# Use rails credentials:edit --environment development to add the Azure Storage name and key below as credentials
+# azure:
+#   service: AzureStorage
+#   storage_account_name: <%= Rails.application.credentials.dig(:azure_storage, :storage_account_name) %>
+#   storage_access_key: <%= Rails.application.credentials.dig(:azure_storage, :storage_access_key) %>
+#   container: your_container_name
+
+# Mirror service for replicating uploads to a secondary service.
+# See the Active Storage overview guide for details on configurating mirror services.
+# mirror:
+#   service: Mirror
+#   primary: local
+#   mirrors:
+#     - amazon
+#     - azure
+

@@ -1,0 +1,18 @@
+one:
+  title: "Test Workflow One"
+  description: "First test workflow"
+  user: one
+  steps: <%= [{ type: "question", title: "Question 1", description: "First question" }].to_json %>
+
+two:
+  title: "Test Workflow Two"
+  description: "Second test workflow"
+  user: one
+  steps: <%= [{ type: "action", title: "Action 1", instructions: "Do something" }].to_json %>
+
+three:
+  title: "Other User Workflow"
+  description: "Workflow by another user"
+  user: two
+  steps: <%= [].to_json %>
+

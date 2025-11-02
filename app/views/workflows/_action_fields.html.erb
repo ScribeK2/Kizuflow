@@ -1,0 +1,88 @@
+<%# Action-specific fields partial %>
+<%# This partial handles all fields for action steps, including file attachments %>
+
+<div class="field-container">
+  <label class="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
+  <input type="text" 
+         name="workflow[steps][][action_type]" 
+         value="<%= step['action_type'] %>" 
+         placeholder="e.g., Email, Notification, etc." 
+         class="w-full border rounded px-3 py-2"
+         data-step-form-target="field">
+</div>
+
+<div class="field-container">
+  <label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
+  <textarea name="workflow[steps][][instructions]" 
+            placeholder="Detailed instructions for this action..." 
+            class="w-full border rounded px-3 py-2" 
+            rows="3"
+            data-step-form-target="field"><%= step['instructions'] %></textarea>
+</div>
+
+<div class="field-container" 
+     data-controller="file-attachment"
+     data-file-attachment-step-index-value="<%= defined?(step_index) ? step_index : '' %>">
+  <label class="block text-sm font-medium text-gray-700 mb-1">Attachments</label>
+  
+  <%# Hidden input to store attachment signed IDs %>
+  <input type="hidden" 
+         name="workflow[steps][][attachments]" 
+         value="<%= step['attachments'].present? ? step['attachments'].to_json : '[]' %>"
+         data-file-attachment-target="attachmentsInput"
+         data-step-form-target="field">
+  
+  <%# File input %>
+  <div class="mt-2">
+    <input type="file" 
+           class="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100
+                  cursor-pointer"
+           data-file-attachment-target="fileInput"
+           data-action="change->file-attachment#handleFileSelect"
+           multiple
+           accept="image/*,.pdf,.doc,.docx,.txt,.csv">
+    <p class="mt-1 text-xs text-gray-500">Upload files (images, PDFs, documents). Multiple files allowed.</p>
+  </div>
+  
+  <%# Display existing attachments %>
+  <div data-file-attachment-target="attachmentsList" class="mt-3 space-y-2">
+    <% if step['attachments'].present? && step['attachments'].is_a?(Array) %>
+      <% step['attachments'].each_with_index do |attachment_id, index| %>
+        <% if attachment_id.present? %>
+          <% begin %>
+            <% blob = ActiveStorage::Blob.find_signed(attachment_id) %>
+            <div class="flex items-center justify-between p-2 bg-gray-50 rounded border" data-attachment-id="<%= attachment_id %>">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-700" data-file-name="<%= attachment_id %>"><%= blob.filename %></span>
+              </div>
+              <button type="button" 
+                      class="text-red-500 hover:text-red-700 text-sm"
+                      data-action="click->file-attachment#removeAttachment"
+                      data-attachment-id="<%= attachment_id %>">
+                Remove
+              </button>
+            </div>
+          <% rescue => e %>
+            <div class="flex items-center justify-between p-2 bg-gray-50 rounded border" data-attachment-id="<%= attachment_id %>">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-700" data-file-name="<%= attachment_id %>">Loading...</span>
+              </div>
+              <button type="button" 
+                      class="text-red-500 hover:text-red-700 text-sm"
+                      data-action="click->file-attachment#removeAttachment"
+                      data-attachment-id="<%= attachment_id %>">
+                Remove
+              </button>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+

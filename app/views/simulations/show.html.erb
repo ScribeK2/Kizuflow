@@ -1,0 +1,76 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 animate-fade-in">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Simulation Results</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Execution path and results for <%= @workflow.title %></p>
+  </div>
+
+  <div class="glass-card overflow-hidden mb-6 animate-fade-in-up">
+    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Execution Path</h2>
+    </div>
+    <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>
+      <div class="p-6 space-y-4">
+        <% @simulation.execution_path.each_with_index do |path_item, index| %>
+          <div class="border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-2 backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 rounded-r-lg animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
+            <div class="flex items-center mb-2">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold mr-3">
+                <%= index + 1 %>
+              </span>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= path_item['step_title'] %></h3>
+              <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                <%= path_item['step_type'] %>
+              </span>
+            </div>
+            <% if path_item['answer'].present? %>
+              <p class="text-gray-600 dark:text-gray-300 ml-11"><strong>Answer:</strong> <%= path_item['answer'] %></p>
+            <% end %>
+            <% if path_item['condition_result'].present? %>
+              <p class="text-gray-600 dark:text-gray-300 ml-11">
+                <strong>Condition Result:</strong> 
+                <span class="<%= path_item['condition_result'] ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' %>">
+                  <%= path_item['condition_result'] ? 'True' : 'False' %>
+                </span>
+              </p>
+            <% end %>
+            <% if path_item['action_completed'].present? %>
+              <p class="text-green-600 dark:text-green-400 ml-11">✓ Action completed</p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="p-12 text-center">
+        <p class="text-gray-500 dark:text-gray-400">No execution path recorded.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
+    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Results Summary</h2>
+    </div>
+    <% if @simulation.results.present? %>
+      <div class="p-6">
+        <dl class="space-y-2">
+          <% @simulation.results.each do |key, value| %>
+            <div class="flex">
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 w-1/3"><%= key %>:</dt>
+              <dd class="text-sm text-gray-900 dark:text-gray-100"><%= value %></dd>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+    <% else %>
+      <div class="p-12 text-center">
+        <p class="text-gray-500 dark:text-gray-400">No results recorded.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="mt-6 flex justify-end">
+    <%= link_to workflow_path(@workflow), class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" do %>
+      Back to Workflow
+    <% end %>
+  </div>
+</div>
+
