@@ -1,5 +1,7 @@
 # Kizuflow
 
+<img width="1560" height="1117" alt="image" src="https://github.com/user-attachments/assets/6be51bf9-8719-4ba0-9207-12e9a2c0f7f7" />
+
 A straightforward, no-nonsense workflow creator for call/chat centers to build and simulate post-onboarding training and client troubleshooting flows. Built as a simple Ruby on Rails monolith that focuses on core functionality without unnecessary complexity.
 
 ## Overview
