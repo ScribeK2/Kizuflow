@@ -1,5 +1,7 @@
 # Be sure to restart your server when you modify this file.
 
+require 'devise/orm/active_record'
+
 # Use this hook to configure devise mailer, warden hooks and so forth.
 # Many of these configuration options can be set straight in your model.
 Devise.setup do |config|
