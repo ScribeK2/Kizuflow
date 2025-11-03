@@ -7,16 +7,6 @@ Rails.application.configure do
   config.database_url = ENV['DATABASE_URL']
   config.cache_classes = true
   config.eager_load = true
-  config.public_file_server.enabled = true
-  config.public_file_server.headers = {
-    'Cache-Control' => "public, max-age=#{1.hour.to_i}"
-  }
-
-  # Code is not reloaded between requests.
-  config.cache_classes = true
-
-  # Eager load code on boot for better performance and memory usage.
-  config.eager_load = true
 
   # Full error reports are disabled.
   config.consider_all_requests_local = false
@@ -26,7 +16,12 @@ Rails.application.configure do
   # config.require_master_key = true
 
   # Enable static file serving from the `/public` folder (turn off if using NGINX/Apache for it).
-  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
+  # On Render, we need to serve static files ourselves, so enable this
+  # Also ensure importmap-rails can serve JavaScript files
+  config.public_file_server.enabled = ENV.fetch("RAILS_SERVE_STATIC_FILES", "true") == "true"
+  config.public_file_server.headers = {
+    'Cache-Control' => "public, max-age=#{1.hour.to_i}"
+  }
 
   # Compress CSS using a preprocessor.
   # config.assets.css_compressor = :sass
