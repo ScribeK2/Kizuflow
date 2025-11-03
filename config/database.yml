@@ -25,4 +25,5 @@ test:
 # 4. Production – ONLY uses Render’s DATABASE_URL
 # -------------------------------------------------
 production:
+  adapter: postgresql
   url: <%= ENV["DATABASE_URL"] %>
