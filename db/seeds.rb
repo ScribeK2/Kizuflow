@@ -1,5 +1,19 @@
 # Seeds file for Kizuflow
 
+# Create demo admin user for Render deployment
+admin_user = User.find_or_initialize_by(email: "kevinkenney@corporatetools.com")
+if admin_user.new_record?
+  admin_user.password = "Password123!"
+  admin_user.password_confirmation = "Password123!"
+  admin_user.role = "admin"
+  admin_user.save!
+  puts "Created admin user: kevinkenney@corporatetools.com"
+else
+  # Update existing user to ensure they're an admin
+  admin_user.update!(role: "admin", password: "Password123!", password_confirmation: "Password123!")
+  puts "Updated user to admin: kevinkenney@corporatetools.com"
+end
+
 # Post-onboarding checklist template
 post_onboarding = Template.find_or_create_by!(name: "Post-Onboarding Checklist") do |t|
   t.description = "A comprehensive checklist for onboarding new clients after initial setup"
