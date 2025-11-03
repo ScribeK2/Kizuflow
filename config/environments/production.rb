@@ -1,12 +1,21 @@
 require "active_support/core_ext/integer/time"
 
-# config/environments/production.rb
-
-# ADD THIS LINE — forces Rails to use Render's DB URL
-config.database_url = ENV['DATABASE_URL']
-
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
+# config/environments/production.rb
+
+require_relative "application"
+
+Rails.application.configure do
+
+  # ADD THIS LINE — inside the block
+  config.database_url = ENV['DATABASE_URL']
+  config.cache_classes = true
+  config.eager_load = true
+  config.public_file_server.enabled = true
+  config.public_file_server.headers = {
+    'Cache-Control' => "public, max-age=#{1.hour.to_i}"
+  }
 
   # Code is not reloaded between requests.
   config.cache_classes = true
