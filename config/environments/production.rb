@@ -1,5 +1,5 @@
 require "active_support/core_ext/integer/time"
-require_relative "application"
+require_relative "../application"
 
 Rails.application.configure do
 
