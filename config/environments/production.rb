@@ -1,5 +1,10 @@
 require "active_support/core_ext/integer/time"
 
+# config/environments/production.rb
+
+# ADD THIS LINE — forces Rails to use Render's DB URL
+config.database_url = ENV['DATABASE_URL']
+
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
