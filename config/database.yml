@@ -3,9 +3,9 @@
 # 1. Default settings (shared by dev / test)
 # -------------------------------------------------
 default: &default
-  adapter: sqlite2
+  adapter: sqlite3
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 4 } %>
-  timeout: 4999
+  timeout: 5000
 
 # -------------------------------------------------
 # 2. Development – uses SQLite (local file)
@@ -22,10 +22,7 @@ test:
   database: db/test.sqlite3
 
 # -------------------------------------------------
-# 4. Production – **ONLY** uses Render’s DATABASE_URL
+# 4. Production – ONLY uses Render’s DATABASE_URL
 # -------------------------------------------------
 production:
   url: <%= ENV["DATABASE_URL"] %>
-
-
-

@@ -13,18 +13,15 @@ module Kizuflow
     config.load_defaults 8.0
 
     # -----------------------------------------------------------------
-    # RAILS 8 FIX: Force DATABASE_URL in production (Render only)
+    # NO DB OVERRIDE NEEDED
     # -----------------------------------------------------------------
-    # `config.database_configuration` is read-only in Rails 8.
-    # Use `config.active_record.database_configuration` instead.
-    if Rails.env.production?
-      config.active_record.database_configuration = {
-        "production" => { "url" => ENV["DATABASE_URL"] }
-      }
-    end
+    # `database.yml` already contains `url: <%= ENV["DATABASE_URL"] %>`
+    # Rails 8 automatically uses it in production when present.
+    # The previous `config.active_record.database_configuration = …`
+    # caused a NoMethodError and is **not required**.
 
     # -----------------------------------------------------------------
-    # 2. Settings in config/environments/* take precedence over these.
+    # Settings in config/environments/* take precedence over these.
     # -----------------------------------------------------------------
     # (Leave all the defaults you already have – they apply to dev/test.)
 
@@ -51,10 +48,5 @@ module Kizuflow
 
     # Version of your assets, change this if you want to expire all your assets.
     config.assets.version = "1.0"
-
-    # -----------------------------------------------------------------
-    # 3. DO NOT TOUCH ANYTHING BELOW THIS LINE
-    # -----------------------------------------------------------------
-    # (All the default Rails 8 config you already have stays exactly the same.)
   end
 end
