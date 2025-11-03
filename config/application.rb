@@ -1,3 +1,4 @@
+# config/application.rb
 require_relative "boot"
 
 require "rails/all"
@@ -6,27 +7,54 @@ require "rails/all"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-# Explicitly require Devise and its ActiveRecord ORM adapter
-# This must happen before models are loaded
-require "devise"
-require "devise/orm/active_record"
-
 module Kizuflow
   class Application < Rails::Application
+    # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
 
-    # Please, add to the `ignore` list any other `lib` subdirectories that do
-    # not contain `.rb` files, or that should not be reloaded or eager loaded.
-    # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    # -----------------------------------------------------------------
+    # 1. FORCE DATABASE_URL IN PRODUCTION (Render only)
+    # -----------------------------------------------------------------
+    # This overrides any host/port defaults that might sneak in from
+    # database.yml or Rails defaults. It runs **only** in production.
+    if Rails.env.production?
+      config.database_configuration = {
+        production: { url: ENV["DATABASE_URL"] }
+      }
+    end
+
+    # -----------------------------------------------------------------
+    # 2. Settings in config/environments/* take precedence over these.
+    # -----------------------------------------------------------------
+    # (Leave all the defaults you already have – they apply to dev/test.)
 
     # Configuration for the application, engines, and railties goes here.
     #
-    # These settings can be overridden in specific environments using the files
-    # in config/environments, which are processed later.
-    #
+    # Examples:
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Only load the plugins named here, in the order given (default is alphabetical).
+    # :all can be used as a placeholder for all plugins not explicitly named.
+    # config.plugins = [ :exception_notification, :ssl_requirement, :all ]
+
+    # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
+    # Run "rails time:zones" for a list.
+    # config.time_zone = "UTC"
+
+    # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
+    # config.i18n.load_path += Dir[Rails.root.join("my", "locales", "*.{rb,yml}").to_s]
+    # config.i18n.default_locale = :de
+
+    # Enable the asset pipeline
+    config.assets.enabled = true
+
+    # Version of your assets, change this if you want to expire all your assets.
+    config.assets.version = "1.0"
+
+    # -----------------------------------------------------------------
+    # 3. DO NOT TOUCH ANYTHING BELOW THIS LINE
+    # -----------------------------------------------------------------
+    # (All the default Rails 8 config you already have stays exactly the same.)
   end
 end
-
