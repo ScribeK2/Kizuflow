@@ -1,5 +1,7 @@
 # Kizuflow
 
+<img width="1560" height="1117" alt="Kizuflow Dashboard" src="https://github.com/user-attachments/assets/6be51bf9-8719-4ba0-9207-12e9a2c0f7f7" />
+
 A straightforward, no-nonsense workflow creator for call/chat centers to build and simulate post-onboarding training and client troubleshooting flows. Built as a simple Ruby on Rails monolith that focuses on core functionality without unnecessary complexity.
 
 ## Overview
@@ -74,7 +76,7 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ScribeK2/Kizuflow
    cd Kizuflow
    ```
 
@@ -111,15 +113,13 @@ Before you begin, ensure you have the following installed:
 
 1. **Create an account**: Sign up with your email address and password
 2. **Access the dashboard**: View all your workflows and templates from the main dashboard
-3. **Create a workflow**: Start from scratch, use a template from the library, or import from JSON/CSV/YAML/Markdown
+3. **Create a workflow**: Start from scratch or use a template from the library
 4. **Build your workflow**: Add steps using the drag-and-drop interface
    - Add questions to collect user input
    - Add decisions to create branching logic
    - Add actions to define workflow steps
-5. **Collaborate in real-time**: Multiple users can edit the same workflow simultaneously with live updates
-6. **Test your workflow**: Use simulation mode to run workflows with test inputs
-7. **Export workflows**: Export completed workflows as JSON or PDF
-8. **Share workflows**: Make workflows public to allow other users to view and edit them
+5. **Test your workflow**: Use simulation mode to run workflows with test inputs
+6. **Export workflows**: Export completed workflows as JSON or PDF
 
 ### Workflow Building
 
@@ -130,26 +130,6 @@ Workflows consist of three types of steps:
 - **Action Steps**: Define actions to be performed at specific points in the workflow
 
 Steps can be reordered using drag-and-drop, and decision steps support multiple branches with conditions.
-
-### Workflow Import
-
-Import workflows from multiple file formats:
-
-- **JSON**: Native Kizuflow export format with full step definitions
-- **CSV**: Spreadsheet format with columns for Type, Title, Question, Answer Type, etc.
-- **YAML**: Structured configuration format with hierarchical key-value pairs
-- **Markdown**: Documentation format with step headers and field definitions
-
-Partial imports are supported - incomplete steps will be marked for your attention and can be completed on the edit page. Step references in markdown files are automatically resolved (e.g., "Step 3" references are mapped to actual step titles).
-
-### Real-Time Collaboration
-
-Multiple users can edit the same workflow simultaneously:
-
-- See presence indicators showing who else is currently editing
-- Changes are synchronized in real-time across all connected clients
-- Step updates, additions, removals, and reordering happen instantly
-- Metadata changes (title, description) are broadcast to all editors
 
 ### Templates
 
@@ -182,23 +162,17 @@ bundle exec rspec
 
 The application follows Rails conventions:
 - Models: `app/models/` - Workflow, Template, Simulation, User
-- Controllers: `app/controllers/` - Workflows, Templates, Simulations, Dashboard, Admin
+- Controllers: `app/controllers/` - Workflows, Templates, Simulations, Dashboard
 - Views: `app/views/` - Server-rendered ERB templates
 - JavaScript: `app/javascript/` - Stimulus controllers for interactivity
-- Channels: `app/channels/` - Action Cable channels for real-time features
-- Services: `app/services/` - Workflow parsers for import functionality
 - Styles: `app/assets/stylesheets/` - Tailwind CSS configuration
 
 ### Key Files
 
-- `app/models/workflow.rb` - Core workflow model with step validation and authorization
-- `app/models/user.rb` - User model with role-based methods
-- `app/controllers/workflows_controller.rb` - Workflow CRUD operations and import
-- `app/channels/workflow_channel.rb` - Action Cable channel for real-time collaboration
-- `app/services/workflow_parsers/` - Parsers for JSON, CSV, YAML, and Markdown imports
-- `app/javascript/controllers/workflow_collaboration_controller.js` - Real-time collaboration logic
-- `app/javascript/controllers/workflow_builder_controller.js` - Drag-and-drop workflow builder
-- `config/routes.rb` - Application routes including admin namespace
+- `app/models/workflow.rb` - Core workflow model with step validation
+- `app/controllers/workflows_controller.rb` - Workflow CRUD operations
+- `app/javascript/controllers/` - Stimulus controllers for frontend interactivity
+- `config/routes.rb` - Application routes
 - `db/schema.rb` - Database schema
 
 ## Deployment
@@ -210,10 +184,8 @@ The application is configured for deployment with Kamal. Configuration details c
 - Set `RAILS_MASTER_KEY` environment variable
 - Configure PostgreSQL database credentials
 - Set up Active Storage for file uploads
-- Configure Action Cable for WebSocket connections (required for real-time collaboration)
+- Configure Action Cable for WebSocket connections
 - Set `SECRET_KEY_BASE` for session encryption
-- Configure Redis or another adapter for Action Cable pub/sub
-- Set up initial admin user via seed data or database migration
 
 ## Contributing
 
