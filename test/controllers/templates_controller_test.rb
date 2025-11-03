@@ -7,11 +7,24 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
   self.use_transactional_tests = true
 
   def setup
-    # Create user directly instead of using fixtures
-    @user = User.create!(
-      email: "test@example.com",
+    # Create users with different roles (using unique emails)
+    @admin = User.create!(
+      email: "admin-template-#{SecureRandom.hex(4)}@example.com",
       password: "password123",
-      password_confirmation: "password123"
+      password_confirmation: "password123",
+      role: "admin"
+    )
+    @editor = User.create!(
+      email: "editor-template-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "editor"
+    )
+    @user = User.create!(
+      email: "user-template-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "user"
     )
     @template = Template.create!(
       name: "Test Template",
@@ -20,7 +33,14 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
       is_public: true,
       workflow_data: [{ type: "question", title: "Question 1" }]
     )
-    sign_in @user
+    @private_template = Template.create!(
+      name: "Private Template",
+      description: "A private template",
+      category: "troubleshooting",
+      is_public: false,
+      workflow_data: [{ type: "action", title: "Action 1" }]
+    )
+    sign_in @editor
   end
 
   test "should get index" do
@@ -61,6 +81,62 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_workflow_path(workflow)
     assert workflow.title.include?(@template.name)
     assert_equal @template.workflow_data, workflow.steps
+  end
+
+  # Authorization Tests
+  test "admin should see all templates in index" do
+    sign_in @admin
+    get templates_path
+    assert_response :success
+    # Admin should see both public and private templates
+    assert_select "h3", text: /Test Template/
+  end
+
+  test "non-admin should see only public templates in index" do
+    sign_in @user
+    get templates_path
+    assert_response :success
+    assert_select "h3", text: /Test Template/
+    # Should not see private template
+    assert_select "h3", text: /Private Template/, count: 0
+  end
+
+  test "admin should be able to view private template" do
+    sign_in @admin
+    get template_path(@private_template)
+    assert_response :success
+  end
+
+  test "non-admin should not be able to view private template" do
+    sign_in @user
+    get template_path(@private_template)
+    assert_redirected_to templates_path
+    assert_equal "You don't have permission to view this template.", flash[:alert]
+  end
+
+  test "admin should be able to use template" do
+    sign_in @admin
+    assert_difference("Workflow.count") do
+      post use_template_path(@template)
+    end
+    assert_redirected_to edit_workflow_path(Workflow.last)
+  end
+
+  test "editor should be able to use template" do
+    sign_in @editor
+    assert_difference("Workflow.count") do
+      post use_template_path(@template)
+    end
+    assert_redirected_to edit_workflow_path(Workflow.last)
+  end
+
+  test "user should not be able to use template" do
+    sign_in @user
+    assert_no_difference("Workflow.count") do
+      post use_template_path(@template)
+    end
+    assert_redirected_to root_path
+    assert_equal "You don't have permission to perform this action.", flash[:alert]
   end
 end
 

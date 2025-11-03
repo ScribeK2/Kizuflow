@@ -20,19 +20,59 @@ export default class extends Controller {
     // Subscribe to workflow channel if workflow ID is available
     if (this.hasWorkflowIdValue) {
       this.subscription = subscribeToWorkflow(this.workflowIdValue, {
-        connected: () => this.handleConnected(),
-        disconnected: () => this.handleDisconnected(),
-        saved: (data) => this.handleSaved(data),
-        error: (data) => this.handleError(data)
+        connected: () => {
+          console.log("Autosave: Connected to workflow channel")
+          this.handleConnected()
+        },
+        disconnected: () => {
+          console.log("Autosave: Disconnected from workflow channel")
+          this.handleDisconnected()
+        },
+        saved: (data) => {
+          console.log("Autosave: Received saved callback", data)
+          this.handleSaved(data)
+        },
+        error: (data) => {
+          console.log("Autosave: Received error callback", data)
+          this.handleError(data)
+        }
       })
+      
+      // Also listen for the custom event (backup)
+      this.autosavedHandler = (event) => {
+        console.log("Autosave: Received workflow:autosaved event", event.detail)
+        if (event.detail.status === "saved") {
+          this.handleSaved(event.detail)
+        } else if (event.detail.status === "error") {
+          this.handleError(event.detail)
+        }
+      }
+      document.addEventListener("workflow:autosaved", this.autosavedHandler)
     }
 
     // Set up form change listeners
     this.debouncedAutosave = this.debounce(() => this.performAutosave(), this.debounceMsValue)
     
+    // Store handlers so we can remove them later
+    this.inputHandler = (event) => {
+      // Skip autosave if this is a remote update from collaboration
+      if (event.detail && event.detail.remoteUpdate) {
+        return
+      }
+      this.debouncedAutosave()
+    }
+    
+    this.changeHandler = (event) => {
+      // Skip autosave if this is a remote update from collaboration
+      if (event.detail && event.detail.remoteUpdate) {
+        return
+      }
+      this.debouncedAutosave()
+    }
+    
     // Listen for form changes
-    this.formElement.addEventListener("input", this.debouncedAutosave)
-    this.formElement.addEventListener("change", this.debouncedAutosave)
+    this.formElement.addEventListener("input", this.inputHandler)
+    this.formElement.addEventListener("change", this.changeHandler)
     
     // Also listen for Trix changes
     this.formElement.addEventListener("trix-change", this.debouncedAutosave)
@@ -44,9 +84,18 @@ export default class extends Controller {
   disconnect() {
     // Cleanup
     if (this.formElement) {
-      this.formElement.removeEventListener("input", this.debouncedAutosave)
-      this.formElement.removeEventListener("change", this.debouncedAutosave)
+      if (this.inputHandler) {
+        this.formElement.removeEventListener("input", this.inputHandler)
+      }
+      if (this.changeHandler) {
+        this.formElement.removeEventListener("change", this.changeHandler)
+      }
       this.formElement.removeEventListener("trix-change", this.debouncedAutosave)
+    }
+    
+    // Remove event listener
+    if (this.autosavedHandler) {
+      document.removeEventListener("workflow:autosaved", this.autosavedHandler)
     }
     
     // Unsubscribe from channel
@@ -66,6 +115,7 @@ export default class extends Controller {
       return
     }
 
+    console.log("Autosave: Starting autosave...")
     this.updateStatus("saving", "Saving...")
     
     // Collect form data
@@ -198,11 +248,12 @@ export default class extends Controller {
 
   handleSaved(data) {
     console.log("Autosave successful:", data)
-    this.updateStatus("saved", `Saved at ${new Date(data.timestamp).toLocaleTimeString()}`)
+    const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString()
+    this.updateStatus("saved", `Saved at ${timestamp}`)
     
     // Reset to ready after 3 seconds
     setTimeout(() => {
-      if (this.statusTarget.textContent.includes("Saved")) {
+      if (this.hasStatusTarget && this.statusTarget.textContent.includes("Saved")) {
         this.updateStatus("ready", "Ready to save")
       }
     }, 3000)
@@ -210,11 +261,16 @@ export default class extends Controller {
 
   handleError(data) {
     console.error("Autosave error:", data.errors)
-    this.updateStatus("error", `Error: ${data.errors.join(", ")}`)
+    const errorMessage = data.errors && data.errors.length > 0 
+      ? data.errors.join(", ") 
+      : "Unknown error"
+    this.updateStatus("error", `Error: ${errorMessage}`)
     
     // Reset to ready after 5 seconds
     setTimeout(() => {
-      this.updateStatus("ready", "Ready to save")
+      if (this.hasStatusTarget) {
+        this.updateStatus("ready", "Ready to save")
+      }
     }, 5000)
   }
 

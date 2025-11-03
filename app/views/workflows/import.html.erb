@@ -1,0 +1,161 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 animate-fade-in">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Import Workflow</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Upload a JSON, CSV, YAML, or Markdown file to import a workflow.</p>
+      </div>
+      <%= link_to workflows_path, class: "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors" do %>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="glass-card overflow-hidden animate-fade-in-up">
+    <div class="p-6 space-y-6">
+      <%= form_with url: import_file_workflows_path, method: :post, local: true, multipart: true, class: "space-y-6", data: { controller: "file-upload" } do |form| %>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            Select File
+          </label>
+          <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg hover:border-blue-400 dark:hover:border-blue-500 transition-colors" 
+               data-file-upload-target="dropZone"
+               data-action="dragover->file-upload#dragOver dragleave->file-upload#dragLeave drop->file-upload#drop">
+            <div class="space-y-1 text-center" data-file-upload-target="emptyState">
+              <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <div class="flex text-sm text-gray-600 dark:text-gray-400">
+                <label for="file" class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                  <span>Upload a file</span>
+                  <%= form.file_field :file, id: "file", accept: ".json,.csv,.yaml,.yml,.md,.markdown", class: "sr-only", required: true, data: { action: "change->file-upload#fileSelected", file_upload_target: "fileInput" } %>
+                </label>
+                <p class="pl-1">or drag and drop</p>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-500">
+                JSON, CSV, YAML, or Markdown files up to 10MB
+              </p>
+            </div>
+            <div class="hidden space-y-2 text-center" data-file-upload-target="fileSelected">
+              <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-sm font-medium text-gray-900 dark:text-gray-100" data-file-upload-target="fileName">
+                No file selected
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-500" data-file-upload-target="fileSize">
+              </p>
+              <button type="button" 
+                      data-action="click->file-upload#clearFile"
+                      class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                Remove file
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-lg p-4">
+          <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Supported Formats</h3>
+          <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+            <li><strong>JSON:</strong> Native Kizuflow export format or compatible JSON structure</li>
+            <li><strong>CSV:</strong> Spreadsheet format with columns: Type, Title, Question, Answer Type, etc.</li>
+            <li><strong>YAML:</strong> Structured configuration format with hierarchical key-value pairs</li>
+            <li><strong>Markdown:</strong> Documentation format with step headers and field definitions</li>
+          </ul>
+        </div>
+
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4">
+          <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">Import Notes</h3>
+          <ul class="text-sm text-yellow-700 dark:text-yellow-300 space-y-1 list-disc list-inside">
+            <li>Incomplete steps will be imported and marked for your attention</li>
+            <li>You'll be redirected to the edit page to complete any missing information</li>
+            <li>Workflows are imported as private by default</li>
+          </ul>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+          <%= link_to "Cancel", workflows_path, class: "px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" %>
+          <%= form.submit "Import Workflow", class: "px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-8 glass-card overflow-hidden animate-fade-in-up">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">File Format Examples</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">JSON Format</h3>
+          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-xs overflow-x-auto"><code>{
+  "title": "Customer Onboarding",
+  "description": "Onboard new customers",
+  "steps": [
+    {
+      "type": "question",
+      "title": "Get Customer Name",
+      "question": "What is your name?",
+      "answer_type": "text",
+      "variable_name": "customer_name"
+    }
+  ]
+}</code></pre>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CSV Format</h3>
+          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-xs overflow-x-auto"><code>Type,Title,Question,Answer Type,Variable Name
+question,Get Customer Name,What is your name?,text,customer_name
+decision,Check Name,customer_name != "",,,"Step 3,Step 4"
+action,Welcome Customer,,,"Send welcome email"</code></pre>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">YAML Format</h3>
+          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-xs overflow-x-auto"><code>title: "Customer Onboarding"
+description: "Onboard new customers"
+steps:
+  - type: question
+    title: "Get Customer Name"
+    question: "What is your name?"
+    answer_type: text
+    variable_name: customer_name
+  - type: decision
+    title: "Check Name"
+    branches:
+      - condition: customer_name != ""
+        path: "Welcome Customer"
+  - type: action
+    title: "Welcome Customer"
+    instructions: "Send welcome email"</code></pre>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Markdown Format</h3>
+          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-xs overflow-x-auto"><code># Customer Onboarding
+
+Workflow to onboard new customers.
+
+## Step 1: Get Customer Name
+Type: question
+Question: What is your name?
+Answer Type: text
+Variable: customer_name
+
+## Step 2: Check Name
+Type: decision
+Condition: customer_name != ""
+If true: Step 3
+If false: Step 4
+
+## Step 3: Welcome Customer
+Type: action
+Instructions: Send welcome email</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

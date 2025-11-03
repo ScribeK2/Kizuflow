@@ -1,27 +1,74 @@
+require 'set'
+
 class WorkflowChannel < ApplicationCable::Channel
   def subscribed
     # Subscribe to updates for a specific workflow
     workflow = Workflow.find(params[:workflow_id])
     
-    # Ensure the user owns the workflow
-    if workflow.user == current_user
+    # Allow authorized users (editors/admins) to subscribe, not just owners
+    if workflow.can_be_edited_by?(current_user)
       stream_from "workflow:#{workflow.id}"
       stream_from "workflow:#{workflow.id}:autosave"
+      stream_from "workflow:#{workflow.id}:presence"
+      
+      # Track presence
+      add_presence(workflow)
+      
+      # Notify other users that this user joined
+      broadcast_presence_update(workflow, { type: "user_joined", user: user_info })
     else
       reject
     end
   end
 
   def unsubscribed
-    # Any cleanup needed when channel is unsubscribed
+    # Clean up presence when user leaves
+    workflow = Workflow.find_by(id: params[:workflow_id])
+    if workflow
+      remove_presence(workflow)
+      broadcast_presence_update(workflow, { type: "user_left", user: user_info })
+    end
+  end
+
+  # Handle title/description updates from other users
+  def workflow_metadata_update(data)
+    workflow = Workflow.find(params[:workflow_id])
+    return unless workflow.can_be_edited_by?(current_user)
+    
+    Rails.logger.info "WorkflowChannel: Broadcasting workflow_metadata_update - field: #{data['field']}, value length: #{data['value'].to_s.length}"
+    
+    ActionCable.server.broadcast("workflow:#{workflow.id}", {
+      type: "workflow_metadata_update",
+      field: data["field"], # "title" or "description"
+      value: data["value"],
+      user: user_info,
+      timestamp: Time.current.iso8601
+    })
+  end
+
+  # Handle step updates from other users
+  def step_update(data)
+    workflow = Workflow.find(params[:workflow_id])
+    return unless workflow.can_be_edited_by?(current_user)
+    
+    Rails.logger.info "WorkflowChannel: Broadcasting step_update - step_index: #{data['step_index']}"
+    
+    # Don't broadcast back to the sender
+    ActionCable.server.broadcast("workflow:#{workflow.id}", {
+      type: "step_update",
+      step_index: data["step_index"],
+      step_data: data["step_data"],
+      user: user_info,
+      timestamp: Time.current.iso8601
+    })
   end
 
   # Handle auto-save requests from the client
   def autosave(data)
     workflow = Workflow.find(params[:workflow_id])
     
-    # Ensure the user owns the workflow
-    return unless workflow.user == current_user
+    # Ensure the user can edit the workflow (not just own it)
+    return unless workflow.can_be_edited_by?(current_user)
     
     # Convert data to Rails-friendly format
     # Handle both string keys and symbol keys
@@ -112,6 +159,61 @@ class WorkflowChannel < ApplicationCable::Channel
 
   def broadcast_to_workflow(workflow, message)
     ActionCable.server.broadcast("workflow:#{workflow.id}:autosave", message)
+  end
+
+  def user_info
+    {
+      id: current_user.id,
+      email: current_user.email,
+      name: current_user.email.split("@").first.titleize
+    }
+  end
+
+  def add_presence(workflow)
+    # Use Redis if available, otherwise use a class-level store
+    presence_key = "workflow:#{workflow.id}:presence"
+    if defined?(Redis) && Redis.current
+      Redis.current.sadd(presence_key, current_user.id)
+      Redis.current.expire(presence_key, 3600) # Expire after 1 hour of inactivity
+    else
+      # Fallback: use class-level store (works across connections)
+      @@presence_store ||= {}
+      @@presence_store[presence_key] ||= Set.new
+      @@presence_store[presence_key].add(current_user.id)
+    end
+  end
+
+  def remove_presence(workflow)
+    presence_key = "workflow:#{workflow.id}:presence"
+    if defined?(Redis) && Redis.current
+      Redis.current.srem(presence_key, current_user.id)
+    else
+      @@presence_store ||= {}
+      @@presence_store[presence_key]&.delete(current_user.id)
+      @@presence_store.delete(presence_key) if @@presence_store[presence_key]&.empty?
+    end
+  end
+
+  def get_active_users(workflow)
+    presence_key = "workflow:#{workflow.id}:presence"
+    
+    if defined?(Redis) && Redis.current
+      user_ids = Redis.current.smembers(presence_key).map(&:to_i)
+      User.where(id: user_ids).map { |u| { id: u.id, email: u.email, name: u.email.split("@").first.titleize } }
+    else
+      # Fallback: in-memory store
+      @@presence_store ||= {}
+      user_ids = (@@presence_store[presence_key] || Set.new).to_a
+      User.where(id: user_ids).map { |u| { id: u.id, email: u.email, name: u.email.split("@").first.titleize } }
+    end
+  end
+
+  def broadcast_presence_update(workflow, message)
+    ActionCable.server.broadcast("workflow:#{workflow.id}:presence", {
+      **message,
+      active_users: get_active_users(workflow),
+      timestamp: Time.current.iso8601
+    })
   end
 end
 

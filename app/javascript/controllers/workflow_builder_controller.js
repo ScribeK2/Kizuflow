@@ -32,6 +32,15 @@ export default class extends Controller {
         onEnd: (event) => {
           this.updateOrder(event)
           this.refreshAllDropdowns()
+          
+          // Dispatch event for collaboration
+          const newOrder = Array.from(this.containerTarget.querySelectorAll(".step-item")).map((step, index) => {
+            const indexInput = step.querySelector("input[name*='[index]']")
+            return indexInput ? parseInt(indexInput.value) : index
+          })
+          document.dispatchEvent(new CustomEvent("workflow-builder:steps-reordered", {
+            detail: { newOrder }
+          }))
         }
       })
     } catch (error) {
@@ -281,6 +290,13 @@ export default class extends Controller {
     this.refreshAllRuleBuilders()
     this.notifyPreviewUpdate()
     
+    // Dispatch event for collaboration
+    const stepElement = this.containerTarget.querySelector(`[data-step-index="${stepIndex}"]`)
+    const stepData = this.extractStepData(stepElement)
+    document.dispatchEvent(new CustomEvent("workflow-builder:step-added", {
+      detail: { stepIndex, stepType, stepData }
+    }))
+    
     // Reinitialize Sortable after adding new element
     if (this.sortable) {
       this.sortable.destroy()
@@ -294,6 +310,13 @@ export default class extends Controller {
     
     const stepElement = event.target.closest("[data-step-index]")
     if (stepElement) {
+      const stepIndex = parseInt(stepElement.getAttribute("data-step-index") || stepElement.querySelector("input[name*='[index]']")?.value || "0")
+      
+      // Dispatch event for collaboration before removing
+      document.dispatchEvent(new CustomEvent("workflow-builder:step-removed", {
+        detail: { stepIndex }
+      }))
+      
       stepElement.remove()
       this.updateOrderIndices()
       this.refreshAllDropdowns()
@@ -732,5 +755,39 @@ export default class extends Controller {
     const div = document.createElement("div")
     div.textContent = text
     return div.innerHTML
+  }
+
+  extractStepData(stepElement) {
+    if (!stepElement) return {}
+    
+    const data = {}
+    
+    // Extract title
+    const titleInput = stepElement.querySelector("input[name*='[title]']")
+    if (titleInput) data.title = titleInput.value
+    
+    // Extract description
+    const descInput = stepElement.querySelector("textarea[name*='[description]']")
+    if (descInput) data.description = descInput.value
+    
+    // Extract type-specific fields
+    const typeInput = stepElement.querySelector("input[name*='[type]']")
+    if (typeInput) data.type = typeInput.value
+    
+    if (data.type === "question") {
+      const questionInput = stepElement.querySelector("input[name*='[question]']")
+      if (questionInput) data.question = questionInput.value
+      
+      const answerTypeInput = stepElement.querySelector("input[name*='[answer_type]']")
+      if (answerTypeInput) data.answer_type = answerTypeInput.value
+      
+      const variableInput = stepElement.querySelector("input[name*='[variable_name]']")
+      if (variableInput) data.variable_name = variableInput.value
+    } else if (data.type === "action") {
+      const instructionsInput = stepElement.querySelector("textarea[name*='[instructions]']")
+      if (instructionsInput) data.instructions = instructionsInput.value
+    }
+    
+    return data
   }
 }

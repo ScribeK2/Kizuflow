@@ -2,17 +2,34 @@ one:
   title: "Test Workflow One"
   description: "First test workflow"
   user: one
+  is_public: false
   steps: <%= [{ type: "question", title: "Question 1", description: "First question" }].to_json %>
 
 two:
   title: "Test Workflow Two"
   description: "Second test workflow"
   user: one
+  is_public: false
   steps: <%= [{ type: "action", title: "Action 1", instructions: "Do something" }].to_json %>
 
 three:
   title: "Other User Workflow"
   description: "Workflow by another user"
   user: two
+  is_public: false
   steps: <%= [].to_json %>
+
+public_workflow:
+  title: "Public Workflow"
+  description: "This workflow is public"
+  user: editor_user
+  is_public: true
+  steps: <%= [{ type: "question", title: "Public Question" }].to_json %>
+
+editor_workflow:
+  title: "Editor's Private Workflow"
+  description: "Private workflow by editor"
+  user: editor_user
+  is_public: false
+  steps: <%= [{ type: "action", title: "Action Step" }].to_json %>
 

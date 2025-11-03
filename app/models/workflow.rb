@@ -9,8 +9,64 @@ class Workflow < ApplicationRecord
   
   # Normalize steps before validation to convert legacy format
   before_validation :normalize_steps_on_save
+  # Clean up import flags when steps are completed
+  before_save :cleanup_import_flags
 
   scope :recent, -> { order(created_at: :desc) }
+  scope :public_workflows, -> { where(is_public: true) }
+  
+  # Get workflows visible to a specific user
+  # Admins see all, Editors see own + public, Users see only public
+  scope :visible_to, ->(user) {
+    if user&.admin?
+      all
+    elsif user&.editor?
+      where(user: user).or(where(is_public: true))
+    else
+      where(is_public: true)
+    end
+  }
+  
+  # Check if a user can view this workflow
+  def can_be_viewed_by?(user)
+    return false unless user
+    
+    # Admins can view all workflows
+    return true if user.admin?
+    
+    # Editors can view their own workflows + public workflows
+    return true if user.editor? && (user == self.user || is_public?)
+    
+    # Users can only view public workflows
+    is_public?
+  end
+  
+  # Check if a user can edit this workflow
+  def can_be_edited_by?(user)
+    return false unless user
+    
+    # Admins can edit all workflows
+    return true if user.admin?
+    
+    # Editors can edit their own workflows or public workflows created by other editors
+    if user.editor?
+      return true if user == self.user
+      return true if is_public? && self.user.editor?
+    end
+    
+    false
+  end
+  
+  # Check if a user can delete this workflow
+  def can_be_deleted_by?(user)
+    return false unless user
+    
+    # Admins can delete all workflows
+    return true if user.admin?
+    
+    # Editors can only delete their own workflows
+    user.editor? && user == self.user
+  end
   
   # Helper method to safely get description text (handles migration from text column to rich text)
   # This avoids triggering Active Storage initialization errors
@@ -36,6 +92,36 @@ class Workflow < ApplicationRecord
       description.present? || read_attribute(:description).present?
     rescue
       read_attribute(:description).present?
+    end
+  end
+
+  # Clean up import flags when steps are completed
+  def cleanup_import_flags
+    return unless steps.present?
+    
+    self.steps = steps.map do |step|
+      next step unless step.is_a?(Hash)
+      
+      # Check if step is now complete
+      is_complete = case step['type']
+      when 'question'
+        step['question'].present?
+      when 'decision'
+        branches = step['branches'] || []
+        branches.any? { |b| b['condition'].present? && b['path'].present? }
+      when 'action'
+        step['instructions'].present?
+      else
+        true
+      end
+      
+      # Remove import flags if step is complete
+      if is_complete && step['_import_incomplete']
+        step.delete('_import_incomplete')
+        step.delete('_import_errors')
+      end
+      
+      step
     end
   end
 
@@ -146,6 +232,9 @@ class Workflow < ApplicationRecord
     step_titles = steps.map { |step| step['title'] }.compact
     
     steps.each_with_index do |step, index|
+      # Skip validation for imported incomplete steps
+      next if step['_import_incomplete'] == true
+      
       if step['type'] == 'decision'
         # Handle multi-branch format (new)
         if step['branches'].present? && step['branches'].is_a?(Array)
@@ -154,7 +243,13 @@ class Workflow < ApplicationRecord
             branch_condition = branch['condition'] || branch[:condition]
             
             if branch_path.present? && !step_titles.include?(branch_path)
-              errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: References non-existent step: #{branch_path}")
+              # For imports, mark as incomplete instead of error
+              if step['_import_incomplete']
+                step['_import_errors'] ||= []
+                step['_import_errors'] << "Branch #{branch_index + 1}: References non-existent step: #{branch_path}"
+              else
+                errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: References non-existent step: #{branch_path}")
+              end
             end
             
             if branch_condition.present? && !valid_condition_format?(branch_condition)
@@ -164,7 +259,13 @@ class Workflow < ApplicationRecord
           
           # Validate else_path
           if step['else_path'].present? && !step_titles.include?(step['else_path'])
-            errors.add(:steps, "Step #{index + 1}: 'Else' path references non-existent step: #{step['else_path']}")
+            # For imports, mark as incomplete instead of error
+            if step['_import_incomplete']
+              step['_import_errors'] ||= []
+              step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
+            else
+              errors.add(:steps, "Step #{index + 1}: 'Else' path references non-existent step: #{step['else_path']}")
+            end
           end
         end
         
@@ -205,6 +306,9 @@ class Workflow < ApplicationRecord
     
     valid_steps.each_with_index do |step, index|
       step_num = index + 1
+      
+      # Skip validation for imported incomplete steps (they'll be fixed by the user)
+      next if step['_import_incomplete'] == true
       
       # Validate step has required fields
       unless step.is_a?(Hash)

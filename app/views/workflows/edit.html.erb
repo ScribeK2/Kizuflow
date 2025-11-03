@@ -1,7 +1,19 @@
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     data-controller="workflow-collaboration"
+     data-workflow-collaboration-workflow-id-value="<%= @workflow.id %>"
+     data-workflow-collaboration-current-user-id-value="<%= current_user.id %>"
+     data-workflow-collaboration-container-target="container"
+     data-workflow-collaboration-container-value="[data-workflow-builder-target='container']">
   <div class="mb-8 animate-fade-in">
-    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Edit Workflow</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Modify your workflow steps below.</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Edit Workflow</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Modify your workflow steps below.</p>
+      </div>
+      <div data-workflow-collaboration-target="presence" class="flex items-center space-x-2">
+        <!-- Presence indicators will be inserted here -->
+      </div>
+    </div>
   </div>
 
   <%= form_with model: @workflow, local: true, class: "glass-card overflow-hidden animate-fade-in-up", 
@@ -36,6 +48,34 @@
         <%= form.rich_text_area :description, id: "workflow_description_#{@workflow.id}", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
       </div>
 
+      <% if current_user&.can_edit_workflows? %>
+        <div class="flex items-center">
+          <%= form.check_box :is_public, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+          <%= form.label :is_public, "Make this workflow public (visible to all users)", class: "ml-2 block text-sm text-gray-700 dark:text-gray-300" %>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Public workflows can be viewed and simulated by all users, but only you (or admins) can edit them.
+        </p>
+      <% end %>
+
+      <% if @workflow.steps&.any? { |s| s['_import_incomplete'] } %>
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                This workflow was imported with incomplete steps
+              </h3>
+              <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                Please review and complete the steps marked as "Incomplete" below. Each incomplete step shows what information is missing.
+              </p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
       <div data-controller="workflow-builder">
         <div class="flex justify-between items-center mb-4">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
@@ -48,13 +88,28 @@
         <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
           <% if @workflow.steps.present? %>
             <% @workflow.steps.each_with_index do |step, index| %>
-              <div class="step-item border rounded p-4 mb-4" 
+              <div class="step-item border rounded p-4 mb-4 <%= 'border-yellow-400 dark:border-yellow-600 bg-yellow-50/50 dark:bg-yellow-900/10' if step['_import_incomplete'] %>" 
                    data-step-index="<%= index %>"
                    data-controller="step-form"
                    data-step-form-step-type-value="<%= step['type'] %>"
                    data-step-form-step-index-value="<%= index %>">
                 <div class="flex items-center justify-between mb-2">
-                  <span class="drag-handle cursor-move text-gray-500">☰</span>
+                  <div class="flex items-center space-x-2">
+                    <span class="drag-handle cursor-move text-gray-500">☰</span>
+                    <% if step['_import_incomplete'] %>
+                      <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Incomplete
+                      </span>
+                      <% if step['_import_errors']&.any? %>
+                        <span class="text-xs text-yellow-700 dark:text-yellow-300" title="<%= step['_import_errors'].join(', ') %>">
+                          <%= step['_import_errors'].first %>
+                        </span>
+                      <% end %>
+                    <% end %>
+                  </div>
                   <button type="button" data-action="click->workflow-builder#removeStep" class="text-red-500 hover:text-red-700">Remove</button>
                 </div>
                 <input type="hidden" name="workflow[steps][][index]" value="<%= index %>">

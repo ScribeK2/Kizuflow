@@ -4,17 +4,12 @@ class SimulationsController < ApplicationController
   def new
     @simulation = Simulation.new
     @workflow = Workflow.find(params[:workflow_id])
-    unless @workflow.user == current_user
-      redirect_to workflows_path, alert: "You don't have permission to simulate this workflow."
-    end
+    ensure_can_view_workflow!(@workflow)
   end
 
   def create
     @workflow = Workflow.find(params[:workflow_id])
-    unless @workflow.user == current_user
-      redirect_to workflows_path, alert: "You don't have permission to simulate this workflow."
-      return
-    end
+    ensure_can_view_workflow!(@workflow)
     
     @simulation = Simulation.new(simulation_params)
     @simulation.workflow = @workflow
@@ -35,20 +30,13 @@ class SimulationsController < ApplicationController
   def show
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
-    
-    unless @workflow.user == current_user
-      redirect_to workflows_path, alert: "You don't have permission to view this simulation."
-    end
+    ensure_can_view_workflow!(@workflow)
   end
   
   def step
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
-    
-    unless @workflow.user == current_user
-      redirect_to workflows_path, alert: "You don't have permission to view this simulation."
-      return
-    end
+    ensure_can_view_workflow!(@workflow)
     
     # If simulation is complete, redirect to show page
     if @simulation.complete?
@@ -112,11 +100,7 @@ class SimulationsController < ApplicationController
   def next_step
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
-    
-    unless @workflow.user == current_user
-      redirect_to workflows_path, alert: "You don't have permission to view this simulation."
-      return
-    end
+    ensure_can_view_workflow!(@workflow)
     
     # Get answer from params
     answer = params[:answer]

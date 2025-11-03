@@ -1,0 +1,80 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header Section -->
+  <div class="mb-8 flex justify-between items-center animate-fade-in">
+    <div>
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+        User Management
+      </h1>
+      <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
+        Manage user roles and permissions across the system.
+      </p>
+    </div>
+    <%= link_to admin_root_path, class: "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center" do %>
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Back to Dashboard
+    <% end %>
+  </div>
+
+  <!-- Users Table -->
+  <div class="glass-card overflow-hidden animate-fade-in-up">
+    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">All Users</h2>
+    </div>
+    <% if @users.any? %>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-white/20 dark:divide-gray-700/30">
+          <thead class="bg-white/10 dark:bg-gray-800/10">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Workflows</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/20 dark:divide-gray-700/30">
+            <% @users.each do |user| %>
+              <tr class="hover:bg-white/10 dark:hover:bg-gray-800/10 transition-colors duration-200">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= user.email %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= 
+                    case user.role
+                    when 'admin'
+                      'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
+                    when 'editor'
+                      'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                    else
+                      'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300'
+                    end
+                  %>">
+                    <%= user.role.capitalize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <%= user.workflows.count %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <%= time_ago_in_words(user.created_at) %> ago
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <%= form_with url: update_role_admin_user_path(user), method: :patch, local: true, class: "inline-flex items-center gap-2" do |form| %>
+                    <%= form.select :role, options_for_select(User::ROLES.map { |r| [r.capitalize, r] }, user.role), {}, { class: "text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100", onchange: "this.form.submit()" } %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="px-6 py-12 text-center">
+        <p class="text-gray-500 dark:text-gray-400">No users found</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+

@@ -8,6 +8,10 @@ Rails.application.routes.draw do
   mount ActionCable.server => "/cable"
 
   resources :workflows do
+    collection do
+      get :import
+      post :import_file
+    end
     member do
       get :export
       get :export_pdf
@@ -29,6 +33,18 @@ Rails.application.routes.draw do
       post :next_step
       get :step
     end
+  end
+
+  # Admin namespace
+  namespace :admin do
+    root to: 'dashboard#index'
+    resources :users, only: [:index, :update] do
+      member do
+        patch :update_role
+      end
+    end
+    resources :templates, except: [:show]
+    resources :workflows, only: [:index, :show]
   end
 end
 
