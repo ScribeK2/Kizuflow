@@ -13,13 +13,13 @@ module Kizuflow
     config.load_defaults 8.0
 
     # -----------------------------------------------------------------
-    # 1. FORCE DATABASE_URL IN PRODUCTION (Render only)
+    # RAILS 8 FIX: Force DATABASE_URL in production (Render only)
     # -----------------------------------------------------------------
-    # This overrides any host/port defaults that might sneak in from
-    # database.yml or Rails defaults. It runs **only** in production.
+    # `config.database_configuration` is read-only in Rails 8.
+    # Use `config.active_record.database_configuration` instead.
     if Rails.env.production?
-      config.database_configuration = {
-        production: { url: ENV["DATABASE_URL"] }
+      config.active_record.database_configuration = {
+        "production" => { "url" => ENV["DATABASE_URL"] }
       }
     end
 
