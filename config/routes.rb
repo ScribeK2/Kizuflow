@@ -18,6 +18,8 @@ Rails.application.routes.draw do
       get :preview
       get :variables
       post :save_as_template
+      get :start
+      post :begin_execution
     end
     resources :simulations, only: [:new, :create]
   end
@@ -32,6 +34,8 @@ Rails.application.routes.draw do
     member do
       post :next_step
       get :step
+      post :stop
+      post :resolve_checkpoint
     end
   end
 

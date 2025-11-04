@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_02_204751) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_04_135547) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -58,6 +58,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_02_204751) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "current_step_index", default: 0, null: false
+    t.string "status", default: "active", null: false
+    t.integer "stopped_at_step_index"
+    t.index ["status"], name: "index_simulations_on_status"
     t.index ["user_id"], name: "index_simulations_on_user_id"
     t.index ["workflow_id"], name: "index_simulations_on_workflow_id"
   end

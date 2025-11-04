@@ -1,12 +1,15 @@
 class WorkflowsController < ApplicationController
-  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template]
+  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template, :start, :begin_execution]
   before_action :ensure_editor_or_admin!, only: [:new, :create, :import, :import_file]
-  before_action :ensure_can_view_workflow!, only: [:show, :export, :export_pdf]
+  before_action :ensure_can_view_workflow!, only: [:show, :export, :export_pdf, :start, :begin_execution]
   before_action :ensure_can_edit_workflow!, only: [:edit, :update, :save_as_template]
   before_action :ensure_can_delete_workflow!, only: [:destroy]
 
   def index
-    @workflows = Workflow.visible_to(current_user).recent
+    @workflows = Workflow.visible_to(current_user)
+                         .search_by(params[:search])
+                         .recent
+    @search_query = params[:search]
   end
 
   def show
@@ -102,6 +105,29 @@ class WorkflowsController < ApplicationController
       redirect_to templates_path, notice: "Template '#{@template.name}' was successfully created."
     else
       redirect_to edit_workflow_path(@workflow), alert: "Failed to save template: #{@template.errors.full_messages.join(', ')}"
+    end
+  end
+
+  def start
+    # Shows landing page for starting workflow
+  end
+
+  def begin_execution
+    # Create simulation and start workflow execution
+    @simulation = Simulation.new(
+      workflow: @workflow,
+      user: current_user,
+      current_step_index: 0,
+      execution_path: [],
+      results: {},
+      inputs: {},
+      status: 'active'
+    )
+
+    if @simulation.save
+      redirect_to step_simulation_path(@simulation), notice: "Workflow started!"
+    else
+      redirect_to start_workflow_path(@workflow), alert: "Failed to start workflow: #{@simulation.errors.full_messages.join(', ')}"
     end
   end
 

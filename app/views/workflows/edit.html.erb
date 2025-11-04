@@ -83,6 +83,7 @@
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Question</button>
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="decision" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Decision</button>
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Action</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="checkpoint" class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">Add Checkpoint</button>
           </div>
         </div>
         <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
@@ -160,7 +161,8 @@
         {
           "question": <%= StepTemplate.all_for_type(:question).to_json.html_safe %>,
           "decision": <%= StepTemplate.all_for_type(:decision).to_json.html_safe %>,
-          "action": <%= StepTemplate.all_for_type(:action).to_json.html_safe %>
+          "action": <%= StepTemplate.all_for_type(:action).to_json.html_safe %>,
+          "checkpoint": []
         }
       </script>
 

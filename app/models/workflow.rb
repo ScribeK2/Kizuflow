@@ -27,6 +27,31 @@ class Workflow < ApplicationRecord
     end
   }
   
+  # Search workflows by title and description (fuzzy matching)
+  # Searches both title and description fields with case-insensitive LIKE queries
+  scope :search_by, ->(query) {
+    return all if query.blank?
+    
+    search_term = "%#{query.strip}%"
+    
+    # Search in title
+    title_matches = where("title LIKE ?", search_term)
+    
+    # Search in description (plain text column)
+    desc_matches = where("description LIKE ?", search_term)
+    
+    # Also search in ActionText rich text content
+    # Join with action_text_rich_texts to search rich text body
+    rich_text_matches = joins("LEFT JOIN action_text_rich_texts ON action_text_rich_texts.record_type = 'Workflow' AND action_text_rich_texts.record_id = workflows.id AND action_text_rich_texts.name = 'description'")
+                       .where("action_text_rich_texts.body LIKE ?", search_term)
+    
+    # Combine all matches using OR
+    where(id: title_matches.select(:id))
+      .or(where(id: desc_matches.select(:id)))
+      .or(where(id: rich_text_matches.select(:id)))
+      .distinct
+  }
+  
   # Check if a user can view this workflow
   def can_be_viewed_by?(user)
     return false unless user
@@ -317,7 +342,7 @@ class Workflow < ApplicationRecord
       end
       
       # Validate step type
-      unless %w[question decision action].include?(step['type'])
+      unless %w[question decision action checkpoint].include?(step['type'])
         errors.add(:steps, "Step #{step_num}: Invalid step type '#{step['type']}'")
         next
       end

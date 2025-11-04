@@ -1,0 +1,19 @@
+<%# Checkpoint-specific fields partial %>
+<%# Checkpoints are simple - they just need title and description (already handled in main form) %>
+<%# This partial can provide additional context or instructions %>
+
+<div class="field-container">
+  <div class="backdrop-blur-sm bg-green-50/50 dark:bg-green-900/20 border border-green-200/30 dark:border-green-800/30 rounded-lg p-3 mb-2">
+    <div class="flex items-start">
+      <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div class="flex-1">
+        <p class="text-sm text-green-800 dark:text-green-300">
+          <strong>Checkpoint Step:</strong> Use this step type to create a resolution point in your workflow. When users reach this step, they can choose to mark the issue as resolved (completing the workflow early) or continue to the next step.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+

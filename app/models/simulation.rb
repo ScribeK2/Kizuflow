@@ -2,10 +2,16 @@ class Simulation < ApplicationRecord
   belongs_to :workflow
   belongs_to :user
 
+  # Status constants
+  STATUSES = %w[active completed stopped].freeze
+
   # JSON columns - automatically serialized/deserialized
   
   # Initialize execution_path and results as empty arrays/hashes if needed
   before_save :initialize_execution_data
+  
+  # Validate status
+  validates :status, inclusion: { in: STATUSES }, allow_nil: false
   
   def initialize_execution_data
     self.execution_path ||= []
@@ -19,15 +25,69 @@ class Simulation < ApplicationRecord
     workflow.steps[current_step_index] if current_step_index < workflow.steps.length
   end
   
+  # Check if simulation is stopped
+  def stopped?
+    status == 'stopped'
+  end
+  
   # Check if simulation is complete
   def complete?
+    return true if status == 'completed'
+    return true if stopped?
     return true unless workflow&.steps&.present?
     current_step_index >= workflow.steps.length
+  end
+  
+  # Stop the workflow execution
+  def stop!(step_index = nil)
+    update!(
+      status: 'stopped',
+      stopped_at_step_index: step_index || current_step_index
+    )
+  end
+  
+  # Resolve a checkpoint step
+  def resolve_checkpoint!(resolved: true, notes: nil)
+    step = current_step
+    return false unless step&.dig('type') == 'checkpoint'
+    return false if stopped?
+    return false if complete?
+    
+    # Initialize execution_path if needed
+    initialize_execution_data
+    
+    # Add checkpoint to execution path
+    path_entry = {
+      step_index: current_step_index,
+      step_title: step['title'],
+      step_type: 'checkpoint',
+      resolved: resolved,
+      resolved_at: Time.current.iso8601
+    }
+    path_entry[:notes] = notes if notes.present?
+    
+    self.execution_path << path_entry
+    
+    if resolved
+      # Mark workflow as completed
+      self.status = 'completed'
+      self.current_step_index = workflow.steps.length # Mark as complete
+      self.results ||= {}
+      self.results[step['title']] = "Issue resolved - workflow completed"
+    else
+      # Continue to next step
+      self.current_step_index += 1
+      self.results ||= {}
+      self.results[step['title']] = "Issue not resolved - continuing workflow"
+    end
+    
+    save
   end
   
   # Process a single step and advance
   def process_step(answer = nil)
     return false if complete?
+    return false if stopped?
     
     step = current_step
     return false unless step
@@ -82,9 +142,21 @@ class Simulation < ApplicationRecord
       
       # Move to next step
       self.current_step_index += 1
+      
+    when 'checkpoint'
+      # Checkpoints don't auto-advance - user must resolve them
+      # Don't add to execution_path yet - that happens when resolved
+      # Don't increment current_step_index - stay on checkpoint
+      return false  # Return false to indicate no advancement
+      
     else
       # Unknown step type, just advance
       self.current_step_index += 1
+    end
+    
+    # Mark as completed if we've reached the end
+    if current_step_index >= workflow.steps.length && status != 'stopped'
+      self.status = 'completed'
     end
     
     save

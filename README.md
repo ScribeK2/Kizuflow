@@ -21,6 +21,7 @@ Kizuflow enables call/chat centers to create custom workflows with drag-and-drop
   - Question steps: Collect user input with variable tracking
   - Decision steps: Branch workflows based on conditions
   - Action steps: Define actions to be performed
+  - Checkpoint steps: Create resolution points where users can mark issues as resolved or continue workflow
 - **Real-Time Collaboration**: Multi-user live workflow editing with Action Cable
   - See other users editing in real-time
   - Presence indicators show active editors
@@ -31,11 +32,31 @@ Kizuflow enables call/chat centers to create custom workflows with drag-and-drop
   - YAML import with hierarchical structure support
   - Markdown import with automatic step reference resolution
   - Partial import support with visual indicators for incomplete steps
+- **Unified Workflows Section**: Browse all accessible workflows in one place
+  - Unified "Workflows" section showing public workflows and user-assigned workflows
+  - Real-time search with fuzzy matching on titles and descriptions
+  - Clean, minimalist interface with permission-aware filtering
+- **Simplified Workflow Execution**: Easy workflow start with dedicated landing pages
+  - Prominent "Start" buttons on workflow cards and listings
+  - Dedicated start page with workflow overview and clear call-to-action
+  - Streamlined flow for end-users without technical details
+- **Workflow Control**: Stop workflows at any point
+  - "Stop Workflow" button available during execution
+  - Tracks stopping point for analytics and metrics
+  - Visual indicators show stopped status with details
+- **Checkpoint Steps**: Resolution points for early workflow completion
+  - Add checkpoint steps to mark resolution opportunities
+  - Users can mark issues as resolved (completing workflow) or continue
+  - Optional notes field for resolution tracking
+  - Analytics tracking for resolution rates
 - **Template Library**: Browse and use pre-built workflow templates
   - Post-onboarding checklists
   - Troubleshooting decision trees
   - Client training flows
 - **Simulation Mode**: Run workflows with inputs and see execution paths in real-time
+  - Step-by-step execution with progress tracking
+  - Resolution options at checkpoint steps
+  - Stop workflow at any point
 - **Export Capabilities**: Export workflows as JSON or PDF for documentation
 - **Workflow Sharing**: Public workflows can be shared with other users for collaborative editing
 
@@ -123,13 +144,14 @@ Before you begin, ensure you have the following installed:
 
 ### Workflow Building
 
-Workflows consist of three types of steps:
+Workflows consist of four types of steps:
 
 - **Question Steps**: Collect user input that can be stored as variables
 - **Decision Steps**: Branch workflows based on conditions using variables from question steps
 - **Action Steps**: Define actions to be performed at specific points in the workflow
+- **Checkpoint Steps**: Create resolution points where users can mark issues as resolved (completing the workflow early) or continue to the next step
 
-Steps can be reordered using drag-and-drop, and decision steps support multiple branches with conditions.
+Steps can be reordered using drag-and-drop, and decision steps support multiple branches with conditions. Checkpoint steps allow for early workflow completion when issues are resolved, improving efficiency for common resolution scenarios.
 
 ### Templates
 
@@ -145,7 +167,9 @@ Templates can be used as-is or customized for your specific needs.
 Run simulations to test workflows before deploying them:
 - Provide input values for question steps
 - Follow the execution path through decision branches
-- View the complete execution log
+- Resolve checkpoints when issues are addressed (completing workflow early) or continue
+- Stop workflow execution at any point if needed
+- View the complete execution log with resolution status
 - Identify potential issues or improvements
 
 ## Development
