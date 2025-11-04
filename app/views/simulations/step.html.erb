@@ -75,7 +75,7 @@
               </div>
             </div>
             <%= form_with url: stop_simulation_path(@simulation), method: :post, local: true, data: { turbo_confirm: "Are you sure you want to stop this workflow? You can't continue after stopping." } do |form| %>
-              <%= form.submit "Stop Workflow", class: "px-4 py-2 text-sm font-medium text-orange-600 dark:text-orange-400 bg-orange-50/50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-50/80 dark:hover:bg-orange-900/40 transition-all duration-200 hover:scale-105 border border-orange-200 dark:border-orange-800/30" %>
+              <%= form.submit "Stop Workflow", class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
             <% end %>
           </div>
 
