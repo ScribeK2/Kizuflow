@@ -18,8 +18,5 @@ module Kizuflow
     # Configuration for the application, engines, and railties goes here.
     config.assets.enabled = true
     config.assets.version = "1.0"
-    
-    # Configure importmap to look in app/assets/javascript
-    config.importmap.cache_sweepers << Rails.root.join("app", "assets", "javascript")
   end
 end
