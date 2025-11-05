@@ -1,13 +1,13 @@
 # Pin npm packages by running ./bin/importmap
 
-# Explicitly pin application.js - it's in app/assets/javascript/
+# Explicitly pin application.js with full path to help importmap find it in production
 pin "application", to: "application.js", preload: true
 pin "@hotwired/turbo-rails", to: "turbo.min.js", preload: true
 pin "@hotwired/stimulus", to: "stimulus.min.js", preload: true
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js", preload: true
 
-# Pin controllers - use relative path from app/assets/javascript
-pin_all_from "app/assets/javascript/controllers", under: "controllers"
+# Pin controllers explicitly to ensure they're found in production
+pin_all_from "app/javascript/controllers", under: "controllers"
 
 # External libraries via CDN
 # Sortable.js for drag-and-drop
@@ -21,4 +21,4 @@ pin "@rails/actiontext", to: "actiontext.esm.js"
 
 # ActionCable for real-time features
 pin "@rails/actioncable", to: "actioncable.esm.js"
-pin_all_from "app/assets/javascript/channels", under: "channels"
+pin_all_from "app/javascript/channels", under: "channels"
