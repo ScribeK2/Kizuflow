@@ -1,8 +1,14 @@
 # config/initializers/importmap.rb
-# Ensure importmap can find JavaScript files in production
+# Fix importmap path resolution for Render deployment
+
 Rails.application.config.after_initialize do
-  # Add app/javascript to cache sweepers if not already present
-  unless Rails.application.config.importmap.cache_sweepers.include?(Rails.root.join("app", "javascript"))
+  # Ensure importmap can find JavaScript files
+  # This helps with path resolution in production environments like Render
+  if Rails.env.production?
+    # Force reload of importmap paths
+    Rails.application.config.importmap.cache_sweepers.clear
     Rails.application.config.importmap.cache_sweepers << Rails.root.join("app", "javascript")
+    Rails.application.config.importmap.cache_sweepers << Rails.root.join("app", "javascript", "controllers")
+    Rails.application.config.importmap.cache_sweepers << Rails.root.join("app", "javascript", "channels")
   end
 end
