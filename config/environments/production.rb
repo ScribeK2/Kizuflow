@@ -23,6 +23,9 @@ Rails.application.configure do
     'Cache-Control' => "public, max-age=#{1.hour.to_i}"
   }
 
+  # Disable importmap cache sweeping in production
+  config.importmap.sweep_cache = false
+
   # Compress CSS using a preprocessor.
   # config.assets.css_compressor = :sass
 
@@ -102,4 +105,3 @@ Rails.application.configure do
   # Default URL options for Devise
   config.action_mailer.default_url_options = { host: ENV.fetch("HOST", "localhost") }
 end
-
