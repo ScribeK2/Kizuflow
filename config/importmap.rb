@@ -6,8 +6,8 @@ pin "@hotwired/turbo-rails", to: "turbo.min.js", preload: true
 pin "@hotwired/stimulus", to: "stimulus.min.js", preload: true
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js", preload: true
 
-# Pin controllers explicitly to ensure they're found in production
-pin_all_from "app/javascript/controllers", under: "controllers"
+# Pin controllers explicitly - updated path to app/assets/javascript
+pin_all_from "app/assets/javascript/controllers", under: "controllers"
 
 # External libraries via CDN
 # Sortable.js for drag-and-drop
@@ -21,4 +21,4 @@ pin "@rails/actiontext", to: "actiontext.esm.js"
 
 # ActionCable for real-time features
 pin "@rails/actioncable", to: "actioncable.esm.js"
-pin_all_from "app/javascript/channels", under: "channels"
+pin_all_from "app/assets/javascript/channels", under: "channels"
