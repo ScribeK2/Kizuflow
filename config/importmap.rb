@@ -1,12 +1,12 @@
 # Pin npm packages by running ./bin/importmap
 
-# Explicitly pin application.js with full path to help importmap find it in production
+# Explicitly pin application.js - it's in app/assets/javascript/
 pin "application", to: "application.js", preload: true
 pin "@hotwired/turbo-rails", to: "turbo.min.js", preload: true
 pin "@hotwired/stimulus", to: "stimulus.min.js", preload: true
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js", preload: true
 
-# Pin controllers explicitly - updated path to app/assets/javascript
+# Pin controllers - use relative path from app/assets/javascript
 pin_all_from "app/assets/javascript/controllers", under: "controllers"
 
 # External libraries via CDN
