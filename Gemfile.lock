@@ -74,6 +74,25 @@ GEM
       uri (>= 0.13.1)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
+    aws-eventstream (1.4.0)
+    aws-partitions (1.1180.0)
+    aws-sdk-core (3.236.0)
+      aws-eventstream (~> 1, >= 1.3.0)
+      aws-partitions (~> 1, >= 1.992.0)
+      aws-sigv4 (~> 1.9)
+      base64
+      bigdecimal
+      jmespath (~> 1, >= 1.6.1)
+      logger
+    aws-sdk-kms (1.116.0)
+      aws-sdk-core (~> 3, >= 3.234.0)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-s3 (1.202.0)
+      aws-sdk-core (~> 3, >= 3.234.0)
+      aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.5)
+    aws-sigv4 (1.12.1)
+      aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.3.0)
     bcrypt (3.1.20)
     benchmark (0.5.0)
@@ -105,6 +124,8 @@ GEM
       responders
       warden (~> 1.2.3)
     diff-lcs (1.6.2)
+    dockerfile-rails (1.7.10)
+      rails (>= 3.0.0)
     drb (2.2.3)
     erb (5.1.3)
     erubi (1.13.1)
@@ -137,6 +158,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
+    jmespath (1.6.2)
     logger (1.7.0)
     loofah (2.24.1)
       crass (~> 1.0.2)
@@ -246,6 +268,10 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.26.1)
+      connection_pool
     regexp_parser (2.11.3)
     reline (0.6.2)
       io-console (~> 0.5)
@@ -356,10 +382,12 @@ PLATFORMS
 
 DEPENDENCIES
   actiontext
+  aws-sdk-s3 (~> 1.202)
   bootsnap (>= 1.4.4)
   capybara
   debug
   devise
+  dockerfile-rails (>= 1.7)
   factory_bot_rails
   image_processing (~> 1.2)
   importmap-rails
@@ -367,6 +395,7 @@ DEPENDENCIES
   prawn
   puma (>= 5.0)
   rails (~> 8.0.0)
+  redis (~> 5.4)
   rspec-rails
   selenium-webdriver
   sortablejs-rails
@@ -383,4 +412,4 @@ RUBY VERSION
    ruby 3.3.0p0
 
 BUNDLED WITH
-   2.7.2
+   2.5.3
