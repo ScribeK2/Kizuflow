@@ -1,9 +1,23 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <!-- Header Section -->
   <div class="mb-8 flex justify-between items-center animate-fade-in">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
-      Workflows
-    </h1>
+    <div>
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+        Workflows
+      </h1>
+      <% if @selected_group.present? %>
+        <!-- Breadcrumb -->
+        <nav class="mt-2 flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+          <%= link_to "Workflows", workflows_path, class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
+          <span>/</span>
+          <% @selected_group.ancestors.reverse.each do |ancestor| %>
+            <%= link_to ancestor.name, workflows_path(group_id: ancestor.id), class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
+            <span>/</span>
+          <% end %>
+          <span class="text-gray-900 dark:text-gray-100 font-medium"><%= @selected_group.name %></span>
+        </nav>
+      <% end %>
+    </div>
     <% if current_user&.can_create_workflows? %>
       <div class="flex space-x-3">
         <%= link_to import_workflows_path, class: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center" do %>
@@ -22,122 +36,141 @@
     <% end %>
   </div>
 
-  <!-- Search Bar -->
-  <div class="mb-6 animate-fade-in-up">
-    <%= form_with url: workflows_path, method: :get, local: true, class: "glass-card overflow-hidden p-4", data: { controller: "workflow-search" } do |form| %>
-      <div class="flex items-center space-x-3">
-        <div class="flex-1 relative">
-          <div class="absolute top-1/2 left-0 pl-3 -translate-y-1/2 pointer-events-none z-10">
-            <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <%= form.text_field :search, 
-              value: @search_query,
-              placeholder: "Search workflows by title or description...",
-              class: "block w-full pr-3 py-2 border border-white/20 dark:border-gray-700/30 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors",
-              style: "padding-left: 3rem;" %>
-        </div>
-        <% if @search_query.present? %>
-          <%= link_to workflows_path, class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105 inline-flex items-center" do %>
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Clear
-          <% end %>
-        <% end %>
-        <%= form.submit "Search", class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
-      </div>
-    <% end %>
-  </div>
-
-  <% if @workflows.any? %>
-    <div class="glass-card overflow-hidden animate-fade-in-up">
-      <ul class="divide-y divide-white/20 dark:divide-gray-700/30">
-        <% @workflows.each_with_index do |workflow, index| %>
-          <li class="hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
-            <div class="px-6 py-5 sm:px-6">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center flex-1 min-w-0">
-                  <div class="flex-shrink-0 mr-4">
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                      <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="ml-4 flex-1 min-w-0">
-                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
-                      <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200" %>
-                      <% if workflow.is_public? %>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300" title="Public workflow">
-                          Public
-                        </span>
-                      <% end %>
-                      <% if workflow.user != current_user %>
-                        <span class="text-xs text-gray-500 dark:text-gray-400">by <%= workflow.user.email %></span>
-                      <% end %>
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                      <%= truncate(workflow.description_text.presence || "No description", length: 100) %>
-                    </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      <%= pluralize(workflow.steps&.length || 0, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center space-x-3 ml-4">
-                  <%= link_to start_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 inline-flex items-center" do %>
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Start
-                  <% end %>
-                  <%= link_to workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-50/80 dark:hover:bg-blue-900/40 transition-all duration-200 hover:scale-105" do %>
-                    View
-                  <% end %>
-                  <% if workflow.can_be_edited_by?(current_user) %>
-                    <%= link_to edit_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
-                      Edit
-                    <% end %>
-                  <% end %>
-                  <% if workflow.can_be_deleted_by?(current_user) %>
-                    <%= link_to workflow_path(workflow), data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/20 rounded-lg hover:bg-red-50/80 dark:hover:bg-red-900/40 transition-all duration-200 hover:scale-105" do %>
-                      Delete
-                    <% end %>
-                  <% end %>
-                </div>
-              </div>
-            </div>
-          </li>
-        <% end %>
-      </ul>
+  <!-- Two-Column Layout: Sidebar + Main Content -->
+  <div class="flex flex-col md:flex-row gap-6">
+    <!-- Sidebar -->
+    <div class="w-full md:w-64 flex-shrink-0">
+      <%= render partial: "workflows/group_sidebar" %>
     </div>
-  <% else %>
-    <div class="glass-card p-12 text-center animate-fade-in-up">
-      <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-      <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows</h3>
-      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-        <% if @search_query.present? %>
-          No workflows found matching "<%= @search_query %>".
-        <% else %>
-          <%= current_user&.can_edit_workflows? ? "Get started by creating a new workflow." : "No public workflows available at the moment." %>
+
+    <!-- Main Content -->
+    <div class="flex-1 min-w-0">
+      <!-- Search Bar -->
+      <div class="mb-6 animate-fade-in-up">
+        <%= form_with url: workflows_path, method: :get, local: true, class: "glass-card overflow-hidden p-4", data: { controller: "workflow-search" } do |form| %>
+          <%= hidden_field_tag :group_id, params[:group_id] if params[:group_id].present? %>
+          <div class="flex items-center space-x-3">
+            <div class="flex-1 relative">
+              <div class="absolute top-1/2 left-0 pl-3 -translate-y-1/2 pointer-events-none z-10">
+                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <%= form.text_field :search, 
+                  value: @search_query,
+                  placeholder: @selected_group ? "Search workflows in #{@selected_group.name}..." : "Search workflows by title or description...",
+                  class: "block w-full pr-3 py-2 border border-white/20 dark:border-gray-700/30 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors",
+                  style: "padding-left: 3rem;" %>
+            </div>
+            <% if @search_query.present? %>
+              <%= link_to workflows_path(group_id: params[:group_id]), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105 inline-flex items-center" do %>
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              <% end %>
+            <% end %>
+            <%= form.submit "Search", class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
+          </div>
         <% end %>
-      </p>
-      <% if current_user&.can_create_workflows? %>
-        <div class="mt-6">
-          <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            New Workflow
+      </div>
+
+      <!-- Workflows List -->
+      <% if @workflows.any? %>
+        <div class="glass-card overflow-hidden animate-fade-in-up">
+          <ul class="divide-y divide-white/20 dark:divide-gray-700/30">
+            <% @workflows.each_with_index do |workflow, index| %>
+              <li class="hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
+                <div class="px-6 py-5 sm:px-6">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center flex-1 min-w-0">
+                      <div class="flex-shrink-0 mr-4">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div class="ml-4 flex-1 min-w-0">
+                        <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+                          <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200" %>
+                          <% if workflow.is_public? %>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300" title="Public workflow">
+                              Public
+                            </span>
+                          <% end %>
+                          <% if workflow.user != current_user %>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">by <%= workflow.user.email %></span>
+                          <% end %>
+                          <% if workflow.primary_group.present? && workflow.primary_group != @selected_group %>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                              <%= workflow.primary_group.name %>
+                            </span>
+                          <% end %>
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          <%= truncate(workflow.description_text.presence || "No description", length: 100) %>
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          <%= pluralize(workflow.steps&.length || 0, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-3 ml-4">
+                      <%= link_to start_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 inline-flex items-center" do %>
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Start
+                      <% end %>
+                      <%= link_to workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-50/80 dark:hover:bg-blue-900/40 transition-all duration-200 hover:scale-105" do %>
+                        View
+                      <% end %>
+                      <% if workflow.can_be_edited_by?(current_user) %>
+                        <%= link_to edit_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+                          Edit
+                        <% end %>
+                      <% end %>
+                      <% if workflow.can_be_deleted_by?(current_user) %>
+                        <%= link_to workflow_path(workflow), data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/20 rounded-lg hover:bg-red-50/80 dark:hover:bg-red-900/40 transition-all duration-200 hover:scale-105" do %>
+                          Delete
+                        <% end %>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% else %>
+        <div class="glass-card p-12 text-center animate-fade-in-up">
+          <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows</h3>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            <% if @search_query.present? %>
+              No workflows found matching "<%= @search_query %>"<% if @selected_group %> in <%= @selected_group.name %><% end %>.
+            <% elsif @selected_group.present? %>
+              No workflows in <%= @selected_group.name %>.
+            <% else %>
+              <%= current_user&.can_edit_workflows? ? "Get started by creating a new workflow." : "No public workflows available at the moment." %>
+            <% end %>
+          </p>
+          <% if current_user&.can_create_workflows? %>
+            <div class="mt-6">
+              <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Workflow
+              <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>
     </div>
-  <% end %>
+  </div>
 </div>
-

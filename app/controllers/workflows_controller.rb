@@ -9,6 +9,34 @@ class WorkflowsController < ApplicationController
     @workflows = Workflow.visible_to(current_user)
                          .search_by(params[:search])
                          .recent
+
+    # Filter by group if selected
+    if params[:group_id].present?
+      # Check access first with a simple query
+      potential_group = Group.find_by(id: params[:group_id])
+      if potential_group && potential_group.can_be_viewed_by?(current_user)
+        # Eager load ancestors to prevent N+1 queries in breadcrumb rendering
+        @selected_group = Group.includes(parent: :parent).find_by(id: params[:group_id])
+        @workflows = @workflows.in_group(@selected_group)
+      else
+        @selected_group = nil
+      end
+    end
+
+    # Load accessible groups for sidebar
+    # If no groups exist, show all workflows (backward compatibility)
+    # Eager load children to prevent N+1 queries when rendering the tree
+    @accessible_groups = Group.visible_to(current_user)
+                               .roots
+                               .includes(:children)
+                               .order(:position, :name)
+    
+    # Fallback: if no groups exist at all, don't filter by groups
+    if @accessible_groups.empty? && !current_user&.admin?
+      # For non-admins with no groups, show all workflows they have access to
+      # (this maintains backward compatibility)
+    end
+
     @search_query = params[:search]
   end
 
@@ -17,25 +45,60 @@ class WorkflowsController < ApplicationController
 
   def new
     @workflow = current_user.workflows.build
+    # Eager load groups to prevent N+1 queries
+    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
   end
 
   def create
     @workflow = current_user.workflows.build(workflow_params)
     
     if @workflow.save
+      # Assign groups if provided
+      if params[:workflow][:group_ids].present?
+        group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?)
+        group_ids.each_with_index do |group_id, index|
+          @workflow.group_workflows.create!(
+            group_id: group_id,
+            is_primary: index == 0  # First group is primary
+          )
+        end
+      end
+      
       redirect_to @workflow, notice: "Workflow was successfully created."
     else
+      # Eager load groups to prevent N+1 queries
+      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
+    # Eager load groups to prevent N+1 queries
+    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+    @selected_group_ids = @workflow.group_ids
   end
 
   def update
     if @workflow.update(workflow_params)
+      # Update group assignments
+      if params[:workflow][:group_ids].present?
+        @workflow.group_workflows.destroy_all
+        group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?)
+        group_ids.each_with_index do |group_id, index|
+          @workflow.group_workflows.create!(
+            group_id: group_id,
+            is_primary: index == 0
+          )
+        end
+      elsif params[:workflow].key?(:group_ids)
+        # Explicitly clear groups if group_ids is present but empty
+        @workflow.group_workflows.destroy_all
+      end
+      
       redirect_to @workflow, notice: "Workflow was successfully updated."
     else
+      @accessible_groups = Group.visible_to(current_user).order(:name)
+      @selected_group_ids = @workflow.group_ids
       render :edit, status: :unprocessable_entity
     end
   end

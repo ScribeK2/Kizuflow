@@ -15,19 +15,26 @@ export default class extends Controller {
   }
 
   show() {
-    this.backdropTarget.style.display = "flex"
+    this.element.classList.remove("hidden")
     document.body.style.overflow = "hidden"
   }
 
   close() {
-    this.backdropTarget.style.display = "none"
+    this.element.classList.add("hidden")
     document.body.style.overflow = ""
   }
 
   toggle() {
-    if (this.backdropTarget.style.display === "none" || !this.backdropTarget.style.display) {
+    if (this.element.classList.contains("hidden")) {
       this.show()
     } else {
+      this.close()
+    }
+  }
+
+  backdropClick(event) {
+    // Only close if clicking directly on the backdrop (not on content)
+    if (event.target === this.backdropTarget) {
       this.close()
     }
   }

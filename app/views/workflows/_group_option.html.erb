@@ -1,0 +1,26 @@
+<div class="group-option" data-group-id="<%= group.id %>" data-group-name="<%= group.name.downcase %>">
+  <label class="flex items-center px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" style="padding-left: <%= (level * 1.5 + 0.75) %>rem;">
+    <input type="checkbox" 
+           name="workflow[group_ids][]" 
+           value="<%= group.id %>"
+           data-group-selector-target="checkbox"
+           data-action="change->group-selector#select"
+           <%= 'checked' if selected_ids.include?(group.id) %>
+           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+    <span class="ml-2 text-sm text-gray-900 dark:text-gray-100">
+      <%= group.name %>
+      <% if group.description.present? %>
+        <span class="text-xs text-gray-500 dark:text-gray-400"> - <%= truncate(group.description, length: 40) %></span>
+      <% end %>
+    </span>
+  </label>
+  
+  <% if group.children.any? %>
+    <div class="children" data-group-id="<%= group.id %>">
+      <% group.children.order(:position, :name).each do |child| %>
+        <%= render partial: "workflows/group_option", locals: { group: child, level: level + 1, selected_ids: selected_ids } %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+

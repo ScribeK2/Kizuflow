@@ -325,5 +325,154 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_includes public_workflows.map(&:id), public2.id
     assert_not_includes public_workflows.map(&:id), private_workflow.id
   end
+
+  # Group association tests
+  test "should have many groups through group_workflows" do
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    
+    GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
+    GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
+    
+    assert_equal 2, workflow.groups.count
+    assert_includes workflow.groups.map(&:id), group1.id
+    assert_includes workflow.groups.map(&:id), group2.id
+  end
+
+  test "should assign to Uncategorized group when created without groups" do
+    workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    
+    assert workflow.groups.any?
+    assert_equal "Uncategorized", workflow.groups.first.name
+  end
+
+  test "primary_group should return primary group" do
+    group1 = Group.create!(name: "Primary Group")
+    group2 = Group.create!(name: "Secondary Group")
+    workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    
+    GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
+    GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
+    
+    assert_equal group1, workflow.primary_group
+  end
+
+  test "primary_group should return first group if no primary set" do
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    
+    # Remove Uncategorized assignment
+    workflow.group_workflows.destroy_all
+    
+    GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: false)
+    GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
+    
+    assert_equal group1, workflow.primary_group
+  end
+
+  test "all_groups should return all assigned groups" do
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    
+    # Remove Uncategorized assignment
+    workflow.group_workflows.destroy_all
+    
+    GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
+    GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
+    
+    all_groups = workflow.all_groups
+    assert_equal 2, all_groups.count
+    assert_includes all_groups.map(&:id), group1.id
+    assert_includes all_groups.map(&:id), group2.id
+  end
+
+  test "in_group scope should filter workflows by group" do
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    workflow1 = Workflow.create!(title: "Workflow 1", user: @user)
+    workflow2 = Workflow.create!(title: "Workflow 2", user: @user)
+    
+    # Remove Uncategorized assignments
+    workflow1.group_workflows.destroy_all
+    workflow2.group_workflows.destroy_all
+    
+    GroupWorkflow.create!(group: group1, workflow: workflow1, is_primary: true)
+    GroupWorkflow.create!(group: group2, workflow: workflow2, is_primary: true)
+    
+    group1_workflows = Workflow.in_group(group1)
+    assert_includes group1_workflows.map(&:id), workflow1.id
+    assert_not_includes group1_workflows.map(&:id), workflow2.id
+  end
+
+  test "in_group scope should include workflows in descendant groups" do
+    parent = Group.create!(name: "Parent")
+    child = Group.create!(name: "Child", parent: parent)
+    workflow1 = Workflow.create!(title: "Workflow 1", user: @user)
+    workflow2 = Workflow.create!(title: "Workflow 2", user: @user)
+    
+    # Remove Uncategorized assignments
+    workflow1.group_workflows.destroy_all
+    workflow2.group_workflows.destroy_all
+    
+    GroupWorkflow.create!(group: parent, workflow: workflow1, is_primary: true)
+    GroupWorkflow.create!(group: child, workflow: workflow2, is_primary: true)
+    
+    parent_workflows = Workflow.in_group(parent)
+    assert_includes parent_workflows.map(&:id), workflow1.id
+    assert_includes parent_workflows.map(&:id), workflow2.id
+  end
+
+  test "visible_to scope should include workflows in user's assigned groups" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    group = Group.create!(name: "Assigned Group")
+    workflow = Workflow.create!(title: "Group Workflow", user: @user, is_public: false)
+    
+    # Remove Uncategorized assignment
+    workflow.group_workflows.destroy_all
+    GroupWorkflow.create!(group: group, workflow: workflow, is_primary: true)
+    UserGroup.create!(group: group, user: user)
+    
+    visible = Workflow.visible_to(user)
+    assert_includes visible.map(&:id), workflow.id
+  end
+
+  test "visible_to scope should include workflows without groups for backward compatibility" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    workflow = Workflow.create!(title: "Workflow Without Groups", user: @user, is_public: false)
+    
+    # Remove all group assignments
+    workflow.group_workflows.destroy_all
+    
+    visible = Workflow.visible_to(user)
+    assert_includes visible.map(&:id), workflow.id
+  end
+
+  test "visible_to scope should always include public workflows regardless of groups" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    group = Group.create!(name: "Other Group")
+    public_workflow = Workflow.create!(title: "Public Workflow", user: @user, is_public: true)
+    
+    # Remove Uncategorized assignment and assign to different group
+    public_workflow.group_workflows.destroy_all
+    GroupWorkflow.create!(group: group, workflow: public_workflow, is_primary: true)
+    
+    visible = Workflow.visible_to(user)
+    assert_includes visible.map(&:id), public_workflow.id
+  end
 end
 

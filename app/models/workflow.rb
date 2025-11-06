@@ -2,6 +2,10 @@ class Workflow < ApplicationRecord
   belongs_to :user
   has_rich_text :description
 
+  # Group associations
+  has_many :group_workflows, dependent: :destroy
+  has_many :groups, through: :group_workflows
+
   # Steps stored as JSON - automatically serialized/deserialized
   validates :title, presence: true
   validates :user_id, presence: true
@@ -11,20 +15,65 @@ class Workflow < ApplicationRecord
   before_validation :normalize_steps_on_save
   # Clean up import flags when steps are completed
   before_save :cleanup_import_flags
+  # Assign to Uncategorized group if no groups assigned
+  after_create :assign_to_uncategorized_if_needed
 
   scope :recent, -> { order(created_at: :desc) }
   scope :public_workflows, -> { where(is_public: true) }
   
   # Get workflows visible to a specific user
   # Admins see all, Editors see own + public, Users see only public
+  # Also respects group membership: users see workflows in their assigned groups
+  # Handles workflows without groups gracefully (they're accessible to everyone)
+  # 
+  # Access Control Rules:
+  # - Admins: See all workflows regardless of group assignment
+  # - Editors: See their own workflows + all public workflows + workflows in assigned groups
+  # - Users: See public workflows + workflows in assigned groups
+  # - Workflows without groups: Accessible to all users (backward compatibility)
+  # 
+  # Group Access:
+  # - Users assigned to a parent group can see workflows in child groups
+  # - Workflows are visible if user is assigned to any group containing the workflow
   scope :visible_to, ->(user) {
-    if user&.admin?
+    base_scope = if user&.admin?
       all
     elsif user&.editor?
       where(user: user).or(where(is_public: true))
     else
       where(is_public: true)
     end
+
+    # Filter by group membership if user has group assignments
+    # But always include workflows without groups (backward compatibility)
+    if user&.groups&.any?
+      # Get all accessible group IDs (user's groups + all their descendants)
+      # Optimized: Pre-load user groups to avoid N+1 queries
+      user_group_ids = user.groups.pluck(:id)
+      # Get all descendant IDs for each user group (could be optimized further with a recursive CTE)
+      accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+      base_scope.left_joins(:groups)
+                 .where("workflows.is_public = ? OR workflows.user_id = ? OR groups.id IN (?) OR groups.id IS NULL", 
+                        true, user.id, accessible_group_ids)
+                 .distinct
+    else
+      # If user has no group assignments, show all workflows they have access to
+      # (including workflows without groups for backward compatibility)
+      base_scope
+    end
+  }
+
+  # Filter workflows by group (includes workflows in descendant groups)
+  # If group is nil, returns workflows without groups (for backward compatibility)
+  # 
+  # Example: If "Customer Support" has child "Phone Support", 
+  # in_group(Customer Support) returns workflows in both groups
+  scope :in_group, ->(group) {
+    return where.not(id: joins(:groups).select(:id)) if group.nil?
+    
+    # Get group and all its descendants
+    group_ids = [group.id] + group.descendants.map(&:id)
+    joins(:groups).where(groups: { id: group_ids }).distinct
   }
   
   # Search workflows by title and description (fuzzy matching)
@@ -121,6 +170,18 @@ class Workflow < ApplicationRecord
   end
 
   # Clean up import flags when steps are completed
+  # Assign workflow to Uncategorized group if no groups are assigned
+  def assign_to_uncategorized_if_needed
+    return if groups.any?
+    
+    uncategorized_group = Group.uncategorized
+    GroupWorkflow.find_or_create_by!(
+      workflow: self,
+      group: uncategorized_group,
+      is_primary: true
+    )
+  end
+
   def cleanup_import_flags
     return unless steps.present?
     
@@ -248,6 +309,15 @@ class Workflow < ApplicationRecord
         .map { |step| step['variable_name'] }
         .compact
         .uniq
+  end
+
+  # Group helper methods
+  def primary_group
+    group_workflows.find_by(is_primary: true)&.group || groups.first
+  end
+
+  def all_groups
+    groups
   end
 
   # Validate step references (e.g., decision steps reference valid step titles)

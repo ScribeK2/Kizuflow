@@ -227,5 +227,82 @@ class UserTest < ActiveSupport::TestCase
     assert_includes editors.map(&:id), editor2.id
     assert_not_includes editors.map(&:id), user.id
   end
+
+  # Group association tests
+  test "should have many groups through user_groups" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    
+    UserGroup.create!(group: group1, user: user)
+    UserGroup.create!(group: group2, user: user)
+    
+    assert_equal 2, user.groups.count
+    assert_includes user.groups.map(&:id), group1.id
+    assert_includes user.groups.map(&:id), group2.id
+  end
+
+  test "accessible_groups should return all groups for admin" do
+    admin = User.create!(
+      email: "admin@test.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "admin"
+    )
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    
+    accessible = admin.accessible_groups
+    assert_includes accessible.map(&:id), group1.id
+    assert_includes accessible.map(&:id), group2.id
+  end
+
+  test "accessible_groups should return only assigned groups for non-admin" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    assigned_group = Group.create!(name: "Assigned Group")
+    other_group = Group.create!(name: "Other Group")
+    
+    UserGroup.create!(group: assigned_group, user: user)
+    
+    accessible = user.accessible_groups
+    assert_includes accessible.map(&:id), assigned_group.id
+    assert_not_includes accessible.map(&:id), other_group.id
+  end
+
+  test "should destroy user_groups when user is destroyed" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    group = Group.create!(name: "Test Group")
+    UserGroup.create!(group: group, user: user)
+    
+    assert_difference("UserGroup.count", -1) do
+      user.destroy
+    end
+  end
+
+  test "should destroy user_groups when group is destroyed" do
+    user = User.create!(
+      email: "user@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    group = Group.create!(name: "Test Group")
+    UserGroup.create!(group: group, user: user)
+    
+    assert_difference("UserGroup.count", -1) do
+      group.destroy
+    end
+  end
 end
 

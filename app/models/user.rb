@@ -5,6 +5,8 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable
 
   has_many :workflows, dependent: :destroy
+  has_many :user_groups, dependent: :destroy
+  has_many :groups, through: :user_groups
 
   # Role constants
   ROLES = %w[admin editor user].freeze
@@ -48,6 +50,11 @@ class User < ApplicationRecord
   # Check if user can access admin panel
   def can_access_admin?
     admin?
+  end
+
+  # Get groups accessible to this user (admins see all, others see assigned groups)
+  def accessible_groups
+    admin? ? Group.all : groups
   end
 end
 

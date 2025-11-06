@@ -346,7 +346,7 @@ html.dark trix-toolbar .trix-input {
   }
   
   .glass-modal {
-    @apply backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-white/30 dark:border-gray-700/30 rounded-2xl shadow-2xl;
+    @apply backdrop-blur-xl bg-white dark:bg-gray-900/40 border border-gray-300 dark:border-gray-700/30 rounded-2xl shadow-2xl;
   }
 
   /* Smooth scroll behavior */

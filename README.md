@@ -59,6 +59,13 @@ Kizuflow enables call/chat centers to create custom workflows with drag-and-drop
   - Stop workflow at any point
 - **Export Capabilities**: Export workflows as JSON or PDF for documentation
 - **Workflow Sharing**: Public workflows can be shared with other users for collaborative editing
+- **Workflow Grouping**: Organize workflows into hierarchical groups and subgroups
+  - Create groups and nested subgroups (e.g., Customer Experience > Phone Support)
+  - Assign workflows to one or more groups during creation or editing
+  - Filter workflows by group using the collapsible sidebar tree
+  - User-level group access control: assign users to specific groups
+  - Admins see all groups; users only see groups they're assigned to
+  - Backward compatible: existing workflows default to "Uncategorized" group
 
 ### Technical Highlights
 
@@ -161,6 +168,74 @@ Browse the template library to find pre-built workflows for common scenarios:
 - Client training flows
 
 Templates can be used as-is or customized for your specific needs.
+
+### Workflow Grouping
+
+Kizuflow supports hierarchical organization of workflows using Groups and Subgroups. This feature improves navigation, scalability, and access control as your organization grows.
+
+#### Creating and Managing Groups
+
+**Admin Access Required**: Only administrators can create and manage groups.
+
+1. **Navigate to Group Management**: Go to Admin > Manage Groups
+2. **Create a Group**: Click "New Group" and provide:
+   - Name (required, must be unique within the same parent)
+   - Description (optional, shown in tooltips)
+   - Parent Group (optional, for creating subgroups)
+   - Position (optional, for ordering)
+3. **Create Subgroups**: When creating a group, select a parent group to create a nested hierarchy
+4. **Edit Groups**: Click the edit icon next to any group to modify its details
+5. **Delete Groups**: Groups can only be deleted if they have no subgroups or workflows
+
+#### Group Hierarchy Rules
+
+- **Maximum Depth**: Groups can be nested up to 5 levels deep
+- **Unique Names**: Group names must be unique within the same parent (siblings can't have the same name)
+- **Circular References**: The system prevents circular references (e.g., A → B → A)
+- **Deletion Protection**: Groups with subgroups or workflows cannot be deleted
+
+#### Assigning Workflows to Groups
+
+When creating or editing a workflow:
+
+1. **Select Groups**: Use the "Group Assignment" dropdown to select one or more groups
+2. **Primary Group**: The first selected group becomes the primary group
+3. **Multiple Groups**: Workflows can belong to multiple groups
+4. **Default Assignment**: If no groups are selected, workflows are automatically assigned to "Uncategorized"
+
+#### Group-Based Navigation
+
+The Workflows page features a collapsible sidebar showing your accessible groups:
+
+- **All Workflows**: View all workflows you have access to (default view)
+- **Group Tree**: Browse groups hierarchically with expand/collapse controls
+- **Filtering**: Click a group to filter workflows to that group and its subgroups
+- **Breadcrumbs**: When viewing a group, breadcrumbs show the full path (e.g., Customer Experience > Phone Support)
+- **Search**: Search works within the selected group context
+
+#### User-Group Access Control
+
+**Assigning Groups to Users** (Admin Only):
+
+1. Go to Admin > Manage Users
+2. Click the "Groups" button next to a user
+3. Select the groups the user should have access to
+4. Users assigned to a parent group automatically see workflows in child groups
+5. Use "Bulk Assign Groups" to assign groups to multiple users at once
+
+**Access Rules**:
+
+- **Admins**: See all groups and workflows regardless of assignment
+- **Editors**: See workflows in their assigned groups + their own workflows + public workflows
+- **Users**: See workflows in their assigned groups + public workflows
+- **Uncategorized Group**: All users can see the "Uncategorized" group (for backward compatibility)
+
+#### Backward Compatibility
+
+- Existing workflows without group assignments are automatically assigned to "Uncategorized"
+- New workflows default to "Uncategorized" if no groups are selected
+- Workflows without groups remain accessible to all users
+- Public workflows are always accessible regardless of group assignment
 
 ### Simulations
 

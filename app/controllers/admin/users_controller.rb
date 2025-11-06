@@ -3,6 +3,7 @@ class Admin::UsersController < ApplicationController
 
   def index
     @users = User.order(created_at: :desc)
+    @all_groups = Group.order(:name)
   end
 
   def update
@@ -24,6 +25,46 @@ class Admin::UsersController < ApplicationController
     else
       redirect_to admin_users_path, alert: "Invalid role specified."
     end
+  end
+
+  def update_groups
+    @user = User.find(params[:id])
+    group_ids = params[:group_ids] || []
+    
+    # Remove all existing group assignments
+    @user.user_groups.destroy_all
+    
+    # Add new group assignments
+    group_ids.each do |group_id|
+      next if group_id.blank?
+      @user.user_groups.create!(group_id: group_id)
+    end
+    
+    redirect_to admin_users_path, notice: "Groups updated for #{@user.email}."
+  end
+
+  def bulk_assign_groups
+    user_ids = params[:user_ids] || []
+    group_ids = params[:group_ids] || []
+    
+    if user_ids.empty?
+      redirect_to admin_users_path, alert: "No users selected."
+      return
+    end
+    
+    users = User.where(id: user_ids)
+    users.each do |user|
+      # Remove all existing group assignments
+      user.user_groups.destroy_all
+      
+      # Add new group assignments
+      group_ids.each do |group_id|
+        next if group_id.blank?
+        user.user_groups.create!(group_id: group_id)
+      end
+    end
+    
+    redirect_to admin_users_path, notice: "Groups assigned to #{users.count} user(s)."
   end
 
   private

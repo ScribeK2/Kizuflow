@@ -301,5 +301,133 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/application\/pdf/, response.content_type)
   end
+
+  # Group-related tests
+  test "should filter workflows by group" do
+    group = Group.create!(name: "Test Group")
+    workflow_in_group = Workflow.create!(title: "In Group", user: @editor)
+    workflow_outside = Workflow.create!(title: "Outside", user: @editor)
+    
+    # Remove Uncategorized assignments
+    workflow_in_group.group_workflows.destroy_all
+    workflow_outside.group_workflows.destroy_all
+    
+    GroupWorkflow.create!(group: group, workflow: workflow_in_group, is_primary: true)
+    
+    sign_in @editor
+    get workflows_path, params: { group_id: group.id }
+    assert_response :success
+    assert_match "In Group", response.body
+    assert_no_match "Outside", response.body
+  end
+
+  test "should show all workflows when no group selected" do
+    group = Group.create!(name: "Test Group")
+    workflow1 = Workflow.create!(title: "Workflow 1", user: @editor)
+    workflow2 = Workflow.create!(title: "Workflow 2", user: @editor)
+    
+    sign_in @editor
+    get workflows_path
+    assert_response :success
+    assert_match "Workflow 1", response.body
+    assert_match "Workflow 2", response.body
+  end
+
+  test "should create workflow with group assignment" do
+    group = Group.create!(name: "Test Group")
+    
+    sign_in @editor
+    assert_difference("Workflow.count", 1) do
+      assert_difference("GroupWorkflow.count", 1) do
+        post workflows_path, params: {
+          workflow: {
+            title: "New Workflow",
+            description: "New description",
+            group_ids: [group.id],
+            steps: [
+              { type: "question", title: "Question 1", question: "What is your name?" }
+            ]
+          }
+        }
+      end
+    end
+    
+    workflow = Workflow.last
+    assert_includes workflow.groups.map(&:id), group.id
+    assert workflow.group_workflows.find_by(group: group).is_primary?
+  end
+
+  test "should update workflow with group assignment" do
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    
+    # Remove Uncategorized assignment
+    @workflow.group_workflows.destroy_all
+    GroupWorkflow.create!(group: group1, workflow: @workflow, is_primary: true)
+    
+    sign_in @editor
+    patch workflow_path(@workflow), params: {
+      workflow: {
+        title: @workflow.title,
+        group_ids: [group2.id]
+      }
+    }
+    
+    @workflow.reload
+    assert_not_includes @workflow.groups.map(&:id), group1.id
+    assert_includes @workflow.groups.map(&:id), group2.id
+  end
+
+  test "should not show workflows from inaccessible groups" do
+    user = User.create!(
+      email: "user-#{SecureRandom.hex(4)}@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    accessible_group = Group.create!(name: "Accessible")
+    inaccessible_group = Group.create!(name: "Inaccessible")
+    
+    workflow1 = Workflow.create!(title: "Accessible Workflow", user: @editor, is_public: false)
+    workflow2 = Workflow.create!(title: "Inaccessible Workflow", user: @editor, is_public: false)
+    
+    # Remove Uncategorized assignments
+    workflow1.group_workflows.destroy_all
+    workflow2.group_workflows.destroy_all
+    
+    GroupWorkflow.create!(group: accessible_group, workflow: workflow1, is_primary: true)
+    GroupWorkflow.create!(group: inaccessible_group, workflow: workflow2, is_primary: true)
+    
+    UserGroup.create!(group: accessible_group, user: user)
+    
+    sign_in user
+    get workflows_path
+    assert_response :success
+    assert_match "Accessible Workflow", response.body
+    assert_no_match "Inaccessible Workflow", response.body
+  end
+
+  test "should show accessible groups in sidebar" do
+    accessible_group = Group.create!(name: "Accessible")
+    inaccessible_group = Group.create!(name: "Inaccessible")
+    
+    UserGroup.create!(group: accessible_group, user: @editor)
+    
+    sign_in @editor
+    get workflows_path
+    assert_response :success
+    assert_match "Accessible", response.body
+    assert_no_match "Inaccessible", response.body
+  end
+
+  test "admin should see all groups in sidebar" do
+    group1 = Group.create!(name: "Group 1")
+    group2 = Group.create!(name: "Group 2")
+    
+    sign_in @admin
+    get workflows_path
+    assert_response :success
+    assert_match "Group 1", response.body
+    assert_match "Group 2", response.body
+  end
 end
 

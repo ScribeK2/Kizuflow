@@ -1,0 +1,52 @@
+<aside class="workflow-sidebar" data-controller="workflow-sidebar">
+  <!-- Mobile Toggle Button -->
+  <button type="button" 
+          data-action="click->workflow-sidebar#toggle"
+          class="md:hidden mb-4 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+    <div class="flex items-center justify-between">
+      <span>Groups</span>
+      <svg class="w-5 h-5" data-workflow-sidebar-target="toggleIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </div>
+  </button>
+
+  <!-- Sidebar Content -->
+  <div class="glass-card overflow-hidden animate-fade-in-up md:block hidden" data-workflow-sidebar-target="sidebar">
+    <div class="px-4 py-3 border-b border-white/20 dark:border-gray-700/30">
+      <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">Groups</h2>
+    </div>
+    
+    <nav class="p-4">
+      <ul class="space-y-1">
+        <!-- All Workflows Option -->
+        <li>
+          <%= link_to workflows_path(search: params[:search]), 
+                      class: "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors #{'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' if @selected_group.nil?} #{'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' if @selected_group.present?}" do %>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            All Workflows
+            <% if @selected_group.nil? && @workflows %>
+              <span class="ml-auto text-xs bg-blue-200 dark:bg-blue-800 px-2 py-0.5 rounded">
+                <%= @workflows.count %>
+              </span>
+            <% end %>
+          <% end %>
+        </li>
+
+        <!-- Groups Tree -->
+        <% if @accessible_groups.any? %>
+          <% @accessible_groups.each do |root_group| %>
+            <%= render partial: "workflows/group_sidebar_item", locals: { group: root_group, level: 0, selected_group: @selected_group } %>
+          <% end %>
+        <% else %>
+          <li class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+            No groups available
+          </li>
+        <% end %>
+      </ul>
+    </nav>
+  </div>
+</aside>
+

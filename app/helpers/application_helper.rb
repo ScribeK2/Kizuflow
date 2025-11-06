@@ -39,5 +39,23 @@ module ApplicationHelper
       content: content
     }
   end
+
+  # Build hierarchical group tree structure for dropdown
+  def build_group_tree(groups)
+    roots = groups.select { |g| g.parent_id.nil? }
+    build_tree_nodes(roots, groups)
+  end
+
+  private
+
+  def build_tree_nodes(parents, all_groups)
+    parents.map do |parent|
+      children = all_groups.select { |g| g.parent_id == parent.id }
+      {
+        group: parent,
+        children: build_tree_nodes(children, all_groups)
+      }
+    end
+  end
 end
 

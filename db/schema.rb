@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_04_135547) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_06_135943) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -49,6 +49,29 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_04_135547) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "group_workflows", force: :cascade do |t|
+    t.integer "group_id", null: false
+    t.integer "workflow_id", null: false
+    t.boolean "is_primary", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id", "workflow_id"], name: "index_group_workflows_on_group_and_workflow", unique: true
+    t.index ["group_id"], name: "index_group_workflows_on_group_id"
+    t.index ["workflow_id"], name: "index_group_workflows_on_workflow_id"
+  end
+
+  create_table "groups", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.integer "parent_id"
+    t.integer "position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_groups_on_name"
+    t.index ["parent_id", "position"], name: "index_groups_on_parent_id_and_position"
+    t.index ["parent_id"], name: "index_groups_on_parent_id"
+  end
+
   create_table "simulations", force: :cascade do |t|
     t.integer "workflow_id", null: false
     t.integer "user_id", null: false
@@ -75,6 +98,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_04_135547) do
     t.datetime "updated_at", null: false
     t.index ["category"], name: "index_templates_on_category"
     t.index ["is_public"], name: "index_templates_on_is_public"
+  end
+
+  create_table "user_groups", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "group_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id"], name: "index_user_groups_on_group_id"
+    t.index ["user_id", "group_id"], name: "index_user_groups_on_user_and_group", unique: true
+    t.index ["user_id"], name: "index_user_groups_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -106,7 +139,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_04_135547) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "group_workflows", "groups"
+  add_foreign_key "group_workflows", "workflows"
   add_foreign_key "simulations", "users"
   add_foreign_key "simulations", "workflows"
+  add_foreign_key "user_groups", "groups"
+  add_foreign_key "user_groups", "users"
   add_foreign_key "workflows", "users"
 end

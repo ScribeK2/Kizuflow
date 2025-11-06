@@ -49,11 +49,16 @@ Rails.application.routes.draw do
   namespace :admin do
     root to: 'dashboard#index'
     resources :users, only: [:index, :update] do
+      collection do
+        patch :bulk_assign_groups
+      end
       member do
         patch :update_role
+        patch :update_groups
       end
     end
     resources :templates, except: [:show]
     resources :workflows, only: [:index, :show]
+    resources :groups
   end
 end

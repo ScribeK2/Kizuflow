@@ -1,0 +1,161 @@
+class Group < ApplicationRecord
+  # Associations
+  belongs_to :parent, class_name: 'Group', optional: true
+  has_many :children, class_name: 'Group', foreign_key: 'parent_id', dependent: :nullify
+  has_many :group_workflows, dependent: :destroy
+  has_many :workflows, through: :group_workflows
+  has_many :user_groups, dependent: :destroy
+  has_many :users, through: :user_groups
+
+  # Validations
+  validates :name, presence: true, uniqueness: { scope: :parent_id }
+  validate :no_circular_reference
+  validate :max_depth_allowed
+
+  # Scopes
+  scope :roots, -> { where(parent_id: nil) }
+  scope :children_of, ->(parent) { where(parent_id: parent.id) }
+  scope :visible_to, ->(user) {
+    return all if user&.admin?
+    return Group.none unless user
+    
+    # Users see groups they're assigned to
+    user_assigned_group_ids = joins(:user_groups).where(user_groups: { user_id: user.id }).pluck(:id)
+    
+    # Also include Uncategorized group for backward compatibility (workflows without groups)
+    # This ensures users can always see workflows in the Uncategorized group
+    uncategorized_group_id = Group.find_by(name: "Uncategorized")&.id
+    
+    # Combine both: user's assigned groups OR Uncategorized
+    group_ids = [user_assigned_group_ids, uncategorized_group_id].flatten.compact.uniq
+    where(id: group_ids)
+  }
+
+  # Tree traversal methods
+  # These methods use recursive algorithms to traverse the hierarchical tree structure
+  
+  # Check if this group is a root (has no parent)
+  def root?
+    parent_id.nil?
+  end
+
+  # Check if this group is a leaf (has no children)
+  def leaf?
+    children.empty?
+  end
+
+  # Calculate the depth of this group in the tree (0 for root, 1 for first level, etc.)
+  # Uses recursive traversal up the tree to count levels
+  def depth
+    return 0 if root?
+    parent.depth + 1
+  end
+
+  # Get all ancestor groups (parent, grandparent, etc.) up to the root
+  # Returns an array ordered from immediate parent to root
+  # Example: If hierarchy is Root > Parent > Child, Child.ancestors returns [Parent, Root]
+  def ancestors
+    return [] if root?
+    [parent] + parent.ancestors
+  end
+
+  # Get all descendant groups (children, grandchildren, etc.) recursively
+  # Returns a flat array of all groups below this one in the hierarchy
+  # Example: If Root has Child1 and Child2, and Child1 has Grandchild, 
+  # Root.descendants returns [Child1, Child2, Grandchild]
+  def descendants
+    children.flat_map { |child| [child] + child.descendants }
+  end
+
+  # Generate a full path string showing the hierarchy
+  # Example: "Customer Experience > Phone Support > Tier 1"
+  # @param separator [String] The separator to use between group names (default: " > ")
+  # @return [String] The full path from root to this group
+  def full_path(separator: ' > ')
+    (ancestors.reverse + [self]).map(&:name).join(separator)
+  end
+
+  # Count workflows in this group and optionally all descendant groups
+  # @param include_descendants [Boolean] If true, includes workflows from all descendant groups
+  # @return [Integer] The total count of workflows
+  # Note: This method can cause N+1 queries if called on multiple groups without eager loading
+  def workflows_count(include_descendants: true)
+    if include_descendants
+      # Get all descendant IDs plus this group's ID
+      descendant_ids = descendants.map(&:id) + [id]
+      # Use a single query to count workflows in all groups
+      GroupWorkflow.where(group_id: descendant_ids).distinct.count(:workflow_id)
+    else
+      workflows.count
+    end
+  end
+
+  # Get groups accessible to this user (admins see all, others see assigned groups)
+  # Also checks if user has access through ancestor groups (if assigned to parent, can see children)
+  def can_be_viewed_by?(user)
+    return true if user&.admin?
+    return false unless user
+    user.groups.include?(self) || ancestors.any? { |ancestor| user.groups.include?(ancestor) }
+  end
+
+  # Class method to get or create the default "Uncategorized" group
+  # This group is used for workflows without explicit group assignments (backward compatibility)
+  def self.uncategorized
+    find_or_create_by!(name: "Uncategorized") do |group|
+      group.description = "Default group for workflows without explicit group assignment"
+      group.position = 0
+    end
+  end
+
+  private
+
+  # Validation to prevent circular references in the group hierarchy
+  # Prevents scenarios like: A -> B -> A (direct circular)
+  # Or: A -> B -> C -> A (indirect circular)
+  # Also prevents a group from being its own parent
+  def no_circular_reference
+    return unless parent_id
+    return unless parent_id_changed? || new_record?
+    
+    # Get the parent group
+    parent_group = parent_id.present? ? Group.find_by(id: parent_id) : nil
+    return unless parent_group
+    
+    # Check if this group (or any of its descendants) would be an ancestor of the parent
+    # This prevents: A -> B -> A (direct circular)
+    # And also: A -> B -> C -> A (indirect circular)
+    if parent_group.id == id
+      errors.add(:parent_id, "cannot be set to itself")
+      return
+    end
+    
+    # Check if this group is an ancestor of the parent (would create a cycle)
+    if parent_group.ancestors.any? { |ancestor| ancestor.id == id }
+      errors.add(:parent_id, "cannot create circular reference")
+      return
+    end
+    
+    # Also check if any descendant of this group is the parent (would create a cycle)
+    if descendants.any? { |descendant| descendant.id == parent_group.id }
+      errors.add(:parent_id, "cannot create circular reference: parent is a descendant")
+      return
+    end
+  end
+
+  # Validation to enforce maximum depth limit (prevents infinite nesting)
+  # Default maximum depth is 5 levels (configurable)
+  def max_depth_allowed
+    # Allow up to 5 levels deep (configurable)
+    max_depth = 5
+    current_depth = if parent_id && parent.persisted?
+      parent.depth + 1
+    else
+      parent_id ? 1 : 0
+    end
+    
+    return unless current_depth >= max_depth
+    
+    errors.add(:parent_id, "maximum depth of #{max_depth} levels exceeded")
+  end
+end
+
