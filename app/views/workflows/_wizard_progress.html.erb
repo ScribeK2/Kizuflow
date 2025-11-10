@@ -1,0 +1,55 @@
+<div class="mb-8" data-controller="wizard-navigation">
+  <div class="flex items-center justify-between">
+    <!-- Step 1 -->
+    <div class="flex items-center">
+      <div class="flex items-center justify-center w-10 h-10 rounded-full <%= 'bg-blue-500 text-white' if current_step == 1 || current_step > 1 %> <%= 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400' if current_step < 1 %> border-2 <%= 'border-blue-500' if current_step == 1 || current_step > 1 %> <%= 'border-gray-300 dark:border-gray-600' if current_step < 1 %>">
+        <% if current_step > 1 %>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        <% else %>
+          <span class="text-sm font-semibold">1</span>
+        <% end %>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium <%= 'text-blue-600 dark:text-blue-400' if current_step == 1 || current_step > 1 %> <%= 'text-gray-500 dark:text-gray-400' if current_step < 1 %>">Name & Group</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Basic information</p>
+      </div>
+    </div>
+    
+    <!-- Connector Line -->
+    <div class="flex-1 mx-4 h-0.5 <%= 'bg-blue-500' if current_step > 1 %> <%= 'bg-gray-300 dark:bg-gray-600' if current_step <= 1 %>"></div>
+    
+    <!-- Step 2 -->
+    <div class="flex items-center">
+      <div class="flex items-center justify-center w-10 h-10 rounded-full <%= 'bg-blue-500 text-white' if current_step == 2 || current_step > 2 %> <%= 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400' if current_step < 2 %> border-2 <%= 'border-blue-500' if current_step == 2 || current_step > 2 %> <%= 'border-gray-300 dark:border-gray-600' if current_step < 2 %>">
+        <% if current_step > 2 %>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        <% else %>
+          <span class="text-sm font-semibold">2</span>
+        <% end %>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium <%= 'text-blue-600 dark:text-blue-400' if current_step == 2 || current_step > 2 %> <%= 'text-gray-500 dark:text-gray-400' if current_step < 2 %>">Add Steps</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Build your workflow</p>
+      </div>
+    </div>
+    
+    <!-- Connector Line -->
+    <div class="flex-1 mx-4 h-0.5 <%= 'bg-blue-500' if current_step > 2 %> <%= 'bg-gray-300 dark:bg-gray-600' if current_step <= 2 %>"></div>
+    
+    <!-- Step 3 -->
+    <div class="flex items-center">
+      <div class="flex items-center justify-center w-10 h-10 rounded-full <%= 'bg-blue-500 text-white' if current_step == 3 %> <%= 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400' if current_step < 3 %> border-2 <%= 'border-blue-500' if current_step == 3 %> <%= 'border-gray-300 dark:border-gray-600' if current_step < 3 %>">
+        <span class="text-sm font-semibold">3</span>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium <%= 'text-blue-600 dark:text-blue-400' if current_step == 3 %> <%= 'text-gray-500 dark:text-gray-400' if current_step < 3 %>">Review & Launch</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Finalize workflow</p>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -1,5 +1,6 @@
 class WorkflowsController < ApplicationController
-  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template, :start, :begin_execution]
+  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template, :start, :begin_execution, :step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft]
+  before_action :ensure_draft_workflow!, only: [:step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft]
   before_action :ensure_editor_or_admin!, only: [:new, :create, :import, :import_file]
   before_action :ensure_can_view_workflow!, only: [:show, :export, :export_pdf, :start, :begin_execution]
   before_action :ensure_can_edit_workflow!, only: [:edit, :update, :save_as_template]
@@ -44,9 +45,15 @@ class WorkflowsController < ApplicationController
   end
 
   def new
-    @workflow = current_user.workflows.build
-    # Eager load groups to prevent N+1 queries
-    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+    # Create a draft workflow and redirect to wizard step 1
+    @workflow = current_user.workflows.build(status: 'draft', title: 'Untitled Workflow')
+    if @workflow.save
+      redirect_to step1_workflow_path(@workflow), notice: "Let's create your workflow step by step."
+    else
+      # Fallback: if draft creation fails, show traditional form
+      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+      render :new, status: :unprocessable_entity
+    end
   end
 
   def create
@@ -264,6 +271,112 @@ class WorkflowsController < ApplicationController
     end
   end
 
+  # Wizard step actions
+  def step1
+    # Load draft workflow and accessible groups
+    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+    @selected_group_ids = @workflow.group_ids
+  end
+
+  def update_step1
+    if @workflow.update(workflow_step1_params)
+      # Update group assignments
+      if params[:workflow][:group_ids].present?
+        @workflow.group_workflows.destroy_all
+        # Deduplicate group_ids to prevent duplicate entries
+        group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?).uniq
+        group_ids.each_with_index do |group_id, index|
+          @workflow.group_workflows.create!(
+            group_id: group_id,
+            is_primary: index == 0
+          )
+        end
+      elsif params[:workflow].key?(:group_ids)
+        # Explicitly clear groups if group_ids is present but empty
+        @workflow.group_workflows.destroy_all
+      end
+      
+      redirect_to step2_workflow_path(@workflow), notice: "Step 1 completed. Now let's add some steps."
+    else
+      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+      @selected_group_ids = @workflow.group_ids
+      render :step1, status: :unprocessable_entity
+    end
+  end
+
+  def step2
+    # Load draft workflow for step 2 (add steps)
+    # Steps will be managed via the existing workflow-builder controller
+  end
+
+  def update_step2
+    if @workflow.update(workflow_step2_params)
+      redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
+    else
+      render :step2, status: :unprocessable_entity
+    end
+  end
+
+  def step3
+    # Load draft workflow for step 3 (review and launch)
+    # Preview will be shown here
+  end
+
+  def create_from_draft
+    # Validate draft before converting to published
+    unless @workflow.valid?
+      render :step3, status: :unprocessable_entity
+      return
+    end
+    
+    # Validate that workflow has at least one step
+    if @workflow.steps.blank? || @workflow.steps.empty?
+      @workflow.errors.add(:base, "Workflow must have at least one step")
+      render :step3, status: :unprocessable_entity
+      return
+    end
+    
+    # Validate all steps have required fields
+    @workflow.steps.each_with_index do |step, index|
+      unless step.is_a?(Hash)
+        @workflow.errors.add(:steps, "Step #{index + 1}: Invalid step format")
+        next
+      end
+      
+      unless step['type'].present?
+        @workflow.errors.add(:steps, "Step #{index + 1}: Step type is required")
+      end
+      
+      unless step['title'].present? || step['title'].to_s.strip.present?
+        @workflow.errors.add(:steps, "Step #{index + 1}: Step title is required")
+      end
+      
+      # Type-specific validation
+      if step['type'] == 'question' && !step['question'].present?
+        @workflow.errors.add(:steps, "Step #{index + 1}: Question text is required for question steps")
+      end
+    end
+    
+    if @workflow.errors.any?
+      render :step3, status: :unprocessable_entity
+      return
+    end
+    
+    # Convert draft to published workflow
+    @workflow.status = 'published'
+    @workflow.draft_expires_at = nil
+    
+    # Assign to Uncategorized group if no groups assigned (triggered by status change)
+    if @workflow.save
+      # Ensure groups are assigned (after_create callback handles this for published workflows)
+      @workflow.assign_to_uncategorized_if_needed if @workflow.groups.empty?
+      
+      redirect_to @workflow, notice: "Workflow was successfully created!"
+    else
+      render :step3, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def set_workflow
@@ -289,9 +402,31 @@ class WorkflowsController < ApplicationController
     end
   end
 
+  def ensure_draft_workflow!
+    unless @workflow.status == 'draft' && @workflow.user == current_user
+      redirect_to workflows_path, alert: "This workflow is not a draft or you don't have permission to edit it."
+    end
+  end
+
   def workflow_params
     # Permit nested steps hash structure
     params.require(:workflow).permit(:title, :description, :is_public, steps: [
+      :index, :type, :title, :description, :question, :answer_type, :variable_name,
+      :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
+      options: [:label, :value],
+      branches: [:condition, :path],
+      attachments: []
+    ])
+  end
+
+  def workflow_step1_params
+    # Permit only title and description for step 1
+    params.require(:workflow).permit(:title, :description)
+  end
+
+  def workflow_step2_params
+    # Permit steps for step 2
+    params.require(:workflow).permit(steps: [
       :index, :type, :title, :description, :question, :answer_type, :variable_name,
       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
       options: [:label, :value],

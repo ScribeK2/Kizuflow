@@ -1,0 +1,139 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 animate-fade-in">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Add Steps</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Step 2 of 3: Build your workflow by adding steps.</p>
+  </div>
+
+  <%= render partial: "wizard_progress", locals: { current_step: 2 } %>
+
+  <%= form_with model: @workflow, url: update_step2_workflow_path(@workflow), method: :patch, local: true, class: "glass-card overflow-hidden animate-fade-in-up" do |form| %>
+    <% if @workflow.errors.any? %>
+      <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+              <%= pluralize(@workflow.errors.count, "error") %> prohibited this workflow from being saved:
+            </h3>
+            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+              <ul class="list-disc pl-5 space-y-1">
+                <% @workflow.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="p-6 space-y-6" 
+         data-controller="step-modal" 
+         data-step-modal-workflow-id-value="<%= @workflow.id %>"
+         data-step-modal-templates-data-value="<%= { question: StepTemplate.all_for_type(:question), decision: StepTemplate.all_for_type(:decision), action: StepTemplate.all_for_type(:action), checkpoint: [] }.to_json.html_safe %>">
+      <div data-controller="workflow-builder" id="workflow-builder-container">
+        <div class="flex justify-between items-center mb-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
+          <div class="flex space-x-2">
+            <button type="button" 
+                    data-action="click->step-modal#open" 
+                    data-step-modal-type-param="question"
+                    class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+              Add Question
+            </button>
+            <button type="button" 
+                    data-action="click->step-modal#open" 
+                    data-step-modal-type-param="decision"
+                    class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+              Add Decision
+            </button>
+            <button type="button" 
+                    data-action="click->step-modal#open" 
+                    data-step-modal-type-param="action"
+                    class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+              Add Action
+            </button>
+            <button type="button" 
+                    data-action="click->step-modal#open" 
+                    data-step-modal-type-param="checkpoint"
+                    class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+              Add Checkpoint
+            </button>
+          </div>
+        </div>
+        <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
+          <% if @workflow.steps.present? %>
+            <% @workflow.steps.each_with_index do |step, index| %>
+              <div class="step-item border rounded p-4 mb-4" 
+                   data-step-index="<%= index %>"
+                   data-controller="step-form"
+                   data-step-form-step-type-value="<%= step['type'] %>"
+                   data-step-form-step-index-value="<%= index %>">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="drag-handle cursor-move text-gray-500">☰</span>
+                  <button type="button" data-action="click->workflow-builder#removeStep" class="text-red-500 hover:text-red-700">Remove</button>
+                </div>
+                <input type="hidden" name="workflow[steps][][index]" value="<%= index %>">
+                <input type="hidden" name="workflow[steps][][type]" value="<%= step['type'] %>">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" 
+                     data-controller="preview-updater"
+                     data-preview-updater-url-value="<%= preview_workflow_path(@workflow) %>"
+                     data-preview-updater-index-value="<%= index %>">
+                  <div class="space-y-2 min-w-0">
+                    <div class="field-container">
+                      <input type="text" 
+                             name="workflow[steps][][title]" 
+                             value="<%= step['title'] %>" 
+                             placeholder="Step title" 
+                             class="w-full border rounded px-3 py-2" 
+                             required
+                             data-step-form-target="field">
+                    </div>
+                    <div class="field-container">
+                      <textarea name="workflow[steps][][description]" 
+                                placeholder="Step description" 
+                                class="w-full border rounded px-3 py-2" 
+                                rows="2"
+                                data-step-form-target="field"><%= step['description'] %></textarea>
+                    </div>
+                    <%= render partial: "step_fields", locals: { step: step, step_type: step['type'], available_steps: @workflow.steps, step_index: index, workflow: @workflow } %>
+                  </div>
+                  
+                  <div class="min-w-0">
+                    <%= turbo_frame_tag "step_preview_#{index}", data: { preview_updater_target: "previewFrame" } do %>
+                      <%= render partial: "preview_pane", locals: { step: step, index: index } %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Include step templates data for JavaScript %>
+      <script type="application/json" id="step-templates-data">
+        {
+          "question": <%= StepTemplate.all_for_type(:question).to_json.html_safe %>,
+          "decision": <%= StepTemplate.all_for_type(:decision).to_json.html_safe %>,
+          "action": <%= StepTemplate.all_for_type(:action).to_json.html_safe %>,
+          "checkpoint": []
+        }
+      </script>
+
+      <%# Step Addition Modal %>
+      <%= render partial: "workflows/step_modal" %>
+
+      <div class="flex justify-between space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <%= link_to "Previous", step1_workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Next: Review", 
+            class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105",
+            data: { 
+              action: "click->step-form#logSubmit",
+              turbo: true
+            } %>
+      </div>
+    </div>
+  <% end %>
+</div>
+

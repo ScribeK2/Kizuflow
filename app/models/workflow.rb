@@ -15,11 +15,19 @@ class Workflow < ApplicationRecord
   before_validation :normalize_steps_on_save
   # Clean up import flags when steps are completed
   before_save :cleanup_import_flags
-  # Assign to Uncategorized group if no groups assigned
-  after_create :assign_to_uncategorized_if_needed
+  # Assign to Uncategorized group if no groups assigned (only for published workflows)
+  after_create :assign_to_uncategorized_if_needed, if: -> { status == 'published' || status.nil? }
 
   scope :recent, -> { order(created_at: :desc) }
   scope :public_workflows, -> { where(is_public: true) }
+  
+  # Draft workflow scopes
+  scope :drafts, -> { where(status: 'draft') }
+  scope :published, -> { where(status: 'published') }
+  scope :expired_drafts, -> { drafts.where('draft_expires_at < ?', Time.current) }
+  
+  # Set draft expiration before save (7 days from creation or update)
+  before_save :set_draft_expiration, if: -> { status == 'draft' }
   
   # Get workflows visible to a specific user
   # Admins see all, Editors see own + public, Users see only public
@@ -31,17 +39,21 @@ class Workflow < ApplicationRecord
   # - Editors: See their own workflows + all public workflows + workflows in assigned groups
   # - Users: See public workflows + workflows in assigned groups
   # - Workflows without groups: Accessible to all users (backward compatibility)
+  # - Drafts: Excluded from main workflow list (only accessible via wizard routes)
   # 
   # Group Access:
   # - Users assigned to a parent group can see workflows in child groups
   # - Workflows are visible if user is assigned to any group containing the workflow
   scope :visible_to, ->(user) {
+    # Exclude drafts from main workflow list
+    base_scope = published
+    
     base_scope = if user&.admin?
-      all
+      base_scope
     elsif user&.editor?
-      where(user: user).or(where(is_public: true))
+      base_scope.where(user: user).or(base_scope.where(is_public: true))
     else
-      where(is_public: true)
+      base_scope.where(is_public: true)
     end
 
     # Filter by group membership if user has group assignments
@@ -180,6 +192,17 @@ class Workflow < ApplicationRecord
       group: uncategorized_group,
       is_primary: true
     )
+  end
+  
+  # Set draft expiration timestamp (7 days from now)
+  def set_draft_expiration
+    self.draft_expires_at = 7.days.from_now if status == 'draft'
+  end
+  
+  # Class method to cleanup expired drafts
+  # Can be called from a scheduled job
+  def self.cleanup_expired_drafts
+    expired_drafts.delete_all
   end
 
   def cleanup_import_flags

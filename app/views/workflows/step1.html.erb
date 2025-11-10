@@ -1,0 +1,53 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 animate-fade-in">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Create Workflow</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Step 1 of 3: Name your workflow and assign it to a group.</p>
+  </div>
+
+  <%= render partial: "wizard_progress", locals: { current_step: 1 } %>
+
+  <%= form_with model: @workflow, url: update_step1_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, html: { class: "glass-card animate-fade-in-up", style: "overflow: visible;" } do |form| %>
+    <% if @workflow.errors.any? %>
+      <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+              <%= pluralize(@workflow.errors.count, "error") %> prohibited this workflow from being saved:
+            </h3>
+            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+              <ul class="list-disc pl-5 space-y-1">
+                <% @workflow.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="p-6 space-y-6">
+      <div>
+        <%= form.label :title, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
+        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "Enter workflow title", required: true %>
+      </div>
+
+      <div>
+        <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
+        <%= form.rich_text_area :description, id: "workflow_description", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Describe what this workflow does..." %>
+      </div>
+
+      <% if @accessible_groups&.any? %>
+        <div class="relative" style="z-index: 10;">
+          <%= render partial: "workflows/group_selector", locals: { selected_group_ids: @selected_group_ids || [] } %>
+        </div>
+      <% end %>
+
+      <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Next: Add Steps", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+      </div>
+    </div>
+  <% end %>
+</div>
+

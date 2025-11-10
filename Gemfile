@@ -40,6 +40,3 @@ end
 group :development do
   gem "web-console"
 end
-
-# ADD THIS LINE – ensures Devise is loaded
-gem "devise", require: "devise"

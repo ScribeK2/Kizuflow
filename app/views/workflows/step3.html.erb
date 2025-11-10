@@ -1,0 +1,116 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 animate-fade-in">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Review & Launch</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Step 3 of 3: Review your workflow and create it.</p>
+  </div>
+
+  <%= render partial: "wizard_progress", locals: { current_step: 3 } %>
+
+  <%= form_with model: @workflow, url: create_from_draft_workflow_path(@workflow), method: :patch, local: true, class: "glass-card overflow-hidden animate-fade-in-up" do |form| %>
+    <% if @workflow.errors.any? %>
+      <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+              <%= pluralize(@workflow.errors.count, "error") %> prohibited this workflow from being saved:
+            </h3>
+            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+              <ul class="list-disc pl-5 space-y-1">
+                <% @workflow.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="p-6 space-y-6">
+      <!-- Workflow Summary -->
+      <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Workflow Summary</h3>
+        <div class="space-y-2">
+          <div>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Title:</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100 ml-2"><%= @workflow.title %></span>
+          </div>
+          <% if @workflow.description_text.present? %>
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Description:</span>
+              <div class="text-sm text-gray-900 dark:text-gray-100 mt-1"><%= simple_format(@workflow.description_text) %></div>
+            </div>
+          <% end %>
+          <% if @workflow.groups.any? %>
+            <div>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Groups:</span>
+              <span class="text-sm text-gray-900 dark:text-gray-100 ml-2">
+                <%= @workflow.groups.map(&:name).join(", ") %>
+              </span>
+            </div>
+          <% end %>
+          <div>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Steps:</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100 ml-2">
+              <%= @workflow.steps&.length || 0 %> step(s)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Flowchart Preview -->
+      <% if @workflow.steps.present? %>
+        <div class="glass-card overflow-hidden animate-fade-in-up" 
+             data-controller="wizard-flow-preview"
+             data-wizard-flow-preview-workflow-id-value="<%= @workflow.id %>">
+          <script type="application/json" data-wizard-flow-preview-steps-data="<%= @workflow.id %>">
+            <%= @workflow.steps.to_json.html_safe %>
+          </script>
+          <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Workflow Flowchart</h3>
+            <button type="button" 
+                    data-action="click->wizard-flow-preview#refresh" 
+                    class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors duration-200">
+              Refresh
+            </button>
+          </div>
+          <div 
+            data-wizard-flow-preview-target="canvas" 
+            class="relative bg-gray-50 dark:bg-gray-800/30 rounded-lg p-4 m-6 overflow-auto"
+            style="min-height: 400px; max-height: 700px;"
+          >
+            <p class="text-gray-500 dark:text-gray-400 text-center py-8">Loading preview...</p>
+          </div>
+          <div class="px-6 pb-6 text-xs text-gray-500 dark:text-gray-400">
+            <p>💡 Tip: Click on any step in the flowchart to edit it. Decision branches are shown in green (Yes) and red (No).</p>
+          </div>
+        </div>
+      <% else %>
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                No steps added yet
+              </h3>
+              <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                <%= link_to "Go back to add steps", step2_workflow_path(@workflow), class: "text-blue-600 dark:text-blue-400 hover:underline" %> or create the workflow and add steps later.
+              </p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Step Addition Modal (for potential future inline editing) %>
+      <%= render partial: "workflows/step_modal" %>
+
+      <div class="flex justify-between space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <%= link_to "Previous", step2_workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Create Workflow", class: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+      </div>
+    </div>
+  <% end %>
+</div>
+

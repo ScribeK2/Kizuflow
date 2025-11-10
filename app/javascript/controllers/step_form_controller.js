@@ -107,6 +107,10 @@ export default class extends Controller {
   validateBeforeSubmit(event) {
     console.log("Validating step:", this.stepTypeValue, this.stepIndexValue)
     
+    // Check if this is a wizard form (step2) - be more lenient for drafts
+    const form = this.formElement || this.element.closest("form")
+    const isWizardForm = form && (form.action.includes("/step2") || form.action.includes("update_step2"))
+    
     // Validate all fields in this step
     let isValid = true
     
@@ -123,6 +127,17 @@ export default class extends Controller {
     
     if (!isValid) {
       console.warn("Validation failed for step:", this.stepTypeValue, this.stepIndexValue)
+      
+      // For wizard forms, only prevent if title is missing (required field)
+      // Allow other validations to pass so users can save drafts
+      if (isWizardForm) {
+        const titleField = this.fieldTargets.find(f => f.name && f.name.includes("[title]"))
+        if (titleField && titleField.value && titleField.value.trim()) {
+          console.log("Wizard form: Title present, allowing submission despite other validation failures")
+          return true // Allow submission if title is present
+        }
+      }
+      
       event.preventDefault()
       event.stopPropagation()
       

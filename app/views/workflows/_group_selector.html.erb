@@ -1,4 +1,4 @@
-<div class="group-selector-container" data-controller="group-selector">
+<div class="group-selector-container" data-controller="group-selector" style="position: relative; z-index: 10;">
   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
     Group Assignment
   </label>
@@ -6,7 +6,7 @@
     Select one or more groups to organize this workflow. The first selected group will be the primary group.
   </p>
   
-  <div class="relative">
+  <div class="relative" style="z-index: 100;">
     <div class="group-selector-input-container">
       <button type="button"
               data-action="click->group-selector#toggle"
@@ -17,7 +17,7 @@
         </svg>
       </button>
       
-      <div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto hidden transition-all duration-200"
+      <div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-[100] max-h-64 overflow-y-auto hidden transition-all duration-200"
            data-group-selector-target="dropdown">
         <div class="p-3 border-b border-gray-200 dark:border-gray-700">
           <input type="text" 

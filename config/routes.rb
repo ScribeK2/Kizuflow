@@ -26,6 +26,13 @@ Rails.application.routes.draw do
       post :save_as_template
       get :start
       post :begin_execution
+      # Wizard routes
+      get :step1
+      patch :update_step1
+      get :step2
+      patch :update_step2
+      get :step3
+      patch :create_from_draft
     end
     resources :simulations, only: [:new, :create]
   end

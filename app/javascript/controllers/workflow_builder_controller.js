@@ -5,6 +5,9 @@ export default class extends Controller {
 
   connect() {
     this.initializeSortable()
+    // Listen for step addition from modal
+    this.boundHandleModalAddStep = this.handleModalAddStep.bind(this)
+    document.addEventListener("step-modal:add-step", this.boundHandleModalAddStep)
     // Set up event listeners for title changes
     this.setupTitleChangeListeners()
     // Refresh dropdowns on initial load (for edit views with existing steps)
@@ -17,6 +20,14 @@ export default class extends Controller {
     if (this.sortable) {
       this.sortable.destroy()
     }
+    if (this.boundHandleModalAddStep) {
+      document.removeEventListener("step-modal:add-step", this.boundHandleModalAddStep)
+    }
+  }
+
+  handleModalAddStep(event) {
+    const { stepType, stepData } = event.detail
+    this.addStepFromModal(stepType, stepData)
   }
 
   async initializeSortable() {
@@ -295,6 +306,35 @@ export default class extends Controller {
     const stepData = this.extractStepData(stepElement)
     document.dispatchEvent(new CustomEvent("workflow-builder:step-added", {
       detail: { stepIndex, stepType, stepData }
+    }))
+    
+    // Reinitialize Sortable after adding new element
+    if (this.sortable) {
+      this.sortable.destroy()
+    }
+    this.initializeSortable()
+  }
+
+  addStepFromModal(stepType, stepData) {
+    if (!this.hasContainerTarget) {
+      return
+    }
+    
+    const stepIndex = this.containerTarget.children.length
+    const stepHtml = this.buildStepHtml(stepType, stepIndex, stepData)
+    
+    this.containerTarget.insertAdjacentHTML("beforeend", stepHtml)
+    
+    // Refresh dropdowns after adding new step
+    this.refreshAllDropdowns()
+    this.refreshAllRuleBuilders()
+    this.notifyPreviewUpdate()
+    
+    // Dispatch event for collaboration
+    const stepElement = this.containerTarget.querySelector(`[data-step-index="${stepIndex}"]`)
+    const extractedStepData = this.extractStepData(stepElement)
+    document.dispatchEvent(new CustomEvent("workflow-builder:step-added", {
+      detail: { stepIndex, stepType, stepData: extractedStepData }
     }))
     
     // Reinitialize Sortable after adding new element
