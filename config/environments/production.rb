@@ -17,20 +17,19 @@ Rails.application.configure do
 
   # Enable static file serving from the `/public` folder (turn off if using NGINX/Apache for it).
   # On Render, we need to serve static files ourselves, so enable this
-  # Also ensure importmap-rails can serve JavaScript files
+  # Static files are served by Rails (including esbuild-compiled assets)
   config.public_file_server.enabled = ENV.fetch("RAILS_SERVE_STATIC_FILES", "true") == "true"
   config.public_file_server.headers = {
     'Cache-Control' => "public, max-age=#{1.hour.to_i}"
   }
 
-  # Disable importmap cache sweeping in production
-  config.importmap.sweep_cache = false
+  # Assets are precompiled with esbuild during deployment
 
   # Compress CSS using a preprocessor.
   # config.assets.css_compressor = :sass
 
-  # Do not fall back to assets pipeline if a precompiled asset is missed.
-  config.assets.compile = false
+  # Allow fallback to assets pipeline if a precompiled asset is missed (helps during deployment)
+  config.assets.compile = true
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
