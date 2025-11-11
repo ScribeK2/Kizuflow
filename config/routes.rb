@@ -1,10 +1,4 @@
 Rails.application.routes.draw do
-  # Temporary debug route - remove after testing
-  get '/debug/js_files', to: proc { |env|
-    files = Dir.glob(Rails.root.join("app", "javascript", "**", "*.js"))
-    [200, {'Content-Type' => 'text/plain'}, [files.join("\n")]]
-  }
-  
   devise_for :users, controllers: {
     registrations: 'users/registrations'
   }

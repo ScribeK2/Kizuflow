@@ -1,0 +1,26 @@
+{
+  "name": "kizuflow",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node config/esbuild.config.js",
+    "build:css": "tailwindcss -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/tailwind.css --minify",
+    "watch": "node config/esbuild.config.js --watch",
+    "watch:css": "yarn build:css --watch"
+  },
+  "dependencies": {
+    "@hotwired/stimulus": "^3.2.1",
+    "@hotwired/turbo-rails": "^8.0.0",
+    "@rails/actioncable": "^8.0.0",
+    "@rails/actiontext": "^8.0.0",
+    "sortablejs": "^1.15.0",
+    "spark-md5": "^3.0.2",
+    "trix": "^2.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.0",
+    "tailwindcss": "^3.4.0"
+  }
+}
+

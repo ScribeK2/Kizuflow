@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import Sortable from "sortablejs"
 
 export default class extends Controller {
   static targets = [
@@ -27,12 +28,10 @@ export default class extends Controller {
     }
   }
 
-  async initializeSortable() {
+  initializeSortable() {
     if (!this.hasOptionsListTarget) return
     
     try {
-      const Sortable = (await import("sortablejs")).default
-      
       this.sortable = new Sortable(this.optionsListTarget, {
         handle: '.drag-handle',
         animation: 150,

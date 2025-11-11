@@ -8,7 +8,7 @@ gem "sprockets-rails"
 gem "sqlite3", ">= 2.1", group: [:development, :test]
 gem "pg", "~> 1.1", group: [:production]
 gem "puma", ">= 5.0"
-gem "importmap-rails"
+gem "esbuild-rails", "~> 0.1.0"
 gem "turbo-rails"
 gem "stimulus-rails"
 gem "tailwindcss-rails"

@@ -18,5 +18,9 @@ module Kizuflow
     # Configuration for the application, engines, and railties goes here.
     config.assets.enabled = true
     config.assets.version = "1.0"
+    
+    # esbuild configuration
+    # Note: esbuild-rails handles most configuration automatically
+    # Custom build options can be added here if needed
   end
 end

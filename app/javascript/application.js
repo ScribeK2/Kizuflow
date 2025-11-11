@@ -1,8 +1,9 @@
 // Entry point for the build script in your package.json
 import "@hotwired/turbo-rails"
-import "controllers"
+import "./controllers"
 
-import "trix"
+// Import npm packages directly instead of CDN pins
+import Trix from "trix"
 import "@rails/actiontext"
 
 // Ensure Trix works properly with Turbo
