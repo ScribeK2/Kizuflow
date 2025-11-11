@@ -6,9 +6,6 @@ export default class extends Controller {
   connect() {
     // Auto-expand groups that contain the selected group
     this.expandSelectedPath()
-    
-    // Initialize tooltips
-    this.initializeTooltips()
   }
 
   toggle(event) {
@@ -149,112 +146,5 @@ export default class extends Controller {
     }
   }
 
-  initializeTooltips() {
-    // Simple tooltip implementation for group descriptions
-    const items = this.element.querySelectorAll('[data-tooltip]')
-    items.forEach(item => {
-      const tooltip = item.dataset.tooltip
-      if (!tooltip || tooltip.trim() === '') return
-      
-      let tooltipEl = null
-      let showTimeout = null
-      let hideTimeout = null
-      
-      const showTooltip = (e) => {
-        // Clear any pending hide
-        if (hideTimeout) {
-          clearTimeout(hideTimeout)
-          hideTimeout = null
-        }
-        
-        // Don't show if already visible
-        if (tooltipEl && document.body.contains(tooltipEl)) return
-        
-        // Clear any existing tooltip
-        const existing = document.getElementById('group-tooltip')
-        if (existing) existing.remove()
-        
-        // Create tooltip element
-        tooltipEl = document.createElement('div')
-        tooltipEl.id = 'group-tooltip'
-        tooltipEl.className = 'fixed z-[9999] px-3 py-1.5 text-xs font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-xl pointer-events-none whitespace-nowrap max-w-xs'
-        tooltipEl.textContent = tooltip.trim()
-        document.body.appendChild(tooltipEl)
-        
-        // Position tooltip above the element, centered
-        const rect = item.getBoundingClientRect()
-        const tooltipRect = tooltipEl.getBoundingClientRect()
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
-        
-        // Center horizontally above the element
-        let left = rect.left + scrollLeft + (rect.width / 2) - (tooltipRect.width / 2)
-        let top = rect.top + scrollTop - tooltipRect.height - 10
-        
-        // Ensure tooltip stays within viewport
-        const padding = 12
-        if (left < padding) left = padding
-        if (left + tooltipRect.width > window.innerWidth - padding) {
-          left = window.innerWidth - tooltipRect.width - padding
-        }
-        if (top < padding) {
-          // If not enough space above, show below
-          top = rect.bottom + scrollTop + 10
-        }
-        
-        tooltipEl.style.left = left + 'px'
-        tooltipEl.style.top = top + 'px'
-      }
-      
-      const hideTooltip = () => {
-        if (hideTimeout) return
-        
-        hideTimeout = setTimeout(() => {
-          if (tooltipEl && document.body.contains(tooltipEl)) {
-            tooltipEl.remove()
-            tooltipEl = null
-          }
-          hideTimeout = null
-        }, 100)
-      }
-      
-      item.addEventListener('mouseenter', (e) => {
-        showTimeout = setTimeout(() => showTooltip(e), 300) // Small delay before showing
-      })
-      
-      item.addEventListener('mouseleave', () => {
-        if (showTimeout) {
-          clearTimeout(showTimeout)
-          showTimeout = null
-        }
-        hideTooltip()
-      })
-      
-      item.addEventListener('mousemove', (e) => {
-        // Update position on mouse move
-        if (tooltipEl && document.body.contains(tooltipEl)) {
-          const rect = item.getBoundingClientRect()
-          const tooltipRect = tooltipEl.getBoundingClientRect()
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
-          
-          let left = rect.left + scrollLeft + (rect.width / 2) - (tooltipRect.width / 2)
-          let top = rect.top + scrollTop - tooltipRect.height - 10
-          
-          const padding = 12
-          if (left < padding) left = padding
-          if (left + tooltipRect.width > window.innerWidth - padding) {
-            left = window.innerWidth - tooltipRect.width - padding
-          }
-          if (top < padding) {
-            top = rect.bottom + scrollTop + 10
-          }
-          
-          tooltipEl.style.left = left + 'px'
-          tooltipEl.style.top = top + 'px'
-        }
-      })
-    })
-  }
 }
 
