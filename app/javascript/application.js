@@ -1,6 +1,6 @@
 // Entry point for the build script in your package.json
 import "@hotwired/turbo-rails"
-import "./controllers"
+import "./controllers/index.js"
 
 // Import npm packages directly instead of CDN pins
 import Trix from "trix"

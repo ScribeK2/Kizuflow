@@ -20,8 +20,10 @@ const config = {
     js: '/* Kizuflow Application Bundle */',
   },
   logLevel: 'info',
-  sourcemap: true,
-  minify: process.env.RAILS_ENV === 'production',
+  // Only generate sourcemaps in development (they cause issues in production on Render)
+  // Check both RAILS_ENV and NODE_ENV for production detection
+  sourcemap: process.env.RAILS_ENV !== 'production' && process.env.NODE_ENV !== 'production',
+  minify: process.env.RAILS_ENV === 'production' || process.env.NODE_ENV === 'production',
   target: ['es2020'],
   plugins: [],
 }
