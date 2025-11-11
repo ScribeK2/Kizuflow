@@ -2,6 +2,7 @@ import { application } from "./application"
 
 // Manually import and register all controllers for esbuild compatibility
 // This ensures esbuild can statically analyze and bundle all controllers
+// IMPORTANT: Controllers are stored in an array to prevent tree-shaking
 
 // Import all controllers
 import AutosaveController from "./autosave_controller"
@@ -30,41 +31,44 @@ import WorkflowCollaborationController from "./workflow_collaboration_controller
 import WorkflowSearchController from "./workflow_search_controller"
 import WorkflowSidebarController from "./workflow_sidebar_controller"
 
+// Store controllers in an array to prevent tree-shaking
+// This ensures esbuild includes all controllers in the bundle
+const controllers = [
+  { Controller: AutosaveController, name: "autosave" },
+  { Controller: DarkModeController, name: "dark-mode" },
+  { Controller: FileAttachmentController, name: "file-attachment" },
+  { Controller: FileUploadController, name: "file-upload" },
+  { Controller: FlowPreviewController, name: "flow-preview" },
+  { Controller: GroupSelectorController, name: "group-selector" },
+  { Controller: GroupTreeController, name: "group-tree" },
+  { Controller: ModalController, name: "modal" },
+  { Controller: MultiBranchController, name: "multi-branch" },
+  { Controller: PreviewUpdaterController, name: "preview-updater" },
+  { Controller: QuestionFormController, name: "question-form" },
+  { Controller: RichTextEditorController, name: "rich-text-editor" },
+  { Controller: RuleBuilderController, name: "rule-builder" },
+  { Controller: SearchableDropdownController, name: "searchable-dropdown" },
+  { Controller: StepFormController, name: "step-form" },
+  { Controller: StepModalController, name: "step-modal" },
+  { Controller: StepTemplateController, name: "step-template" },
+  { Controller: StepsController, name: "steps" },
+  { Controller: TemplateFlowPreviewController, name: "template-flow-preview" },
+  { Controller: WizardFlowPreviewController, name: "wizard-flow-preview" },
+  { Controller: WizardNavigationController, name: "wizard-navigation" },
+  { Controller: WorkflowBuilderController, name: "workflow-builder" },
+  { Controller: WorkflowCollaborationController, name: "workflow-collaboration" },
+  { Controller: WorkflowSearchController, name: "workflow-search" },
+  { Controller: WorkflowSidebarController, name: "workflow-sidebar" },
+]
+
 // Register all controllers with Stimulus
-// Convert controller filename to Stimulus identifier (e.g., workflow_builder_controller -> workflow-builder)
-function registerController(Controller, filename) {
-  const name = filename
-    .replace(/_controller$/, '')
-    .replace(/_/g, '-')
-  
+// This side-effect ensures controllers are included in the bundle
+controllers.forEach(({ Controller, name }) => {
   if (!application.router.modulesByIdentifier.has(name)) {
     application.register(name, Controller)
   }
-}
+})
 
-// Register all controllers
-registerController(AutosaveController, "autosave_controller")
-registerController(DarkModeController, "dark_mode_controller")
-registerController(FileAttachmentController, "file_attachment_controller")
-registerController(FileUploadController, "file_upload_controller")
-registerController(FlowPreviewController, "flow_preview_controller")
-registerController(GroupSelectorController, "group_selector_controller")
-registerController(GroupTreeController, "group_tree_controller")
-registerController(ModalController, "modal_controller")
-registerController(MultiBranchController, "multi_branch_controller")
-registerController(PreviewUpdaterController, "preview_updater_controller")
-registerController(QuestionFormController, "question_form_controller")
-registerController(RichTextEditorController, "rich_text_editor_controller")
-registerController(RuleBuilderController, "rule_builder_controller")
-registerController(SearchableDropdownController, "searchable_dropdown_controller")
-registerController(StepFormController, "step_form_controller")
-registerController(StepModalController, "step_modal_controller")
-registerController(StepTemplateController, "step_template_controller")
-registerController(StepsController, "steps_controller")
-registerController(TemplateFlowPreviewController, "template_flow_preview_controller")
-registerController(WizardFlowPreviewController, "wizard_flow_preview_controller")
-registerController(WizardNavigationController, "wizard_navigation_controller")
-registerController(WorkflowBuilderController, "workflow_builder_controller")
-registerController(WorkflowCollaborationController, "workflow_collaboration_controller")
-registerController(WorkflowSearchController, "workflow_search_controller")
-registerController(WorkflowSidebarController, "workflow_sidebar_controller")
+// Export controllers array to prevent tree-shaking (side-effect)
+// This ensures esbuild includes all controller code
+export { controllers }

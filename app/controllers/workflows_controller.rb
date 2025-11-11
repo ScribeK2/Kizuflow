@@ -116,7 +116,7 @@ class WorkflowsController < ApplicationController
   end
 
   def export
-    send_data @workflow.to_json(except: [:id, :user_id]), 
+    send_data @workflow.to_json(except: [:id, :user_id, :status, :draft_expires_at]), 
               filename: "#{@workflow.title.parameterize}.json",
               type: "application/json"
   end
@@ -238,11 +238,13 @@ class WorkflowsController < ApplicationController
     end
 
     # Create workflow with import metadata
+    # Imported workflows are always published (not drafts)
     @workflow = current_user.workflows.build(
       title: workflow_data[:title],
       description: workflow_data[:description] || "",
       steps: workflow_data[:steps] || [],
-      is_public: false
+      is_public: false,
+      status: 'published'
     )
 
     # Store import metadata in a way we can access later
