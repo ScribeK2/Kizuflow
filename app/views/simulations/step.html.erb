@@ -1,7 +1,14 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8 animate-fade-in">
-    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Running Simulation</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Step-by-step execution of <%= @workflow.title %></p>
+    <% if current_user&.user? %>
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight break-words" title="<%= @workflow.title %>">
+        <%= truncate(@workflow.title, length: 60, omission: '...') %>
+      </h1>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Step-by-step execution</p>
+    <% else %>
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Running Simulation</h1>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Step-by-step execution of <%= @workflow.title %></p>
+    <% end %>
   </div>
 
   <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>

@@ -1,5 +1,5 @@
 class TemplatesController < ApplicationController
-  before_action :ensure_editor_or_admin!, only: [:use]
+  before_action :ensure_editor_or_admin!, only: [:index, :show, :use]
 
   def index
     @templates = if params[:search].present?

@@ -48,30 +48,44 @@ class Workflow < ApplicationRecord
     # Exclude drafts from main workflow list
     base_scope = published
     
-    base_scope = if user&.admin?
+    if user&.admin?
+      # Admins see all workflows
       base_scope
     elsif user&.editor?
-      base_scope.where(user: user).or(base_scope.where(is_public: true))
+      # Editors see their own workflows + all public workflows + workflows in assigned groups
+      if user.groups&.any?
+        # Get all accessible group IDs (user's groups + all their descendants)
+        accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+        base_scope.left_joins(:groups)
+                   .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
+                          user.id, true, accessible_group_ids)
+                   .distinct
+      else
+        # No group assignments: own workflows + public workflows
+        base_scope.where(user: user).or(base_scope.where(is_public: true))
+      end
     else
-      base_scope.where(is_public: true)
-    end
-
-    # Filter by group membership if user has group assignments
-    # But always include workflows without groups (backward compatibility)
-    if user&.groups&.any?
-      # Get all accessible group IDs (user's groups + all their descendants)
-      # Optimized: Pre-load user groups to avoid N+1 queries
-      user_group_ids = user.groups.pluck(:id)
-      # Get all descendant IDs for each user group (could be optimized further with a recursive CTE)
-      accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
-      base_scope.left_joins(:groups)
-                 .where("workflows.is_public = ? OR workflows.user_id = ? OR groups.id IN (?) OR groups.id IS NULL", 
-                        true, user.id, accessible_group_ids)
-                 .distinct
-    else
-      # If user has no group assignments, show all workflows they have access to
-      # (including workflows without groups for backward compatibility)
-      base_scope
+      # Users: See public workflows + workflows in assigned groups + workflows without groups
+      if user&.groups&.any?
+        # Get all accessible group IDs (user's groups + all their descendants)
+        accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+        # Public workflows OR workflows in user's groups OR workflows without groups
+        public_workflows = base_scope.where(is_public: true)
+        group_workflows = base_scope.joins(:groups).where(groups: { id: accessible_group_ids })
+        workflows_without_groups = base_scope.left_joins(:groups).where(groups: { id: nil })
+        base_scope.where(id: public_workflows.select(:id))
+                   .or(base_scope.where(id: group_workflows.select(:id)))
+                   .or(base_scope.where(id: workflows_without_groups.select(:id)))
+                   .distinct
+      else
+        # No group assignments: only public workflows + workflows without groups (backward compatibility)
+        # Note: Workflows in Uncategorized group are NOT included for users without group assignments
+        public_workflows = base_scope.where(is_public: true)
+        workflows_without_groups = base_scope.left_joins(:groups).where(groups: { id: nil })
+        base_scope.where(id: public_workflows.select(:id))
+                   .or(base_scope.where(id: workflows_without_groups.select(:id)))
+                   .distinct
+      end
     end
   }
 
@@ -120,11 +134,32 @@ class Workflow < ApplicationRecord
     # Admins can view all workflows
     return true if user.admin?
     
-    # Editors can view their own workflows + public workflows
-    return true if user.editor? && (user == self.user || is_public?)
+    # Editors can view their own workflows + public workflows + workflows in assigned groups
+    if user.editor?
+      return true if user == self.user
+      return true if is_public?
+      # Check if workflow is in user's assigned groups
+      if user.groups.any?
+        accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+        return true if groups.where(id: accessible_group_ids).any?
+      end
+      return true if groups.empty? # Workflows without groups (backward compatibility)
+      return false
+    end
     
-    # Users can only view public workflows
-    is_public?
+    # Users: can view public workflows + workflows in assigned groups + workflows without groups
+    return true if is_public?
+    
+    # Check if workflow is in user's assigned groups
+    if user.groups.any?
+      accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+      return true if groups.where(id: accessible_group_ids).any?
+    end
+    
+    # Workflows without groups are accessible to all users (backward compatibility)
+    return true if groups.empty?
+    
+    false
   end
   
   # Check if a user can edit this workflow
