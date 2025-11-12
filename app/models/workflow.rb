@@ -5,6 +5,9 @@ class Workflow < ApplicationRecord
   # Group associations
   has_many :group_workflows, dependent: :destroy
   has_many :groups, through: :group_workflows
+  
+  # Simulation associations
+  has_many :simulations, dependent: :destroy
 
   # Steps stored as JSON - automatically serialized/deserialized
   validates :title, presence: true
@@ -56,10 +59,12 @@ class Workflow < ApplicationRecord
       if user.groups&.any?
         # Get all accessible group IDs (user's groups + all their descendants)
         accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
-        base_scope.left_joins(:groups)
-                   .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
-                          user.id, true, accessible_group_ids)
-                   .distinct
+        # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
+        distinct_ids = base_scope.left_joins(:groups)
+                                  .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
+                                         user.id, true, accessible_group_ids)
+                                  .select("DISTINCT workflows.id")
+        base_scope.where(id: distinct_ids)
       else
         # No group assignments: own workflows + public workflows
         base_scope.where(user: user).or(base_scope.where(is_public: true))
@@ -76,7 +81,6 @@ class Workflow < ApplicationRecord
         base_scope.where(id: public_workflows.select(:id))
                    .or(base_scope.where(id: group_workflows.select(:id)))
                    .or(base_scope.where(id: workflows_without_groups.select(:id)))
-                   .distinct
       else
         # No group assignments: only public workflows + workflows without groups (backward compatibility)
         # Note: Workflows in Uncategorized group are NOT included for users without group assignments
@@ -84,7 +88,6 @@ class Workflow < ApplicationRecord
         workflows_without_groups = base_scope.left_joins(:groups).where(groups: { id: nil })
         base_scope.where(id: public_workflows.select(:id))
                    .or(base_scope.where(id: workflows_without_groups.select(:id)))
-                   .distinct
       end
     end
   }
@@ -99,7 +102,9 @@ class Workflow < ApplicationRecord
     
     # Get group and all its descendants
     group_ids = [group.id] + group.descendants.map(&:id)
-    joins(:groups).where(groups: { id: group_ids }).distinct
+    # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
+    distinct_ids = joins(:groups).where(groups: { id: group_ids }).select("DISTINCT workflows.id")
+    where(id: distinct_ids)
   }
   
   # Search workflows by title and description (fuzzy matching)
@@ -120,11 +125,10 @@ class Workflow < ApplicationRecord
     rich_text_matches = joins("LEFT JOIN action_text_rich_texts ON action_text_rich_texts.record_type = 'Workflow' AND action_text_rich_texts.record_id = workflows.id AND action_text_rich_texts.name = 'description'")
                        .where("action_text_rich_texts.body LIKE ?", search_term)
     
-    # Combine all matches using OR
+    # Combine all matches using OR - no need for distinct since we're selecting IDs
     where(id: title_matches.select(:id))
       .or(where(id: desc_matches.select(:id)))
       .or(where(id: rich_text_matches.select(:id)))
-      .distinct
   }
   
   # Check if a user can view this workflow
