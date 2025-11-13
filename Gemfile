@@ -12,6 +12,7 @@ gem "esbuild-rails", "~> 0.1.0"
 gem "turbo-rails"
 gem "stimulus-rails"
 gem "tailwindcss-rails"
+gem "redis", "~> 5.0"
 gem "image_processing", "~> 1.2"
 gem "bootsnap", ">= 1.4.4", require: false
 gem "tzinfo-data", platforms: [:mingw, :mswin, :x64_mingw, :jruby]
