@@ -3,10 +3,10 @@
   <%= render partial: "question_fields", locals: { step: step } %>
 <% elsif step_type == "decision" %>
   <%= render partial: "step_template_selector", locals: { step_type: step_type, step: step } %>
-  <%= render partial: "decision_fields", locals: { step: step, available_steps: available_steps, workflow: defined?(workflow) ? workflow : nil } %>
+  <%= render partial: "decision_fields", locals: { step: step, available_steps: available_steps, step_index: step_index, workflow: defined?(workflow) ? workflow : nil } %>
 <% elsif step_type == "action" %>
   <%= render partial: "step_template_selector", locals: { step_type: step_type, step: step } %>
-  <%= render partial: "action_fields", locals: { step: step, step_index: defined?(index) ? index : nil } %>
+  <%= render partial: "action_fields", locals: { step: step, step_index: defined?(step_index) ? step_index : nil } %>
 <% elsif step_type == "checkpoint" %>
   <%= render partial: "step_template_selector", locals: { step_type: step_type, step: step } %>
   <%= render partial: "checkpoint_fields", locals: { step: step } %>
@@ -20,9 +20,9 @@
   <% if step['question'].present? %>
     <%= render partial: "question_fields", locals: { step: step } %>
   <% elsif step['condition'].present? || step['branches'].present? %>
-    <%= render partial: "decision_fields", locals: { step: step, available_steps: available_steps, workflow: defined?(workflow) ? workflow : nil } %>
+    <%= render partial: "decision_fields", locals: { step: step, available_steps: available_steps, step_index: defined?(step_index) ? step_index : nil, workflow: defined?(workflow) ? workflow : nil } %>
   <% elsif step['action_type'].present? || step['instructions'].present? %>
-    <%= render partial: "action_fields", locals: { step: step, step_index: defined?(index) ? index : nil } %>
+    <%= render partial: "action_fields", locals: { step: step, step_index: defined?(step_index) ? step_index : nil } %>
   <% end %>
 <% end %>
 

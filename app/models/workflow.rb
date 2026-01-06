@@ -273,27 +273,41 @@ class Workflow < ApplicationRecord
     end
   end
 
+  # Ensure all steps have unique IDs
+  # This assigns UUIDs to steps that don't have them yet
+  def ensure_step_ids
+    return unless steps.present?
+
+    steps.each do |step|
+      next unless step.is_a?(Hash)
+      step['id'] ||= SecureRandom.uuid
+    end
+  end
+
   # Normalize steps to convert legacy format to new format
   # This ensures backward compatibility with old workflows
   # Called before validation to convert old format to new format
   def normalize_steps_on_save
     return unless steps.present?
-    
+
+    # First ensure all steps have IDs
+    ensure_step_ids
+
     # Filter out completely empty steps (no type, no title, no data)
     # But preserve steps that have data even if type is missing (they're still being filled out)
-    self.steps = steps.select { |step| 
+    self.steps = steps.select { |step|
       step.is_a?(Hash) && (
-        step['type'].present? || 
-        step['title'].present? || 
+        step['type'].present? ||
+        step['title'].present? ||
         step['description'].present? ||
         step['question'].present? ||
         step['action_type'].present? ||
         step['condition'].present?
       )
     }
-    
+
     return unless steps.present?
-    
+
     steps.each do |step|
       next unless step.is_a?(Hash) && step['type'] == 'decision'
       
@@ -380,6 +394,155 @@ class Workflow < ApplicationRecord
 
   def all_groups
     groups
+  end
+
+  # ============================================================================
+  # ID-Based Step Reference Helpers (Sprint 1: Decision Step Revolution)
+  # These methods support ID-based step references instead of title-based,
+  # making workflows more robust when steps are renamed.
+  # ============================================================================
+
+  # Find a step by its ID
+  # Returns the step hash or nil if not found
+  def find_step_by_id(step_id)
+    return nil unless steps.present? && step_id.present?
+    steps.find { |step| step['id'] == step_id }
+  end
+
+  # Find a step by its title (for backward compatibility)
+  # Returns the step hash or nil if not found
+  def find_step_by_title(title)
+    return nil unless steps.present? && title.present?
+    steps.find { |step| step['title'] == title }
+  end
+
+  # Get step info for display purposes
+  # Returns an array of hashes with id, title, type, and index
+  def step_options_for_select
+    return [] unless steps.present?
+    
+    steps.map.with_index do |step, index|
+      next nil unless step.is_a?(Hash) && step['title'].present?
+      
+      {
+        id: step['id'],
+        title: step['title'],
+        type: step['type'],
+        index: index,
+        display_name: "#{index + 1}. #{step['title']}",
+        type_icon: step_type_icon(step['type'])
+      }
+    end.compact
+  end
+
+  # Get variables with their metadata (answer type, options) for condition builders
+  # Returns an array of hashes with variable info
+  def variables_with_metadata
+    return [] unless steps.present?
+    
+    steps.select { |step| step['type'] == 'question' && step['variable_name'].present? }
+         .map do |step|
+           {
+             name: step['variable_name'],
+             title: step['title'],
+             answer_type: step['answer_type'],
+             options: step['options'] || [],
+             display_name: "#{step['title']} (#{step['variable_name']})"
+           }
+         end
+  end
+
+  # Convert a step reference (title or ID) to ID
+  # Used for migrating from title-based to ID-based references
+  def resolve_step_reference_to_id(reference)
+    return nil if reference.blank?
+    
+    # If it looks like a UUID, assume it's already an ID
+    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+      # Verify the ID exists
+      return reference if find_step_by_id(reference)
+    end
+    
+    # Otherwise, treat it as a title and find the corresponding ID
+    step = find_step_by_title(reference)
+    step&.dig('id')
+  end
+
+  # Convert a step reference (ID or title) to title for display
+  # Used for displaying step references in the UI
+  def resolve_step_reference_to_title(reference)
+    return nil if reference.blank?
+    
+    # If it looks like a UUID, find the step and return its title
+    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+      step = find_step_by_id(reference)
+      return step['title'] if step
+    end
+    
+    # Otherwise, it might already be a title (backward compatibility)
+    # Verify the title exists
+    step = find_step_by_title(reference)
+    step ? reference : nil
+  end
+
+  # Migrate all step references in branches from title-based to ID-based
+  # This is idempotent - safe to run multiple times
+  def migrate_step_references_to_ids!
+    return false unless steps.present?
+    
+    changed = false
+    
+    steps.each do |step|
+      next unless step.is_a?(Hash) && step['type'] == 'decision'
+      
+      # Migrate branch paths
+      if step['branches'].present? && step['branches'].is_a?(Array)
+        step['branches'].each do |branch|
+          path = branch['path'] || branch[:path]
+          if path.present?
+            new_id = resolve_step_reference_to_id(path)
+            if new_id && new_id != path
+              branch['path'] = new_id
+              changed = true
+            end
+          end
+        end
+      end
+      
+      # Migrate else_path
+      if step['else_path'].present?
+        new_id = resolve_step_reference_to_id(step['else_path'])
+        if new_id && new_id != step['else_path']
+          step['else_path'] = new_id
+          changed = true
+        end
+      end
+      
+      # Migrate legacy paths
+      %w[true_path false_path].each do |path_key|
+        if step[path_key].present?
+          new_id = resolve_step_reference_to_id(step[path_key])
+          if new_id && new_id != step[path_key]
+            step[path_key] = new_id
+            changed = true
+          end
+        end
+      end
+    end
+    
+    save if changed
+    changed
+  end
+
+  # Get an emoji icon for a step type
+  def step_type_icon(type)
+    case type
+    when 'question' then '❓'
+    when 'decision' then '🔀'
+    when 'action' then '⚡'
+    when 'checkpoint' then '📍'
+    else '📝'
+    end
   end
 
   # Validate step references (e.g., decision steps reference valid step titles)
@@ -490,7 +653,14 @@ class Workflow < ApplicationRecord
         if step['question'].blank?
           errors.add(:steps, "Step #{step_num}: Question text is required")
         end
-        
+
+        # Validate jumps if present
+        validate_jumps(step, step_num)
+
+      when 'action'
+        # Validate jumps if present
+        validate_jumps(step, step_num)
+
       when 'decision'
         # Check if using multi-branch format or legacy format
         has_branches = step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
@@ -535,7 +705,10 @@ class Workflow < ApplicationRecord
             errors.add(:steps, "Step #{step_num}: Invalid condition format. Use: variable == 'value' or variable != 'value'")
           end
         end
-        
+
+        # Validate jumps if present (decision steps can use jumps instead of branches)
+        validate_jumps(step, step_num)
+
       when 'action'
         # Action steps don't have required fields beyond title
         # But we could validate action_type if needed
@@ -548,7 +721,7 @@ class Workflow < ApplicationRecord
 
   def valid_condition_format?(condition)
     return false if condition.blank?
-    
+
     # Basic condition syntax validation
     valid_patterns = [
       /^\w+\s*==\s*['"][^'"]*['"]/,  # variable == 'value'
@@ -558,8 +731,44 @@ class Workflow < ApplicationRecord
       /^\w+\s*>=\s*\d+/,             # variable >= 10
       /^\w+\s*<=\s*\d+/,             # variable <= 10
     ]
-    
+
     valid_patterns.any? { |pattern| pattern.match?(condition.strip) }
+  end
+
+  def validate_jumps(step, step_num)
+    return unless step['jumps'].present?
+
+    unless step['jumps'].is_a?(Array)
+      errors.add(:steps, "Step #{step_num}: jumps must be an array")
+      return
+    end
+
+    step['jumps'].each_with_index do |jump, jump_index|
+      unless jump.is_a?(Hash)
+        errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: must be an object")
+        next
+      end
+
+      # Allow empty jumps (user is still configuring)
+      if jump['condition'].present? || jump['next_step_id'].present?
+        # If either field is present, both should be present
+        if jump['condition'].blank?
+          errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: condition is required when next_step_id is specified")
+        end
+
+        if jump['next_step_id'].blank?
+          errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: next_step_id is required when condition is specified")
+        end
+
+        # Validate that next_step_id references a valid step
+        if jump['next_step_id'].present?
+          referenced_step = steps.find { |s| s['id'] == jump['next_step_id'] }
+          if referenced_step.nil?
+            errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: references non-existent step ID: #{jump['next_step_id']}")
+          end
+        end
+      end
+    end
   end
 end
 

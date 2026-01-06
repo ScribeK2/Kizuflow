@@ -108,40 +108,42 @@ class Simulation < ApplicationRecord
       input_key = step['variable_name'].present? ? step['variable_name'] : current_step_index.to_s
       self.inputs ||= {}
       self.inputs[input_key] = answer if answer.present?
-      
+
       # Also store by title for lookup
       self.inputs[step['title']] = answer if answer.present?
-      
+
       # Update results
       self.results ||= {}
       self.results[step['title']] = answer if answer.present?
       self.results[step['variable_name']] = answer if step['variable_name'].present? && answer.present?
-      
+
       path_entry[:answer] = answer
       self.execution_path << path_entry
-      
-      # Move to next step
-      self.current_step_index += 1
-      
+
+      # Check for jumps or move to next step
+      next_step_index = determine_next_step_index(step, self.results)
+      self.current_step_index = next_step_index
+
     when 'decision'
       # Process decision based on current results
       self.results ||= {}
       next_step_index = determine_next_step_index(step, self.results)
-      
+
       path_entry[:condition_result] = "routing to step #{next_step_index + 1}"
       self.execution_path << path_entry
-      
+
       self.current_step_index = next_step_index
-      
+
     when 'action'
       # Actions are automatically completed
       path_entry[:action_completed] = true
       self.results ||= {}
       self.results[step['title']] = "Action executed"
       self.execution_path << path_entry
-      
-      # Move to next step
-      self.current_step_index += 1
+
+      # Check for jumps or move to next step
+      next_step_index = determine_next_step_index(step, self.results)
+      self.current_step_index = next_step_index
       
     when 'checkpoint'
       # Checkpoints don't auto-advance - user must resolve them
@@ -150,8 +152,9 @@ class Simulation < ApplicationRecord
       return false  # Return false to indicate no advancement
       
     else
-      # Unknown step type, just advance
-      self.current_step_index += 1
+      # Unknown step type, check for jumps or just advance
+      next_step_index = determine_next_step_index(step, self.results)
+      self.current_step_index = next_step_index
     end
     
     # Mark as completed if we've reached the end
@@ -162,8 +165,56 @@ class Simulation < ApplicationRecord
     save
   end
   
+  # Check for universal jumps on any step type
+  def check_jumps(step, results)
+    return nil unless step['jumps'].present? && step['jumps'].is_a?(Array)
+
+    step['jumps'].each do |jump|
+      jump_condition = jump['condition'] || jump[:condition]
+      jump_next_step_id = jump['next_step_id'] || jump[:next_step_id]
+
+      if jump_condition.present? && jump_next_step_id.present?
+        # For question steps, condition might be the answer value
+        # For action steps, condition might be 'completed' or similar
+        # For decision steps, condition can be complex expressions
+
+        condition_result = case step['type']
+        when 'question'
+          # For questions, check if the answer matches the condition
+          current_answer = results[step['title']] || results[step['variable_name']]
+          current_answer.to_s == jump_condition.to_s
+        when 'action'
+          # For actions, check if action completed or custom condition
+          if jump_condition == 'completed'
+            true  # Actions are considered completed when they reach this point
+          else
+            evaluate_condition_string(jump_condition, results)
+          end
+        when 'decision'
+          # For decisions, use full condition evaluation
+          evaluate_condition_string(jump_condition, results)
+        else
+          # Default to condition evaluation
+          evaluate_condition_string(jump_condition, results)
+        end
+
+        if condition_result
+          next_step = find_step_by_id(jump_next_step_id)
+          if next_step
+            return workflow.steps.index(next_step)
+          end
+        end
+      end
+    end
+
+    nil  # No jump matched
+  end
+
   # Determine next step index based on decision logic
   def determine_next_step_index(step, results)
+    # First check for universal jumps (works for all step types)
+    jump_result = check_jumps(step, results)
+    return jump_result unless jump_result.nil?
     # Handle multi-branch format (new)
     if step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
       # Evaluate branches in order, take first match
@@ -454,6 +505,10 @@ class Simulation < ApplicationRecord
 
   def find_step_by_title(title)
     workflow.steps.find { |s| s['title'] == title }
+  end
+
+  def find_step_by_id(id)
+    workflow.steps.find { |s| s['id'] == id }
   end
 end
 

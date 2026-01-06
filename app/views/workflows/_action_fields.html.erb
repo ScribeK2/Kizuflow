@@ -1,88 +1,194 @@
 <%# Action-specific fields partial %>
 <%# This partial handles all fields for action steps, including file attachments %>
+<%#
+  Sprint 2 Improvements:
+  - Quick Action Buttons: One-click common actions
+  - Instruction Templates: Pre-written CSR snippets
+  - Improved Instructions Field: Better UX with character count
+%>
 
-<div class="field-container">
-  <label class="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
-  <input type="text" 
-         name="workflow[steps][][action_type]" 
-         value="<%= step['action_type'] %>" 
-         placeholder="e.g., Email, Notification, etc." 
-         class="w-full border rounded px-3 py-2"
-         data-step-form-target="field">
-</div>
-
-<div class="field-container">
-  <label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
-  <textarea name="workflow[steps][][instructions]" 
-            placeholder="Detailed instructions for this action..." 
-            class="w-full border rounded px-3 py-2" 
-            rows="3"
-            data-step-form-target="field"><%= step['instructions'] %></textarea>
-</div>
-
-<div class="field-container" 
-     data-controller="file-attachment"
-     data-file-attachment-step-index-value="<%= defined?(step_index) ? step_index : '' %>">
-  <label class="block text-sm font-medium text-gray-700 mb-1">Attachments</label>
+<div class="field-container"
+     data-controller="instruction-template quick-action">
   
-  <%# Hidden input to store attachment signed IDs %>
-  <input type="hidden" 
-         name="workflow[steps][][attachments]" 
-         value="<%= step['attachments'].present? ? step['attachments'].to_json : '[]' %>"
-         data-file-attachment-target="attachmentsInput"
-         data-step-form-target="field">
-  
-  <%# File input %>
-  <div class="mt-2">
-    <input type="file" 
-           class="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100
-                  cursor-pointer"
-           data-file-attachment-target="fileInput"
-           data-action="change->file-attachment#handleFileSelect"
-           multiple
-           accept="image/*,.pdf,.doc,.docx,.txt,.csv">
-    <p class="mt-1 text-xs text-gray-500">Upload files (images, PDFs, documents). Multiple files allowed.</p>
+  <%# Action Type - Now with common presets %>
+  <div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Action Type</label>
+    <div class="flex flex-wrap gap-2 mb-2">
+      <%# Quick action type buttons %>
+      <% %w[Instruction Notification Email Verification Documentation].each do |action_type| %>
+        <button type="button"
+                class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
+                       <%= step['action_type'] == action_type ? 
+                           'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700' : 
+                           'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700' %>"
+                onclick="this.closest('.field-container').querySelector('input[name*=action_type]').value = '<%= action_type %>'; 
+                         this.closest('.flex').querySelectorAll('button').forEach(b => { 
+                           b.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-300', 'dark:bg-blue-900/30', 'dark:text-blue-300', 'dark:border-blue-700');
+                           b.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
+                         });
+                         this.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
+                         this.classList.add('bg-blue-100', 'text-blue-700', 'border-blue-300', 'dark:bg-blue-900/30', 'dark:text-blue-300', 'dark:border-blue-700');">
+          <%= action_type %>
+        </button>
+      <% end %>
+    </div>
+    <input type="text" 
+           name="workflow[steps][][action_type]" 
+           value="<%= step['action_type'] %>" 
+           placeholder="Or type a custom action type..." 
+           class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+           data-step-form-target="field">
   </div>
-  
-  <%# Display existing attachments %>
-  <div data-file-attachment-target="attachmentsList" class="mt-3 space-y-2">
-    <% if step['attachments'].present? && step['attachments'].is_a?(Array) %>
-      <% step['attachments'].each_with_index do |attachment_id, index| %>
-        <% if attachment_id.present? %>
-          <% begin %>
-            <% blob = ActiveStorage::Blob.find_signed(attachment_id) %>
-            <div class="flex items-center justify-between p-2 bg-gray-50 rounded border" data-attachment-id="<%= attachment_id %>">
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-700" data-file-name="<%= attachment_id %>"><%= blob.filename %></span>
+
+  <%# Quick Actions (Sprint 2) %>
+  <%= render 'workflows/quick_actions' %>
+
+  <%# Instructions Field with Templates %>
+  <div class="mb-4">
+    <div class="flex items-center justify-between mb-2">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Instructions</label>
+      <%= render 'workflows/instruction_templates' %>
+    </div>
+    
+    <div class="relative">
+      <textarea name="workflow[steps][][instructions]" 
+                placeholder="Enter step-by-step instructions for the CSR to follow...
+
+Example:
+1. Greet the customer warmly
+2. Verify account ownership
+3. Explain the solution clearly
+4. Confirm the customer understands" 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono leading-relaxed resize-y" 
+                rows="6"
+                data-step-form-target="field"
+                data-instruction-template-target="instructionsField"
+                data-quick-action-target="instructionsField"><%= step['instructions'] %></textarea>
+      
+      <%# Character count indicator %>
+      <div class="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
+        <span class="char-count"><%= step['instructions'].to_s.length %></span> characters
+      </div>
+    </div>
+    
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      💡 Use the Quick Actions above or click "Insert Template" for pre-written instructions
+    </p>
+  </div>
+
+  <%# Attachments Section %>
+  <div class="field-container" 
+       data-controller="file-attachment"
+       data-file-attachment-step-index-value="<%= defined?(step_index) ? step_index : '' %>">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+      Attachments
+      <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+    </label>
+    
+    <%# Hidden input to store attachment signed IDs %>
+    <input type="hidden" 
+           name="workflow[steps][][attachments]" 
+           value="<%= step['attachments'].present? ? step['attachments'].to_json : '[]' %>"
+           data-file-attachment-target="attachmentsInput"
+           data-step-form-target="field">
+    
+    <%# Drag and drop upload area %>
+    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors bg-gray-50 dark:bg-gray-800/50">
+      <svg class="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+      </svg>
+      
+      <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <label for="file-upload-<%= defined?(step_index) ? step_index : 'new' %>" 
+               class="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+          Click to upload
+        </label>
+        or drag and drop
+      </div>
+      
+      <input type="file" 
+             id="file-upload-<%= defined?(step_index) ? step_index : 'new' %>"
+             class="hidden"
+             data-file-attachment-target="fileInput"
+             data-action="change->file-attachment#handleFileSelect"
+             multiple
+             accept="image/*,.pdf,.doc,.docx,.txt,.csv">
+      
+      <p class="text-xs text-gray-500 dark:text-gray-500">
+        Images, PDFs, Word docs, text files (max 10MB each)
+      </p>
+    </div>
+    
+    <%# Display existing attachments %>
+    <div data-file-attachment-target="attachmentsList" class="mt-3 space-y-2">
+      <% if step['attachments'].present? && step['attachments'].is_a?(Array) %>
+        <% step['attachments'].each_with_index do |attachment_id, index| %>
+          <% if attachment_id.present? %>
+            <% begin %>
+              <% blob = ActiveStorage::Blob.find_signed(attachment_id) %>
+              <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" data-attachment-id="<%= attachment_id %>">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <% if blob.content_type&.start_with?('image/') %>
+                      <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                    <% elsif blob.content_type == 'application/pdf' %>
+                      <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                      </svg>
+                    <% else %>
+                      <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                    <% end %>
+                  </div>
+                  <div>
+                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100" data-file-name="<%= attachment_id %>"><%= blob.filename %></span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(<%= number_to_human_size(blob.byte_size) %>)</span>
+                  </div>
+                </div>
+                <button type="button" 
+                        class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+                        data-action="click->file-attachment#removeAttachment"
+                        data-attachment-id="<%= attachment_id %>">
+                  Remove
+                </button>
               </div>
-              <button type="button" 
-                      class="text-red-500 hover:text-red-700 text-sm"
-                      data-action="click->file-attachment#removeAttachment"
-                      data-attachment-id="<%= attachment_id %>">
-                Remove
-              </button>
-            </div>
-          <% rescue => e %>
-            <div class="flex items-center justify-between p-2 bg-gray-50 rounded border" data-attachment-id="<%= attachment_id %>">
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-700" data-file-name="<%= attachment_id %>">Loading...</span>
+            <% rescue => e %>
+              <div class="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800" data-attachment-id="<%= attachment_id %>">
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                  <span class="text-sm text-yellow-700 dark:text-yellow-300">Attachment not found</span>
+                </div>
+                <button type="button" 
+                        class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                        data-action="click->file-attachment#removeAttachment"
+                        data-attachment-id="<%= attachment_id %>">
+                  Remove
+                </button>
               </div>
-              <button type="button" 
-                      class="text-red-500 hover:text-red-700 text-sm"
-                      data-action="click->file-attachment#removeAttachment"
-                      data-attachment-id="<%= attachment_id %>">
-                Remove
-              </button>
-            </div>
+            <% end %>
           <% end %>
         <% end %>
       <% end %>
-    <% end %>
+    </div>
   </div>
 </div>
 
+<script>
+  // Add character count functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const textareas = document.querySelectorAll('textarea[name*="[instructions]"]');
+    textareas.forEach(textarea => {
+      const counter = textarea.closest('.relative')?.querySelector('.char-count');
+      if (counter) {
+        textarea.addEventListener('input', function() {
+          counter.textContent = this.value.length;
+        });
+      }
+    });
+  });
+</script>

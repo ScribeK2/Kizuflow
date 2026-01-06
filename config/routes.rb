@@ -27,6 +27,8 @@ Rails.application.routes.draw do
       patch :update_step2
       get :step3
       patch :create_from_draft
+      # Step rendering for dynamic step creation (Sprint 3)
+      post :render_step
     end
     resources :simulations, only: [:new, :create]
   end

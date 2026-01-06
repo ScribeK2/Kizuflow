@@ -1,0 +1,127 @@
+<%#
+  Instruction Templates Panel
+  
+  Sprint 2: Action Step Simplification
+  Pre-written instruction snippets for common CSR tasks.
+  Templates are organized by category and can be inserted with one click.
+%>
+
+<div class="instruction-templates">
+  <%# Toggle Button %>
+  <button type="button"
+          data-action="click->instruction-template#togglePanel"
+          class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+    </svg>
+    Insert Template
+  </button>
+  
+  <%# Template Panel (Initially Hidden) %>
+  <div data-instruction-template-target="templatePanel"
+       class="hidden mt-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
+    
+    <%# Header %>
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">📝</span>
+        <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Instruction Templates</h4>
+      </div>
+      <div class="flex items-center gap-3">
+        <%# Insert Mode Toggle %>
+        <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+          <input type="checkbox"
+                 data-action="change->instruction-template#toggleInsertMode"
+                 class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+          Replace existing text
+        </label>
+        <button type="button"
+                data-action="click->instruction-template#closePanel"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <%# Search Bar %>
+    <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text"
+               placeholder="Search templates..."
+               data-instruction-template-target="searchInput"
+               data-action="input->instruction-template#searchTemplates"
+               class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
+    </div>
+    
+    <%# Category Tabs %>
+    <div data-instruction-template-target="categoryTabs"
+         class="flex gap-1 px-4 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <button type="button"
+              data-action="click->instruction-template#selectCategory"
+              data-category="greeting"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 whitespace-nowrap transition-colors">
+        👋 Greeting
+      </button>
+      <button type="button"
+              data-action="click->instruction-template#selectCategory"
+              data-category="verification"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 whitespace-nowrap transition-colors">
+        🔐 Verification
+      </button>
+      <button type="button"
+              data-action="click->instruction-template#selectCategory"
+              data-category="troubleshooting"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 whitespace-nowrap transition-colors">
+        🔧 Troubleshooting
+      </button>
+      <button type="button"
+              data-action="click->instruction-template#selectCategory"
+              data-category="email"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 whitespace-nowrap transition-colors">
+        📧 Email
+      </button>
+      <button type="button"
+              data-action="click->instruction-template#selectCategory"
+              data-category="dns"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 whitespace-nowrap transition-colors">
+        🌐 DNS
+      </button>
+      <button type="button"
+              data-action="click->instruction-template#selectCategory"
+              data-category="closing"
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 whitespace-nowrap transition-colors">
+        ✅ Closing
+      </button>
+    </div>
+    
+    <%# Template List %>
+    <div data-instruction-template-target="templateList"
+         class="p-3 max-h-64 overflow-y-auto space-y-2">
+      <%# Templates will be rendered by JavaScript %>
+      <div class="text-center py-6 text-gray-500 dark:text-gray-400">
+        <div class="animate-pulse">Loading templates...</div>
+      </div>
+    </div>
+    
+    <%# Preview Panel (Hidden by default) %>
+    <div data-instruction-template-target="previewPanel"
+         class="hidden px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+      <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Preview:</div>
+      <pre class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700"></pre>
+    </div>
+    
+    <%# Help Text %>
+    <div class="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-100 dark:border-blue-900/50">
+      <p class="text-xs text-blue-700 dark:text-blue-300">
+        💡 Click a template to insert it. By default, text is appended to existing instructions.
+      </p>
+    </div>
+  </div>
+</div>
+

@@ -3,12 +3,18 @@ import Sortable from "sortablejs"
 
 export default class extends Controller {
   static targets = ["container"]
+  static values = {
+    workflowId: Number
+  }
 
   connect() {
     this.initializeSortable()
-    // Listen for step addition from modal
+    // Listen for step addition from modal (kept for backward compatibility)
     this.boundHandleModalAddStep = this.handleModalAddStep.bind(this)
     document.addEventListener("step-modal:add-step", this.boundHandleModalAddStep)
+    // Listen for inline step creation (Sprint 3)
+    this.boundHandleInlineStepCreate = this.handleInlineStepCreate.bind(this)
+    document.addEventListener("inline-step:create", this.boundHandleInlineStepCreate)
     // Set up event listeners for title changes
     this.setupTitleChangeListeners()
     // Refresh dropdowns on initial load (for edit views with existing steps)
@@ -24,11 +30,89 @@ export default class extends Controller {
     if (this.boundHandleModalAddStep) {
       document.removeEventListener("step-modal:add-step", this.boundHandleModalAddStep)
     }
+    if (this.boundHandleInlineStepCreate) {
+      document.removeEventListener("inline-step:create", this.boundHandleInlineStepCreate)
+    }
+  }
+  
+  /**
+   * Handle inline step creation (Sprint 3)
+   */
+  async handleInlineStepCreate(event) {
+    const { type, afterIndex } = event.detail
+    console.log(`[WorkflowBuilder] Creating inline step of type ${type} after index ${afterIndex}`)
+    
+    // Create the step with default data
+    const stepData = {
+      title: "",
+      description: ""
+    }
+    
+    // Add type-specific defaults
+    if (type === "question") {
+      stepData.question = ""
+      stepData.answer_type = "yes_no"
+      stepData.variable_name = ""
+    } else if (type === "decision") {
+      stepData.branches = []
+    } else if (type === "action") {
+      stepData.action_type = "Instruction"
+      stepData.instructions = ""
+    }
+    
+    // Insert the step at the specified position
+    await this.addStepFromModal(type, stepData, afterIndex + 1)
   }
 
-  handleModalAddStep(event) {
+  async handleModalAddStep(event) {
     const { stepType, stepData } = event.detail
-    this.addStepFromModal(stepType, stepData)
+    console.log(`[WorkflowBuilder] Adding step from modal: ${stepType}`, stepData)
+    await this.addStepFromModal(stepType, stepData)
+  }
+
+  /**
+   * Add a step directly without opening the modal (Sprint 3.5)
+   * This provides a more streamlined UX where clicking "Add Question" 
+   * immediately adds a step that's ready for editing.
+   */
+  async addStepDirect(event) {
+    event.preventDefault()
+    
+    const stepType = event.currentTarget.dataset.stepType
+    if (!stepType) {
+      console.error("[WorkflowBuilder] No step type specified")
+      return
+    }
+    
+    console.log(`[WorkflowBuilder] Adding step directly: ${stepType}`)
+    
+    // Create default step data based on type
+    const stepData = {
+      title: "",
+      description: ""
+    }
+    
+    // Add type-specific defaults
+    switch (stepType) {
+      case "question":
+        stepData.question = ""
+        stepData.answer_type = "yes_no"
+        stepData.variable_name = ""
+        break
+      case "decision":
+        stepData.branches = []
+        break
+      case "action":
+        stepData.action_type = "Instruction"
+        stepData.instructions = ""
+        break
+      case "checkpoint":
+        stepData.checkpoint_message = ""
+        break
+    }
+    
+    // Add the step at the end
+    await this.addStepFromModal(stepType, stepData)
   }
 
   initializeSortable() {
@@ -315,33 +399,175 @@ export default class extends Controller {
     this.initializeSortable()
   }
 
-  addStepFromModal(stepType, stepData) {
+  async addStepFromModal(stepType, stepData, insertAtIndex = null) {
     if (!this.hasContainerTarget) {
+      console.warn("[WorkflowBuilder] No container target found")
       return
     }
     
-    const stepIndex = this.containerTarget.children.length
-    const stepHtml = this.buildStepHtml(stepType, stepIndex, stepData)
+    const existingSteps = this.containerTarget.querySelectorAll(".step-item")
+    const totalSteps = existingSteps.length
     
-    this.containerTarget.insertAdjacentHTML("beforeend", stepHtml)
+    // Determine where to insert
+    const insertIndex = insertAtIndex !== null ? Math.min(insertAtIndex, totalSteps) : totalSteps
+    
+    // Get workflow ID for server-side rendering
+    const workflowId = this.getWorkflowIdFromPage()
+    console.log(`[WorkflowBuilder] Adding step: type=${stepType}, index=${insertIndex}, workflowId=${workflowId}`)
+    
+    let stepHtml
+    
+    // Try server-side rendering if we have a workflow ID
+    if (workflowId) {
+      try {
+        console.log("[WorkflowBuilder] Attempting server-side rendering...")
+        stepHtml = await this.fetchStepHtml(workflowId, stepType, insertIndex, stepData)
+        console.log("[WorkflowBuilder] Server-side rendering successful")
+      } catch (error) {
+        console.warn("[WorkflowBuilder] Server-side rendering failed, falling back to client-side:", error)
+        stepHtml = this.buildStepHtml(stepType, insertIndex, stepData)
+      }
+    } else {
+      // Fallback to client-side rendering for new workflows
+      console.log("[WorkflowBuilder] No workflow ID, using client-side rendering")
+      stepHtml = this.buildStepHtml(stepType, insertIndex, stepData)
+    }
+    
+    // Insert at the specified position
+    if (insertAtIndex !== null && insertAtIndex < totalSteps) {
+      // Insert before the step at insertAtIndex
+      const referenceStep = existingSteps[insertAtIndex]
+      referenceStep.insertAdjacentHTML("beforebegin", stepHtml)
+    } else {
+      // Insert at the end
+      this.containerTarget.insertAdjacentHTML("beforeend", stepHtml)
+    }
+    
+    // Update indices for all steps
+    this.updateAllStepIndices()
     
     // Refresh dropdowns after adding new step
     this.refreshAllDropdowns()
     this.refreshAllRuleBuilders()
     this.notifyPreviewUpdate()
     
-    // Dispatch event for collaboration
-    const stepElement = this.containerTarget.querySelector(`[data-step-index="${stepIndex}"]`)
+    // Dispatch events
+    const stepElement = this.containerTarget.querySelector(`[data-step-index="${insertIndex}"]`)
     const extractedStepData = this.extractStepData(stepElement)
     document.dispatchEvent(new CustomEvent("workflow-builder:step-added", {
-      detail: { stepIndex, stepType, stepData: extractedStepData }
+      detail: { stepIndex: insertIndex, stepType, stepData: extractedStepData }
     }))
+    
+    // Also dispatch for step outline to refresh
+    document.dispatchEvent(new CustomEvent("workflow:updated"))
     
     // Reinitialize Sortable after adding new element
     if (this.sortable) {
       this.sortable.destroy()
     }
     this.initializeSortable()
+    
+    // Scroll the new step into view and expand it
+    if (stepElement) {
+      stepElement.scrollIntoView({ behavior: "smooth", block: "center" })
+      
+      // Highlight the new step briefly
+      stepElement.classList.add("ring-2", "ring-blue-500", "ring-offset-2")
+      setTimeout(() => {
+        stepElement.classList.remove("ring-2", "ring-blue-500", "ring-offset-2")
+      }, 1500)
+    }
+  }
+  
+  /**
+   * Fetch step HTML from the server (Sprint 3)
+   * This enables server-side rendering with all the new features
+   */
+  async fetchStepHtml(workflowId, stepType, stepIndex, stepData = {}) {
+    const url = `/workflows/${workflowId}/render_step`
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    
+    console.log(`[WorkflowBuilder] Fetching step HTML from ${url}`)
+    console.log(`[WorkflowBuilder] CSRF Token present: ${!!csrfToken}`)
+    
+    const requestBody = {
+      step_type: stepType,
+      step_index: stepIndex,
+      step_data: stepData
+    }
+    console.log("[WorkflowBuilder] Request body:", requestBody)
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken || '',
+        'Accept': 'text/html'
+      },
+      body: JSON.stringify(requestBody)
+    })
+    
+    console.log(`[WorkflowBuilder] Server response status: ${response.status}`)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`[WorkflowBuilder] Server error response:`, errorText)
+      throw new Error(`Server returned ${response.status}: ${errorText}`)
+    }
+    
+    const html = await response.text()
+    console.log(`[WorkflowBuilder] Received HTML (${html.length} chars)`)
+    return html
+  }
+  
+  /**
+   * Get workflow ID from the current page
+   */
+  getWorkflowIdFromPage() {
+    // First, try getting from Stimulus value (most reliable)
+    if (this.hasWorkflowIdValue && this.workflowIdValue) {
+      return this.workflowIdValue.toString()
+    }
+    
+    // Try getting from URL
+    const urlMatch = window.location.pathname.match(/\/workflows\/(\d+)/)
+    if (urlMatch) {
+      return urlMatch[1]
+    }
+    
+    // Try getting from form action
+    const form = this.element.closest("form")
+    if (form) {
+      const actionMatch = form.action?.match(/\/workflows\/(\d+)/)
+      if (actionMatch) {
+        return actionMatch[1]
+      }
+    }
+    
+    return null
+  }
+  
+  /**
+   * Update all step indices after insertion or removal
+   */
+  updateAllStepIndices() {
+    const stepItems = this.containerTarget.querySelectorAll(".step-item")
+    stepItems.forEach((stepItem, index) => {
+      // Update data attribute
+      stepItem.dataset.stepIndex = index
+      
+      // Update hidden index input
+      const indexInput = stepItem.querySelector("input[name*='[index]']")
+      if (indexInput) {
+        indexInput.value = index
+      }
+      
+      // Update step number display in collapsible header
+      const stepNumber = stepItem.querySelector(".step-number, .rounded-full.bg-white\\/20")
+      if (stepNumber) {
+        stepNumber.textContent = index + 1
+      }
+    })
   }
 
   removeStep(event) {
@@ -641,9 +867,6 @@ export default class extends Controller {
       }).join('')
     }
     
-    // Generate else path options
-    const elsePathOptions = this.buildDropdownOptions(this.getAllStepTitles(-1), stepData.else_path || "")
-    
     return `
       <div class="field-container" 
            data-controller="multi-branch" 
@@ -665,13 +888,35 @@ export default class extends Controller {
         
         <div class="mt-4" data-multi-branch-target="elsePathContainer">
           <label class="block text-sm font-medium text-gray-700">Else (default), go to:</label>
-          <div class="field-container mt-1" data-controller="searchable-dropdown" data-searchable-dropdown-placeholder-value="-- Select step --">
-            <select name="workflow[steps][][else_path]" 
-                    class="w-full border rounded px-3 py-2"
-                    data-step-form-target="field"
-                    data-searchable-dropdown-target="select">
-              ${elsePathOptions}
-            </select>
+          <div class="field-container mt-1 relative">
+            <div data-controller="step-selector"
+                 data-step-selector-selected-value-value="${stepData.else_path || ""}"
+                 data-step-selector-placeholder-value="-- Select step --">
+              <input type="hidden" 
+                     name="workflow[steps][][else_path]" 
+                     value="${stepData.else_path || ""}"
+                     data-step-selector-target="hiddenInput"
+                     data-step-form-target="field">
+              <button type="button"
+                      class="w-full text-left border rounded px-3 py-2 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      data-step-selector-target="button"
+                      data-action="click->step-selector#toggle">
+                ${stepData.else_path ? `<span class="font-medium">${this.escapeHtml(stepData.else_path)}</span>` : '<span class="text-gray-500">-- Select step --</span>'}
+              </button>
+              <div class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden"
+                   data-step-selector-target="dropdown">
+                <div class="p-2 border-b border-gray-200">
+                  <input type="text"
+                         placeholder="Search steps..."
+                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                         data-step-selector-target="search"
+                         data-action="input->step-selector#search">
+                </div>
+                <div class="overflow-y-auto max-h-56" data-step-selector-target="options">
+                  <!-- Options will be rendered here -->
+                </div>
+              </div>
+            </div>
           </div>
           <p class="mt-1 text-xs text-gray-500">Optional: Path to take when no branch conditions match</p>
         </div>
@@ -685,7 +930,7 @@ export default class extends Controller {
   }
 
   getBranchHtml(index, condition, path, workflowId, variablesUrl) {
-    const stepOptions = this.buildDropdownOptions(this.getAllStepTitles(-1), path)
+    // Note: stepOptions no longer needed - using step selector component instead
     
     // Parse condition for initial values
     let variable = "", operator = "", value = ""
@@ -731,7 +976,33 @@ export default class extends Controller {
           <div data-controller="rule-builder" 
                ${workflowId ? `data-rule-builder-workflow-id-value="${workflowId}"` : ""}
                ${variablesUrl ? `data-rule-builder-variables-url-value="${variablesUrl}"` : ""}>
-            <label class="block text-xs text-gray-600 mb-1">Condition</label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-medium text-gray-700">Condition</label>
+              <div class="flex gap-1" data-rule-builder-target="presetButtons">
+                <button type="button"
+                        class="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 border border-blue-200"
+                        data-preset="equals"
+                        data-action="click->rule-builder#applyPreset"
+                        title="Equals">
+                  ==
+                </button>
+                <button type="button"
+                        class="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 border border-blue-200"
+                        data-preset="not_equals"
+                        data-action="click->rule-builder#applyPreset"
+                        title="Not Equals">
+                  !=
+                </button>
+                <button type="button"
+                        class="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 border border-blue-200"
+                        data-preset="is_empty"
+                        data-action="click->rule-builder#applyPreset"
+                        title="Is Empty">
+                  Empty
+                </button>
+              </div>
+            </div>
+            
             <input type="hidden" 
                    name="workflow[steps][][branches][][condition]" 
                    value="${this.escapeHtml(condition)}"
@@ -742,7 +1013,7 @@ export default class extends Controller {
               <div>
                 <label class="block text-xs text-gray-600 mb-1">Variable</label>
                 <select data-rule-builder-target="variableSelect" 
-                        class="w-full border rounded px-2 py-1 text-sm"
+                        class="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         data-action="change->rule-builder#buildCondition">
                   <option value="">-- Select variable --</option>
                 </select>
@@ -751,7 +1022,7 @@ export default class extends Controller {
               <div>
                 <label class="block text-xs text-gray-600 mb-1">Operator</label>
                 <select data-rule-builder-target="operatorSelect" 
-                        class="w-full border rounded px-2 py-1 text-sm"
+                        class="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         data-action="change->rule-builder#buildCondition">
                   <option value="">-- Select --</option>
                   ${operatorOptions.map(opt => 
@@ -762,29 +1033,67 @@ export default class extends Controller {
               
               <div>
                 <label class="block text-xs text-gray-600 mb-1">Value</label>
-                <input type="text" 
-                       data-rule-builder-target="valueInput" 
-                       value="${this.escapeHtml(value)}"
-                       placeholder="Value"
-                       class="w-full border rounded px-2 py-1 text-sm"
-                       data-action="input->rule-builder#buildCondition">
+                <div class="relative">
+                  <input type="text" 
+                         data-rule-builder-target="valueInput" 
+                         value="${this.escapeHtml(value)}"
+                         placeholder="Value"
+                         class="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         data-action="input->rule-builder#buildCondition"
+                         list="value-suggestions-${index}">
+                  <datalist id="value-suggestions-${index}" data-rule-builder-target="valueSuggestions">
+                    <!-- Options will be populated dynamically -->
+                  </datalist>
+                </div>
               </div>
             </div>
             
-            <div class="mt-1 p-1 bg-gray-100 rounded text-xs font-mono text-gray-700">
-              <span class="text-gray-500">Condition:</span>
-              <span data-rule-builder-target="conditionDisplay">${condition || "Not set"}</span>
+            <div class="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-500">Condition:</span>
+                  <span data-rule-builder-target="conditionDisplay" class="text-xs font-mono text-gray-900">${condition || "Not set"}</span>
+                </div>
+              </div>
+              <div data-rule-builder-target="validationMessage" class="hidden"></div>
+              <div data-rule-builder-target="helpText" class="mt-1 text-xs text-gray-500">
+                <span class="font-medium">Tip:</span> Select a variable first, then choose an operator and enter a value.
+              </div>
             </div>
           </div>
           
           <div>
             <label class="block text-xs text-gray-600 mb-1">Go to:</label>
-            <select name="workflow[steps][][branches][][path]" 
-                    class="w-full border rounded px-2 py-1 text-sm"
-                    data-step-form-target="field"
-                    data-multi-branch-target="branchPathSelect">
-              ${stepOptions}
-            </select>
+            <div data-controller="step-selector"
+                 data-step-selector-selected-value-value="${path}"
+                 data-step-selector-placeholder-value="-- Select step --"
+                 class="relative">
+              <input type="hidden" 
+                     name="workflow[steps][][branches][][path]" 
+                     value="${this.escapeHtml(path)}"
+                     data-step-selector-target="hiddenInput"
+                     data-step-form-target="field"
+                     data-multi-branch-target="branchPathSelect">
+              <button type="button"
+                      class="w-full text-left border rounded px-3 py-2 text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      data-step-selector-target="button"
+                      data-action="click->step-selector#toggle">
+                ${path ? `<span class="font-medium">${this.escapeHtml(path)}</span>` : '<span class="text-gray-500">-- Select step --</span>'}
+              </button>
+              <div class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden"
+                   data-step-selector-target="dropdown">
+                <div class="p-2 border-b border-gray-200">
+                  <input type="text"
+                         placeholder="Search steps..."
+                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                         data-step-selector-target="search"
+                         data-action="input->step-selector#search">
+                </div>
+                <div class="overflow-y-auto max-h-56" data-step-selector-target="options">
+                  <!-- Options will be rendered here -->
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

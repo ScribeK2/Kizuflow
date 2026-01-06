@@ -1,5 +1,5 @@
 class WorkflowsController < ApplicationController
-  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template, :start, :begin_execution, :step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft]
+  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template, :start, :begin_execution, :step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft, :render_step]
   before_action :ensure_draft_workflow!, only: [:step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft]
   before_action :ensure_editor_or_admin!, only: [:new, :create, :import, :import_file]
   before_action :ensure_can_view_workflow!, only: [:show, :export, :export_pdf, :start, :begin_execution]
@@ -157,6 +157,51 @@ class WorkflowsController < ApplicationController
     variables = @workflow.variables
     
     render json: { variables: variables }
+  end
+
+  # Sprint 3: Render step HTML for dynamic step creation
+  # This allows the JavaScript to request server-rendered HTML for new steps,
+  # ensuring all the new Sprint 2/3 features are included
+  def render_step
+    step_type = params[:step_type]
+    step_index = params[:step_index].to_i
+    step_data = params[:step_data] || {}
+    
+    # Build a step hash from the parameters
+    step = {
+      'id' => SecureRandom.uuid,
+      'type' => step_type,
+      'title' => step_data[:title] || '',
+      'description' => step_data[:description] || ''
+    }
+    
+    # Add type-specific fields
+    case step_type
+    when 'question'
+      step['question'] = step_data[:question] || ''
+      step['answer_type'] = step_data[:answer_type] || 'yes_no'
+      step['variable_name'] = step_data[:variable_name] || ''
+      step['options'] = step_data[:options] || []
+    when 'decision'
+      step['branches'] = step_data[:branches] || []
+      step['else_path'] = step_data[:else_path] || ''
+    when 'action'
+      step['action_type'] = step_data[:action_type] || 'Instruction'
+      step['instructions'] = step_data[:instructions] || ''
+      step['attachments'] = step_data[:attachments] || []
+    when 'checkpoint'
+      step['checkpoint_message'] = step_data[:checkpoint_message] || ''
+    end
+    
+    # Render the step_item partial
+    render partial: 'workflows/step_item', 
+           locals: { 
+             step: step, 
+             index: step_index, 
+             workflow: @workflow,
+             expanded: true 
+           },
+           formats: [:html]
   end
 
   def save_as_template

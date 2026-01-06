@@ -6,7 +6,11 @@ export default class extends Controller {
     "operatorSelect",
     "valueInput",
     "conditionInput",
-    "conditionDisplay"
+    "conditionDisplay",
+    "presetButtons",
+    "validationMessage",
+    "helpText",
+    "valueSuggestions"
   ]
   static values = {
     workflowId: Number,
@@ -14,8 +18,6 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log("Rule builder connecting", this.element)
-    
     // Parse existing condition if present
     this.parseExistingCondition()
     
@@ -35,6 +37,15 @@ export default class extends Controller {
     this.element.addEventListener('refresh-variables', () => {
       this.refreshVariables()
     })
+    
+    // Initialize variable type detection
+    this.detectVariableType()
+    
+    // Update UI based on variable type
+    this.updateOperatorOptions()
+    
+    // Setup preset buttons
+    this.setupPresetButtons()
   }
 
   disconnect() {
@@ -64,31 +75,20 @@ export default class extends Controller {
   }
 
   refreshVariables() {
-    console.log("Rule builder: refreshVariables called", {
-      hasVariablesUrl: this.hasVariablesUrlValue,
-      variablesUrl: this.variablesUrlValue
-    })
-    
     // Extract variables from form first (includes unsaved steps)
     const formVariables = this.extractVariablesFromForm()
-    console.log("Rule builder: Form variables:", formVariables)
     
     // Also try to load from API if available
     if (this.hasVariablesUrlValue && this.variablesUrlValue) {
-      console.log("Rule builder: Loading variables from API:", this.variablesUrlValue)
       this.loadVariables().then(apiVariables => {
-        console.log("Rule builder: API variables:", apiVariables)
         // Merge form variables with API variables (form takes precedence)
         const allVariables = [...new Set([...formVariables, ...apiVariables])]
-        console.log("Rule builder: All variables (merged):", allVariables)
         this.populateVariableDropdown(allVariables)
       }).catch(error => {
-        console.error("Rule builder: Error loading variables from API:", error)
         // Fallback to form variables only
         this.populateVariableDropdown(formVariables)
       })
     } else {
-      console.log("Rule builder: No API URL, using form variables only")
       // Just use form variables
       this.populateVariableDropdown(formVariables)
     }
@@ -98,13 +98,11 @@ export default class extends Controller {
     const variables = []
     const form = this.element.closest("form")
     if (!form) {
-      console.warn("Rule builder: Form not found")
       return variables
     }
     
     // Find all question step items
     const stepItems = form.querySelectorAll(".step-item")
-    console.log(`Rule builder: Found ${stepItems.length} step items`)
     
     stepItems.forEach((stepItem, index) => {
       // Check if this is a question step
@@ -117,26 +115,17 @@ export default class extends Controller {
         const variableName = variableInput.value.trim()
         if (variableName && !variables.includes(variableName)) {
           variables.push(variableName)
-          console.log(`Rule builder: Found variable: ${variableName}`)
         }
-      } else {
-        const titleInput = stepItem.querySelector("input[name*='[title]']")
-        const title = titleInput ? titleInput.value : `Step ${index + 1}`
-        console.log(`Rule builder: Question step "${title}" has no variable_name set`)
       }
     })
     
-    console.log(`Rule builder: Extracted ${variables.length} variables:`, variables)
     return variables.sort()
   }
 
   populateVariableDropdown(variables) {
     if (!this.hasVariableSelectTarget) {
-      console.warn("Rule builder: Variable select target not found")
       return
     }
-    
-    console.log(`Rule builder: Populating dropdown with ${variables.length} variables`)
     
     // Store current selection
     const currentValue = this.variableSelectTarget.value
@@ -165,10 +154,6 @@ export default class extends Controller {
         option.textContent = variable
         this.variableSelectTarget.appendChild(option)
       })
-      
-      console.log(`Rule builder: Added ${allVariableValues.length} options to dropdown`)
-    } else {
-      console.log(`Rule builder: Keeping existing ${existingOptions.length} options, no new variables found`)
     }
     
     // Restore selection if still valid
@@ -239,30 +224,273 @@ export default class extends Controller {
       this.conditionInputTarget.value = ""
       if (this.hasConditionDisplayTarget) {
         this.conditionDisplayTarget.textContent = "Not set"
+        this.conditionDisplayTarget.className = "text-gray-400 italic"
       }
+      this.updateValidation("")
       return
     }
     
+    // Validate condition
+    const validation = this.validateCondition(variable, operator, value)
+    this.updateValidation(validation)
+    
     // Build condition string based on operator type
     let condition = ""
+    const varType = this.getVariableType(variable)
     
     if (operator === "==" || operator === "!=") {
       // String operators need quotes
       condition = `${variable} ${operator} '${value}'`
     } else {
       // Numeric operators (>, <, >=, <=)
-      condition = `${variable} ${operator} ${value}`
+      if (varType === 'numeric' && value && !isNaN(value)) {
+        condition = `${variable} ${operator} ${value}`
+      } else if (varType === 'numeric' && !value) {
+        // Invalid: numeric operator without value
+        condition = ""
+      } else {
+        // Treat as string comparison
+        condition = `${variable} ${operator} '${value}'`
+      }
     }
     
     this.conditionInputTarget.value = condition
     
-    // Update display
+    // Update display with formatted condition
     if (this.hasConditionDisplayTarget) {
-      this.conditionDisplayTarget.textContent = condition
+      this.conditionDisplayTarget.textContent = condition || "Not set"
+      this.conditionDisplayTarget.className = condition 
+        ? "text-gray-900 font-mono" 
+        : "text-gray-400 italic"
     }
     
     // Trigger input event for preview updater
     this.conditionInputTarget.dispatchEvent(new Event("input", { bubbles: true }))
+  }
+  
+  validateCondition(variable, operator, value) {
+    if (!variable) return { valid: false, message: "Please select a variable" }
+    if (!operator) return { valid: false, message: "Please select an operator" }
+    
+    const varType = this.getVariableType(variable)
+    
+    // Check if numeric operators have numeric values
+    if (['>', '<', '>=', '<='].includes(operator)) {
+      if (!value) {
+        return { valid: false, message: "Please enter a value" }
+      }
+      if (varType === 'numeric' && isNaN(value)) {
+        return { valid: false, message: "Value must be a number" }
+      }
+    }
+    
+    // Check if string operators have values
+    if (['==', '!='].includes(operator) && !value) {
+      return { valid: false, message: "Please enter a value" }
+    }
+    
+    return { valid: true, message: "" }
+  }
+  
+  updateValidation(validation) {
+    if (!this.hasValidationMessageTarget) return
+    
+    if (!validation || !validation.message) {
+      this.validationMessageTarget.textContent = ""
+      this.validationMessageTarget.className = "hidden"
+      return
+    }
+    
+    this.validationMessageTarget.textContent = validation.message
+    this.validationMessageTarget.className = validation.valid
+      ? "text-xs text-green-600 mt-1"
+      : "text-xs text-red-600 mt-1"
+  }
+  
+  getVariableType(variable) {
+    if (!variable) return 'string'
+    
+    // Try to find the question step for this variable
+    const form = this.element.closest("form")
+    if (!form) return 'string'
+    
+    const stepItems = form.querySelectorAll(".step-item")
+    for (const stepItem of stepItems) {
+      const typeInput = stepItem.querySelector("input[name*='[type]']")
+      if (!typeInput || typeInput.value !== "question") continue
+      
+      const variableInput = stepItem.querySelector("input[name*='[variable_name]']")
+      const variableName = variableInput ? variableInput.value.trim() : ""
+      
+      if (variableName === variable) {
+        // Check answer type
+        let answerTypeInput = stepItem.querySelector("input[name*='[answer_type]'][type='hidden']")
+        if (!answerTypeInput || !answerTypeInput.value) {
+          answerTypeInput = stepItem.querySelector("input[name*='[answer_type]']:checked")
+        }
+        if (!answerTypeInput || !answerTypeInput.value) {
+          answerTypeInput = stepItem.querySelector("input[name*='[answer_type]']")
+        }
+        
+        const answerType = answerTypeInput ? answerTypeInput.value : ""
+        
+        if (answerType === 'number') {
+          return 'numeric'
+        }
+        return 'string'
+      }
+    }
+    
+    return 'string' // Default to string
+  }
+  
+  detectVariableType() {
+    // This will be called when variable changes
+    if (this.hasVariableSelectTarget) {
+      this.variableSelectTarget.addEventListener('change', () => {
+        this.updateOperatorOptions()
+        this.updateValueSuggestions()
+      })
+    }
+  }
+  
+  updateOperatorOptions() {
+    if (!this.hasOperatorSelectTarget || !this.hasVariableSelectTarget) return
+    
+    const variable = this.variableSelectTarget.value
+    const varType = this.getVariableType(variable)
+    const currentOperator = this.operatorSelectTarget.value
+    
+    // Store current selection
+    const currentValue = this.operatorSelectTarget.value
+    
+    // Update operator options based on variable type
+    const stringOperators = [
+      { value: "==", label: "Equals (==)" },
+      { value: "!=", label: "Not Equals (!=)" }
+    ]
+    
+    const numericOperators = [
+      { value: "==", label: "Equals (==)" },
+      { value: "!=", label: "Not Equals (!=)" },
+      { value: ">", label: "Greater Than (>)" },
+      { value: ">=", label: "Greater or Equal (>=)" },
+      { value: "<", label: "Less Than (<)" },
+      { value: "<=", label: "Less or Equal (<=)" }
+    ]
+    
+    const operators = varType === 'numeric' ? numericOperators : stringOperators
+    
+    // Clear and repopulate
+    this.operatorSelectTarget.innerHTML = '<option value="">-- Select --</option>'
+    operators.forEach(op => {
+      const option = document.createElement('option')
+      option.value = op.value
+      option.textContent = op.label
+      this.operatorSelectTarget.appendChild(option)
+    })
+    
+    // Restore selection if still valid
+    if (currentValue && operators.some(op => op.value === currentValue)) {
+      this.operatorSelectTarget.value = currentValue
+    }
+  }
+  
+  updateValueSuggestions() {
+    if (!this.hasValueInputTarget || !this.hasVariableSelectTarget) return
+    
+    const variable = this.variableSelectTarget.value
+    if (!variable) return
+    
+    // Find question step options for this variable
+    const form = this.element.closest("form")
+    if (!form) return
+    
+    const stepItems = form.querySelectorAll(".step-item")
+    for (const stepItem of stepItems) {
+      const typeInput = stepItem.querySelector("input[name*='[type]']")
+      if (!typeInput || typeInput.value !== "question") continue
+      
+      const variableInput = stepItem.querySelector("input[name*='[variable_name]']")
+      const variableName = variableInput ? variableInput.value.trim() : ""
+      
+      if (variableName === variable) {
+        // Check if it's multiple choice or dropdown
+        let answerTypeInput = stepItem.querySelector("input[name*='[answer_type]'][type='hidden']")
+        if (!answerTypeInput || !answerTypeInput.value) {
+          answerTypeInput = stepItem.querySelector("input[name*='[answer_type]']:checked")
+        }
+        if (!answerTypeInput || !answerTypeInput.value) {
+          answerTypeInput = stepItem.querySelector("input[name*='[answer_type]']")
+        }
+        
+        const answerType = answerTypeInput ? answerTypeInput.value : ""
+        
+        if (answerType === 'multiple_choice' || answerType === 'dropdown') {
+          // Get options
+          const optionInputs = stepItem.querySelectorAll("input[name*='[options]'][name*='[label]']")
+          const options = Array.from(optionInputs).map(input => {
+            const valueInput = input.closest('.option-item')?.querySelector("input[name*='[value]']")
+            return {
+              label: input.value,
+              value: valueInput ? valueInput.value : input.value
+            }
+          }).filter(opt => opt.label || opt.value)
+          
+          // Create datalist for autocomplete
+          if (options.length > 0 && this.hasValueSuggestionsTarget) {
+            this.valueSuggestionsTarget.innerHTML = ""
+            options.forEach(opt => {
+              const option = document.createElement('option')
+              option.value = opt.value || opt.label
+              this.valueSuggestionsTarget.appendChild(option)
+            })
+            this.valueInputTarget.setAttribute('list', 'value-suggestions')
+          }
+        }
+        break
+      }
+    }
+  }
+  
+  setupPresetButtons() {
+    // Preset buttons will be handled in the template
+    // This method can be used to add click handlers if needed
+  }
+  
+  applyPreset(event) {
+    const preset = event.currentTarget.dataset.preset
+    const variable = this.variableSelectTarget?.value || ""
+    
+    if (!variable) {
+      this.updateValidation({ valid: false, message: "Please select a variable first" })
+      return
+    }
+    
+    switch (preset) {
+      case 'equals':
+        if (this.hasOperatorSelectTarget) this.operatorSelectTarget.value = "=="
+        break
+      case 'not_equals':
+        if (this.hasOperatorSelectTarget) this.operatorSelectTarget.value = "!="
+        break
+      case 'greater_than':
+        if (this.hasOperatorSelectTarget) this.operatorSelectTarget.value = ">"
+        break
+      case 'less_than':
+        if (this.hasOperatorSelectTarget) this.operatorSelectTarget.value = "<"
+        break
+      case 'is_empty':
+        if (this.hasOperatorSelectTarget) this.operatorSelectTarget.value = "=="
+        if (this.hasValueInputTarget) this.valueInputTarget.value = ""
+        break
+      case 'is_not_empty':
+        if (this.hasOperatorSelectTarget) this.operatorSelectTarget.value = "!="
+        if (this.hasValueInputTarget) this.valueInputTarget.value = ""
+        break
+    }
+    
+    this.buildCondition()
   }
 
   async loadVariables() {

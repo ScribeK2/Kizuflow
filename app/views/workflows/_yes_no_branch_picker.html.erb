@@ -1,0 +1,136 @@
+<%#
+  Yes/No Branch Picker
+  
+  One-click branch setup for decision steps following Yes/No questions.
+  Automatically detects preceding Yes/No questions and offers quick configuration.
+  
+  Local variables:
+  - workflow: The workflow object
+  - step_index: Index of the current decision step
+  - has_existing_branches: Boolean indicating if branches already exist
+%>
+
+<% step_index ||= 0 %>
+<% has_existing_branches ||= false %>
+
+<div data-controller="yes-no-branch"
+     data-yes-no-branch-step-index-value="<%= step_index %>"
+     data-yes-no-branch-workflow-id-value="<%= workflow&.id %>"
+     class="yes-no-branch-picker mb-4">
+  
+  <%# Suggestion Panel - shown when Yes/No questions are detected %>
+  <div data-yes-no-branch-target="suggestionPanel"
+       class="<%= 'hidden' if has_existing_branches %> bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
+    
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">✨</span>
+        <div>
+          <h4 class="font-semibold text-gray-900 dark:text-gray-100">Quick Setup Available</h4>
+          <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+            We found a Yes/No question you can branch from
+          </p>
+        </div>
+      </div>
+      <button type="button"
+              data-action="click->yes-no-branch#dismiss"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              title="Dismiss">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    
+    <%# Question info %>
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 mb-4 border border-blue-100 dark:border-blue-900/50">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-blue-500">❓</span>
+        <span class="font-medium text-gray-700 dark:text-gray-300">Question:</span>
+        <span data-yes-no-branch-target="questionTitle" class="text-gray-900 dark:text-gray-100">
+          Loading...
+        </span>
+      </div>
+      <div class="flex items-center gap-2 text-sm mt-1">
+        <span class="text-purple-500">📝</span>
+        <span class="font-medium text-gray-700 dark:text-gray-300">Variable:</span>
+        <code data-yes-no-branch-target="variableName" 
+              class="text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 rounded text-xs font-mono">
+          loading...
+        </code>
+      </div>
+    </div>
+    
+    <%# Branch configuration %>
+    <div class="space-y-3">
+      <%# Yes branch %>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 min-w-[100px]">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm font-medium">
+            ✓
+          </span>
+          <span class="text-sm font-medium text-green-700 dark:text-green-300">If YES</span>
+        </div>
+        <span class="text-gray-500 dark:text-gray-400">→</span>
+        <select data-yes-no-branch-target="yesPathSelect"
+                class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+          <option value="">-- Select step --</option>
+          <%# Options will be populated by JavaScript %>
+        </select>
+      </div>
+      
+      <%# No branch %>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 min-w-[100px]">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-medium">
+            ✗
+          </span>
+          <span class="text-sm font-medium text-red-700 dark:text-red-300">If NO</span>
+        </div>
+        <span class="text-gray-500 dark:text-gray-400">→</span>
+        <select data-yes-no-branch-target="noPathSelect"
+                class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+          <option value="">-- Select step --</option>
+          <%# Options will be populated by JavaScript %>
+        </select>
+      </div>
+    </div>
+    
+    <%# Action buttons %>
+    <div class="flex items-center justify-between mt-4 pt-4 border-t border-blue-100 dark:border-blue-900/50">
+      <button type="button"
+              data-action="click->yes-no-branch#manualConfigure"
+              class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
+        I'll configure manually
+      </button>
+      
+      <button type="button"
+              data-action="click->yes-no-branch#apply"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg shadow hover:shadow-lg transition-all duration-200">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Apply This Setup
+      </button>
+    </div>
+  </div>
+  
+  <%# No preceding questions message %>
+  <div data-yes-no-branch-target="noPrecedingQuestions" class="hidden">
+    <div class="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div class="flex items-start gap-3">
+        <span class="text-gray-400 text-xl">💡</span>
+        <div>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            <strong class="text-gray-700 dark:text-gray-300">Tip:</strong> 
+            Add a Yes/No question step before this decision to enable quick branch setup.
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            You can still manually configure branches using the form below.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

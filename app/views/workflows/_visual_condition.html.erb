@@ -1,0 +1,103 @@
+<%#
+  Visual Condition Builder
+  
+  A user-friendly, dropdown-based condition builder for non-technical users.
+  Replaces syntax-based input with sentence-style dropdowns.
+  
+  Local variables:
+  - condition: The existing condition string (optional)
+  - field_name: The form field name for the hidden input
+  - workflow: The workflow object (for loading variables)
+  - branch_index: Index of the branch (for unique IDs)
+%>
+
+<% condition ||= "" %>
+<% field_name ||= "workflow[steps][][branches][][condition]" %>
+<% branch_index ||= 0 %>
+
+<div data-controller="visual-condition"
+     data-visual-condition-condition-value="<%= condition %>"
+     data-visual-condition-workflow-id-value="<%= workflow&.id %>"
+     class="visual-condition-builder">
+  
+  <%# Hidden field that stores the actual condition syntax %>
+  <input type="hidden" 
+         name="<%= field_name %>"
+         value="<%= condition %>"
+         data-visual-condition-target="hiddenCondition"
+         data-step-form-target="field">
+  
+  <%# Sentence-style condition builder %>
+  <div class="flex flex-col gap-3">
+    
+    <%# Row 1: Variable selection %>
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">When</span>
+      
+      <select data-visual-condition-target="variableSelect"
+              data-action="change->visual-condition#handleVariableChange"
+              class="flex-1 min-w-[160px] border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+        <option value="">Select a variable...</option>
+        <%# Options will be populated by JavaScript from form data %>
+        <% if defined?(workflow) && workflow&.variables&.any? %>
+          <% workflow.variables.each do |var| %>
+            <% 
+              # Find the question step for this variable to get answer type
+              step = workflow.steps&.find { |s| s['variable_name'] == var }
+              answer_type = step&.dig('answer_type') || 'text'
+              options = step&.dig('options') || []
+              step_title = step&.dig('title') || var
+            %>
+            <option value="<%= var %>" 
+                    data-answer-type="<%= answer_type %>"
+                    data-options="<%= options.to_json %>"
+                    <%= 'selected' if condition.present? && condition.start_with?(var) %>>
+              <%= step_title %> (<%= var %>)
+            </option>
+          <% end %>
+        <% end %>
+      </select>
+    </div>
+    
+    <%# Row 2: Operator and Value %>
+    <div class="flex items-center gap-2 flex-wrap">
+      <select data-visual-condition-target="operatorSelect"
+              data-action="change->visual-condition#updateCondition"
+              class="min-w-[120px] border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+        <option value="==" <%= 'selected' if condition.include?('==') && !condition.include?('!=') %>>is</option>
+        <option value="!=" <%= 'selected' if condition.include?('!=') %>>is not</option>
+      </select>
+      
+      <%# Value container - will be replaced with select or input based on variable type %>
+      <div data-visual-condition-target="valueContainer" class="flex-1 min-w-[140px]">
+        <%# Default to text input, JavaScript will replace based on variable type %>
+        <input type="text"
+               data-visual-condition-target="valueInput"
+               data-action="input->visual-condition#updateCondition"
+               placeholder="Enter a value..."
+               value="<%= condition.match(/['"]([^'"]*)['"]\s*$/)&.captures&.first || condition.match(/\d+$/)&.to_s %>"
+               class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+    </div>
+    
+    <%# Condition preview %>
+    <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-xs text-gray-500 dark:text-gray-400">Condition:</span>
+        <span data-visual-condition-target="conditionPreview" 
+              class="text-sm text-gray-400 italic">
+          Select a variable and value to create a condition
+        </span>
+      </div>
+    </div>
+    
+    <%# Help text %>
+    <p data-visual-condition-target="helpText" class="text-xs text-gray-500 dark:text-gray-400">
+      💡 Variables come from Question steps with a variable name set
+    </p>
+  </div>
+</div>
+

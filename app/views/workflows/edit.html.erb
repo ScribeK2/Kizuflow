@@ -1,4 +1,4 @@
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
      data-controller="workflow-collaboration"
      data-workflow-collaboration-workflow-id-value="<%= @workflow.id %>"
      data-workflow-collaboration-current-user-id-value="<%= current_user.id %>"
@@ -80,95 +80,142 @@
         </div>
       <% end %>
 
-      <div data-controller="workflow-builder">
-        <div class="flex justify-between items-center mb-4">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
-          <div class="flex space-x-2">
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Question</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="decision" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Decision</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Action</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="checkpoint" class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">Add Checkpoint</button>
+      <%# Two-Column Layout: Sidebar + Main Content (Sprint 3) %>
+      <% has_sidebar = @workflow.steps.present? && @workflow.steps.length > 3 %>
+      <div style="display: grid; grid-template-columns: <%= has_sidebar ? '280px 1fr' : '1fr' %>; gap: 1.5rem; width: 100%;">
+        <%# Step Outline Sidebar (shown for workflows with >3 steps) %>
+        <% if has_sidebar %>
+          <div style="position: sticky; top: 6rem; align-self: start; max-height: calc(100vh - 8rem); overflow-y: auto;">
+            <%= render partial: "step_outline", locals: { workflow: @workflow } %>
           </div>
-        </div>
-        <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
-          <% if @workflow.steps.present? %>
-            <% @workflow.steps.each_with_index do |step, index| %>
-              <div class="step-item border rounded p-4 mb-4 <%= 'border-yellow-400 dark:border-yellow-600 bg-yellow-50/50 dark:bg-yellow-900/10' if step['_import_incomplete'] %>" 
-                   data-step-index="<%= index %>"
-                   data-controller="step-form"
-                   data-step-form-step-type-value="<%= step['type'] %>"
-                   data-step-form-step-index-value="<%= index %>">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center space-x-2">
-                    <span class="drag-handle cursor-move text-gray-500">☰</span>
-                    <% if step['_import_incomplete'] %>
-                      <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        Incomplete
-                      </span>
-                      <% if step['_import_errors']&.any? %>
-                        <span class="text-xs text-yellow-700 dark:text-yellow-300" title="<%= step['_import_errors'].join(', ') %>">
-                          <%= step['_import_errors'].first %>
-                        </span>
-                      <% end %>
-                    <% end %>
-                  </div>
-                  <button type="button" data-action="click->workflow-builder#removeStep" class="text-red-500 hover:text-red-700">Remove</button>
-                </div>
-                <input type="hidden" name="workflow[steps][][index]" value="<%= index %>">
-                <input type="hidden" name="workflow[steps][][type]" value="<%= step['type'] %>">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" 
-                     data-controller="preview-updater"
-                     data-preview-updater-url-value="<%= preview_workflow_path(@workflow) %>"
-                     data-preview-updater-index-value="<%= index %>">
-                  <div class="space-y-2 min-w-0">
-                    <div class="field-container">
-                      <input type="text" 
-                             name="workflow[steps][][title]" 
-                             value="<%= step['title'] %>" 
-                             placeholder="Step title" 
-                             class="w-full border rounded px-3 py-2" 
-                             required
-                             data-step-form-target="field">
-                    </div>
-                    <div class="field-container">
-                      <textarea name="workflow[steps][][description]" 
-                                placeholder="Step description" 
-                                class="w-full border rounded px-3 py-2" 
-                                rows="2"
-                                data-step-form-target="field"><%= step['description'] %></textarea>
-                    </div>
-                    <%= render partial: "step_fields", locals: { step: step, step_type: step['type'], available_steps: @workflow.steps, step_index: index, workflow: @workflow } %>
-                  </div>
-                  
-                  <div class="min-w-0">
-                    <%= turbo_frame_tag "step_preview_#{index}", data: { preview_updater_target: "previewFrame" } do %>
-                      <%= render partial: "preview_pane", locals: { step: step, index: index } %>
-                    <% end %>
-                  </div>
-                </div>
+        <% end %>
+        
+        <%# Main Steps Section %>
+        <div style="min-width: 0;">
+          <div data-controller="workflow-builder" 
+               data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
+               id="workflow-builder-container">
+            
+            <%# Header with Add Step Buttons %>
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Workflow Steps
+                <% if @workflow.steps.present? %>
+                  <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    (<%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %>)
+                  </span>
+                <% end %>
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" 
+                        data-action="click->workflow-builder#addStepDirect"
+                        data-step-type="question"
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                        style="background-color: #3b82f6;"
+                        onmouseover="this.style.backgroundColor='#2563eb'"
+                        onmouseout="this.style.backgroundColor='#3b82f6'">
+                  Question
+                </button>
+                <button type="button" 
+                        data-action="click->workflow-builder#addStepDirect"
+                        data-step-type="decision"
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                        style="background-color: #a855f7;"
+                        onmouseover="this.style.backgroundColor='#9333ea'"
+                        onmouseout="this.style.backgroundColor='#a855f7'">
+                  Decision
+                </button>
+                <button type="button" 
+                        data-action="click->workflow-builder#addStepDirect"
+                        data-step-type="action"
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                        style="background-color: #22c55e;"
+                        onmouseover="this.style.backgroundColor='#16a34a'"
+                        onmouseout="this.style.backgroundColor='#22c55e'">
+                  Action
+                </button>
+                <button type="button" 
+                        data-action="click->workflow-builder#addStepDirect"
+                        data-step-type="checkpoint"
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                        style="background-color: #f97316;"
+                        onmouseover="this.style.backgroundColor='#ea580c'"
+                        onmouseout="this.style.backgroundColor='#f97316'">
+                  Checkpoint
+                </button>
+              </div>
+            </div>
+            
+            <%# Expand/Collapse All Controls (Sprint 2) %>
+            <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
+              <div class="flex justify-end gap-2 mb-3">
+                <button type="button"
+                        onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.expand(); })"
+                        class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
+                  Expand all
+                </button>
+                <span class="text-gray-400">|</span>
+                <button type="button"
+                        onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.collapse(); })"
+                        class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
+                  Collapse all
+                </button>
               </div>
             <% end %>
-          <% end %>
+            
+            <%# Steps Container %>
+            <div data-workflow-builder-target="container" class="space-y-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
+              <% if @workflow.steps.present? %>
+                <%# Inline step creator at the beginning %>
+                <%= render partial: "inline_step_creator", locals: { after_index: -1 } %>
+                
+                <% @workflow.steps.each_with_index do |step, index| %>
+                  <%= render partial: "step_item", locals: { 
+                    step: step, 
+                    index: index, 
+                    workflow: @workflow,
+                    expanded: @workflow.steps.length <= 5 || index == @workflow.steps.length - 1
+                  } %>
+                  
+                  <%# Inline step creator after each step %>
+                  <%= render partial: "inline_step_creator", locals: { after_index: index } %>
+                <% end %>
+              <% else %>
+                <%# Empty state %>
+                <div class="text-center py-12">
+                  <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                  </svg>
+                  <h3 class="mt-3 text-lg font-medium text-gray-900 dark:text-gray-100">No steps yet</h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Get started by adding your first step using the buttons above.
+                  </p>
+                  
+                  <%# Quick start buttons in empty state %>
+                  <div class="flex flex-wrap justify-center gap-3">
+                    <button type="button" 
+                            data-action="click->workflow-builder#addStepDirect"
+                            data-step-type="question"
+                            class="inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-medium">
+                      Start with a Question
+                    </button>
+                    <button type="button" 
+                            data-action="click->workflow-builder#addStepDirect"
+                            data-step-type="action"
+                            class="inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors font-medium">
+                      Start with an Action
+                    </button>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div data-controller="flow-preview">
+      <div data-controller="flow-preview" class="mt-6">
         <%= render partial: "flow_preview" %>
       </div>
-
-      <%# Include step templates data for JavaScript %>
-      <script type="application/json" id="step-templates-data">
-        {
-          "question": <%= StepTemplate.all_for_type(:question).to_json.html_safe %>,
-          "decision": <%= StepTemplate.all_for_type(:decision).to_json.html_safe %>,
-          "action": <%= StepTemplate.all_for_type(:action).to_json.html_safe %>,
-          "checkpoint": []
-        }
-      </script>
 
       <div class="flex justify-between items-center space-x-3">
         <div data-autosave-target="status" class="text-sm font-medium text-gray-600 dark:text-gray-400">

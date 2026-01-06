@@ -1,0 +1,34 @@
+<%# Step card partial for displaying step information %>
+<%# Used in step selector dropdown and other contexts %>
+
+<% step_type = local_assigns[:step_type] || step['type'] || step[:type] %>
+<% step_title = local_assigns[:step_title] || step['title'] || step[:title] %>
+<% step_preview = local_assigns[:step_preview] || step['preview'] || step[:preview] || "" %>
+<% step_index = local_assigns[:step_index] || step['index'] || step[:index] %>
+
+<%# Type-specific styling %>
+<% 
+  type_colors = {
+    'question' => { icon: '❓', color: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+    'decision' => { icon: '🔀', color: 'text-green-600', badge: 'bg-green-100 text-green-700' },
+    'action' => { icon: '⚡', color: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+    'checkpoint' => { icon: '✓', color: 'text-yellow-600', badge: 'bg-yellow-100 text-yellow-700' }
+  }
+  type_style = type_colors[step_type.to_s] || { icon: '📋', color: 'text-gray-600', badge: 'bg-gray-100 text-gray-700' }
+%>
+
+<div class="flex items-start gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors">
+  <div class="flex-shrink-0 mt-0.5">
+    <span class="<%= type_style[:color] %> text-lg"><%= type_style[:icon] %></span>
+  </div>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="font-medium text-gray-900"><%= step_title %></span>
+      <span class="text-xs px-2 py-0.5 rounded <%= type_style[:badge] %>"><%= step_type.to_s.capitalize %></span>
+    </div>
+    <% if step_preview.present? %>
+      <p class="text-xs text-gray-600 truncate"><%= step_preview %></p>
+    <% end %>
+  </div>
+</div>
+

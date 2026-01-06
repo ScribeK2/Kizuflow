@@ -15,17 +15,121 @@ export default class extends Controller {
       // No branches exist, check for legacy format or add one empty branch
       this.initializeBranches()
     } else {
-      // Branches already exist from ERB, initialize rule builders
+      // Branches already exist from ERB, initialize rule builders and step selectors
       // Use a longer delay to ensure Stimulus controllers are connected
       setTimeout(() => {
         existingBranches.forEach((branchItem, index) => {
           this.initializeBranchRuleBuilder(index)
+          this.initializeBranchStepSelector(index)
         })
+        // Also initialize else path step selector
+        this.initializeElsePathStepSelector()
       }, 300)
     }
     
+    // Listen for template-applied events
+    this.handleTemplateApplied = this.handleTemplateApplied.bind(this)
+    this.element.addEventListener('template-applied', this.handleTemplateApplied)
+    
+    // Listen for Yes/No branch quick setup events (Sprint 1)
+    this.handleYesNoBranchApply = this.handleYesNoBranchApply.bind(this)
+    this.element.addEventListener('yes-no-branch:apply', this.handleYesNoBranchApply)
+    
     // Set up listeners for workflow changes
     this.setupWorkflowChangeListener()
+  }
+  
+  /**
+   * Handle Yes/No branch quick setup application (Sprint 1)
+   * This is triggered by the yes_no_branch_controller when the user clicks "Apply This Setup"
+   */
+  handleYesNoBranchApply(event) {
+    console.log('[Multi-Branch] Yes/No branch apply event received:', event.detail)
+    
+    const { branches } = event.detail
+    
+    if (!branches || branches.length === 0) {
+      console.warn('[Multi-Branch] No branches in yes-no-branch:apply event')
+      return
+    }
+    
+    console.log('[Multi-Branch] Applying Yes/No branches:', branches.length, 'branches')
+    
+    // Clear existing branches
+    if (this.hasBranchesContainerTarget) {
+      this.branchesContainerTarget.innerHTML = ''
+    }
+    
+    // Add Yes and No branches
+    branches.forEach((branch, index) => {
+      setTimeout(() => {
+        console.log(`[Multi-Branch] Adding Yes/No branch ${index}:`, branch)
+        this.addBranchDirect(branch.condition, branch.path)
+      }, index * 100)
+    })
+    
+    // Refresh and notify after all branches are created
+    setTimeout(() => {
+      console.log('[Multi-Branch] Refreshing dropdowns and notifying')
+      this.refreshAllBranchDropdowns()
+      this.notifyBranchAssistant()
+      this.notifyPreviewUpdate()
+    }, branches.length * 100 + 100)
+  }
+  
+  handleTemplateApplied(event) {
+    console.log('[Multi-Branch] Template-applied event received:', event.detail)
+    
+    const { branches } = event.detail
+    
+    if (!branches || branches.length === 0) {
+      console.warn('[Multi-Branch] No branches in template-applied event')
+      return
+    }
+    
+    console.log('[Multi-Branch] Processing', branches.length, 'branches')
+    
+    // Clear existing branches
+    if (this.hasBranchesContainerTarget) {
+      this.branchesContainerTarget.innerHTML = ''
+    }
+    
+    // Add branches from template with a slight delay to ensure DOM is ready
+    branches.forEach((branch, index) => {
+      setTimeout(() => {
+        console.log(`[Multi-Branch] Adding branch ${index}:`, branch)
+        this.addBranchDirect(branch.condition, branch.path)
+      }, index * 100) // Stagger branch creation
+    })
+    
+    // Refresh and notify after all branches are created
+    setTimeout(() => {
+      console.log('[Multi-Branch] Refreshing dropdowns and notifying')
+      this.refreshAllBranchDropdowns()
+      this.notifyBranchAssistant()
+      this.notifyPreviewUpdate()
+    }, branches.length * 100 + 100)
+  }
+  
+  initializeElsePathStepSelector() {
+    if (!this.hasElsePathContainerTarget) return
+    
+    const stepSelector = this.elsePathContainerTarget.querySelector('[data-controller*="step-selector"]')
+    if (!stepSelector) return
+    
+    setTimeout(() => {
+      const application = window.Stimulus
+      if (application) {
+        try {
+          const controller = application.getControllerForElementAndIdentifier(stepSelector, "step-selector")
+          if (controller && typeof controller.refresh === 'function') {
+            controller.refresh()
+          }
+        } catch (e) {
+          console.warn(`Error initializing else path step selector: ${e.message}`)
+        }
+      }
+    }, 100)
   }
 
   initializeBranches() {
@@ -62,8 +166,37 @@ export default class extends Controller {
     
     this.branchesContainerTarget.insertAdjacentHTML('beforeend', branchHtml)
     
-    // Initialize rule builder for the new branch
-    this.initializeBranchRuleBuilder(branchIndex)
+    // Initialize rule builder for the new branch (with delay to ensure Stimulus connects)
+    setTimeout(() => {
+      this.initializeBranchRuleBuilder(branchIndex)
+      
+      if (condition) {
+        // Parse condition to populate rule builder fields
+        const branchItem = this.branchesContainerTarget.querySelector(`[data-branch-index="${branchIndex}"]`)
+        if (branchItem) {
+          const ruleBuilder = branchItem.querySelector('[data-controller*="rule-builder"]')
+          if (ruleBuilder) {
+            const application = window.Stimulus
+            if (application) {
+              try {
+                const controller = application.getControllerForElementAndIdentifier(ruleBuilder, "rule-builder")
+                if (controller && controller.parseExistingCondition) {
+                  controller.parseExistingCondition()
+                  if (controller.buildCondition) {
+                    controller.buildCondition()
+                  }
+                }
+              } catch (e) {
+                // Rule builder will initialize automatically
+              }
+            }
+          }
+        }
+      }
+    }, 150)
+    
+    // Initialize step selector for the new branch
+    this.initializeBranchStepSelector(branchIndex)
     
     // Update hidden inputs
     this.updateBranchesInputs()
@@ -139,22 +272,64 @@ export default class extends Controller {
     // Initialize rule builder for the new branch
     this.initializeBranchRuleBuilder(branchIndex)
     
+    // Initialize step selector for the new branch
+    this.initializeBranchStepSelector(branchIndex)
+    
     // Update hidden inputs
     this.updateBranchesInputs()
     
     // Refresh dropdowns
     this.refreshAllBranchDropdowns()
     
+    // Notify branch assistant to refresh
+    this.notifyBranchAssistant()
+    
     // Notify preview update
     this.notifyPreviewUpdate()
   }
+  
+  notifyBranchAssistant() {
+    const branchAssistant = this.element.closest('[data-controller*="branch-assistant"]')
+    if (branchAssistant) {
+      const application = window.Stimulus
+      if (application) {
+        try {
+          const controller = application.getControllerForElementAndIdentifier(branchAssistant, "branch-assistant")
+          if (controller && typeof controller.loadSuggestions === 'function') {
+            controller.loadSuggestions()
+          }
+        } catch (e) {
+          // Branch assistant might not be connected yet
+        }
+      }
+    }
+  }
+  
+  initializeBranchStepSelector(index) {
+    const branchItem = this.branchesContainerTarget.querySelector(`[data-branch-index="${index}"]`)
+    if (!branchItem) return
+    
+    const stepSelector = branchItem.querySelector('[data-controller*="step-selector"]')
+    if (!stepSelector) return
+    
+    // Use a delay to ensure Stimulus has connected the controller
+    setTimeout(() => {
+      const application = window.Stimulus
+      if (application) {
+        try {
+          const controller = application.getControllerForElementAndIdentifier(stepSelector, "step-selector")
+          if (controller && typeof controller.refresh === 'function') {
+            controller.refresh()
+          }
+        } catch (e) {
+          console.warn(`Error initializing step selector: ${e.message}`)
+        }
+      }
+    }, 100)
+  }
 
   createBranchHtml(index, condition, path) {
-    const availableSteps = this.getAvailableSteps()
-    const stepOptions = availableSteps.map(step => {
-      const selected = step.title === path ? 'selected' : ''
-      return `<option value="${this.escapeHtml(step.title)}" ${selected}>${this.escapeHtml(step.title)}</option>`
-    }).join('')
+    // Note: stepOptions no longer needed - using step selector component instead
     
     return `
       <div class="branch-item border rounded p-3 mb-3 bg-gray-50" data-branch-index="${index}">
@@ -222,13 +397,36 @@ export default class extends Controller {
           
           <div>
             <label class="block text-xs text-gray-600 mb-1">Go to:</label>
-            <select name="workflow[steps][][branches][][path]" 
-                    class="w-full border rounded px-2 py-1 text-sm"
-                    data-step-form-target="field"
-                    data-multi-branch-target="branchPathSelect">
-              <option value="">-- Select step --</option>
-              ${stepOptions}
-            </select>
+            <div data-controller="step-selector"
+                 data-step-selector-selected-value-value="${path}"
+                 data-step-selector-placeholder-value="-- Select step --"
+                 class="relative">
+              <input type="hidden" 
+                     name="workflow[steps][][branches][][path]" 
+                     value="${this.escapeHtml(path)}"
+                     data-step-selector-target="hiddenInput"
+                     data-step-form-target="field"
+                     data-multi-branch-target="branchPathSelect">
+              <button type="button"
+                      class="w-full text-left border rounded px-3 py-2 text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      data-step-selector-target="button"
+                      data-action="click->step-selector#toggle">
+                <span class="text-gray-500">-- Select step --</span>
+              </button>
+              <div class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden"
+                   data-step-selector-target="dropdown">
+                <div class="p-2 border-b border-gray-200">
+                  <input type="text"
+                         placeholder="Search steps..."
+                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                         data-step-selector-target="search"
+                         data-action="input->step-selector#search">
+                </div>
+                <div class="overflow-y-auto max-h-56" data-step-selector-target="options">
+                  <!-- Options will be rendered here -->
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -241,7 +439,7 @@ export default class extends Controller {
     
     const ruleBuilder = branchItem.querySelector('[data-controller*="rule-builder"]')
     if (!ruleBuilder) {
-      console.warn(`Rule builder not found for branch ${index}`)
+      // Rule builder will initialize automatically via Stimulus
       return
     }
     
@@ -257,15 +455,12 @@ export default class extends Controller {
         try {
           const controller = application.getControllerForElementAndIdentifier(ruleBuilder, "rule-builder")
           if (controller) {
-            console.log(`Rule builder found for branch ${index}, refreshing variables`)
             if (typeof controller.refreshVariables === 'function') {
               controller.refreshVariables()
             }
-          } else {
-            console.warn(`Rule builder controller not found for branch ${index}, but element exists`)
           }
         } catch (e) {
-          console.warn(`Error getting rule builder controller: ${e.message}`)
+          // Rule builder will initialize automatically via Stimulus
         }
       }
     }, 500)
@@ -296,26 +491,24 @@ export default class extends Controller {
   }
 
   refreshAllBranchDropdowns() {
-    const availableSteps = this.getAvailableSteps()
-    const branchPathSelects = this.element.querySelectorAll('[data-multi-branch-target="branchPathSelect"]')
-    
-    branchPathSelects.forEach(select => {
-      const currentValue = select.value
-      const currentOptions = Array.from(select.options).map(opt => opt.value)
-      
-      // Update options
-      const optionsHtml = availableSteps.map(step => {
-        const selected = step.title === currentValue ? 'selected' : ''
-        return `<option value="${this.escapeHtml(step.title)}" ${selected}>${this.escapeHtml(step.title)}</option>`
-      }).join('')
-      
-      select.innerHTML = '<option value="">-- Select step --</option>' + optionsHtml
-      
-      // Restore selection if still valid
-      if (currentValue && availableSteps.some(s => s.title === currentValue)) {
-        select.value = currentValue
-      }
-    })
+    // Refresh all step selector controllers instead of updating select dropdowns
+    const stepSelectors = this.element.querySelectorAll('[data-controller*="step-selector"]')
+    if (stepSelectors && stepSelectors.length > 0) {
+      stepSelectors.forEach(element => {
+        const application = window.Stimulus
+        if (application && element) {
+          try {
+            const controller = application.getControllerForElementAndIdentifier(element, "step-selector")
+            if (controller && typeof controller.refresh === 'function') {
+              controller.refresh()
+            }
+          } catch (e) {
+            // Controller might not be connected yet, that's okay
+            // Step selector not yet connected, will retry on next refresh
+          }
+        }
+      })
+    }
   }
 
   getAvailableSteps() {
