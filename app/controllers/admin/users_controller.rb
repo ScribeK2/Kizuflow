@@ -2,7 +2,7 @@ class Admin::UsersController < ApplicationController
   before_action :ensure_admin!
 
   def index
-    @users = User.order(created_at: :desc)
+    @users = User.includes(:groups, :workflows).order(created_at: :desc)
     @all_groups = Group.order(:name)
   end
 
@@ -18,52 +18,88 @@ class Admin::UsersController < ApplicationController
   def update_role
     @user = User.find(params[:id])
     new_role = params[:role]
-    
+
     if User::ROLES.include?(new_role)
       @user.update(role: new_role)
       redirect_to admin_users_path, notice: "User #{@user.email} role updated to #{new_role.capitalize}."
     else
-      redirect_to admin_users_path, alert: "Invalid role specified."
+      redirect_to admin_users_path, alert: 'Invalid role specified.'
     end
   end
 
   def update_groups
     @user = User.find(params[:id])
     group_ids = params[:group_ids] || []
-    
+
     # Remove all existing group assignments
     @user.user_groups.destroy_all
-    
+
     # Add new group assignments
     group_ids.each do |group_id|
       next if group_id.blank?
+
       @user.user_groups.create!(group_id: group_id)
     end
-    
+
     redirect_to admin_users_path, notice: "Groups updated for #{@user.email}."
+  end
+
+  def reset_password
+    @user = User.find(params[:id])
+
+    # Prevent self-reset security measure
+    if @user == current_user
+      Rails.logger.warn "[ADMIN SECURITY] #{current_user.email} attempted to reset own password via admin interface"
+      redirect_to admin_users_path, alert: 'Cannot reset your own password. Use the regular password reset flow.'
+      return
+    end
+
+    # Generate temporary password
+    temp_password = @user.generate_temporary_password
+
+    # Log the action for security audit
+    Rails.logger.info "[ADMIN ACTION] #{current_user.email} generated temporary password for #{@user.email} (ID: #{@user.id}) from IP: #{request.remote_ip}"
+
+    # Store in session for modal display (for non-AJAX fallback)
+    session[:temp_password] = temp_password
+    session[:temp_password_user] = @user.email
+
+    # Respond with JSON for AJAX requests
+    respond_to do |format|
+      format.json do
+        render json: {
+          success: true,
+          password: temp_password,
+          email: @user.email,
+          message: 'Temporary password generated successfully'
+        }
+      end
+      format.html { redirect_to admin_users_path, notice: "Temporary password generated for #{@user.email}." }
+    end
   end
 
   def bulk_assign_groups
     user_ids = params[:user_ids] || []
     group_ids = params[:group_ids] || []
-    
+
     if user_ids.empty?
-      redirect_to admin_users_path, alert: "No users selected."
+      redirect_to admin_users_path, alert: 'No users selected.'
       return
     end
-    
+
     users = User.where(id: user_ids)
     users.each do |user|
       # Remove all existing group assignments
       user.user_groups.destroy_all
-      
+
       # Add new group assignments
       group_ids.each do |group_id|
         next if group_id.blank?
+
         user.user_groups.create!(group_id: group_id)
       end
     end
-    
+
     redirect_to admin_users_path, notice: "Groups assigned to #{users.count} user(s)."
   end
 
@@ -73,4 +109,3 @@ class Admin::UsersController < ApplicationController
     params.require(:user).permit(:role)
   end
 end
-
