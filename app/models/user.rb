@@ -56,5 +56,18 @@ class User < ApplicationRecord
   def accessible_groups
     admin? ? Group.all : groups
   end
-end
 
+  # Generate a secure temporary password for admin reset
+  def generate_temporary_password
+    # Generate 12-character secure password using only safe characters
+    chars = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a
+    temp_password = Array.new(12) { chars.sample }.join
+
+    # Update user with new password
+    self.password = temp_password
+    self.password_confirmation = temp_password
+    save!(validate: false)
+
+    temp_password
+  end
+end
