@@ -5,6 +5,7 @@ import { application } from "./application"
 // IMPORTANT: Controllers are stored in an array to prevent tree-shaking
 
 // Import all controllers
+import AutoSubmitController from "./auto_submit_controller"
 import AutosaveController from "./autosave_controller"
 import BranchAssistantController from "./branch_assistant_controller"
 import BranchTemplateSelectorController from "./branch_template_selector_controller"
@@ -44,6 +45,7 @@ import YesNoBranchController from "./yes_no_branch_controller"
 // Store controllers in an array to prevent tree-shaking
 // This ensures esbuild includes all controllers in the bundle
 const controllers = [
+  { Controller: AutoSubmitController, name: "auto-submit" },
   { Controller: AutosaveController, name: "autosave" },
   { Controller: BranchAssistantController, name: "branch-assistant" },
   { Controller: BranchTemplateSelectorController, name: "branch-template-selector" },
