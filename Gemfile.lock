@@ -82,6 +82,9 @@ GEM
     bootsnap (1.18.6)
       msgpack (~> 1.2)
     builder (3.3.0)
+    bullet (8.1.0)
+      activesupport (>= 3.0.0)
+      uniform_notifier (~> 1.11)
     capybara (3.40.0)
       addressable
       matrix
@@ -283,6 +286,12 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
+    sentry-rails (6.2.0)
+      railties (>= 5.2.0)
+      sentry-ruby (~> 6.2.0)
+    sentry-ruby (6.2.0)
+      bigdecimal
+      concurrent-ruby (~> 1.0, >= 1.0.2)
     sortablejs-rails (1.15.6)
       rails (>= 6.0.0, < 9)
     sprockets (4.2.2)
@@ -326,6 +335,7 @@ GEM
       railties (>= 7.1.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    uniform_notifier (1.18.0)
     uri (1.0.4)
     useragent (0.16.11)
     warden (1.2.9)
@@ -359,6 +369,7 @@ PLATFORMS
 DEPENDENCIES
   actiontext
   bootsnap (>= 1.4.4)
+  bullet
   capybara
   debug
   devise
@@ -372,6 +383,8 @@ DEPENDENCIES
   redis (~> 5.0)
   rspec-rails
   selenium-webdriver
+  sentry-rails
+  sentry-ruby
   sortablejs-rails
   sprockets-rails
   sqlite3 (>= 2.1)

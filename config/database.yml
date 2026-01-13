@@ -22,8 +22,26 @@ test:
   database: db/test.sqlite3
 
 # -------------------------------------------------
-# 4. Production – ONLY uses Render’s DATABASE_URL
+# 4. Production – PostgreSQL via DATABASE_URL
 # -------------------------------------------------
+# Pool size calculation:
+# Each Puma worker needs its own connection pool
+# Formula: RAILS_MAX_THREADS * WEB_CONCURRENCY = minimum pool size
+# We add a small buffer for background tasks and ActionCable
+#
+# Example with defaults (5 threads * 2 workers = 10):
+# - 10 connections per worker minimum
+# - With 2 workers that's 20 total connections needed
+# - Database should have at least 25-30 max_connections
 production:
   adapter: postgresql
   url: <%= ENV["DATABASE_URL"] %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5).to_i + 2 %>
+  # Connection timeout in milliseconds
+  connect_timeout: 5
+  # Use prepared statements for better performance
+  prepared_statements: true
+  # Advisory locks for migrations (safe with multiple workers)
+  advisory_locks: true
+  # Reaping frequency - how often to check for dead connections (seconds)
+  reaping_frequency: 10

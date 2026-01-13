@@ -64,95 +64,145 @@ class WorkflowChannel < ApplicationCable::Channel
   end
 
   # Handle auto-save requests from the client
+  # Uses optimistic locking to prevent race conditions when multiple users edit
   def autosave(data)
     workflow = Workflow.find(params[:workflow_id])
     
     # Ensure the user can edit the workflow (not just own it)
     return unless workflow.can_be_edited_by?(current_user)
     
+    # Get client's lock_version for optimistic locking
+    client_lock_version = (data["lock_version"] || data[:lock_version]).to_i
+    
     # Convert data to Rails-friendly format
-    # Handle both string keys and symbol keys
     title = data["title"] || data[:title] || workflow.title
     steps_data = data["steps"] || data[:steps] || []
+    formatted_steps = format_steps_data(steps_data)
     
-    # Convert steps data to ensure proper format (string keys, handle nested arrays)
-    formatted_steps = steps_data.map do |step|
+    Rails.logger.info "Autosave: Workflow #{workflow.id}, client version: #{client_lock_version}, server version: #{workflow.lock_version}"
+    
+    begin
+      # Use transaction with row-level locking for safe concurrent updates
+      Workflow.transaction do
+        # Reload with lock to get the latest version and prevent concurrent modifications
+        workflow.lock!
+        
+        # Check for version conflict (optimistic locking)
+        if client_lock_version > 0 && workflow.lock_version != client_lock_version
+          Rails.logger.warn "Autosave: Version conflict for workflow #{workflow.id}. Client: #{client_lock_version}, Server: #{workflow.lock_version}"
+          
+          # Broadcast conflict to the client that sent this request
+          broadcast_to_workflow(workflow, {
+            status: "conflict",
+            lock_version: workflow.lock_version,
+            server_title: workflow.title,
+            server_steps: workflow.steps,
+            conflict_user: user_info,
+            message: "Another user has modified this workflow. Please review the changes.",
+            timestamp: Time.current.iso8601
+          })
+          return
+        end
+        
+        # Apply updates
+        workflow.title = title unless title.blank?
+        workflow.steps = formatted_steps
+        
+        # Save without validation (allow incomplete forms)
+        # lock_version is automatically incremented by Rails
+        workflow.save!(validate: false)
+        
+        # Broadcast success with new lock_version to ALL subscribers
+        broadcast_to_workflow(workflow, {
+          status: "saved",
+          lock_version: workflow.lock_version,
+          saved_by: user_info,
+          timestamp: Time.current.iso8601
+        })
+        
+        # Also broadcast to the main channel so other users can update their UI
+        ActionCable.server.broadcast("workflow:#{workflow.id}", {
+          type: "workflow_saved",
+          lock_version: workflow.lock_version,
+          title: workflow.title,
+          steps: workflow.steps,
+          saved_by: user_info,
+          timestamp: Time.current.iso8601
+        })
+        
+        Rails.logger.info "Autosave: Successfully saved workflow #{workflow.id}, new version: #{workflow.lock_version}"
+      end
+    rescue ActiveRecord::StaleObjectError => e
+      # This catches race conditions at the database level
+      workflow.reload
+      Rails.logger.warn "Autosave: Stale object error for workflow #{workflow.id}: #{e.message}"
+      
+      broadcast_to_workflow(workflow, {
+        status: "conflict",
+        lock_version: workflow.lock_version,
+        server_title: workflow.title,
+        server_steps: workflow.steps,
+        message: "Your changes could not be saved due to a conflict. Please refresh and try again.",
+        timestamp: Time.current.iso8601
+      })
+    rescue => e
+      Rails.logger.error "Autosave: Failed to save workflow #{workflow.id}: #{e.message}"
+      Rails.logger.error e.backtrace.first(10).join("\n")
+      
+      broadcast_to_workflow(workflow, {
+        status: "error",
+        errors: [e.message],
+        timestamp: Time.current.iso8601
+      })
+    end
+  end
+  
+  # Format steps data for proper storage (extracted for reuse)
+  def format_steps_data(steps_data)
+    return [] unless steps_data.is_a?(Array)
+    
+    steps_data.map do |step|
+      next unless step.is_a?(Hash)
+      
       formatted_step = {}
       
-      # Convert all keys to strings and handle nested structures
       step.each do |key, value|
         key_str = key.to_s
         
         case key_str
         when "attachments"
-          # Ensure attachments is an array
           formatted_step[key_str] = value.is_a?(Array) ? value : []
         when "options"
-          # Ensure options is an array of hashes
           if value.is_a?(Array)
             formatted_step[key_str] = value.map do |opt|
-              if opt.is_a?(Hash)
-                opt.transform_keys(&:to_s)
-              else
-                opt
-              end
+              opt.is_a?(Hash) ? opt.transform_keys(&:to_s) : opt
             end
           else
             formatted_step[key_str] = []
           end
         when "branches"
-          # Ensure branches is an array of hashes
           if value.is_a?(Array)
             formatted_step[key_str] = value.map do |branch|
-              if branch.is_a?(Hash)
-                branch.transform_keys(&:to_s)
-              else
-                branch
-              end
+              branch.is_a?(Hash) ? branch.transform_keys(&:to_s) : branch
+            end
+          else
+            formatted_step[key_str] = []
+          end
+        when "jumps"
+          if value.is_a?(Array)
+            formatted_step[key_str] = value.map do |jump|
+              jump.is_a?(Hash) ? jump.transform_keys(&:to_s) : jump
             end
           else
             formatted_step[key_str] = []
           end
         else
-          # Regular field - convert to string
           formatted_step[key_str] = value
         end
       end
       
       formatted_step
-    end
-    
-    # Build workflow params
-    # Note: We skip description for now since rich text handling via ActionCable
-    # requires special handling. Description will be saved via regular form submission.
-    workflow_params = {
-      title: title,
-      steps: formatted_steps
-    }
-    
-    # Debug logging
-    Rails.logger.info "Autosave: Updating workflow #{workflow.id} with #{formatted_steps.length} steps"
-    
-    # Update workflow with the provided data
-    # Skip validation for autosave - allow incomplete forms to be saved
-    # This allows users to save work in progress without filling out all required fields
-    begin
-      workflow.title = workflow_params[:title] unless workflow_params[:title].blank?
-      workflow.steps = formatted_steps
-      workflow.save(validate: false)
-      
-      # Broadcast success to all subscribers
-      broadcast_to_workflow(workflow, { status: "saved", timestamp: Time.current.iso8601 })
-      Rails.logger.info "Autosave: Successfully saved workflow #{workflow.id}"
-    rescue => e
-      # Broadcast errors if save failed
-      Rails.logger.error "Autosave: Failed to save workflow #{workflow.id}: #{e.message}"
-      broadcast_to_workflow(workflow, { 
-        status: "error", 
-        errors: [e.message],
-        timestamp: Time.current.iso8601 
-      })
-    end
+    end.compact
   end
 
   private
@@ -169,43 +219,94 @@ class WorkflowChannel < ApplicationCable::Channel
     }
   end
 
+  # ==========================================================================
+  # Presence Tracking
+  # ==========================================================================
+  # Uses Redis in production (via ActionCable's pubsub) for multi-worker support
+  # Falls back to in-memory store for development/test (single worker)
+  
   def add_presence(workflow)
-    # Use Redis if available, otherwise use a class-level store
-    presence_key = "workflow:#{workflow.id}:presence"
-    if defined?(Redis) && Redis.current
-      Redis.current.sadd(presence_key, current_user.id)
-      Redis.current.expire(presence_key, 3600) # Expire after 1 hour of inactivity
+    presence_key = presence_redis_key(workflow)
+    
+    if redis_available?
+      redis_connection.sadd(presence_key, current_user.id.to_s)
+      redis_connection.expire(presence_key, 3600) # 1 hour TTL
     else
-      # Fallback: use class-level store (works across connections)
-      @@presence_store ||= {}
-      @@presence_store[presence_key] ||= Set.new
-      @@presence_store[presence_key].add(current_user.id)
+      # Development/test: thread-safe in-memory store (single worker only)
+      presence_mutex.synchronize do
+        memory_presence_store[presence_key] ||= Set.new
+        memory_presence_store[presence_key].add(current_user.id)
+      end
     end
   end
 
   def remove_presence(workflow)
-    presence_key = "workflow:#{workflow.id}:presence"
-    if defined?(Redis) && Redis.current
-      Redis.current.srem(presence_key, current_user.id)
+    presence_key = presence_redis_key(workflow)
+    
+    if redis_available?
+      redis_connection.srem(presence_key, current_user.id.to_s)
     else
-      @@presence_store ||= {}
-      @@presence_store[presence_key]&.delete(current_user.id)
-      @@presence_store.delete(presence_key) if @@presence_store[presence_key]&.empty?
+      presence_mutex.synchronize do
+        memory_presence_store[presence_key]&.delete(current_user.id)
+        memory_presence_store.delete(presence_key) if memory_presence_store[presence_key]&.empty?
+      end
     end
   end
 
   def get_active_users(workflow)
-    presence_key = "workflow:#{workflow.id}:presence"
+    presence_key = presence_redis_key(workflow)
     
-    if defined?(Redis) && Redis.current
-      user_ids = Redis.current.smembers(presence_key).map(&:to_i)
-      User.where(id: user_ids).map { |u| { id: u.id, email: u.email, name: u.email.split("@").first.titleize } }
+    user_ids = if redis_available?
+      redis_connection.smembers(presence_key).map(&:to_i)
     else
-      # Fallback: in-memory store
-      @@presence_store ||= {}
-      user_ids = (@@presence_store[presence_key] || Set.new).to_a
-      User.where(id: user_ids).map { |u| { id: u.id, email: u.email, name: u.email.split("@").first.titleize } }
+      presence_mutex.synchronize do
+        (memory_presence_store[presence_key] || Set.new).to_a
+      end
     end
+    
+    return [] if user_ids.empty?
+    
+    User.where(id: user_ids).map do |user|
+      { id: user.id, email: user.email, name: user.email.split("@").first.titleize }
+    end
+  end
+
+  # Redis connection via ActionCable's pubsub (properly handles connection pooling)
+  def redis_connection
+    @redis_connection ||= begin
+      pubsub = ActionCable.server.pubsub
+      # Access Redis through ActionCable's pubsub adapter
+      if pubsub.respond_to?(:redis_connection_for_subscriptions)
+        # Rails 7+ style
+        pubsub.send(:redis_connection_for_subscriptions)
+      elsif defined?(Redis) && ENV['REDIS_URL'].present?
+        # Direct Redis connection (production)
+        Redis.new(url: ENV['REDIS_URL'])
+      else
+        nil
+      end
+    end
+  end
+
+  def redis_available?
+    return false unless Rails.env.production? || ENV['REDIS_URL'].present?
+    redis_connection.present?
+  rescue => e
+    Rails.logger.warn "Redis not available for presence tracking: #{e.message}"
+    false
+  end
+
+  def presence_redis_key(workflow)
+    "kizuflow:presence:workflow:#{workflow.id}"
+  end
+
+  # Thread-safe in-memory store for development/test
+  def memory_presence_store
+    @@memory_presence_store ||= {}
+  end
+
+  def presence_mutex
+    @@presence_mutex ||= Mutex.new
   end
 
   def broadcast_presence_update(workflow, message)

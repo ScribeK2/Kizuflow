@@ -147,21 +147,43 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     assert_includes visible.map(&:id), workflow.id
   end
 
-  test "private workflows in Uncategorized should not be visible to regular users" do
+  test "private workflows in groups should be visible to users assigned to that group" do
+    # Group membership grants access to all workflows in the group, regardless of is_public
+    # is_public is for workflows visible to EVERYONE, not just for group-based access
     user = User.create!(
-      email: "user@test.com",
+      email: "user-#{SecureRandom.hex(4)}@test.com",
       password: "password123",
       password_confirmation: "password123"
     )
-    workflow = Workflow.create!(title: "Private Uncategorized Workflow", user: @user, is_public: false)
+    workflow = Workflow.create!(title: "Private Group Workflow", user: @user, is_public: false)
     
     # Ensure it's in Uncategorized
     workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: @uncategorized, workflow: workflow, is_primary: true)
     
-    # Assign user to Uncategorized
+    # Assign user to Uncategorized - this should grant visibility
     UserGroup.create!(group: @uncategorized, user: user)
     
+    visible = Workflow.visible_to(user)
+    # User assigned to Uncategorized SHOULD see private workflows in that group
+    assert_includes visible.map(&:id), workflow.id
+  end
+  
+  test "private workflows in groups should NOT be visible to users NOT assigned to that group" do
+    # Users without group assignment should not see private workflows
+    user = User.create!(
+      email: "user-#{SecureRandom.hex(4)}@test.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    restricted_group = Group.create!(name: "Restricted")
+    workflow = Workflow.create!(title: "Private Restricted Workflow", user: @user, is_public: false)
+    
+    # Put workflow in restricted group
+    workflow.group_workflows.destroy_all
+    GroupWorkflow.create!(group: restricted_group, workflow: workflow, is_primary: true)
+    
+    # User is NOT assigned to the group
     visible = Workflow.visible_to(user)
     assert_not_includes visible.map(&:id), workflow.id
   end

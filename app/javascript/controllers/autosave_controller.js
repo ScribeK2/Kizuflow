@@ -2,10 +2,11 @@ import { Controller } from "@hotwired/stimulus"
 import { subscribeToWorkflow } from "../channels/workflow_channel"
 
 export default class extends Controller {
-  static targets = ["status"]
+  static targets = ["status", "lockVersion", "conflictModal"]
   static values = { 
     workflowId: Number,
-    debounceMs: { type: Number, default: 1000 }
+    debounceMs: { type: Number, default: 1000 },
+    lockVersion: { type: Number, default: 0 }
   }
 
   connect() {
@@ -16,6 +17,9 @@ export default class extends Controller {
       console.error("Autosave controller: Form element not found")
       return
     }
+
+    // Initialize lock_version from the form's hidden field
+    this.initializeLockVersion()
 
     // Subscribe to workflow channel if workflow ID is available
     if (this.hasWorkflowIdValue) {
@@ -35,6 +39,10 @@ export default class extends Controller {
         error: (data) => {
           console.log("Autosave: Received error callback", data)
           this.handleError(data)
+        },
+        conflict: (data) => {
+          console.log("Autosave: Received conflict callback", data)
+          this.handleConflict(data)
         }
       })
       
@@ -45,6 +53,8 @@ export default class extends Controller {
           this.handleSaved(event.detail)
         } else if (event.detail.status === "error") {
           this.handleError(event.detail)
+        } else if (event.detail.status === "conflict") {
+          this.handleConflict(event.detail)
         }
       }
       document.addEventListener("workflow:autosaved", this.autosavedHandler)
@@ -81,6 +91,27 @@ export default class extends Controller {
     this.updateStatus("ready", "Ready to save")
   }
 
+  initializeLockVersion() {
+    // Try to get lock_version from hidden field in the form
+    const lockVersionInput = this.formElement.querySelector("input[name='workflow[lock_version]']")
+    if (lockVersionInput) {
+      this.lockVersionValue = parseInt(lockVersionInput.value) || 0
+    }
+    console.log("Autosave: Initialized lock_version:", this.lockVersionValue)
+  }
+
+  updateLockVersion(newVersion) {
+    this.lockVersionValue = newVersion
+    
+    // Update the hidden field in the form
+    const lockVersionInput = this.formElement.querySelector("input[name='workflow[lock_version]']")
+    if (lockVersionInput) {
+      lockVersionInput.value = newVersion
+    }
+    
+    console.log("Autosave: Updated lock_version to:", newVersion)
+  }
+
   disconnect() {
     // Cleanup
     if (this.formElement) {
@@ -115,6 +146,12 @@ export default class extends Controller {
       return
     }
 
+    // Don't autosave if there's an unresolved conflict
+    if (this.hasConflict) {
+      console.warn("Autosave: Skipping due to unresolved conflict")
+      return
+    }
+
     console.log("Autosave: Starting autosave...")
     this.updateStatus("saving", "Saving...")
     
@@ -125,9 +162,9 @@ export default class extends Controller {
     // Debug logging
     console.log("Autosave: Sending data to server", {
       workflowId: this.workflowIdValue,
+      lockVersion: workflowData.lock_version,
       title: workflowData.title,
-      stepsCount: workflowData.steps.length,
-      steps: workflowData.steps
+      stepsCount: workflowData.steps.length
     })
     
     // Send to server via ActionCable
@@ -137,7 +174,8 @@ export default class extends Controller {
   extractWorkflowData(formData) {
     const data = {
       title: formData.get("workflow[title]") || "",
-      description: formData.get("workflow[description]") || ""
+      description: formData.get("workflow[description]") || "",
+      lock_version: this.lockVersionValue  // Include lock_version for optimistic locking
     }
 
     // Extract steps data - Rails uses array notation workflow[steps][]
@@ -248,8 +286,18 @@ export default class extends Controller {
 
   handleSaved(data) {
     console.log("Autosave successful:", data)
+    
+    // Update lock_version from server response
+    if (data.lock_version !== undefined) {
+      this.updateLockVersion(data.lock_version)
+    }
+    
+    // Clear any conflict state
+    this.hasConflict = false
+    
     const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString()
-    this.updateStatus("saved", `Saved at ${timestamp}`)
+    const savedBy = data.saved_by ? ` by ${data.saved_by.name}` : ""
+    this.updateStatus("saved", `Saved at ${timestamp}${savedBy}`)
     
     // Reset to ready after 3 seconds
     setTimeout(() => {
@@ -272,6 +320,95 @@ export default class extends Controller {
         this.updateStatus("ready", "Ready to save")
       }
     }, 5000)
+  }
+
+  handleConflict(data) {
+    console.warn("Autosave conflict detected:", data)
+    
+    // Mark that we have a conflict
+    this.hasConflict = true
+    
+    // Store conflict data for potential resolution
+    this.conflictData = {
+      serverVersion: data.lock_version,
+      serverTitle: data.server_title,
+      serverSteps: data.server_steps,
+      conflictUser: data.conflict_user,
+      message: data.message
+    }
+    
+    // Update status to show conflict
+    const conflictUser = data.conflict_user ? data.conflict_user.name : "another user"
+    this.updateStatus("conflict", `⚠️ Conflict: Modified by ${conflictUser}`)
+    
+    // Show conflict modal or alert
+    this.showConflictNotification(data)
+  }
+
+  showConflictNotification(data) {
+    const conflictUser = data.conflict_user ? data.conflict_user.name : "another user"
+    const message = data.message || `This workflow was modified by ${conflictUser}. Please refresh to see the latest changes.`
+    
+    // Check if there's a conflict modal target
+    if (this.hasConflictModalTarget) {
+      // Update modal content
+      const modalMessage = this.conflictModalTarget.querySelector("[data-conflict-message]")
+      if (modalMessage) {
+        modalMessage.textContent = message
+      }
+      
+      const modalUser = this.conflictModalTarget.querySelector("[data-conflict-user]")
+      if (modalUser) {
+        modalUser.textContent = conflictUser
+      }
+      
+      // Show the modal
+      this.conflictModalTarget.classList.remove("hidden")
+    } else {
+      // Fallback to browser alert/confirm
+      const shouldRefresh = confirm(
+        `${message}\n\nWould you like to refresh the page to see the latest version?\n\n` +
+        `Note: Your unsaved changes will be lost if you refresh.`
+      )
+      
+      if (shouldRefresh) {
+        window.location.reload()
+      }
+    }
+  }
+
+  resolveConflict(action) {
+    if (action === "refresh") {
+      // Reload the page to get the latest version
+      window.location.reload()
+    } else if (action === "force") {
+      // Force save by updating lock_version and retrying
+      if (this.conflictData && this.conflictData.serverVersion) {
+        this.updateLockVersion(this.conflictData.serverVersion)
+        this.hasConflict = false
+        this.performAutosave()
+      }
+    } else if (action === "dismiss") {
+      // Just dismiss the conflict notification (user will manually handle)
+      this.hasConflict = false
+      if (this.hasConflictModalTarget) {
+        this.conflictModalTarget.classList.add("hidden")
+      }
+      this.updateStatus("ready", "Ready to save")
+    }
+  }
+
+  // Action handlers for conflict modal buttons
+  refreshPage() {
+    this.resolveConflict("refresh")
+  }
+
+  forceSave() {
+    this.resolveConflict("force")
+  }
+
+  dismissConflict() {
+    this.resolveConflict("dismiss")
   }
 
   updateStatus(status, message) {

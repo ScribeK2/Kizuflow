@@ -10,9 +10,17 @@ class Workflow < ApplicationRecord
   has_many :simulations, dependent: :destroy
 
   # Steps stored as JSON - automatically serialized/deserialized
-  validates :title, presence: true
+  validates :title, presence: true, length: { maximum: 255 }
   validates :user_id, presence: true
   validate :validate_steps
+  validate :validate_workflow_size
+
+  # Size limits to prevent DoS and ensure performance
+  # These can be overridden via environment variables if needed
+  MAX_STEPS = ENV.fetch("WORKFLOW_MAX_STEPS", 200).to_i
+  MAX_STEP_TITLE_LENGTH = 500
+  MAX_STEP_CONTENT_LENGTH = 50_000  # 50KB per step field
+  MAX_TOTAL_STEPS_SIZE = 5_000_000  # 5MB total for steps JSON
   
   # Normalize steps before validation to convert legacy format
   before_validation :normalize_steps_on_save
@@ -57,8 +65,8 @@ class Workflow < ApplicationRecord
     elsif user&.editor?
       # Editors see their own workflows + all public workflows + workflows in assigned groups
       if user.groups&.any?
-        # Get all accessible group IDs (user's groups + all their descendants)
-        accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+        # Use optimized single-query method to get all accessible group IDs
+        accessible_group_ids = Group.accessible_group_ids_for(user)
         # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
         distinct_ids = base_scope.left_joins(:groups)
                                   .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
@@ -72,8 +80,8 @@ class Workflow < ApplicationRecord
     else
       # Users: See public workflows + workflows in assigned groups + workflows without groups
       if user&.groups&.any?
-        # Get all accessible group IDs (user's groups + all their descendants)
-        accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
+        # Use optimized single-query method to get all accessible group IDs
+        accessible_group_ids = Group.accessible_group_ids_for(user)
         # Public workflows OR workflows in user's groups OR workflows without groups
         public_workflows = base_scope.where(is_public: true)
         group_workflows = base_scope.joins(:groups).where(groups: { id: accessible_group_ids })
@@ -637,7 +645,8 @@ class Workflow < ApplicationRecord
       end
       
       # Validate step type
-      unless %w[question decision action checkpoint].include?(step['type'])
+      # Note: simple_decision is a variant of decision used for yes/no routing
+      unless %w[question decision simple_decision action checkpoint].include?(step['type'])
         errors.add(:steps, "Step #{step_num}: Invalid step type '#{step['type']}'")
         next
       end
@@ -767,6 +776,67 @@ class Workflow < ApplicationRecord
             errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: references non-existent step ID: #{jump['next_step_id']}")
           end
         end
+      end
+    end
+  end
+
+  # Validate workflow size limits to prevent DoS and ensure performance
+  def validate_workflow_size
+    return unless steps.present?
+
+    # Check step count
+    if steps.length > MAX_STEPS
+      errors.add(:steps, "Workflow cannot exceed #{MAX_STEPS} steps (currently #{steps.length})")
+      return  # Skip other validations if way too many steps
+    end
+
+    # Check total JSON size
+    begin
+      steps_json = steps.to_json
+      if steps_json.bytesize > MAX_TOTAL_STEPS_SIZE
+        size_mb = (steps_json.bytesize / 1_000_000.0).round(2)
+        max_mb = (MAX_TOTAL_STEPS_SIZE / 1_000_000.0).round(2)
+        errors.add(:steps, "Total workflow data is too large (#{size_mb}MB, max #{max_mb}MB)")
+        return
+      end
+    rescue => e
+      errors.add(:steps, "Invalid step data format")
+      return
+    end
+
+    # Check individual step content sizes
+    steps.each_with_index do |step, index|
+      next unless step.is_a?(Hash)
+      step_num = index + 1
+
+      # Check title length
+      if step['title'].present? && step['title'].to_s.length > MAX_STEP_TITLE_LENGTH
+        errors.add(:steps, "Step #{step_num}: Title is too long (max #{MAX_STEP_TITLE_LENGTH} characters)")
+      end
+
+      # Check large text fields
+      large_fields = %w[description question instructions checkpoint_message]
+      large_fields.each do |field|
+        if step[field].present? && step[field].to_s.bytesize > MAX_STEP_CONTENT_LENGTH
+          size_kb = (step[field].to_s.bytesize / 1000.0).round(1)
+          max_kb = (MAX_STEP_CONTENT_LENGTH / 1000.0).round(1)
+          errors.add(:steps, "Step #{step_num}: #{field.humanize} is too large (#{size_kb}KB, max #{max_kb}KB)")
+        end
+      end
+
+      # Check options array size (for multiple choice questions)
+      if step['options'].is_a?(Array) && step['options'].length > 100
+        errors.add(:steps, "Step #{step_num}: Too many options (max 100)")
+      end
+
+      # Check branches array size (for decision steps)
+      if step['branches'].is_a?(Array) && step['branches'].length > 50
+        errors.add(:steps, "Step #{step_num}: Too many branches (max 50)")
+      end
+
+      # Check jumps array size
+      if step['jumps'].is_a?(Array) && step['jumps'].length > 50
+        errors.add(:steps, "Step #{step_num}: Too many jumps (max 50)")
       end
     end
   end

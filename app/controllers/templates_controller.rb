@@ -1,12 +1,12 @@
 class TemplatesController < ApplicationController
-  before_action :ensure_editor_or_admin!, only: [:index, :show, :use]
+  before_action :ensure_editor_or_admin!, only: [:use]
 
   def index
+    base_scope = current_user&.admin? ? Template.all : Template.public_templates
     @templates = if params[:search].present?
-      Template.search(params[:search])
+      base_scope.search(params[:search])
     else
-      # Admins see all templates, others see only public
-      current_user&.admin? ? Template.all : Template.public_templates
+      base_scope
     end
     @templates = @templates.order(:name)
   end

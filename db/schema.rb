@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_11_203055) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_13_134421) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -134,6 +134,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_11_203055) do
     t.boolean "is_public", default: false, null: false
     t.string "status", default: "published", null: false
     t.datetime "draft_expires_at"
+    t.integer "lock_version", default: 0, null: false
     t.index ["created_at"], name: "index_workflows_on_created_at"
     t.index ["draft_expires_at"], name: "index_workflows_on_draft_expires_at"
     t.index ["is_public"], name: "index_workflows_on_is_public"

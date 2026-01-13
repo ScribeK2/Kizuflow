@@ -63,8 +63,64 @@ class Group < ApplicationRecord
   # Returns a flat array of all groups below this one in the hierarchy
   # Example: If Root has Child1 and Child2, and Child1 has Grandchild, 
   # Root.descendants returns [Child1, Child2, Grandchild]
+  # WARNING: This method causes N+1 queries. For ID lookups, use descendant_ids instead.
   def descendants
     children.flat_map { |child| [child] + child.descendants }
+  end
+
+  # Get all descendant IDs using a single efficient query
+  # Uses recursive CTE for PostgreSQL, breadth-first iteration for SQLite
+  # @return [Array<Integer>] Array of descendant group IDs
+  def descendant_ids
+    Group.descendant_ids_for([id])
+  end
+
+  # Class method to get all descendant IDs for multiple parent groups at once
+  # This is much more efficient than calling descendant_ids on each group
+  # @param parent_ids [Array<Integer>] Array of parent group IDs
+  # @return [Array<Integer>] Array of all descendant group IDs (not including parents)
+  def self.descendant_ids_for(parent_ids)
+    return [] if parent_ids.blank?
+
+    if connection.adapter_name.downcase.include?('postgresql')
+      # PostgreSQL: Use recursive CTE for optimal performance
+      sql = <<-SQL
+        WITH RECURSIVE descendants AS (
+          SELECT id, parent_id FROM groups WHERE parent_id IN (#{parent_ids.map(&:to_i).join(',')})
+          UNION ALL
+          SELECT g.id, g.parent_id FROM groups g
+          INNER JOIN descendants d ON g.parent_id = d.id
+        )
+        SELECT DISTINCT id FROM descendants
+      SQL
+      connection.select_values(sql).map(&:to_i)
+    else
+      # SQLite/other: Breadth-first iteration (efficient for reasonable depths)
+      all_descendant_ids = []
+      current_level_ids = parent_ids.map(&:to_i)
+      
+      # Safety limit to prevent infinite loops (max 10 levels deep)
+      10.times do
+        child_ids = Group.where(parent_id: current_level_ids).pluck(:id)
+        break if child_ids.empty?
+        all_descendant_ids.concat(child_ids)
+        current_level_ids = child_ids
+      end
+      
+      all_descendant_ids.uniq
+    end
+  end
+
+  # Get all accessible group IDs for a user (their assigned groups + all descendants)
+  # Single optimized query instead of N+1
+  # @param user [User] The user to get accessible groups for
+  # @return [Array<Integer>] Array of all accessible group IDs
+  def self.accessible_group_ids_for(user)
+    return [] unless user&.groups&.any?
+    
+    user_group_ids = user.groups.pluck(:id)
+    descendant_ids = descendant_ids_for(user_group_ids)
+    (user_group_ids + descendant_ids).uniq
   end
 
   # Generate a full path string showing the hierarchy

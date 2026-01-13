@@ -13,44 +13,87 @@ export default class extends Controller {
     this.isOpen = false
     this.steps = []
     this.filteredSteps = []
+    this.refreshDebounceTimer = null
+    this.stepsLoaded = false  // Flag for lazy loading
     
     // Close dropdown when clicking outside
     this.boundHandleClickOutside = this.handleClickOutside.bind(this)
     document.addEventListener("click", this.boundHandleClickOutside)
     
-    // Load steps and render
-    this.loadSteps()
-    this.render()
+    // Only render the button (not the full dropdown) on connect
+    // Steps will be lazy-loaded when dropdown is first opened
+    this.renderButtonOnly()
     
-    // Listen for workflow changes to refresh steps
+    // Listen for workflow changes with HEAVY debouncing - only refresh on title changes
     this.setupWorkflowChangeListener()
   }
 
   disconnect() {
     document.removeEventListener("click", this.boundHandleClickOutside)
     this.removeWorkflowChangeListener()
+    if (this.refreshDebounceTimer) {
+      clearTimeout(this.refreshDebounceTimer)
+    }
   }
 
   setupWorkflowChangeListener() {
     const form = this.element.closest("form")
-    if (form) {
-      this.workflowChangeHandler = () => {
-        setTimeout(() => {
-          this.loadSteps()
-          this.render()
-        }, 100)
+    if (!form) return
+    
+    // Use a targeted handler that only refreshes when step titles change
+    this.workflowChangeHandler = (event) => {
+      // Only react to step title changes (not every input)
+      if (!event.target.matches || !event.target.matches("input[name*='[title]']")) {
+        return
       }
-      form.addEventListener("input", this.workflowChangeHandler)
-      form.addEventListener("change", this.workflowChangeHandler)
+      
+      // Debounce heavily - 500ms delay to batch multiple rapid changes
+      if (this.refreshDebounceTimer) {
+        clearTimeout(this.refreshDebounceTimer)
+      }
+      
+      this.refreshDebounceTimer = setTimeout(() => {
+        this.loadSteps()
+        this.render()
+      }, 500)
     }
+    
+    // Only listen for input events (not change) and use capture: false
+    form.addEventListener("input", this.workflowChangeHandler)
+    
+    // Also listen for step additions/removals via custom events (more efficient)
+    this.boundRefreshHandler = this.debouncedRefresh.bind(this)
+    document.addEventListener("workflow-builder:step-added", this.boundRefreshHandler)
+    document.addEventListener("workflow-builder:step-removed", this.boundRefreshHandler)
+    document.addEventListener("workflow-builder:steps-reordered", this.boundRefreshHandler)
   }
 
   removeWorkflowChangeListener() {
     const form = this.element.closest("form")
     if (form && this.workflowChangeHandler) {
       form.removeEventListener("input", this.workflowChangeHandler)
-      form.removeEventListener("change", this.workflowChangeHandler)
     }
+    if (this.boundRefreshHandler) {
+      document.removeEventListener("workflow-builder:step-added", this.boundRefreshHandler)
+      document.removeEventListener("workflow-builder:step-removed", this.boundRefreshHandler)
+      document.removeEventListener("workflow-builder:steps-reordered", this.boundRefreshHandler)
+    }
+  }
+  
+  debouncedRefresh() {
+    if (this.refreshDebounceTimer) {
+      clearTimeout(this.refreshDebounceTimer)
+    }
+    this.refreshDebounceTimer = setTimeout(() => {
+      // Mark steps as needing reload, but don't actually load until dropdown opens
+      this.stepsLoaded = false
+      // If dropdown is currently open, refresh immediately
+      if (this.isOpen) {
+        this.loadSteps()
+        this.renderOptions()
+        this.stepsLoaded = true
+      }
+    }, 300)
   }
 
   handleClickOutside(event) {
@@ -135,6 +178,13 @@ export default class extends Controller {
     this.isOpen = true
     this.dropdownTarget.classList.remove("hidden")
     this.buttonTarget.classList.add("ring-2", "ring-blue-500")
+    
+    // Lazy load steps when dropdown is first opened (much faster initial page load)
+    if (!this.stepsLoaded) {
+      this.loadSteps()
+      this.renderOptions()
+      this.stepsLoaded = true
+    }
     
     // Focus search if available
     if (this.hasSearchTarget) {
@@ -233,6 +283,23 @@ export default class extends Controller {
     this.renderOptions()
   }
 
+  // Render only the button (for lazy loading - used on connect)
+  renderButtonOnly() {
+    if (!this.hasButtonTarget) return
+    
+    // If we have a selected value, show it without loading all steps
+    if (this.selectedValueValue) {
+      this.buttonTarget.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="font-medium">${this.escapeHtml(this.selectedValueValue)}</span>
+        </div>
+      `
+    } else {
+      const placeholder = this.hasPlaceholderValue ? this.placeholderValue : "-- Select step --"
+      this.buttonTarget.innerHTML = `<span class="text-gray-500">${placeholder}</span>`
+    }
+  }
+
   renderButton() {
     if (!this.hasButtonTarget) return
     
@@ -240,6 +307,13 @@ export default class extends Controller {
     
     if (selectedStep) {
       this.updateButtonText(selectedStep)
+    } else if (this.selectedValueValue) {
+      // Show selected value even if step not found (lazy loading case)
+      this.buttonTarget.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="font-medium">${this.escapeHtml(this.selectedValueValue)}</span>
+        </div>
+      `
     } else {
       const placeholder = this.hasPlaceholderValue ? this.placeholderValue : "-- Select step --"
       this.buttonTarget.innerHTML = `<span class="text-gray-500">${placeholder}</span>`

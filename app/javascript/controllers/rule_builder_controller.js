@@ -56,21 +56,54 @@ export default class extends Controller {
 
   setupWorkflowChangeListener() {
     // Listen for changes in question steps that might affect variables
+    // ONLY refresh when variable_name inputs change (not every input!)
     const form = this.element.closest("form")
-    if (form) {
-      this.workflowChangeHandler = () => {
-        setTimeout(() => this.refreshVariables(), 100)
+    if (!form) return
+    
+    this.refreshDebounceTimer = null
+    
+    this.workflowChangeHandler = (event) => {
+      // Only react to variable_name changes (not every input)
+      if (!event.target.matches || !event.target.matches("input[name*='[variable_name]']")) {
+        return
       }
-      form.addEventListener("input", this.workflowChangeHandler)
-      form.addEventListener("change", this.workflowChangeHandler)
+      
+      // Debounce heavily - 500ms delay
+      if (this.refreshDebounceTimer) {
+        clearTimeout(this.refreshDebounceTimer)
+      }
+      
+      this.refreshDebounceTimer = setTimeout(() => {
+        this.refreshVariables()
+      }, 500)
     }
+    
+    form.addEventListener("input", this.workflowChangeHandler)
+    
+    // Also listen for step add/remove events
+    this.boundStepChangeHandler = () => {
+      if (this.refreshDebounceTimer) {
+        clearTimeout(this.refreshDebounceTimer)
+      }
+      this.refreshDebounceTimer = setTimeout(() => {
+        this.refreshVariables()
+      }, 300)
+    }
+    document.addEventListener("workflow-builder:step-added", this.boundStepChangeHandler)
+    document.addEventListener("workflow-builder:step-removed", this.boundStepChangeHandler)
   }
 
   removeWorkflowChangeListener() {
     const form = this.element.closest("form")
     if (form && this.workflowChangeHandler) {
       form.removeEventListener("input", this.workflowChangeHandler)
-      form.removeEventListener("change", this.workflowChangeHandler)
+    }
+    if (this.boundStepChangeHandler) {
+      document.removeEventListener("workflow-builder:step-added", this.boundStepChangeHandler)
+      document.removeEventListener("workflow-builder:step-removed", this.boundStepChangeHandler)
+    }
+    if (this.refreshDebounceTimer) {
+      clearTimeout(this.refreshDebounceTimer)
     }
   }
 

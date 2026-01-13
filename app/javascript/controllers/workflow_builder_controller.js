@@ -15,12 +15,12 @@ export default class extends Controller {
     // Listen for inline step creation (Sprint 3)
     this.boundHandleInlineStepCreate = this.handleInlineStepCreate.bind(this)
     document.addEventListener("inline-step:create", this.boundHandleInlineStepCreate)
-    // Set up event listeners for title changes
+    // Set up event listeners for title changes (debounced)
     this.setupTitleChangeListeners()
-    // Refresh dropdowns on initial load (for edit views with existing steps)
-    setTimeout(() => {
-      this.refreshAllDropdowns()
-    }, 100)
+    
+    // Skip initial dropdown refresh - step_selector controllers handle their own initialization
+    // This prevents O(n²) DOM queries on page load for large workflows
+    // Dropdowns will be populated lazily when opened
   }
 
   disconnect() {
@@ -146,15 +146,31 @@ export default class extends Controller {
   setupTitleChangeListeners() {
     if (!this.hasContainerTarget) return
     
-    // Use event delegation to handle title changes
+    // Debounce timers for expensive operations
+    this.titleChangeDebounceTimer = null
+    this.variableChangeDebounceTimer = null
+    
+    // Use event delegation to handle title changes with debouncing
     this.containerTarget.addEventListener("input", (event) => {
       if (event.target.matches("input[name*='[title]']")) {
-        this.refreshAllDropdowns()
-        this.notifyPreviewUpdate()
+        // Debounce dropdown refresh - 500ms delay to batch rapid typing
+        if (this.titleChangeDebounceTimer) {
+          clearTimeout(this.titleChangeDebounceTimer)
+        }
+        this.titleChangeDebounceTimer = setTimeout(() => {
+          // Note: step_selector controllers now handle their own refresh
+          // We only need to notify the preview
+          this.notifyPreviewUpdate()
+        }, 500)
       }
-      // Also refresh variable dropdowns when variable names change
+      // Also refresh variable dropdowns when variable names change (debounced)
       if (event.target.matches("input[name*='[variable_name]']")) {
-        this.refreshAllRuleBuilders()
+        if (this.variableChangeDebounceTimer) {
+          clearTimeout(this.variableChangeDebounceTimer)
+        }
+        this.variableChangeDebounceTimer = setTimeout(() => {
+          this.refreshAllRuleBuilders()
+        }, 500)
       }
     })
     

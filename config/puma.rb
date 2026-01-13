@@ -1,39 +1,86 @@
-# Puma can serve each request in a thread from an internal thread pool.
-# The `threads` method setting takes two numbers: a minimum and maximum.
-# Any libraries that use thread pools should be configured to match
-# the maximum value specified for Puma. Default is set to 5 threads for minimum
-# and maximum; this matches the default thread size of Active Record.
+# Puma Configuration for Kizuflow
+# ================================
+# 
+# Production: Uses workers (processes) + threads for horizontal scaling
+# Development: Uses threads only for simplicity
 #
-max_threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
-min_threads_count = ENV.fetch("RAILS_MIN_THREADS") { max_threads_count }
+# Concurrency formula: max_threads * workers = total concurrent requests
+# Example: 5 threads * 2 workers = 10 concurrent requests
+
+# Thread pool configuration
+# Each worker runs this many threads
+max_threads_count = ENV.fetch("RAILS_MAX_THREADS", 5).to_i
+min_threads_count = ENV.fetch("RAILS_MIN_THREADS") { max_threads_count }.to_i
 threads min_threads_count, max_threads_count
 
-# Specifies the `port` that Puma will listen on to receive requests; default is 3000.
+# Port binding
+port ENV.fetch("PORT", 3000)
+
+# Environment
+environment ENV.fetch("RAILS_ENV", "development")
+
+# PID file for process management
+pidfile ENV.fetch("PIDFILE", "tmp/pids/server.pid")
+
+# =============================================================================
+# PRODUCTION CONFIGURATION - Workers (processes) for horizontal scaling
+# =============================================================================
+# 
+# Workers are forked processes that each run their own thread pool.
+# This provides better CPU utilization on multi-core servers.
 #
-port ENV.fetch("PORT") { 3000 }
-
-# Specifies the `environment` that Puma will run in.
+# Recommended WEB_CONCURRENCY values:
+# - Render Free/Starter: 2 workers
+# - 512MB RAM: 2 workers  
+# - 1GB RAM: 2-3 workers
+# - 2GB+ RAM: 3-4 workers
 #
-environment ENV.fetch("RAILS_ENV") { "development" }
+# Note: Workers don't work on JRuby or Windows
 
-# Specifies the `pidfile` that Puma will use.
-pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }
+if ENV["RAILS_ENV"] == "production"
+  # Number of worker processes
+  # Default to 2 for most PaaS environments
+  workers ENV.fetch("WEB_CONCURRENCY", 2).to_i
+  
+  # Preload the application before forking workers
+  # This reduces memory usage via Copy-on-Write and speeds up worker boot
+  preload_app!
+  
+  # Code to run when a worker boots (after fork)
+  on_worker_boot do
+    # Re-establish database connection after forking
+    # Each worker needs its own connection from the pool
+    ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
+    
+    # Re-establish Redis connection if using ActionCable
+    # This ensures each worker has its own Redis connection
+    if defined?(ActionCable)
+      ActionCable.server.pubsub.send(:redis_connection)
+    end
+  end
+  
+  # Optional: Code to run before a worker forks
+  before_fork do
+    # Close parent database connections before forking
+    ActiveRecord::Base.connection_pool.disconnect! if defined?(ActiveRecord)
+  end
+end
 
-# Specifies the number of `workers` to boot in clustered mode.
-# Workers are forked web server processes. If using threads and workers together
-# the concurrency of the application would be max `threads` * `workers`.
-# Workers do not work on JRuby or Windows (both of which do not support
-# processes).
-#
-# workers ENV.fetch("WEB_CONCURRENCY") { 2 }
+# =============================================================================
+# DEVELOPMENT CONFIGURATION
+# =============================================================================
+# In development, we don't use workers to keep things simple
+# and allow better debugging with binding.pry, etc.
 
-# Use the `preload_app!` method when specifying a `workers` number.
-# This directive tells Puma to first boot the application and load code
-# before forking the application. This takes advantage of Copy On Write
-# process behavior so workers use less memory.
-#
-# preload_app!
-
-# Allow puma to be restarted by `rails restart` command.
+# Allow Puma to be restarted by `bin/rails restart`
 plugin :tmp_restart
 
+# Logging
+if ENV["RAILS_ENV"] == "production"
+  # Structured logging in production
+  log_requests true
+  
+  # Lower keepalive timeout for load balancers (Render, Heroku, etc.)
+  # Most load balancers have 30-60 second timeouts
+  persistent_timeout 20
+end

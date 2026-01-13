@@ -86,3 +86,16 @@ spring/*.pid
 # Ignore internal documentation
 .internal/
 
+# Build artifacts
+test-build.js
+
+# Cursor IDE
+.cursor/
+
+# Utility scripts
+reset_user_password.rb
+# Internal documentation
+/docs/
+
+# Load testing
+/test/load/

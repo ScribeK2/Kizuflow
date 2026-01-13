@@ -30,12 +30,19 @@ gem "sortablejs-rails"
 gem "trix-rails"
 gem "actiontext"
 
+# Error tracking and performance monitoring (production)
+gem "sentry-ruby"
+gem "sentry-rails"
+
 group :development, :test do
   gem "debug", platforms: [:mri, :mingw, :x64_mingw]
   gem "rspec-rails"
   gem "capybara"
   gem "selenium-webdriver"
   gem "factory_bot_rails"
+  
+  # N+1 query detection - helps catch performance issues during development
+  gem "bullet"
 end
 
 group :development do

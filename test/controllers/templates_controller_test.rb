@@ -31,14 +31,14 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
       description: "A test template",
       category: "post-onboarding",
       is_public: true,
-      workflow_data: [{ type: "question", title: "Question 1" }]
+      workflow_data: [{ type: "question", title: "Question 1", question: "What is your name?", answer_type: "text" }]
     )
     @private_template = Template.create!(
       name: "Private Template",
       description: "A private template",
       category: "troubleshooting",
       is_public: false,
-      workflow_data: [{ type: "action", title: "Action 1" }]
+      workflow_data: [{ type: "action", title: "Action 1", instructions: "Do something" }]
     )
     sign_in @editor
   end
@@ -80,7 +80,10 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     workflow = Workflow.last
     assert_redirected_to edit_workflow_path(workflow)
     assert workflow.title.include?(@template.name)
-    assert_equal @template.workflow_data, workflow.steps
+    # Steps may have auto-generated IDs, so compare without them
+    workflow_steps = workflow.steps.map { |s| s.except('id') }
+    template_steps = @template.workflow_data.map { |s| s.is_a?(Hash) ? s.stringify_keys.except('id') : s }
+    assert_equal template_steps, workflow_steps
   end
 
   # Authorization Tests

@@ -332,6 +332,9 @@ class WorkflowTest < ActiveSupport::TestCase
     group2 = Group.create!(name: "Group 2")
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
     
+    # Clear auto-assigned Uncategorized group
+    workflow.group_workflows.destroy_all
+    
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
     
@@ -351,6 +354,9 @@ class WorkflowTest < ActiveSupport::TestCase
     group1 = Group.create!(name: "Primary Group")
     group2 = Group.create!(name: "Secondary Group")
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    
+    # Clear auto-assigned Uncategorized group
+    workflow.group_workflows.destroy_all
     
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)

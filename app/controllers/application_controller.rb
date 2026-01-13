@@ -3,6 +3,7 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   before_action :authenticate_user!
+  before_action :set_sentry_context
   
   # Devise redirect methods
   def after_sign_in_path_for(resource)
@@ -52,6 +53,32 @@ class ApplicationController < ActionController::Base
     unless workflow.can_be_deleted_by?(current_user)
       redirect_to workflows_path, alert: "You don't have permission to delete this workflow."
     end
+  end
+
+  private
+
+  # Set Sentry context for error tracking
+  # This helps identify which user experienced an error and provides useful debugging context
+  def set_sentry_context
+    return unless defined?(Sentry) && Sentry.initialized?
+
+    if current_user
+      Sentry.set_user(
+        id: current_user.id,
+        email: current_user.email,
+        role: current_user.role
+      )
+    end
+
+    Sentry.set_tags(
+      locale: I18n.locale,
+      request_id: request.request_id
+    )
+
+    Sentry.set_extras(
+      params: request.filtered_parameters.except("controller", "action"),
+      url: request.url
+    )
   end
 end
 

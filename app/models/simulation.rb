@@ -1,9 +1,20 @@
+require 'timeout'
+
 class Simulation < ApplicationRecord
   belongs_to :workflow
   belongs_to :user
 
   # Status constants
-  STATUSES = %w[active completed stopped].freeze
+  STATUSES = %w[active completed stopped timeout error].freeze
+
+  # Simulation limits to prevent infinite loops and DoS
+  MAX_ITERATIONS = ENV.fetch("SIMULATION_MAX_ITERATIONS", 1000).to_i
+  MAX_EXECUTION_TIME = ENV.fetch("SIMULATION_MAX_SECONDS", 30).to_i  # seconds
+  MAX_CONDITION_DEPTH = 50  # Max nested condition evaluations per step
+
+  # Custom error classes
+  class SimulationTimeout < StandardError; end
+  class SimulationIterationLimit < StandardError; end
 
   # JSON columns - automatically serialized/deserialized
   
@@ -12,6 +23,9 @@ class Simulation < ApplicationRecord
   
   # Validate status
   validates :status, inclusion: { in: STATUSES }, allow_nil: false
+  
+  # Track iteration count for step-by-step processing
+  attr_accessor :iteration_count
   
   def initialize_execution_data
     self.execution_path ||= []
@@ -85,12 +99,27 @@ class Simulation < ApplicationRecord
   end
   
   # Process a single step and advance
+  # Returns false if step can't be processed, true otherwise
+  # Raises SimulationIterationLimit if max iterations exceeded
   def process_step(answer = nil)
     return false if complete?
     return false if stopped?
+    return false if status == 'timeout' || status == 'error'
     
     step = current_step
     return false unless step
+    
+    # Track iterations to prevent infinite loops in step-by-step mode
+    self.iteration_count ||= execution_path&.length || 0
+    self.iteration_count += 1
+    
+    if iteration_count > MAX_ITERATIONS
+      self.status = 'error'
+      self.results ||= {}
+      self.results['_error'] = "Simulation exceeded maximum iterations (#{MAX_ITERATIONS})"
+      save
+      raise SimulationIterationLimit, "Simulation exceeded maximum of #{MAX_ITERATIONS} steps"
+    end
     
     # Initialize execution_path if needed
     initialize_execution_data
@@ -124,8 +153,9 @@ class Simulation < ApplicationRecord
       next_step_index = determine_next_step_index(step, self.results)
       self.current_step_index = next_step_index
 
-    when 'decision'
+    when 'decision', 'simple_decision'
       # Process decision based on current results
+      # simple_decision is a variant used for yes/no routing in workflow builder
       self.results ||= {}
       next_step_index = determine_next_step_index(step, self.results)
 
@@ -271,21 +301,42 @@ class Simulation < ApplicationRecord
   def execute
     return false unless workflow.present? && inputs.present?
 
+    # Wrap execution with timeout protection
+    Timeout.timeout(MAX_EXECUTION_TIME, SimulationTimeout) do
+      execute_with_limits
+    end
+  rescue SimulationTimeout => e
+    self.status = 'timeout'
+    self.results ||= {}
+    self.results['_error'] = "Simulation timed out after #{MAX_EXECUTION_TIME} seconds"
+    save
+    Rails.logger.warn "Simulation #{id} timed out for workflow #{workflow_id}"
+    false
+  rescue SimulationIterationLimit => e
+    Rails.logger.warn "Simulation #{id} hit iteration limit for workflow #{workflow_id}"
+    false
+  end
+
+  # Internal execution method with iteration limits
+  def execute_with_limits
     path = []
     results = {}
     current_step_index = 0
-    visited_steps = Set.new
+    iteration_count = 0
 
     while current_step_index < workflow.steps.length
       step = workflow.steps[current_step_index]
       break unless step
       
-      # Prevent infinite loops
-      step_key = "#{current_step_index}_#{step['title']}"
-      if visited_steps.include?(step_key)
-        break
+      # Prevent infinite loops with iteration counter
+      iteration_count += 1
+      if iteration_count > MAX_ITERATIONS
+        self.status = 'error'
+        self.results = results.merge('_error' => "Exceeded maximum iterations (#{MAX_ITERATIONS})")
+        self.execution_path = path
+        save
+        raise SimulationIterationLimit, "Simulation exceeded maximum of #{MAX_ITERATIONS} iterations"
       end
-      visited_steps.add(step_key)
 
       path << {
         step_index: current_step_index,
@@ -312,8 +363,9 @@ class Simulation < ApplicationRecord
         path.last[:answer] = answer
         current_step_index += 1
 
-      when 'decision'
+      when 'decision', 'simple_decision'
         # Handle multi-branch format (new)
+        # simple_decision is a variant used for yes/no routing in workflow builder
         if step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
           matched_branch = nil
           

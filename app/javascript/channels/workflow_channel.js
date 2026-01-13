@@ -19,14 +19,44 @@ export function subscribeToWorkflow(workflowId, callbacks = {}) {
         console.log("Received data from WorkflowChannel:", data)
         
         // Handle autosave status updates (from autosave stream)
-        if (data.status === "saved" || data.status === "error") {
+        if (data.status === "saved" || data.status === "error" || data.status === "conflict") {
           console.log("Autosave status received:", data.status, data)
+          
           // Dispatch custom event for autosave controller to handle
           document.dispatchEvent(new CustomEvent("workflow:autosaved", { 
-            detail: { timestamp: data.timestamp, status: data.status, errors: data.errors } 
+            detail: {
+              timestamp: data.timestamp,
+              status: data.status,
+              errors: data.errors,
+              lock_version: data.lock_version,
+              saved_by: data.saved_by,
+              // Conflict-specific data
+              server_title: data.server_title,
+              server_steps: data.server_steps,
+              conflict_user: data.conflict_user,
+              message: data.message
+            } 
           }))
-          if (callbacks.saved) callbacks.saved(data)
-          if (callbacks.error && data.status === "error") callbacks.error(data)
+          
+          // Call appropriate callbacks
+          if (data.status === "saved" && callbacks.saved) {
+            callbacks.saved(data)
+          } else if (data.status === "error" && callbacks.error) {
+            callbacks.error(data)
+          } else if (data.status === "conflict" && callbacks.conflict) {
+            callbacks.conflict(data)
+          }
+          return
+        }
+        
+        // Handle workflow saved by another user (from main stream)
+        if (data.type === "workflow_saved") {
+          console.log("Workflow saved by another user:", data.saved_by)
+          document.dispatchEvent(new CustomEvent("workflow:remote_save", { 
+            detail: data 
+          }))
+          // Update lock_version in listening controllers
+          if (callbacks.remoteSave) callbacks.remoteSave(data)
           return
         }
         

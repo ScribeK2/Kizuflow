@@ -90,8 +90,9 @@ class SimulationsController < ApplicationController
     
     # Auto-advance decision steps immediately without user interaction
     # Note: checkpoint steps don't auto-advance - they require user resolution
+    # Both 'decision' and 'simple_decision' types should auto-advance
     current_step = @simulation.current_step
-    if current_step && current_step['type'] == 'decision'
+    if current_step && %w[decision simple_decision].include?(current_step['type'])
       # Process decision immediately and advance
       @simulation.process_step(nil)
       if @simulation.complete?
@@ -168,8 +169,9 @@ class SimulationsController < ApplicationController
         redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
       else
         # Check if next step is a decision - if so, auto-advance
+        # Both 'decision' and 'simple_decision' types should auto-advance
         next_step = @simulation.current_step
-        if next_step && next_step['type'] == 'decision'
+        if next_step && %w[decision simple_decision].include?(next_step['type'])
           @simulation.process_step(nil)
           if @simulation.complete?
             redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"

@@ -7,7 +7,9 @@ class WorkflowsController < ApplicationController
   before_action :ensure_can_delete_workflow!, only: [:destroy]
 
   def index
+    # Eager load associations to prevent N+1 queries (especially important for caching)
     @workflows = Workflow.visible_to(current_user)
+                         .includes(:user, :groups)
                          .search_by(params[:search])
                          .recent
 
@@ -86,24 +88,52 @@ class WorkflowsController < ApplicationController
   end
 
   def update
-    if @workflow.update(workflow_params)
-      # Update group assignments
-      if params[:workflow][:group_ids].present?
-        @workflow.group_workflows.destroy_all
-        group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?)
-        group_ids.each_with_index do |group_id, index|
-          @workflow.group_workflows.create!(
-            group_id: group_id,
-            is_primary: index == 0
-          )
+    # Get client's lock_version for optimistic locking
+    client_lock_version = params[:workflow][:lock_version].to_i if params[:workflow][:lock_version].present?
+    
+    begin
+      Workflow.transaction do
+        # Check for version conflict if client sent a lock_version
+        if client_lock_version.present? && client_lock_version > 0
+          if @workflow.lock_version != client_lock_version
+            @workflow.errors.add(:base, "This workflow was modified by another user. Please refresh and try again.")
+            raise ActiveRecord::StaleObjectError.new(@workflow, "update")
+          end
         end
-      elsif params[:workflow].key?(:group_ids)
-        # Explicitly clear groups if group_ids is present but empty
-        @workflow.group_workflows.destroy_all
+        
+        if @workflow.update(workflow_params)
+          # Update group assignments
+          if params[:workflow][:group_ids].present?
+            @workflow.group_workflows.destroy_all
+            group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?)
+            group_ids.each_with_index do |group_id, index|
+              @workflow.group_workflows.create!(
+                group_id: group_id,
+                is_primary: index == 0
+              )
+            end
+          elsif params[:workflow].key?(:group_ids)
+            # Explicitly clear groups if group_ids is present but empty
+            @workflow.group_workflows.destroy_all
+          end
+          
+          redirect_to @workflow, notice: "Workflow was successfully updated."
+        else
+          raise ActiveRecord::Rollback
+        end
       end
-      
-      redirect_to @workflow, notice: "Workflow was successfully updated."
-    else
+    rescue ActiveRecord::StaleObjectError
+      @workflow.reload
+      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+      @selected_group_ids = @workflow.group_ids
+      @conflict_detected = true
+      flash.now[:alert] = "This workflow was modified by another user. Your changes could not be saved. Please review the current version and try again."
+      render :edit, status: :conflict
+      return
+    end
+    
+    # Handle validation errors (when update returns false)
+    unless performed?
       @accessible_groups = Group.visible_to(current_user).order(:name)
       @selected_group_ids = @workflow.group_ids
       render :edit, status: :unprocessable_entity
@@ -457,11 +487,14 @@ class WorkflowsController < ApplicationController
 
   def workflow_params
     # Permit nested steps hash structure
-    params.require(:workflow).permit(:title, :description, :is_public, steps: [
-      :index, :type, :title, :description, :question, :answer_type, :variable_name,
+    # lock_version is used for optimistic locking to prevent race conditions
+    params.require(:workflow).permit(:title, :description, :is_public, :lock_version, steps: [
+      :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
+      :checkpoint_message,
       options: [:label, :value],
       branches: [:condition, :path],
+      jumps: [:condition, :next_step_id],
       attachments: []
     ])
   end

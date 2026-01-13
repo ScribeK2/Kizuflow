@@ -83,5 +83,39 @@ Rails.application.configure do
 
   # Default URL options for Devise
   config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
+
+  # ==========================================================================
+  # Bullet Configuration - N+1 Query Detection
+  # ==========================================================================
+  # Bullet helps detect N+1 queries and unused eager loading
+  # It will alert you during development when it finds issues
+  config.after_initialize do
+    Bullet.enable = true
+    
+    # Show JavaScript alert in browser (can be annoying, disable if needed)
+    Bullet.alert = false
+    
+    # Log to bullet.log file
+    Bullet.bullet_logger = true
+    
+    # Show in browser console
+    Bullet.console = true
+    
+    # Add to Rails log
+    Bullet.rails_logger = true
+    
+    # Add footer to HTML pages showing Bullet warnings
+    Bullet.add_footer = true
+    
+    # Raise errors in development (set to false if too aggressive)
+    Bullet.raise = false
+    
+    # Skip detection for certain patterns (add if needed)
+    # Bullet.add_safelist type: :unused_eager_loading, class_name: "Model", association: :association
+    
+    # Known N+1s that are intentional or can't be easily fixed
+    # (Add entries here as needed during development)
+    # Bullet.add_safelist type: :n_plus_one_query, class_name: "Workflow", association: :groups
+  end
 end
 

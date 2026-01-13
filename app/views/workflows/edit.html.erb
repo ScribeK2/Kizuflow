@@ -17,7 +17,29 @@
   </div>
 
   <%= form_with model: @workflow, local: true, class: "glass-card overflow-hidden animate-fade-in-up", 
-                data: { controller: "autosave", autosave_workflow_id_value: @workflow.id } do |form| %>
+                data: { controller: "autosave", autosave_workflow_id_value: @workflow.id, autosave_lock_version_value: @workflow.lock_version } do |form| %>
+    <%# Hidden field for optimistic locking - prevents race conditions when multiple users edit %>
+    <%= form.hidden_field :lock_version %>
+    
+    <% if @conflict_detected %>
+      <div class="mx-6 mt-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 p-4">
+        <div class="flex">
+          <svg class="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Workflow Conflict Detected
+            </h3>
+            <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              This workflow was modified by another user while you were editing. The current version is now displayed below. 
+              Please review the changes and try your edit again.
+            </p>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    
     <% if @workflow.errors.any? %>
       <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
         <div class="flex">
@@ -233,6 +255,83 @@
       </div>
     </div>
   <% end %>
+</div>
+
+<%# Conflict Resolution Modal (for real-time autosave conflicts) %>
+<div id="conflict-modal"
+     class="hidden fixed inset-0 z-50 overflow-y-auto"
+     data-autosave-target="conflictModal">
+  <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+    <%# Backdrop %>
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"></div>
+
+    <%# Center modal %>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+    <%# Modal panel %>
+    <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-amber-200 dark:border-amber-800/30">
+      <div class="bg-amber-50 dark:bg-amber-900/20 px-6 py-4 border-b border-amber-200 dark:border-amber-800/30">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-lg font-bold text-amber-800 dark:text-amber-200">
+              Editing Conflict Detected
+            </h3>
+            <p class="mt-1 text-sm text-amber-700 dark:text-amber-300" data-conflict-message>
+              Another user has modified this workflow while you were editing.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <strong data-conflict-user class="text-gray-900 dark:text-gray-100">Another user</strong> 
+          saved changes to this workflow. Your local changes may conflict with their updates.
+        </p>
+        
+        <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4 mb-4">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Your options:</h4>
+          <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <li class="flex items-start">
+              <span class="text-blue-500 mr-2">•</span>
+              <span><strong>Refresh</strong> - Load the latest version (your unsaved changes will be lost)</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-amber-500 mr-2">•</span>
+              <span><strong>Force Save</strong> - Overwrite with your changes (other user's changes will be lost)</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-gray-500 mr-2">•</span>
+              <span><strong>Dismiss</strong> - Continue editing (your next save will include current server version)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200 dark:border-gray-700">
+        <button type="button"
+                data-action="click->autosave#dismissConflict"
+                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          Dismiss
+        </button>
+        <button type="button"
+                data-action="click->autosave#forceSave"
+                class="px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
+          Force Save
+        </button>
+        <button type="button"
+                data-action="click->autosave#refreshPage"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm">
+          Refresh Page
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <%# Save as Template Modal %>
