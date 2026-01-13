@@ -2,10 +2,10 @@ Rails.application.routes.draw do
   devise_for :users, controllers: {
     registrations: 'users/registrations'
   }
-  root to: "dashboard#index"
+  root to: 'dashboard#index'
 
   # Mount ActionCable
-  mount ActionCable.server => "/cable"
+  mount ActionCable.server => '/cable'
 
   resources :workflows do
     collection do
@@ -30,7 +30,7 @@ Rails.application.routes.draw do
       # Step rendering for dynamic step creation (Sprint 3)
       post :render_step
     end
-    resources :simulations, only: [:new, :create]
+    resources :simulations, only: %i[new create]
   end
 
   resources :templates do
@@ -38,7 +38,7 @@ Rails.application.routes.draw do
       post :use
     end
   end
-  
+
   resources :simulations, only: [:show] do
     member do
       post :next_step
@@ -51,17 +51,18 @@ Rails.application.routes.draw do
   # Admin namespace
   namespace :admin do
     root to: 'dashboard#index'
-    resources :users, only: [:index, :update] do
+    resources :users, only: %i[index update] do
       collection do
         patch :bulk_assign_groups
       end
       member do
         patch :update_role
         patch :update_groups
+        post :reset_password
       end
     end
     resources :templates, except: [:show]
-    resources :workflows, only: [:index, :show]
+    resources :workflows, only: %i[index show]
     resources :groups
   end
 end
