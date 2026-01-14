@@ -9,8 +9,8 @@ if admin_user.new_record?
   admin_user.save!
   puts "Created admin user: kevinkenney@corporatetools.com"
 else
-  # Update existing user to ensure they're an admin
-  admin_user.update!(role: "admin", password: "Password123!", password_confirmation: "Password123!")
+  # Update existing user to ensure they're an admin (only update role, not password)
+  admin_user.update!(role: "admin")
   puts "Updated user to admin: kevinkenney@corporatetools.com"
 end
 
