@@ -13,6 +13,7 @@ class User < ApplicationRecord
 
   # Validations
   validates :role, presence: true, inclusion: { in: ROLES }
+  validates :display_name, length: { maximum: 50 }, allow_blank: true
 
   # Scopes
   scope :admins, -> { where(role: 'admin') }
@@ -55,6 +56,11 @@ class User < ApplicationRecord
   # Get groups accessible to this user (admins see all, others see assigned groups)
   def accessible_groups
     admin? ? Group.all : groups
+  end
+
+  # Preferred label for displaying the user in the UI
+  def display_label
+    display_name.presence || email
   end
 
   # Generate a secure temporary password for admin reset
