@@ -113,8 +113,9 @@ class Workflow < ApplicationRecord
     descendant_ids = group.descendant_ids
     group_ids = [group.id] + descendant_ids
     # Use pluck to get distinct IDs, then query by those IDs
-    # This avoids PostgreSQL DISTINCT/ORDER BY conflict
-    distinct_ids = joins(:groups).where(groups: { id: group_ids }).distinct.pluck(:id)
+    # Unscope order to avoid PostgreSQL DISTINCT/ORDER BY conflict
+    # This ensures we can pluck IDs without ORDER BY interfering
+    distinct_ids = joins(:groups).where(groups: { id: group_ids }).unscope(:order).distinct.pluck(:id)
     where(id: distinct_ids)
   }
   
