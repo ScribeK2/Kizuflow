@@ -112,8 +112,9 @@ class Workflow < ApplicationRecord
     # This avoids N+1 queries by using a single efficient query
     descendant_ids = group.descendant_ids
     group_ids = [group.id] + descendant_ids
-    # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
-    distinct_ids = joins(:groups).where(groups: { id: group_ids }).select("DISTINCT workflows.id")
+    # Use pluck to get distinct IDs, then query by those IDs
+    # This avoids PostgreSQL DISTINCT/ORDER BY conflict
+    distinct_ids = joins(:groups).where(groups: { id: group_ids }).distinct.pluck(:id)
     where(id: distinct_ids)
   }
   
