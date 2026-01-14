@@ -10,9 +10,14 @@
         <nav class="mt-2 flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
           <%= link_to "Workflows", workflows_path, class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
           <span>/</span>
-          <% @selected_group.ancestors.reverse.each do |ancestor| %>
-            <%= link_to ancestor.name, workflows_path(group_id: ancestor.id), class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
-            <span>/</span>
+          <% begin %>
+            <% ancestors = @selected_group.ancestors rescue [] %>
+            <% ancestors.reverse.each do |ancestor| %>
+              <%= link_to ancestor.name, workflows_path(group_id: ancestor.id), class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
+              <span>/</span>
+            <% end %>
+          <% rescue => e %>
+            <% Rails.logger.error "Error rendering breadcrumb: #{e.message}" %>
           <% end %>
           <span class="text-gray-900 dark:text-gray-100 font-medium"><%= @selected_group.name %></span>
         </nav>

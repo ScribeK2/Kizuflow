@@ -108,8 +108,10 @@ class Workflow < ApplicationRecord
   scope :in_group, ->(group) {
     return where.not(id: joins(:groups).select(:id)) if group.nil?
     
-    # Get group and all its descendants
-    group_ids = [group.id] + group.descendants.map(&:id)
+    # Get group and all its descendants using optimized method
+    # This avoids N+1 queries by using a single efficient query
+    descendant_ids = group.descendant_ids
+    group_ids = [group.id] + descendant_ids
     # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
     distinct_ids = joins(:groups).where(groups: { id: group_ids }).select("DISTINCT workflows.id")
     where(id: distinct_ids)

@@ -15,14 +15,22 @@ class WorkflowsController < ApplicationController
 
     # Filter by group if selected
     if params[:group_id].present?
-      # Check access first with a simple query
-      potential_group = Group.find_by(id: params[:group_id])
-      if potential_group && potential_group.can_be_viewed_by?(current_user)
-        # Eager load ancestors to prevent N+1 queries in breadcrumb rendering
-        @selected_group = Group.includes(parent: :parent).find_by(id: params[:group_id])
-        @workflows = @workflows.in_group(@selected_group)
-      else
+      begin
+        # Check access first with a simple query
+        potential_group = Group.find_by(id: params[:group_id])
+        if potential_group && potential_group.can_be_viewed_by?(current_user)
+          # Eager load ancestors to prevent N+1 queries in breadcrumb rendering
+          # Load up to 5 levels deep (max depth) to cover all ancestors
+          @selected_group = Group.includes(parent: { parent: { parent: { parent: :parent } } }).find_by(id: params[:group_id])
+          @workflows = @workflows.in_group(@selected_group)
+        else
+          @selected_group = nil
+          flash.now[:alert] = "You don't have permission to view this group."
+        end
+      rescue => e
+        Rails.logger.error "Error loading group #{params[:group_id]}: #{e.message}\n#{e.backtrace.join("\n")}"
         @selected_group = nil
+        flash.now[:alert] = "An error occurred while loading the group."
       end
     end
 
