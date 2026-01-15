@@ -9,7 +9,7 @@ class WorkflowsController < ApplicationController
   def index
     # Eager load associations to prevent N+1 queries (especially important for caching)
     @workflows = Workflow.visible_to(current_user)
-                         .includes(:user, :groups)
+                         .includes(:user, :rich_text_description)
                          .search_by(params[:search])
                          .recent
 
