@@ -4,6 +4,7 @@ require "test_helper"
 # These tests verify behaviors that differ between databases
 # Run locally with SQLite, and in CI with PostgreSQL to catch issues
 class PostgresqlCompatibilityTest < ActiveSupport::TestCase
+  fixtures :users, :workflows
   # ===========================================
   # Search Case-Sensitivity Tests
   # ===========================================
