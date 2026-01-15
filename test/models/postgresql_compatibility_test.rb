@@ -173,7 +173,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
     # Test all valid simulation statuses
     %w[active completed stopped timeout error].each do |status|
       simulation = Simulation.new(
-        workflow: workflows(:basic_workflow),
+        workflow: workflows(:one),
         user: users(:regular_user),
         status: status
       )
@@ -213,7 +213,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
   # ===========================================
   
   test "timestamps are stored in UTC" do
-    user = users(:editor)
+    user = users(:editor_user)
     
     workflow = Workflow.create!(
       title: "Timezone Test",
