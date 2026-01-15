@@ -15,11 +15,19 @@ development:
   database: db/development.sqlite3
 
 # -------------------------------------------------
-# 3. Test – uses SQLite (local file)
+# 3. Test – uses SQLite locally, PostgreSQL in CI
 # -------------------------------------------------
+# If DATABASE_URL is set, use PostgreSQL (for CI testing)
+# Otherwise, use SQLite for fast local development
 test:
+  <% if ENV["DATABASE_URL"] %>
+  adapter: postgresql
+  url: <%= ENV["DATABASE_URL"] %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 4 } %>
+  <% else %>
   <<: *default
   database: db/test.sqlite3
+  <% end %>
 
 # -------------------------------------------------
 # 4. Production – PostgreSQL via DATABASE_URL

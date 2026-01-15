@@ -120,22 +120,24 @@ class Workflow < ApplicationRecord
   }
   
   # Search workflows by title and description (fuzzy matching)
-  # Searches both title and description fields with case-insensitive LIKE queries
+  # Searches both title and description fields with case-insensitive queries
+  # Uses ILIKE for PostgreSQL, LIKE for SQLite (which is case-insensitive by default)
   scope :search_by, ->(query) {
     return all if query.blank?
     
     search_term = "%#{query.strip}%"
     
     # Search in title
-    title_matches = where("title LIKE ?", search_term)
+    title_matches = case_insensitive_like('title', search_term)
     
     # Search in description (plain text column)
-    desc_matches = where("description LIKE ?", search_term)
+    desc_matches = case_insensitive_like('description', search_term)
     
     # Also search in ActionText rich text content
     # Join with action_text_rich_texts to search rich text body
+    like_op = connection.adapter_name.downcase.include?('postgresql') ? 'ILIKE' : 'LIKE'
     rich_text_matches = joins("LEFT JOIN action_text_rich_texts ON action_text_rich_texts.record_type = 'Workflow' AND action_text_rich_texts.record_id = workflows.id AND action_text_rich_texts.name = 'description'")
-                       .where("action_text_rich_texts.body LIKE ?", search_term)
+                       .where("action_text_rich_texts.body #{like_op} ?", search_term)
     
     # Combine all matches using OR - no need for distinct since we're selecting IDs
     where(id: title_matches.select(:id))

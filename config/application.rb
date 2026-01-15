@@ -19,6 +19,12 @@ module Kizuflow
     config.assets.enabled = true
     config.assets.version = "1.0"
     
+    # Timezone configuration
+    # Store all times in UTC in the database (critical for SQLite/PostgreSQL consistency)
+    config.active_record.default_timezone = :utc
+    # Display times in UTC (can be overridden per-user if needed)
+    config.time_zone = "UTC"
+    
     # esbuild configuration
     # Note: esbuild-rails handles most configuration automatically
     # Custom build options can be added here if needed
