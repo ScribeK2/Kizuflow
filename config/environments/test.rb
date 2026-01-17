@@ -1,4 +1,4 @@
-require "active_support/core_ext/integer/time"
+require 'active_support/core_ext/integer/time'
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
@@ -13,7 +13,7 @@ Rails.application.configure do
   # Configure public file server for tests with Cache-Control for performance.
   config.public_file_server.enabled = true
   config.public_file_server.headers = {
-    "Cache-Control" => "public, max-age=3600"
+    'Cache-Control' => 'public, max-age=3600'
   }
 
   # Show full error reports and disable caching.
@@ -55,6 +55,16 @@ Rails.application.configure do
   # Default URL options for Devise
   config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
 
+  # Configure Action Mailer for testing
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.raise_delivery_errors = false
+  config.action_mailer.delivery_method = :test
+
+  # Set default from address for Devise emails
+  config.action_mailer.default_options = {
+    from: 'test@example.com'
+  }
+
   # Configure Action Cable for test environment
   config.action_cable.disable_request_forgery_protection = true
 
@@ -62,4 +72,3 @@ Rails.application.configure do
   config.assets.compile = true
   config.assets.check_precompiled_asset = false
 end
-

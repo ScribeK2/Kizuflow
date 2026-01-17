@@ -61,9 +61,9 @@
       <%# Include step templates data for JavaScript %>
       <script type="application/json" id="step-templates-data">
         {
-          "question": <%= StepTemplate.all_for_type(:question).to_json.html_safe %>,
-          "decision": <%= StepTemplate.all_for_type(:decision).to_json.html_safe %>,
-          "action": <%= StepTemplate.all_for_type(:action).to_json.html_safe %>,
+          "question": <%= raw json_escape(StepTemplate.all_for_type(:question).to_json) %>,
+          "decision": <%= raw json_escape(StepTemplate.all_for_type(:decision).to_json) %>,
+          "action": <%= raw json_escape(StepTemplate.all_for_type(:action).to_json) %>,
           "checkpoint": []
         }
       </script>

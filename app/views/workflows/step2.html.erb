@@ -6,7 +6,7 @@
 
   <%= render partial: "wizard_progress", locals: { current_step: 2 } %>
 
-  <%= form_with model: @workflow, url: update_step2_workflow_path(@workflow), method: :patch, local: true, class: "animate-fade-in-up" do |form| %>
+  <%= form_with model: @workflow, url: update_step2_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, class: "animate-fade-in-up" do |form| %>
     <% if @workflow.errors.any? %>
       <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
         <div class="flex">

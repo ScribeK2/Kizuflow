@@ -184,9 +184,13 @@ class WorkflowsController < ApplicationController
     step_data = parse_step_from_params
     step_index = params[:step_index].to_i
     
+    # Generate sample variables for interpolation preview
+    # This allows users to see what variables will look like when interpolated
+    sample_variables = generate_sample_variables(@workflow)
+    
     # Render preview partial within Turbo Frame
     render partial: "workflows/preview_pane", 
-           locals: { step: step_data, index: step_index },
+           locals: { step: step_data, index: step_index, sample_variables: sample_variables },
            formats: [:html]
   end
 
@@ -392,12 +396,137 @@ class WorkflowsController < ApplicationController
   def step2
     # Load draft workflow for step 2 (add steps)
     # Steps will be managed via the existing workflow-builder controller
+    Rails.logger.debug "[Phase1-Diagnosis] step2 action called for workflow #{@workflow.id}"
+    Rails.logger.debug "[Phase1-Diagnosis] @workflow.steps count: #{@workflow.steps&.length || 0}"
+    if @workflow.steps.present?
+      @workflow.steps.each_with_index do |step, index|
+        Rails.logger.debug "[Phase1-Diagnosis] Step #{index}: type=#{step['type']}, title=#{step['title']}, variable_name=#{step['variable_name']}"
+        if step['type'] == 'decision' && step['branches'].present?
+          Rails.logger.debug "[Phase1-Diagnosis] Step #{index} branches count: #{step['branches'].length}"
+          step['branches'].each_with_index do |branch, branch_idx|
+            Rails.logger.debug "[Phase1-Diagnosis] Step #{index}, Branch #{branch_idx}: condition=#{branch['condition']}, path=#{branch['path']}"
+          end
+        end
+        if step['type'] == 'action' && step['output_fields'].present?
+          Rails.logger.debug "[Phase1-Diagnosis] Step #{index} output_fields count: #{step['output_fields'].length}"
+        end
+      end
+    end
   end
 
   def update_step2
-    if @workflow.update(workflow_step2_params)
+    Rails.logger.debug "[Phase1-Diagnosis] update_step2 called for workflow #{@workflow.id}"
+    
+    permitted_params = workflow_step2_params
+    Rails.logger.debug "[Phase1-Diagnosis] Permitted params steps count: #{permitted_params[:steps]&.length || 0}"
+    
+    # Log what we're about to save - with detailed variable_name tracking
+    if permitted_params[:steps].present?
+      permitted_params[:steps].each_with_index do |step, index|
+        step_hash = step.is_a?(Hash) ? step : step.to_h
+        Rails.logger.debug "[Phase1-Diagnosis] Permitted Step #{index}: type=#{step_hash[:type]}, variable_name=#{step_hash[:variable_name].inspect}"
+        Rails.logger.debug "[Phase1-Diagnosis] Permitted Step #{index} keys: #{step_hash.keys.inspect}"
+        if step_hash[:branches].present?
+          Rails.logger.debug "[Phase1-Diagnosis] Permitted Step #{index} branches: #{step_hash[:branches].inspect}"
+        end
+        if step_hash[:output_fields].present?
+          Rails.logger.debug "[Phase1-Diagnosis] Permitted Step #{index} output_fields: #{step_hash[:output_fields].inspect}"
+        end
+      end
+    end
+    
+    # CRITICAL FIX: Merge submitted steps with existing steps to preserve fields not in form
+    # Rails replaces the entire array, so we need to merge by step ID to preserve variable_name, etc.
+    # Strategy: Start with existing steps, then overlay submitted changes
+    if permitted_params[:steps].present? && @workflow.steps.present?
+      existing_steps_hash = {}
+      @workflow.steps.each do |step|
+        step_id = step['id']
+        existing_steps_hash[step_id] = step.dup if step_id.present?
+      end
+      
+      # Convert submitted steps to hash format and merge with existing
+      merged_steps = permitted_params[:steps].map do |submitted_step|
+        step_hash = submitted_step.is_a?(Hash) ? submitted_step.stringify_keys : submitted_step.to_h.stringify_keys
+        step_id = step_hash['id']
+        
+        if step_id.present? && existing_steps_hash[step_id]
+          # Merge: start with existing step, overlay submitted values
+          existing_step = existing_steps_hash[step_id]
+          merged = existing_step.deep_dup
+          
+          # Track which keys were actually submitted
+          submitted_keys = step_hash.keys
+          
+          # Log for debugging
+          if existing_step['type'] == 'question'
+            Rails.logger.debug "[Phase1-Diagnosis] Existing question step variable_name: #{existing_step['variable_name'].inspect}"
+            Rails.logger.debug "[Phase1-Diagnosis] Submitted keys for question step: #{submitted_keys.inspect}"
+            Rails.logger.debug "[Phase1-Diagnosis] variable_name in submitted keys: #{submitted_keys.include?('variable_name')}"
+          end
+          
+          step_hash.each do |key, value|
+            # Always use submitted value if it's present in the submission
+            # This handles both updates and intentional clearing (empty string)
+            merged[key] = value
+          end
+          
+          # CRITICAL: Preserve important fields from existing step if not in submission OR if submitted value is empty
+          # This handles cases where fields aren't submitted (e.g., collapsed sections) or are submitted as empty strings
+          if merged['type'] == 'question'
+            # For question steps, preserve variable_name if:
+            # 1. Not in submission, OR
+            # 2. Submitted as empty string but existing value is present
+            submitted_var_name = step_hash['variable_name']
+            existing_var_name = existing_step['variable_name']
+            
+            if !submitted_keys.include?('variable_name')
+              # Not in submission - preserve existing
+              Rails.logger.debug "[Phase1-Diagnosis] variable_name not in submission, preserving: #{existing_var_name.inspect}"
+              merged['variable_name'] = existing_var_name if existing_var_name.present?
+            elsif submitted_var_name.blank? && existing_var_name.present?
+              # Submitted as empty but existing has value - preserve existing (user didn't intentionally clear it)
+              Rails.logger.debug "[Phase1-Diagnosis] Submitted variable_name is empty, preserving existing: #{existing_var_name.inspect}"
+              merged['variable_name'] = existing_var_name
+            else
+              # Submitted with a value (or both are empty) - use submitted value
+              Rails.logger.debug "[Phase1-Diagnosis] Using submitted variable_name: #{submitted_var_name.inspect} (existing was: #{existing_var_name.inspect})"
+              merged['variable_name'] = submitted_var_name
+            end
+          end
+          
+          merged
+        else
+          # New step or no ID - use submitted data as-is
+          step_hash
+        end
+      end
+      
+      # Update permitted_params with merged steps
+      permitted_params[:steps] = merged_steps
+      
+      Rails.logger.debug "[Phase1-Diagnosis] After merge - checking variable_name preservation"
+      merged_steps.each_with_index do |step, index|
+        if step['type'] == 'question'
+          Rails.logger.debug "[Phase1-Diagnosis] Merged Question Step #{index}: variable_name=#{step['variable_name'].inspect}"
+        end
+      end
+    end
+    
+    if @workflow.update(permitted_params)
+      Rails.logger.debug "[Phase1-Diagnosis] Workflow updated successfully. Steps in DB: #{@workflow.steps&.length || 0}"
+      # Log what was actually saved to the database
+      if @workflow.steps.present?
+        @workflow.steps.each_with_index do |step, index|
+          Rails.logger.debug "[Phase1-Diagnosis] Saved Step #{index}: type=#{step['type']}, variable_name=#{step['variable_name'].inspect}"
+          if step['type'] == 'question'
+            Rails.logger.debug "[Phase1-Diagnosis] Saved Question Step #{index} - variable_name present: #{step['variable_name'].present?}"
+          end
+        end
+      end
       redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
     else
+      Rails.logger.error "[Phase1-Diagnosis] Workflow update failed: #{@workflow.errors.full_messages.join(', ')}"
       render :step2, status: :unprocessable_entity
     end
   end
@@ -405,6 +534,19 @@ class WorkflowsController < ApplicationController
   def step3
     # Load draft workflow for step 3 (review and launch)
     # Preview will be shown here
+    Rails.logger.debug "[Phase1-Diagnosis] step3 action called for workflow #{@workflow.id}"
+    Rails.logger.debug "[Phase1-Diagnosis] @workflow.steps count: #{@workflow.steps&.length || 0}"
+    if @workflow.steps.present?
+      @workflow.steps.each_with_index do |step, index|
+        Rails.logger.debug "[Phase1-Diagnosis] Step #{index}: type=#{step['type']}, title=#{step['title']}, variable_name=#{step['variable_name']}"
+        if step['type'] == 'decision' && step['branches'].present?
+          Rails.logger.debug "[Phase1-Diagnosis] Step #{index} branches count: #{step['branches'].length}"
+        end
+        if step['type'] == 'action' && step['output_fields'].present?
+          Rails.logger.debug "[Phase1-Diagnosis] Step #{index} output_fields count: #{step['output_fields'].length}"
+        end
+      end
+    end
   end
 
   def create_from_draft
@@ -464,6 +606,67 @@ class WorkflowsController < ApplicationController
 
   private
 
+  # Generate sample variable values for preview interpolation
+  # This creates realistic sample data so users can see what interpolated text looks like
+  def generate_sample_variables(workflow)
+    return {} unless workflow&.steps.present?
+    
+    sample_vars = {}
+    
+    workflow.steps.each do |step|
+      next unless step.is_a?(Hash)
+      
+      # Get variables from question steps
+      if step['type'] == 'question' && step['variable_name'].present?
+        var_name = step['variable_name']
+        # Generate sample value based on answer type
+        sample_vars[var_name] = case step['answer_type']
+        when 'yes_no'
+          'yes'
+        when 'number'
+          '42'
+        when 'date'
+          Date.today.strftime('%Y-%m-%d')
+        when 'multiple_choice', 'dropdown'
+          # Use first option if available, otherwise default
+          if step['options'].present? && step['options'].is_a?(Array) && step['options'].first
+            opt = step['options'].first
+            opt.is_a?(Hash) ? (opt['value'] || opt['label'] || 'option1') : opt.to_s
+          else
+            'option1'
+          end
+        else
+          # Default text value - use step title or generic name
+          step['title'].present? ? step['title'].split(' ').first : 'sample_value'
+        end
+      end
+      
+      # Get variables from action step output_fields
+      if step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array)
+        step['output_fields'].each do |output_field|
+          next unless output_field.is_a?(Hash) && output_field['name'].present?
+          
+          var_name = output_field['name']
+          # Use the defined value if static, or generate sample if it contains interpolation
+          if output_field['value'].present?
+            # If value contains {{, it's interpolated - use a placeholder
+            if output_field['value'].include?('{{')
+              sample_vars[var_name] = '[interpolated]'
+            else
+              # Static value
+              sample_vars[var_name] = output_field['value']
+            end
+          else
+            # No value defined - use generic sample
+            sample_vars[var_name] = 'completed'
+          end
+        end
+      end
+    end
+    
+    sample_vars
+  end
+
   def set_workflow
     @workflow = Workflow.find(params[:id])
   end
@@ -496,15 +699,18 @@ class WorkflowsController < ApplicationController
   def workflow_params
     # Permit nested steps hash structure
     # lock_version is used for optimistic locking to prevent race conditions
-    params.require(:workflow).permit(:title, :description, :is_public, :lock_version, steps: [
+    permitted = params.require(:workflow).permit(:title, :description, :is_public, :lock_version, 
+      steps: [
       :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
       :checkpoint_message,
       options: [:label, :value],
       branches: [:condition, :path],
       jumps: [:condition, :next_step_id],
-      attachments: []
+      attachments: [],
+      output_fields: [:name, :value]
     ])
+    permitted
   end
 
   def workflow_step1_params
@@ -514,12 +720,17 @@ class WorkflowsController < ApplicationController
 
   def workflow_step2_params
     # Permit steps for step 2
+    # NOTE: Must match workflow_params to ensure all nested structures are permitted
+    # Missing fields identified in Phase 1 diagnosis: :id, :checkpoint_message, :jumps, output_fields
     params.require(:workflow).permit(steps: [
-      :index, :type, :title, :description, :question, :answer_type, :variable_name,
+      :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
+      :checkpoint_message,
       options: [:label, :value],
       branches: [:condition, :path],
-      attachments: []
+      jumps: [:condition, :next_step_id],
+      attachments: [],
+      output_fields: [:name, :value]
     ])
   end
 

@@ -169,6 +169,22 @@ class Simulation < ApplicationRecord
       path_entry[:action_completed] = true
       self.results ||= {}
       self.results[step['title']] = "Action executed"
+      
+      # Process output_fields if defined
+      if step['output_fields'].present? && step['output_fields'].is_a?(Array)
+        step['output_fields'].each do |output_field|
+          next unless output_field.is_a?(Hash) && output_field['name'].present?
+          
+          variable_name = output_field['name'].to_s
+          # Interpolate the value using existing results
+          raw_value = output_field['value'] || ""
+          interpolated_value = VariableInterpolator.interpolate(raw_value, self.results)
+          
+          # Store the output variable in results
+          self.results[variable_name] = interpolated_value
+        end
+      end
+      
       self.execution_path << path_entry
 
       # Check for jumps or move to next step
@@ -255,7 +271,8 @@ class Simulation < ApplicationRecord
         if branch_condition.present? && branch_path.present?
           condition_result = evaluate_condition_string(branch_condition, results)
           if condition_result
-            next_step = find_step_by_title(branch_path)
+            # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+            next_step = resolve_step_reference(branch_path)
             if next_step
               next_index = workflow.steps.index(next_step)
               return next_index unless next_index.nil?
@@ -266,35 +283,40 @@ class Simulation < ApplicationRecord
       
       # No branch matched, check else_path
       if step['else_path'].present?
-        next_step = find_step_by_title(step['else_path'])
+        # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+        next_step = resolve_step_reference(step['else_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
           return next_index unless next_index.nil?
         end
       end
       
-      # Default: move to next step
-      current_step_index + 1
+      # Default: move to next step - check bounds
+      next_index = current_step_index + 1
+      return next_index < workflow.steps.length ? next_index : workflow.steps.length
     else
       # Legacy format (true_path/false_path)
       condition_result = evaluate_condition(step, results)
       
       if condition_result && step['true_path'].present?
-        next_step = find_step_by_title(step['true_path'])
+        # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+        next_step = resolve_step_reference(step['true_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
           return next_index unless next_index.nil?
         end
       elsif !condition_result && step['false_path'].present?
-        next_step = find_step_by_title(step['false_path'])
+        # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+        next_step = resolve_step_reference(step['false_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
           return next_index unless next_index.nil?
         end
       end
       
-      # Default: move to next step
-      current_step_index + 1
+      # Default: move to next step - check bounds
+      next_index = current_step_index + 1
+      return next_index < workflow.steps.length ? next_index : workflow.steps.length
     end
   end
 
@@ -388,7 +410,8 @@ class Simulation < ApplicationRecord
           # If a branch matched, use its path
           if matched_branch
             branch_path = matched_branch['path'] || matched_branch[:path]
-            next_step = find_step_by_title(branch_path)
+            # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+            next_step = resolve_step_reference(branch_path)
             if next_step
               next_index = workflow.steps.index(next_step)
               current_step_index = next_index unless next_index.nil?
@@ -397,7 +420,8 @@ class Simulation < ApplicationRecord
             end
           elsif step['else_path'].present?
             # No branch matched, use else_path
-            next_step = find_step_by_title(step['else_path'])
+            # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+            next_step = resolve_step_reference(step['else_path'])
             if next_step
               next_index = workflow.steps.index(next_step)
               current_step_index = next_index unless next_index.nil?
@@ -416,7 +440,8 @@ class Simulation < ApplicationRecord
           path.last[:condition_result] = condition_result
           
           if condition_result && step['true_path'].present?
-            next_step = find_step_by_title(step['true_path'])
+            # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+            next_step = resolve_step_reference(step['true_path'])
             if next_step
               next_index = workflow.steps.index(next_step)
               current_step_index = next_index unless next_index.nil?
@@ -424,7 +449,8 @@ class Simulation < ApplicationRecord
               current_step_index += 1
             end
           elsif !condition_result && step['false_path'].present?
-            next_step = find_step_by_title(step['false_path'])
+            # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+            next_step = resolve_step_reference(step['false_path'])
             if next_step
               next_index = workflow.steps.index(next_step)
               current_step_index = next_index unless next_index.nil?
@@ -561,6 +587,20 @@ class Simulation < ApplicationRecord
 
   def find_step_by_id(id)
     workflow.steps.find { |s| s['id'] == id }
+  end
+
+  # Resolve a step reference (ID or title) to a step object
+  # Prefers ID-based lookup but falls back to title for backward compatibility
+  # Returns the step hash or nil if not found
+  def resolve_step_reference(reference)
+    return nil if reference.blank?
+    
+    # First try to resolve to ID using workflow's helper (handles both IDs and titles)
+    step_id = workflow.resolve_step_reference_to_id(reference)
+    return find_step_by_id(step_id) if step_id.present?
+    
+    # Fallback to title-based lookup for backward compatibility
+    find_step_by_title(reference)
   end
 end
 

@@ -350,6 +350,22 @@ class Workflow < ApplicationRecord
         # Note: We keep the legacy fields (condition, true_path, false_path) for now
         # to ensure backward compatibility. They can be removed in a future migration.
       end
+      
+      # Normalize branches to ensure they have string keys (not symbols) and preserve paths
+      if step['branches'].present? && step['branches'].is_a?(Array)
+        step['branches'] = step['branches'].map do |branch|
+          next nil unless branch.is_a?(Hash)
+          
+          # Convert symbol keys to string keys and ensure both condition and path are preserved
+          normalized_branch = {
+            'condition' => (branch['condition'] || branch[:condition] || '').to_s.strip,
+            'path' => (branch['path'] || branch[:path] || '').to_s.strip
+          }
+          
+          # Only include branch if it has at least one field set
+          (normalized_branch['condition'].present? || normalized_branch['path'].present?) ? normalized_branch : nil
+        end.compact
+      end
     end
   end
   
@@ -395,10 +411,21 @@ class Workflow < ApplicationRecord
   def variables
     return [] unless steps.present?
     
+    variable_names = []
+    
+    # Get variables from question steps
     steps.select { |step| step['type'] == 'question' && step['variable_name'].present? }
-        .map { |step| step['variable_name'] }
-        .compact
-        .uniq
+        .each { |step| variable_names << step['variable_name'] }
+    
+    # Get variables from action step output_fields
+    steps.select { |step| step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array) }
+        .each do |step|
+          step['output_fields'].each do |output_field|
+            variable_names << output_field['name'] if output_field.is_a?(Hash) && output_field['name'].present?
+          end
+        end
+    
+    variable_names.compact.uniq
   end
 
   # Group helper methods
@@ -675,6 +702,24 @@ class Workflow < ApplicationRecord
       when 'action'
         # Validate jumps if present
         validate_jumps(step, step_num)
+        
+        # Validate output_fields if present
+        if step['output_fields'].present?
+          unless step['output_fields'].is_a?(Array)
+            errors.add(:steps, "Step #{step_num}: output_fields must be an array")
+          else
+            step['output_fields'].each_with_index do |field, field_index|
+              unless field.is_a?(Hash)
+                errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: must be a hash")
+              else
+                if field['name'].blank?
+                  errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: name is required")
+                end
+                # Value is optional - can be empty or contain {{variable}} interpolation
+              end
+            end
+          end
+        end
 
       when 'decision'
         # Check if using multi-branch format or legacy format
@@ -693,6 +738,14 @@ class Workflow < ApplicationRecord
             step['branches'].each_with_index do |branch, branch_index|
               branch_condition = branch['condition'] || branch[:condition]
               branch_path = branch['path'] || branch[:path]
+              
+              # Normalize branch hash keys (convert symbols to strings)
+              branch['condition'] = branch_condition if branch_condition.present?
+              branch['path'] = branch_path if branch_path.present?
+              
+              # Remove symbol keys to avoid confusion
+              branch.delete(:condition)
+              branch.delete(:path)
               
               # Allow completely empty branches (user is still filling them out)
               # Only validate if at least one field is set (meaning user is trying to use this branch)
@@ -846,5 +899,6 @@ class Workflow < ApplicationRecord
       end
     end
   end
+
 end
 

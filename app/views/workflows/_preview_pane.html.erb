@@ -1,22 +1,26 @@
+<% sample_variables = local_assigns.fetch(:sample_variables, {}) %>
 <div class="preview-pane bg-gray-50 border rounded-lg p-4">
   <h4 class="text-sm font-semibold text-gray-700 mb-2">Live Preview</h4>
+  <% if sample_variables.present? %>
+    <p class="text-xs text-gray-500 mb-2 italic">Showing preview with sample variable values</p>
+  <% end %>
   
   <% if step && step["type"] %>
     <% case step["type"] %>
     <% when "question" %>
       <div class="space-y-3">
         <% if step["title"].present? %>
-          <h5 class="font-medium text-gray-900"><%= step["title"] %></h5>
+          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(step["title"], sample_variables) %></h5>
         <% end %>
         
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(step["description"]) %>
+            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
         
         <% if step["question"].present? %>
-          <p class="font-medium text-gray-800"><%= step["question"] %></p>
+          <p class="font-medium text-gray-800"><%= VariableInterpolator.interpolate(step["question"], sample_variables) %></p>
         <% end %>
         
         <!-- Preview based on answer type -->
@@ -87,12 +91,12 @@
     <% when "action" %>
       <div class="space-y-2">
         <% if step["title"].present? %>
-          <h5 class="font-medium text-gray-900"><%= step["title"] %></h5>
+          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(step["title"], sample_variables) %></h5>
         <% end %>
         
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(step["description"]) %>
+            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
         
@@ -104,7 +108,7 @@
         
         <% if step["instructions"].present? %>
           <div class="mt-2 p-3 bg-white border rounded-md">
-            <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= step["instructions"] %></p>
+            <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= VariableInterpolator.interpolate(step["instructions"], sample_variables) %></p>
           </div>
         <% end %>
         
@@ -137,12 +141,12 @@
     <% when "decision" %>
       <div class="space-y-2">
         <% if step["title"].present? %>
-          <h5 class="font-medium text-gray-900"><%= step["title"] %></h5>
+          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(step["title"], sample_variables) %></h5>
         <% end %>
         
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(step["description"]) %>
+            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
         

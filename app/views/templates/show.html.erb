@@ -20,7 +20,7 @@
              data-template-flow-preview-compact-value="false"
              id="template-preview-<%= @template.id %>">
           <script type="application/json" data-template-flow-preview-steps-data="<%= @template.id %>">
-            <%= @template.workflow_data.to_json.html_safe %>
+            <%= raw json_escape(@template.workflow_data.to_json) %>
           </script>
           <div data-template-flow-preview-target="canvas" 
                class="relative overflow-auto"

@@ -1,4 +1,4 @@
-require "active_support/core_ext/integer/time"
+require 'active_support/core_ext/integer/time'
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
@@ -19,13 +19,13 @@ Rails.application.configure do
 
   # Enable/disable caching. By default caching is disabled.
   # Run rails dev:cache to toggle caching.
-  if Rails.root.join("tmp/caching-dev.txt").exist?
+  if Rails.root.join('tmp/caching-dev.txt').exist?
     config.action_controller.perform_caching = true
     config.action_controller.enable_fragment_cache_logging = true
 
     config.cache_store = :memory_store
     config.public_file_server.headers = {
-      "Cache-Control" => "public, max-age=#{2.days.to_i}"
+      'Cache-Control' => "public, max-age=#{2.days.to_i}"
     }
   else
     config.action_controller.perform_caching = false
@@ -84,6 +84,14 @@ Rails.application.configure do
   # Default URL options for Devise
   config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
 
+  # Set default from address for Devise emails
+  config.action_mailer.default_options = {
+    from: 'development@example.com'
+  }
+
+  # Development-only: Skip email for password resets and show token directly
+  config.x.admin_password_reset_bypass_email = true
+
   # ==========================================================================
   # Bullet Configuration - N+1 Query Detection
   # ==========================================================================
@@ -91,31 +99,30 @@ Rails.application.configure do
   # It will alert you during development when it finds issues
   config.after_initialize do
     Bullet.enable = true
-    
+
     # Show JavaScript alert in browser (can be annoying, disable if needed)
     Bullet.alert = false
-    
+
     # Log to bullet.log file
     Bullet.bullet_logger = true
-    
+
     # Show in browser console
     Bullet.console = true
-    
+
     # Add to Rails log
     Bullet.rails_logger = true
-    
+
     # Add footer to HTML pages showing Bullet warnings
     Bullet.add_footer = true
-    
+
     # Raise errors in development (set to false if too aggressive)
     Bullet.raise = false
-    
+
     # Skip detection for certain patterns (add if needed)
     # Bullet.add_safelist type: :unused_eager_loading, class_name: "Model", association: :association
-    
+
     # Known N+1s that are intentional or can't be easily fixed
     # (Add entries here as needed during development)
     # Bullet.add_safelist type: :n_plus_one_query, class_name: "Workflow", association: :groups
   end
 end
-

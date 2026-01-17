@@ -114,8 +114,9 @@
         
         <%# Main Steps Section %>
         <div style="min-width: 0;">
-          <div data-controller="workflow-builder" 
+            <div data-controller="workflow-builder variable-autocomplete"
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
+               data-variable-autocomplete-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
             
             <%# Header with Add Step Buttons %>

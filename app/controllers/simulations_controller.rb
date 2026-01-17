@@ -18,6 +18,7 @@ class SimulationsController < ApplicationController
     @simulation.execution_path = []
     @simulation.results = {}
     @simulation.inputs = {}
+    
 
     if @simulation.save
       # Redirect to step view instead of executing immediately
@@ -68,20 +69,30 @@ class SimulationsController < ApplicationController
           @simulation.inputs = {}
           @simulation.execution_path.each do |path_entry|
             if path_entry['answer'].present?
-              # Find the step to get variable_name
-              step = @workflow.steps[path_entry['step_index']]
-              if step && step['type'] == 'question'
-                input_key = step['variable_name'].present? ? step['variable_name'] : path_entry['step_index'].to_s
-                @simulation.inputs[input_key] = path_entry['answer']
-                @simulation.inputs[step['title']] = path_entry['answer']
-                @simulation.results[step['title']] = path_entry['answer']
-                @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
+              # Find the step to get variable_name - add bounds checking
+              step_index = path_entry['step_index'].to_i
+              if step_index >= 0 && step_index < @workflow.steps.length
+                step = @workflow.steps[step_index]
+                if step && step['type'] == 'question'
+                  input_key = step['variable_name'].present? ? step['variable_name'] : step_index.to_s
+                  @simulation.inputs[input_key] = path_entry['answer']
+                  @simulation.inputs[step['title']] = path_entry['answer']
+                  @simulation.results[step['title']] = path_entry['answer']
+                  @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
+                end
               end
             end
           end
           
           # Set current_step_index to the next step after the selected one
-          @simulation.current_step_index = target_step_index + 1
+          # Validate that target_step_index + 1 doesn't exceed workflow length
+          next_step_index = target_step_index.to_i + 1
+          if next_step_index >= @workflow.steps.length
+            @simulation.status = 'completed'
+            @simulation.current_step_index = @workflow.steps.length
+          else
+            @simulation.current_step_index = next_step_index
+          end
           
           @simulation.save
         end

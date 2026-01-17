@@ -52,7 +52,7 @@
     
     <div class="relative">
       <textarea name="workflow[steps][][instructions]" 
-                placeholder="Enter step-by-step instructions for the CSR to follow...
+                placeholder="Enter step-by-step instructions for the CSR to follow... (type {{ to see available variables)
 
 Example:
 1. Greet the customer warmly
@@ -63,7 +63,8 @@ Example:
                 rows="6"
                 data-step-form-target="field"
                 data-instruction-template-target="instructionsField"
-                data-quick-action-target="instructionsField"><%= step['instructions'] %></textarea>
+                data-quick-action-target="instructionsField"
+                data-variable-autocomplete-target="input"><%= step['instructions'] %></textarea>
       
       <%# Character count indicator %>
       <div class="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
@@ -74,6 +75,60 @@ Example:
     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
       💡 Use the Quick Actions above or click "Insert Template" for pre-written instructions
     </p>
+  </div>
+
+  <%# Output Variables Section %>
+  <div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+      Output Variables
+      <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+    </label>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+      Define variables that will be set when this action executes. Use <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">{{variable_name}}</code> to reference other variables.
+    </p>
+    
+    <div data-controller="output-fields"
+         data-output-fields-fields-value="<%= (step['output_fields'] || []).to_json %>">
+      <input type="hidden" 
+             name="workflow[steps][][output_fields]" 
+             value="<%= (step['output_fields'] || []).to_json %>"
+             data-output-fields-target="outputFieldsInput"
+             data-step-form-target="field">
+      
+      <div data-output-fields-target="fieldsList" class="space-y-3 mb-3">
+        <% if step['output_fields'].present? && step['output_fields'].is_a?(Array) %>
+          <% step['output_fields'].each_with_index do |field, index| %>
+            <div class="flex gap-2 items-start" data-field-index="<%= index %>">
+              <div class="flex-1 grid grid-cols-2 gap-2">
+                <input type="text" 
+                       placeholder="Variable name (e.g., status)"
+                       value="<%= field['name'] %>"
+                       class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                       data-action="input->output-fields#updateField"
+                       data-field-attr="name">
+                <input type="text" 
+                       placeholder="Value (e.g., completed or {{other_var}})"
+                       value="<%= field['value'] %>"
+                       class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                       data-action="input->output-fields#updateField"
+                       data-field-attr="value">
+              </div>
+              <button type="button" 
+                      class="px-3 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      data-action="click->output-fields#removeField">
+                Remove
+              </button>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+      
+      <button type="button" 
+              class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              data-action="click->output-fields#addField">
+        + Add Output Variable
+      </button>
+    </div>
   </div>
 
   <%# Attachments Section %>

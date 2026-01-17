@@ -6,7 +6,9 @@ export default class extends Controller {
     "answerType",
     "hiddenAnswerType",
     "optionsContainer",
-    "optionsList"
+    "optionsList",
+    "variableName",
+    "hiddenVariableName"
   ]
 
   connect() {
@@ -16,15 +18,44 @@ export default class extends Controller {
       this.handleAnswerTypeChange({ target: checked })
     }
     
+    // Sync variable_name hidden field with visible field
+    if (this.hasVariableNameTarget && this.hasHiddenVariableNameTarget) {
+      this.syncVariableName()
+      // Listen for changes to sync hidden field
+      this.variableNameTarget.addEventListener('input', () => this.syncVariableName())
+      
+      // Also sync on form submit to ensure latest value is captured
+      const form = this.element.closest('form')
+      if (form) {
+        this.formSubmitHandler = () => this.syncVariableName()
+        form.addEventListener('submit', this.formSubmitHandler)
+      }
+    }
+    
     // Initialize Sortable for options list if visible
     if (this.hasOptionsListTarget && !this.optionsListTarget.classList.contains('hidden')) {
       this.initializeSortable()
+    }
+  }
+  
+  syncVariableName() {
+    if (this.hasVariableNameTarget && this.hasHiddenVariableNameTarget) {
+      this.hiddenVariableNameTarget.value = this.variableNameTarget.value
     }
   }
 
   disconnect() {
     if (this.sortable) {
       this.sortable.destroy()
+    }
+    
+    // Remove form submit listener
+    if (this.formSubmitHandler) {
+      const form = this.element.closest('form')
+      if (form) {
+        form.removeEventListener('submit', this.formSubmitHandler)
+      }
+      this.formSubmitHandler = null
     }
   }
 

@@ -21,17 +21,62 @@ class TemplatesController < ApplicationController
 
   def use
     @template = Template.find(params[:id])
+    
+    # Deep copy the workflow_data to avoid modifying the template
+    workflow_data = JSON.parse(@template.workflow_data.to_json)
+    
+    # Ensure all steps have IDs and normalize the data
+    workflow_data = normalize_template_steps(workflow_data) if workflow_data.present?
+    
     @workflow = current_user.workflows.build(
       title: "#{@template.name} - #{Time.current.strftime('%Y-%m-%d')}",
       description: @template.description,
-      steps: @template.workflow_data
+      steps: workflow_data
     )
 
     if @workflow.save
       redirect_to edit_workflow_path(@workflow), notice: "Workflow created from template. Customize it as needed."
     else
-      redirect_to templates_path, alert: "Failed to create workflow from template."
+      redirect_to templates_path, alert: "Failed to create workflow from template: #{@workflow.errors.full_messages.join(', ')}"
     end
+  end
+
+  private
+
+  # Normalize template steps to ensure they're in the correct format for workflow creation
+  # This ensures IDs are present and branches are properly structured
+  def normalize_template_steps(steps)
+    return [] unless steps.is_a?(Array)
+    
+    # First pass: ensure all steps have IDs and titles
+    steps.each do |step|
+      next unless step.is_a?(Hash)
+      
+      # Assign ID if missing
+      step['id'] ||= SecureRandom.uuid
+      
+      # Ensure title is present (required)
+      step['title'] ||= "Untitled Step"
+      
+      # Normalize branch paths to ensure they reference existing step titles
+      if step['type'] == 'decision' && step['branches'].present?
+        step['branches'].each do |branch|
+          # Ensure branch has both condition and path, or neither
+          if branch['condition'].present? && branch['path'].blank?
+            # If condition exists but path is blank, this will cause validation errors
+            # Try to find a matching step by title from the condition or leave blank for user to fix
+            branch['path'] ||= ''
+          end
+        end
+        
+        # Filter out branches that have neither condition nor path
+        step['branches'] = step['branches'].select do |branch|
+          branch.is_a?(Hash) && (branch['condition'].present? || branch['path'].present?)
+        end
+      end
+    end
+    
+    steps
   end
 end
 

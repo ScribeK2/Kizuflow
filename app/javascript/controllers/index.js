@@ -20,6 +20,7 @@ import GroupTreeController from "./group_tree_controller"
 import InstructionTemplateController from "./instruction_template_controller"
 import ModalController from "./modal_controller"
 import MultiBranchController from "./multi_branch_controller"
+import OutputFieldsController from "./output_fields_controller"
 import PreviewUpdaterController from "./preview_updater_controller"
 import QuestionFormController from "./question_form_controller"
 import QuickActionController from "./quick_action_controller"
@@ -33,6 +34,7 @@ import StepSelectorController from "./step_selector_controller"
 import StepTemplateController from "./step_template_controller"
 import StepsController from "./steps_controller"
 import TemplateFlowPreviewController from "./template_flow_preview_controller"
+import VariableAutocompleteController from "./variable_autocomplete_controller"
 import VisualConditionController from "./visual_condition_controller"
 import WizardFlowPreviewController from "./wizard_flow_preview_controller"
 import WizardNavigationController from "./wizard_navigation_controller"
@@ -60,6 +62,7 @@ const controllers = [
   { Controller: InstructionTemplateController, name: "instruction-template" },
   { Controller: ModalController, name: "modal" },
   { Controller: MultiBranchController, name: "multi-branch" },
+  { Controller: OutputFieldsController, name: "output-fields" },
   { Controller: PreviewUpdaterController, name: "preview-updater" },
   { Controller: QuestionFormController, name: "question-form" },
   { Controller: QuickActionController, name: "quick-action" },
@@ -73,6 +76,7 @@ const controllers = [
   { Controller: StepTemplateController, name: "step-template" },
   { Controller: StepsController, name: "steps" },
   { Controller: TemplateFlowPreviewController, name: "template-flow-preview" },
+  { Controller: VariableAutocompleteController, name: "variable-autocomplete" },
   { Controller: VisualConditionController, name: "visual-condition" },
   { Controller: WizardFlowPreviewController, name: "wizard-flow-preview" },
   { Controller: WizardNavigationController, name: "wizard-navigation" },
