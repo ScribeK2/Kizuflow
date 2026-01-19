@@ -33,6 +33,22 @@ export default class extends Controller {
     if (this.boundHandleInlineStepCreate) {
       document.removeEventListener("inline-step:create", this.boundHandleInlineStepCreate)
     }
+    // Clean up container listeners
+    if (this.hasContainerTarget) {
+      if (this.boundContainerInputHandler) {
+        this.containerTarget.removeEventListener("input", this.boundContainerInputHandler)
+      }
+      if (this.boundContainerChangeHandler) {
+        this.containerTarget.removeEventListener("change", this.boundContainerChangeHandler)
+      }
+    }
+    // Clear debounce timers
+    if (this.titleChangeDebounceTimer) {
+      clearTimeout(this.titleChangeDebounceTimer)
+    }
+    if (this.variableChangeDebounceTimer) {
+      clearTimeout(this.variableChangeDebounceTimer)
+    }
   }
   
   /**
@@ -145,13 +161,14 @@ export default class extends Controller {
 
   setupTitleChangeListeners() {
     if (!this.hasContainerTarget) return
-    
+
     // Debounce timers for expensive operations
     this.titleChangeDebounceTimer = null
     this.variableChangeDebounceTimer = null
-    
+
     // Use event delegation to handle title changes with debouncing
-    this.containerTarget.addEventListener("input", (event) => {
+    // Store bound handler for cleanup
+    this.boundContainerInputHandler = (event) => {
       if (event.target.matches("input[name*='[title]']")) {
         // Debounce dropdown refresh - 500ms delay to batch rapid typing
         if (this.titleChangeDebounceTimer) {
@@ -172,14 +189,17 @@ export default class extends Controller {
           this.refreshAllRuleBuilders()
         }, 500)
       }
-    })
-    
+    }
+    this.containerTarget.addEventListener("input", this.boundContainerInputHandler)
+
     // Also listen for select changes (dropdown updates)
-    this.containerTarget.addEventListener("change", (event) => {
+    // Store bound handler for cleanup
+    this.boundContainerChangeHandler = (event) => {
       if (event.target.matches("select[name*='[true_path]'], select[name*='[false_path]']")) {
         this.notifyPreviewUpdate()
       }
-    })
+    }
+    this.containerTarget.addEventListener("change", this.boundContainerChangeHandler)
   }
 
   refreshAllRuleBuilders() {

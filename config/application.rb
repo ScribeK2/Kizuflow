@@ -25,8 +25,7 @@ module Kizuflow
     # Display times in UTC (can be overridden per-user if needed)
     config.time_zone = "UTC"
     
-    # esbuild configuration
-    # Note: esbuild-rails handles most configuration automatically
-    # Custom build options can be added here if needed
+    # JavaScript via importmap-rails (no Node.js required)
+    # CSS via tailwindcss-rails standalone CLI
   end
 end

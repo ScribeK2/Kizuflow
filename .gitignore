@@ -92,6 +92,10 @@ test-build.js
 # Cursor IDE
 .cursor/
 
+# Chunkhound
+.chunkhound/
+.chunkhound.json
+
 # Utility scripts
 reset_user_password.rb
 # Internal documentation

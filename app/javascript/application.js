@@ -1,9 +1,9 @@
-// Entry point for the build script in your package.json
+// Entry point for the application - loaded via importmap
 import "@hotwired/turbo-rails"
-import "./controllers/index.js"
+import "controllers"
 
-// Import npm packages directly instead of CDN pins
-import Trix from "trix"
+// ActionText rich text editor
+import "trix"
 import "@rails/actiontext"
 
 // Ensure Trix works properly with Turbo

@@ -65,9 +65,24 @@ class User < ApplicationRecord
 
   # Generate a secure temporary password for admin reset
   def generate_temporary_password
-    # Generate 12-character secure password using only safe characters
-    chars = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a
-    temp_password = Array.new(12) { chars.sample }.join
+    # Ensure password contains at least one lowercase, uppercase, and digit
+    lowercase = ('a'..'z').to_a
+    uppercase = ('A'..'Z').to_a
+    digits = ('0'..'9').to_a
+    all_chars = lowercase + uppercase + digits
+
+    # Start with guaranteed characters from each category
+    temp_password = [
+      lowercase.sample,
+      uppercase.sample,
+      digits.sample
+    ]
+
+    # Fill remaining 9 characters randomly
+    9.times { temp_password << all_chars.sample }
+
+    # Shuffle to randomize position of guaranteed characters
+    temp_password = temp_password.shuffle.join
 
     # Update user with new password
     self.password = temp_password

@@ -52,6 +52,11 @@ export default class extends Controller {
     // Cleanup listeners
     this.removeListeners()
     this.removeWorkflowChangeListener()
+
+    // Cleanup variable type change listener
+    if (this.boundVariableTypeChange && this.hasVariableSelectTarget) {
+      this.variableSelectTarget.removeEventListener('change', this.boundVariableTypeChange)
+    }
   }
 
   setupWorkflowChangeListener() {
@@ -199,15 +204,19 @@ export default class extends Controller {
   }
 
   setupListeners() {
-    this.variableSelectTarget?.addEventListener("change", () => this.buildCondition())
-    this.operatorSelectTarget?.addEventListener("change", () => this.buildCondition())
-    this.valueInputTarget?.addEventListener("input", () => this.buildCondition())
+    // Store bound handlers to enable proper cleanup
+    this.boundBuildCondition = () => this.buildCondition()
+    this.variableSelectTarget?.addEventListener("change", this.boundBuildCondition)
+    this.operatorSelectTarget?.addEventListener("change", this.boundBuildCondition)
+    this.valueInputTarget?.addEventListener("input", this.boundBuildCondition)
   }
 
   removeListeners() {
-    this.variableSelectTarget?.removeEventListener("change", () => this.buildCondition())
-    this.operatorSelectTarget?.removeEventListener("change", () => this.buildCondition())
-    this.valueInputTarget?.removeEventListener("input", () => this.buildCondition())
+    if (this.boundBuildCondition) {
+      this.variableSelectTarget?.removeEventListener("change", this.boundBuildCondition)
+      this.operatorSelectTarget?.removeEventListener("change", this.boundBuildCondition)
+      this.valueInputTarget?.removeEventListener("input", this.boundBuildCondition)
+    }
   }
 
   parseExistingCondition() {
@@ -380,10 +389,12 @@ export default class extends Controller {
   detectVariableType() {
     // This will be called when variable changes
     if (this.hasVariableSelectTarget) {
-      this.variableSelectTarget.addEventListener('change', () => {
+      // Store bound handler for cleanup
+      this.boundVariableTypeChange = () => {
         this.updateOperatorOptions()
         this.updateValueSuggestions()
-      })
+      }
+      this.variableSelectTarget.addEventListener('change', this.boundVariableTypeChange)
     }
   }
   

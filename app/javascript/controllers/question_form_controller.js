@@ -6,56 +6,26 @@ export default class extends Controller {
     "answerType",
     "hiddenAnswerType",
     "optionsContainer",
-    "optionsList",
-    "variableName",
-    "hiddenVariableName"
+    "optionsList"
   ]
 
   connect() {
     // Set initial state based on checked radio button
     const checked = this.answerTypeTargets.find(radio => radio.checked)
     if (checked) {
-      this.handleAnswerTypeChange({ target: checked })
+      this.previousAnswerType = checked.value
+      this.handleAnswerTypeChange({ target: checked }, true)
     }
-    
-    // Sync variable_name hidden field with visible field
-    if (this.hasVariableNameTarget && this.hasHiddenVariableNameTarget) {
-      this.syncVariableName()
-      // Listen for changes to sync hidden field
-      this.variableNameTarget.addEventListener('input', () => this.syncVariableName())
-      
-      // Also sync on form submit to ensure latest value is captured
-      const form = this.element.closest('form')
-      if (form) {
-        this.formSubmitHandler = () => this.syncVariableName()
-        form.addEventListener('submit', this.formSubmitHandler)
-      }
-    }
-    
+
     // Initialize Sortable for options list if visible
     if (this.hasOptionsListTarget && !this.optionsListTarget.classList.contains('hidden')) {
       this.initializeSortable()
-    }
-  }
-  
-  syncVariableName() {
-    if (this.hasVariableNameTarget && this.hasHiddenVariableNameTarget) {
-      this.hiddenVariableNameTarget.value = this.variableNameTarget.value
     }
   }
 
   disconnect() {
     if (this.sortable) {
       this.sortable.destroy()
-    }
-    
-    // Remove form submit listener
-    if (this.formSubmitHandler) {
-      const form = this.element.closest('form')
-      if (form) {
-        form.removeEventListener('submit', this.formSubmitHandler)
-      }
-      this.formSubmitHandler = null
     }
   }
 
@@ -79,17 +49,39 @@ export default class extends Controller {
     this.element.dispatchEvent(new CustomEvent('input', { bubbles: true }))
   }
 
-  handleAnswerTypeChange(event) {
+  handleAnswerTypeChange(event, isInitial = false) {
     const answerType = event.target.value
-    
+    const typesWithOptions = ['multiple_choice', 'dropdown']
+
+    // Check if switching away from a type with options and options exist
+    if (!isInitial &&
+        typesWithOptions.includes(this.previousAnswerType) &&
+        !typesWithOptions.includes(answerType) &&
+        this.hasExistingOptions()) {
+      if (!confirm('Changing answer type will remove existing options. Continue?')) {
+        // Revert to previous answer type
+        event.target.checked = false
+        const previousRadio = this.answerTypeTargets.find(
+          radio => radio.value === this.previousAnswerType
+        )
+        if (previousRadio) {
+          previousRadio.checked = true
+        }
+        return
+      }
+    }
+
+    // Update previous answer type for next comparison
+    this.previousAnswerType = answerType
+
     // Update hidden input
     if (this.hasHiddenAnswerTypeTarget) {
       this.hiddenAnswerTypeTarget.value = answerType
     }
-    
+
     // Show/hide options container based on answer type
     if (this.hasOptionsContainerTarget) {
-      if (answerType === 'multiple_choice' || answerType === 'dropdown') {
+      if (typesWithOptions.includes(answerType)) {
         this.optionsContainerTarget.classList.remove('hidden')
         // Initialize Sortable if not already initialized
         if (!this.sortable && this.hasOptionsListTarget) {
@@ -104,12 +96,29 @@ export default class extends Controller {
         }
       }
     }
-    
+
     // Dispatch event for preview updater
     this.element.dispatchEvent(new CustomEvent('answer-type-changed', {
       detail: { answerType },
       bubbles: true
     }))
+  }
+
+  hasExistingOptions() {
+    if (!this.hasOptionsListTarget) return false
+    const optionItems = this.optionsListTarget.querySelectorAll('.option-item')
+    if (optionItems.length === 0) return false
+
+    // Check if at least one option has a value
+    for (const item of optionItems) {
+      const inputs = item.querySelectorAll('input[type="text"]')
+      for (const input of inputs) {
+        if (input.value.trim()) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   addOption(event) {

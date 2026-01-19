@@ -1,4 +1,7 @@
 class Workflow < ApplicationRecord
+  include WorkflowAuthorization
+  include WorkflowNormalization
+
   belongs_to :user
   has_rich_text :description
 
@@ -22,8 +25,6 @@ class Workflow < ApplicationRecord
   MAX_STEP_CONTENT_LENGTH = 50_000  # 50KB per step field
   MAX_TOTAL_STEPS_SIZE = 5_000_000  # 5MB total for steps JSON
   
-  # Normalize steps before validation to convert legacy format
-  before_validation :normalize_steps_on_save
   # Clean up import flags when steps are completed
   before_save :cleanup_import_flags
   # Assign to Uncategorized group if no groups assigned (only for published workflows)
@@ -145,68 +146,6 @@ class Workflow < ApplicationRecord
       .or(where(id: rich_text_matches.select(:id)))
   }
   
-  # Check if a user can view this workflow
-  def can_be_viewed_by?(user)
-    return false unless user
-    
-    # Admins can view all workflows
-    return true if user.admin?
-    
-    # Editors can view their own workflows + public workflows + workflows in assigned groups
-    if user.editor?
-      return true if user == self.user
-      return true if is_public?
-      # Check if workflow is in user's assigned groups
-      if user.groups.any?
-        accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
-        return true if groups.where(id: accessible_group_ids).any?
-      end
-      return true if groups.empty? # Workflows without groups (backward compatibility)
-      return false
-    end
-    
-    # Users: can view public workflows + workflows in assigned groups + workflows without groups
-    return true if is_public?
-    
-    # Check if workflow is in user's assigned groups
-    if user.groups.any?
-      accessible_group_ids = user.groups.flat_map { |g| [g.id] + g.descendants.map(&:id) }
-      return true if groups.where(id: accessible_group_ids).any?
-    end
-    
-    # Workflows without groups are accessible to all users (backward compatibility)
-    return true if groups.empty?
-    
-    false
-  end
-  
-  # Check if a user can edit this workflow
-  def can_be_edited_by?(user)
-    return false unless user
-    
-    # Admins can edit all workflows
-    return true if user.admin?
-    
-    # Editors can edit their own workflows or public workflows created by other editors
-    if user.editor?
-      return true if user == self.user
-      return true if is_public? && self.user.editor?
-    end
-    
-    false
-  end
-  
-  # Check if a user can delete this workflow
-  def can_be_deleted_by?(user)
-    return false unless user
-    
-    # Admins can delete all workflows
-    return true if user.admin?
-    
-    # Editors can only delete their own workflows
-    user.editor? && user == self.user
-  end
-  
   # Helper method to safely get description text (handles migration from text column to rich text)
   # This avoids triggering Active Storage initialization errors
   def description_text
@@ -251,6 +190,16 @@ class Workflow < ApplicationRecord
   def set_draft_expiration
     self.draft_expires_at = 7.days.from_now if status == 'draft'
   end
+
+  # Check if workflow is a draft
+  def draft?
+    status == 'draft'
+  end
+
+  # Check if workflow is published
+  def published?
+    status == 'published' || status.nil?
+  end
   
   # Class method to cleanup expired drafts
   # Can be called from a scheduled job
@@ -285,147 +234,6 @@ class Workflow < ApplicationRecord
       
       step
     end
-  end
-
-  # Ensure all steps have unique IDs
-  # This assigns UUIDs to steps that don't have them yet
-  def ensure_step_ids
-    return unless steps.present?
-
-    steps.each do |step|
-      next unless step.is_a?(Hash)
-      step['id'] ||= SecureRandom.uuid
-    end
-  end
-
-  # Normalize steps to convert legacy format to new format
-  # This ensures backward compatibility with old workflows
-  # Called before validation to convert old format to new format
-  def normalize_steps_on_save
-    return unless steps.present?
-
-    # First ensure all steps have IDs
-    ensure_step_ids
-
-    # Filter out completely empty steps (no type, no title, no data)
-    # But preserve steps that have data even if type is missing (they're still being filled out)
-    self.steps = steps.select { |step|
-      step.is_a?(Hash) && (
-        step['type'].present? ||
-        step['title'].present? ||
-        step['description'].present? ||
-        step['question'].present? ||
-        step['action_type'].present? ||
-        step['condition'].present?
-      )
-    }
-
-    return unless steps.present?
-
-    steps.each do |step|
-      next unless step.is_a?(Hash) && step['type'] == 'decision'
-      
-      # Check if this step uses legacy format (has condition + true_path/false_path but no branches)
-      has_legacy_format = step['condition'].present? && 
-                         (step['true_path'].present? || step['false_path'].present?) &&
-                         (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
-      
-      if has_legacy_format
-        # Convert to new multi-branch format
-        step['branches'] = []
-        
-        # Add true_path as a branch
-        if step['true_path'].present?
-          step['branches'] << {
-            'condition' => step['condition'],
-            'path' => step['true_path']
-          }
-        end
-        
-        # Add false_path as else_path
-        if step['false_path'].present?
-          step['else_path'] = step['false_path']
-        end
-        
-        # Note: We keep the legacy fields (condition, true_path, false_path) for now
-        # to ensure backward compatibility. They can be removed in a future migration.
-      end
-      
-      # Normalize branches to ensure they have string keys (not symbols) and preserve paths
-      if step['branches'].present? && step['branches'].is_a?(Array)
-        step['branches'] = step['branches'].map do |branch|
-          next nil unless branch.is_a?(Hash)
-          
-          # Convert symbol keys to string keys and ensure both condition and path are preserved
-          normalized_branch = {
-            'condition' => (branch['condition'] || branch[:condition] || '').to_s.strip,
-            'path' => (branch['path'] || branch[:path] || '').to_s.strip
-          }
-          
-          # Only include branch if it has at least one field set
-          (normalized_branch['condition'].present? || normalized_branch['path'].present?) ? normalized_branch : nil
-        end.compact
-      end
-    end
-  end
-  
-  # Get normalized steps (for reading/display)
-  # This method normalizes steps on read without modifying the database
-  def normalized_steps
-    return [] unless steps.present?
-    
-    steps.map do |step|
-      next step unless step.is_a?(Hash) && step['type'] == 'decision'
-      
-      # Check if needs normalization
-      has_legacy_format = step['condition'].present? && 
-                         (step['true_path'].present? || step['false_path'].present?) &&
-                         (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
-      
-      if has_legacy_format
-        # Create a copy to avoid modifying the original
-        normalized_step = step.dup
-        
-        # Convert to new format
-        normalized_step['branches'] = []
-        
-        if normalized_step['true_path'].present?
-          normalized_step['branches'] << {
-            'condition' => normalized_step['condition'],
-            'path' => normalized_step['true_path']
-          }
-        end
-        
-        if normalized_step['false_path'].present?
-          normalized_step['else_path'] = normalized_step['false_path']
-        end
-        
-        normalized_step
-      else
-        step
-      end
-    end
-  end
-
-  # Extract all variable names from question steps
-  def variables
-    return [] unless steps.present?
-    
-    variable_names = []
-    
-    # Get variables from question steps
-    steps.select { |step| step['type'] == 'question' && step['variable_name'].present? }
-        .each { |step| variable_names << step['variable_name'] }
-    
-    # Get variables from action step output_fields
-    steps.select { |step| step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array) }
-        .each do |step|
-          step['output_fields'].each do |output_field|
-            variable_names << output_field['name'] if output_field.is_a?(Hash) && output_field['name'].present?
-          end
-        end
-    
-    variable_names.compact.uniq
   end
 
   # Group helper methods
@@ -602,7 +410,7 @@ class Workflow < ApplicationRecord
           step['branches'].each_with_index do |branch, branch_index|
             branch_path = branch['path'] || branch[:path]
             branch_condition = branch['condition'] || branch[:condition]
-            
+
             if branch_path.present? && !step_titles.include?(branch_path)
               # For imports, mark as incomplete instead of error
               if step['_import_incomplete']
@@ -612,24 +420,24 @@ class Workflow < ApplicationRecord
                 errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: References non-existent step: #{branch_path}")
               end
             end
-            
+
             if branch_condition.present? && !valid_condition_format?(branch_condition)
               errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: Invalid condition format")
             end
           end
-          
-          # Validate else_path
-          if step['else_path'].present? && !step_titles.include?(step['else_path'])
-            # For imports, mark as incomplete instead of error
-            if step['_import_incomplete']
-              step['_import_errors'] ||= []
-              step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
-            else
-              errors.add(:steps, "Step #{index + 1}: 'Else' path references non-existent step: #{step['else_path']}")
-            end
+        end
+
+        # Validate else_path (regardless of whether branches is present)
+        if step['else_path'].present? && !step_titles.include?(step['else_path'])
+          # For imports, mark as incomplete instead of error
+          if step['_import_incomplete']
+            step['_import_errors'] ||= []
+            step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
+          else
+            errors.add(:steps, "Step #{index + 1}: 'Else' path references non-existent step: #{step['else_path']}")
           end
         end
-        
+
         # Handle legacy format (true_path/false_path)
         if step['true_path'].present? && !step_titles.include?(step['true_path'])
           errors.add(:steps, "Step #{index + 1}: 'If true' references non-existent step: #{step['true_path']}")
@@ -788,19 +596,7 @@ class Workflow < ApplicationRecord
   end
 
   def valid_condition_format?(condition)
-    return false if condition.blank?
-
-    # Basic condition syntax validation
-    valid_patterns = [
-      /^\w+\s*==\s*['"][^'"]*['"]/,  # variable == 'value'
-      /^\w+\s*!=\s*['"][^'"]*['"]/,  # variable != 'value'
-      /^\w+\s*>\s*\d+/,              # variable > 10
-      /^\w+\s*<\s*\d+/,              # variable < 10
-      /^\w+\s*>=\s*\d+/,             # variable >= 10
-      /^\w+\s*<=\s*\d+/,             # variable <= 10
-    ]
-
-    valid_patterns.any? { |pattern| pattern.match?(condition.strip) }
+    ConditionEvaluator.valid?(condition)
   end
 
   def validate_jumps(step, step_num)

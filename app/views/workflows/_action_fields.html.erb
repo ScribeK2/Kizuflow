@@ -1,15 +1,9 @@
 <%# Action-specific fields partial %>
 <%# This partial handles all fields for action steps, including file attachments %>
-<%#
-  Sprint 2 Improvements:
-  - Quick Action Buttons: One-click common actions
-  - Instruction Templates: Pre-written CSR snippets
-  - Improved Instructions Field: Better UX with character count
-%>
 
 <div class="field-container"
-     data-controller="instruction-template quick-action">
-  
+     data-controller="instruction-template">
+
   <%# Action Type - Now with common presets %>
   <div class="mb-4">
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Action Type</label>
@@ -40,41 +34,22 @@
            data-step-form-target="field">
   </div>
 
-  <%# Quick Actions (Sprint 2) %>
-  <%= render 'workflows/quick_actions' %>
-
   <%# Instructions Field with Templates %>
   <div class="mb-4">
     <div class="flex items-center justify-between mb-2">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Instructions</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+        Instructions <span class="text-red-500">*</span>
+      </label>
       <%= render 'workflows/instruction_templates' %>
     </div>
-    
-    <div class="relative">
-      <textarea name="workflow[steps][][instructions]" 
-                placeholder="Enter step-by-step instructions for the CSR to follow... (type {{ to see available variables)
 
-Example:
-1. Greet the customer warmly
-2. Verify account ownership
-3. Explain the solution clearly
-4. Confirm the customer understands" 
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono leading-relaxed resize-y" 
-                rows="6"
-                data-step-form-target="field"
-                data-instruction-template-target="instructionsField"
-                data-quick-action-target="instructionsField"
-                data-variable-autocomplete-target="input"><%= step['instructions'] %></textarea>
-      
-      <%# Character count indicator %>
-      <div class="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
-        <span class="char-count"><%= step['instructions'].to_s.length %></span> characters
-      </div>
-    </div>
-    
-    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-      💡 Use the Quick Actions above or click "Insert Template" for pre-written instructions
-    </p>
+    <textarea name="workflow[steps][][instructions]"
+              placeholder="Enter step-by-step instructions for the CSR to follow... (type {{ to insert variables)"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono leading-relaxed resize-y"
+              rows="5"
+              data-step-form-target="field"
+              data-instruction-template-target="instructionsField"
+              data-variable-autocomplete-target="input"><%= step['instructions'] %></textarea>
   </div>
 
   <%# Output Variables Section %>
@@ -232,18 +207,3 @@ Example:
     </div>
   </div>
 </div>
-
-<script>
-  // Add character count functionality
-  document.addEventListener('DOMContentLoaded', function() {
-    const textareas = document.querySelectorAll('textarea[name*="[instructions]"]');
-    textareas.forEach(textarea => {
-      const counter = textarea.closest('.relative')?.querySelector('.char-count');
-      if (counter) {
-        textarea.addEventListener('input', function() {
-          counter.textContent = this.value.length;
-        });
-      }
-    });
-  });
-</script>

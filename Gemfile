@@ -8,9 +8,9 @@ gem "sprockets-rails"
 gem "sqlite3", ">= 2.1", group: [:development, :test]
 gem "pg", "~> 1.1", group: [:production]
 gem "puma", ">= 5.0"
-gem "esbuild-rails", "~> 0.1.0"
 gem "turbo-rails"
 gem "stimulus-rails"
+gem "importmap-rails"
 gem "tailwindcss-rails"
 gem "redis", "~> 5.0"
 gem "image_processing", "~> 1.2"
@@ -22,9 +22,6 @@ gem "devise"
 
 # PDF generation
 gem "prawn"
-
-# Sortable.js for drag-and-drop
-gem "sortablejs-rails"
 
 # Rich text editing with Trix
 gem "trix-rails"

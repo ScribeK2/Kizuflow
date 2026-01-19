@@ -80,9 +80,10 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     workflow = Workflow.last
     assert_redirected_to edit_workflow_path(workflow)
     assert workflow.title.include?(@template.name)
-    # Steps may have auto-generated IDs, so compare without them
-    workflow_steps = workflow.steps.map { |s| s.except('id') }
-    template_steps = @template.workflow_data.map { |s| s.is_a?(Hash) ? s.stringify_keys.except('id') : s }
+    # Steps may have auto-generated IDs and variable_names, so compare without them
+    auto_generated_fields = %w[id variable_name]
+    workflow_steps = workflow.steps.map { |s| s.except(*auto_generated_fields) }
+    template_steps = @template.workflow_data.map { |s| s.is_a?(Hash) ? s.stringify_keys.except(*auto_generated_fields) : s }
     assert_equal template_steps, workflow_steps
   end
 

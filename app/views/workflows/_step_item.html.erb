@@ -103,14 +103,6 @@
   <input type="hidden" name="workflow[steps][][id]" value="<%= step_id %>">
   <input type="hidden" name="workflow[steps][][index]" value="<%= index %>">
   <input type="hidden" name="workflow[steps][][type]" value="<%= step_type %>">
-  <%# Hidden variable_name field for question steps - ensures it's always submitted even if step is collapsed %>
-  <% if step_type == 'question' %>
-    <input type="hidden" 
-           name="workflow[steps][][variable_name]" 
-           value="<%= step['variable_name'] %>"
-           data-question-form-target="hiddenVariableName"
-           id="variable_name_hidden_<%= step_id %>">
-  <% end %>
   
   <%# Collapsible Content %>
   <div data-collapsible-step-target="content" class="p-4">
@@ -125,15 +117,16 @@
         <%# Title Field %>
         <div class="field-container">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-            Step Title
+            Step Title <span class="text-red-500">*</span>
           </label>
-          <input type="text" 
-                 name="workflow[steps][][title]" 
-                 value="<%= step['title'] %>" 
-                 placeholder="Enter a descriptive title..." 
-                 class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+          <input type="text"
+                 name="workflow[steps][][title]"
+                 value="<%= step['title'] %>"
+                 placeholder="Enter a descriptive title..."
+                 class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                  required
-                 data-step-form-target="field">
+                 data-step-form-target="field"
+                 data-error-field="title">
         </div>
         
         <%# Description Field %>

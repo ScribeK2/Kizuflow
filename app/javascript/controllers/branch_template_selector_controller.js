@@ -29,28 +29,27 @@ export default class extends Controller {
   
   setupVariableListener() {
     // Find all rule builders in the form and listen for variable changes
-    const form = this.element.closest("form")
-    if (!form) return
-    
+    this.form = this.element.closest("form")
+    if (!this.form) return
+
     // Debounce to prevent multiple rapid calls
-    let loadTimeout = null
-    const debouncedLoad = () => {
-      if (loadTimeout) clearTimeout(loadTimeout)
-      loadTimeout = setTimeout(() => {
-        this.loadTemplates()
-      }, 300)
-    }
-    
-    // Listen for variable select changes
-    form.addEventListener('change', (event) => {
+    this.loadTimeout = null
+
+    // Store bound handler for cleanup
+    this.boundFormChangeHandler = (event) => {
       if (event.target.matches('[data-rule-builder-target="variableSelect"]')) {
         this.variableValue = event.target.value
         // Only reload if panel is visible
         if (this.hasPanelTarget && !this.panelTarget.classList.contains('hidden')) {
-          debouncedLoad()
+          if (this.loadTimeout) clearTimeout(this.loadTimeout)
+          this.loadTimeout = setTimeout(() => {
+            this.loadTemplates()
+          }, 300)
         }
       }
-    })
+    }
+
+    this.form.addEventListener('change', this.boundFormChangeHandler)
   }
 
   loadTemplates() {
@@ -547,6 +546,14 @@ export default class extends Controller {
   disconnect() {
     if (this.escapeHandler) {
       document.removeEventListener('keydown', this.escapeHandler)
+    }
+    // Clean up form change listener
+    if (this.form && this.boundFormChangeHandler) {
+      this.form.removeEventListener('change', this.boundFormChangeHandler)
+    }
+    // Clear debounce timer
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout)
     }
     // Restore body scroll if panel was open
     document.body.style.overflow = ''

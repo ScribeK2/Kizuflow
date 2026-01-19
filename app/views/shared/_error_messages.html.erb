@@ -1,0 +1,19 @@
+<% if object.errors.any? %>
+  <div class="<%= local_assigns[:container_class] || 'mb-6' %> rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4"
+       <%= "data-#{local_assigns[:data_controller_target]}=\"errorContainer\"".html_safe if local_assigns[:data_controller_target] %>>
+    <div class="flex">
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+          <%= pluralize(object.errors.count, "error") %> prohibited this <%= object.model_name.human.downcase %> from being saved:
+        </h3>
+        <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+          <ul class="list-disc pl-5 space-y-1">
+            <% object.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

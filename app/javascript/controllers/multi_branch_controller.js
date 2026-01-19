@@ -242,14 +242,32 @@ export default class extends Controller {
   }
 
   setupWorkflowChangeListener() {
-    const form = this.element.closest("form")
-    if (form) {
+    this.form = this.element.closest("form")
+    if (this.form) {
       this.workflowChangeHandler = () => {
         // Refresh step options in all branch dropdowns
         this.refreshAllBranchDropdowns()
       }
-      form.addEventListener("input", this.workflowChangeHandler)
-      form.addEventListener("change", this.workflowChangeHandler)
+      this.form.addEventListener("input", this.workflowChangeHandler)
+      this.form.addEventListener("change", this.workflowChangeHandler)
+    }
+  }
+
+  disconnect() {
+    // Clean up template-applied event listener
+    if (this.handleTemplateApplied) {
+      this.element.removeEventListener('template-applied', this.handleTemplateApplied)
+    }
+
+    // Clean up Yes/No branch event listener
+    if (this.handleYesNoBranchApply) {
+      this.element.removeEventListener('yes-no-branch:apply', this.handleYesNoBranchApply)
+    }
+
+    // Clean up form change listeners
+    if (this.form && this.workflowChangeHandler) {
+      this.form.removeEventListener("input", this.workflowChangeHandler)
+      this.form.removeEventListener("change", this.workflowChangeHandler)
     }
   }
 

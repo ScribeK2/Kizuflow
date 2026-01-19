@@ -8,9 +8,12 @@ export default class extends Controller {
   }
 
   connect() {
+    // Store field handlers for cleanup
+    this.fieldHandlers = new Map()
+
     // Set up validation on all fields
     this.setupFieldValidation()
-    
+
     // Validate on form submission
     this.formElement = this.element.closest("form")
     if (this.formElement) {
@@ -23,15 +26,29 @@ export default class extends Controller {
     if (this.formElement && this.boundValidateBeforeSubmit) {
       this.formElement.removeEventListener("submit", this.boundValidateBeforeSubmit)
     }
+    // Clean up field listeners
+    if (this.fieldHandlers) {
+      this.fieldHandlers.forEach((handlers, field) => {
+        field.removeEventListener("blur", handlers.blur)
+        field.removeEventListener("input", handlers.input)
+      })
+      this.fieldHandlers.clear()
+    }
   }
 
   setupFieldValidation() {
     // Validate on blur and input events
     this.fieldTargets.forEach(field => {
       if (!field.dataset.validationSetup) {
-        field.addEventListener("blur", () => this.validateField(field))
-        field.addEventListener("input", () => this.clearFieldError(field))
+        const blurHandler = () => this.validateField(field)
+        const inputHandler = () => this.clearFieldError(field)
+
+        field.addEventListener("blur", blurHandler)
+        field.addEventListener("input", inputHandler)
         field.dataset.validationSetup = "true"
+
+        // Store handlers for cleanup
+        this.fieldHandlers.set(field, { blur: blurHandler, input: inputHandler })
       }
     })
   }

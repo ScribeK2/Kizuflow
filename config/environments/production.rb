@@ -17,13 +17,11 @@ Rails.application.configure do
 
   # Enable static file serving from the `/public` folder (turn off if using NGINX/Apache for it).
   # On Render, we need to serve static files ourselves, so enable this
-  # Static files are served by Rails (including esbuild-compiled assets)
+  # Static files served by Rails (importmap JS + tailwindcss-rails CSS)
   config.public_file_server.enabled = ENV.fetch("RAILS_SERVE_STATIC_FILES", "true") == "true"
   config.public_file_server.headers = {
     'Cache-Control' => "public, max-age=#{1.hour.to_i}"
   }
-
-  # Assets are precompiled with esbuild during deployment
 
   # Compress CSS using a preprocessor.
   # config.assets.css_compressor = :sass

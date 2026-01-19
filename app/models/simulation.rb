@@ -471,6 +471,9 @@ class Simulation < ApplicationRecord
       end
     end
 
+    # Mark simulation as completed when all steps have been processed
+    self.status = 'completed'
+    self.current_step_index = current_step_index
     self.execution_path = path
     self.results = results
     save
@@ -483,95 +486,7 @@ class Simulation < ApplicationRecord
   private
 
   def evaluate_condition_string(condition_string, results)
-    # Extract condition from string (same logic as evaluate_condition)
-    return false unless condition_string.present?
-    
-    condition = condition_string
-
-    # Enhanced condition evaluation supporting variable names
-    # Supports: variable == 'value', variable != 'value', variable > 10, etc.
-    
-    # String equality/inequality
-    if condition.include?('==')
-      parts = condition.split('==').map(&:strip)
-      key = parts[0].gsub(/['"]/, '').strip
-      value = parts[1].gsub(/['"]/, '').strip
-      
-      # Try multiple strategies to find the value:
-      # 1. Direct key lookup
-      result_value = results[key]
-      
-      # 2. If key is "answer", check all values (for legacy conditions)
-      if result_value.nil? && key.downcase == 'answer'
-        result_value = results.values.last
-      end
-      
-      # 3. Case-insensitive key lookup
-      if result_value.nil?
-        result_value = results.find { |k, v| k.to_s.downcase == key.to_s.downcase }&.last
-      end
-      
-      # Compare values (case-insensitive for strings)
-      if result_value
-        return result_value.to_s.downcase == value.to_s.downcase || result_value == value
-      end
-      
-      return false
-    elsif condition.include?('!=')
-      parts = condition.split('!=').map(&:strip)
-      key = parts[0].gsub(/['"]/, '').strip
-      value = parts[1].gsub(/['"]/, '').strip
-      
-      result_value = results[key]
-      
-      # If key is "answer", check all values (for legacy conditions)
-      if result_value.nil? && key.downcase == 'answer'
-        result_value = results.values.last
-      end
-      
-      if result_value.nil?
-        result_value = results.find { |k, v| k.to_s.downcase == key.to_s.downcase }&.last
-      end
-      
-      if result_value
-        return result_value.to_s.downcase != value.to_s.downcase && result_value != value
-      end
-      
-      return true # If variable doesn't exist, != comparison is true
-    end
-    
-    # Numeric comparisons
-    if condition.match?(/^\w+\s*>\s*\d+/)
-      match = condition.match(/^(\w+)\s*>\s*(\d+)/)
-      return false unless match
-      key = match[1].strip
-      threshold = match[2].to_i
-      value = (results[key] || 0).to_i
-      return value > threshold
-    elsif condition.match?(/^\w+\s*>=\s*\d+/)
-      match = condition.match(/^(\w+)\s*>=\s*(\d+)/)
-      return false unless match
-      key = match[1].strip
-      threshold = match[2].to_i
-      value = (results[key] || 0).to_i
-      return value >= threshold
-    elsif condition.match?(/^\w+\s*<\s*\d+/)
-      match = condition.match(/^(\w+)\s*<\s*(\d+)/)
-      return false unless match
-      key = match[1].strip
-      threshold = match[2].to_i
-      value = (results[key] || 0).to_i
-      return value < threshold
-    elsif condition.match?(/^\w+\s*<=\s*\d+/)
-      match = condition.match(/^(\w+)\s*<=\s*(\d+)/)
-      return false unless match
-      key = match[1].strip
-      threshold = match[2].to_i
-      value = (results[key] || 0).to_i
-      return value <= threshold
-    end
-    
-    false
+    ConditionEvaluator.evaluate(condition_string, results)
   end
 
   def evaluate_condition(step, results)

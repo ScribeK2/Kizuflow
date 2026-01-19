@@ -6,25 +6,8 @@
 
   <%= render partial: "wizard_progress", locals: { current_step: 2 } %>
 
-  <%= form_with model: @workflow, url: update_step2_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, class: "animate-fade-in-up" do |form| %>
-    <% if @workflow.errors.any? %>
-      <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
-        <div class="flex">
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
-              <%= pluralize(@workflow.errors.count, "error") %> prohibited this workflow from being saved:
-            </h3>
-            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
-              <ul class="list-disc pl-5 space-y-1">
-                <% @workflow.errors.full_messages.each do |message| %>
-                  <li><%= message %></li>
-                <% end %>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    <% end %>
+  <%= form_with model: @workflow, url: update_step2_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false, controller: "error-highlight" }, class: "animate-fade-in-up" do |form| %>
+    <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "mb-6", data_controller_target: "error-highlight-target" } %>
 
     <%# Two-Column Layout: Sidebar + Main Content (Sprint 3) %>
     <div class="flex gap-6">
@@ -53,7 +36,7 @@
                 <% end %>
               </label>
               <div class="flex flex-wrap gap-2">
-                <button type="button" 
+                <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="question"
                         class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
@@ -62,7 +45,7 @@
                         onmouseout="this.style.backgroundColor='#3b82f6'">
                   Question
                 </button>
-                <button type="button" 
+                <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="decision"
                         class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
@@ -71,7 +54,7 @@
                         onmouseout="this.style.backgroundColor='#a855f7'">
                   Decision
                 </button>
-                <button type="button" 
+                <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="action"
                         class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
@@ -80,7 +63,7 @@
                         onmouseout="this.style.backgroundColor='#22c55e'">
                   Action
                 </button>
-                <button type="button" 
+                <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="checkpoint"
                         class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"

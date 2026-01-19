@@ -2,14 +2,18 @@
 <%# This partial handles all fields for question steps, including answer type selection and variable name %>
 
 <div class="field-container">
-  <input type="text" 
-         name="workflow[steps][][question]" 
-         value="<%= step['question'] %>" 
-         placeholder="Question text (type {{ to see available variables)" 
-         class="w-full border rounded px-3 py-2"
+  <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+    Question Text <span class="text-red-500">*</span>
+  </label>
+  <input type="text"
+         name="workflow[steps][][question]"
+         value="<%= step['question'] %>"
+         placeholder="Question text (type {{ to see available variables)"
+         class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
          data-step-form-target="field"
          data-variable-autocomplete-target="input"
-         data-required="true">
+         data-required="true"
+         required>
 </div>
 
 <div class="field-container" data-controller="question-form">
@@ -80,15 +84,15 @@
   </div>
 </div>
 
-<%# Variable name field - NO name attribute, synced to hidden field via JS %>
+<%# Variable name field %>
 <div class="field-container">
   <label class="block text-sm font-medium text-gray-700 mb-1">Variable Name</label>
-  <input type="text" 
-         value="<%= step['variable_name'] %>" 
-         placeholder="e.g., user_name, age, etc." 
+  <input type="text"
+         name="workflow[steps][][variable_name]"
+         value="<%= step['variable_name'] %>"
+         placeholder="e.g., user_name, age, etc."
          class="w-full border rounded px-3 py-2"
-         data-step-form-target="field"
-         data-question-form-target="variableName">
+         data-step-form-target="field">
   <p class="mt-1 text-xs text-gray-500">Optional: Name this answer for use in decision steps</p>
 </div>
 
