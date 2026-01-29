@@ -62,6 +62,10 @@ class Admin::UsersController < ApplicationController
       return
     end
 
+    # Skip Devise password-change email; admin sees temp password in UI (avoids
+    # SMTP connection on hosts like Render where mail is not configured).
+    @user.skip_password_change_notification = true
+
     # Generate temporary password
     temp_password = @user.generate_temporary_password
 

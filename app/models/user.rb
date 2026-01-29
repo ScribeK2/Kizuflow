@@ -63,6 +63,17 @@ class User < ApplicationRecord
     display_name.presence || email
   end
 
+  # When true, Devise will not send the "password changed" email (used for admin
+  # temporary password resets where the password is shown in the UI instead).
+  attr_accessor :skip_password_change_notification
+
+  # Skip password-change email when set by admin reset (avoids SMTP in environments
+  # where mail is not configured, e.g. Render without SendGrid).
+  def send_password_change_notification
+    return if skip_password_change_notification
+    super
+  end
+
   # Generate a secure temporary password for admin reset
   def generate_temporary_password
     # Ensure password contains at least one lowercase, uppercase, and digit
