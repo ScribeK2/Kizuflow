@@ -107,7 +107,7 @@
   </div>
 <% end %>
 
-<script>
+<script nonce="<%= content_security_policy_nonce %>">
   // Template preview modal functions
   function openTemplatePreview(templateId) {
     const modal = document.getElementById('template-preview-modal-' + templateId)

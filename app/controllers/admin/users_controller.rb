@@ -50,7 +50,15 @@ class Admin::UsersController < ApplicationController
     # Prevent self-reset security measure
     if @user == current_user
       Rails.logger.warn "[ADMIN SECURITY] #{current_user.email} attempted to reset own password via admin interface"
-      redirect_to admin_users_path, alert: 'Cannot reset your own password. Use the regular password reset flow.'
+      respond_to do |format|
+        format.json do
+          render json: {
+            success: false,
+            error: 'Cannot reset your own password. Use the regular password reset flow.'
+          }, status: :forbidden
+        end
+        format.html { redirect_to admin_users_path, alert: 'Cannot reset your own password. Use the regular password reset flow.' }
+      end
       return
     end
 

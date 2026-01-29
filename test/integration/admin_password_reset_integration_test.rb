@@ -80,6 +80,18 @@ class AdminPasswordResetIntegrationTest < ActionDispatch::IntegrationTest
     assert_match(/Cannot reset your own password/, flash[:alert])
   end
 
+  test 'admin cannot reset own password via JSON request' do
+    sign_in @admin
+
+    post reset_password_admin_user_path(@admin), as: :json
+
+    assert_response :forbidden
+
+    json_response = JSON.parse(response.body)
+    assert_equal false, json_response['success']
+    assert_match(/Cannot reset your own password/, json_response['error'])
+  end
+
   test 'non-admin cannot access reset password functionality' do
     sign_in @editor
 
