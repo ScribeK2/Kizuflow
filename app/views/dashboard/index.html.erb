@@ -1,7 +1,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <!-- Header Section -->
   <div class="mb-12 animate-fade-in">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
       Dashboard
     </h1>
     <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
@@ -29,7 +29,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Get started</p>
-            <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
+            <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" do %>
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
@@ -48,7 +48,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Start from a template</p>
-            <%= link_to templates_path, class: "inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
+            <%= link_to templates_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" do %>
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
@@ -61,19 +61,19 @@
   </div>
 
   <!-- Recent Workflows Section -->
-  <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;">
-    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+  <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;">
+    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
       <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Workflows</h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your most recently created workflows</p>
     </div>
-    <div class="divide-y divide-white/20 dark:divide-gray-700/30">
+    <div class="divide-y divide-slate-200 dark:divide-slate-700">
       <% if @workflows.any? %>
         <% @workflows.each_with_index do |workflow, index| %>
-          <div class="px-6 py-4 hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
+          <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
             <div class="flex items-center justify-between">
               <div class="flex items-center flex-1 min-w-0">
                 <div class="flex-shrink-0 mr-4">
-                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <div class="w-10 h-10 rounded-lg bg-slate-600 dark:bg-slate-500 flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -81,7 +81,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200" %>
+                    <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-slate-600 dark:hover:text-slate-400 transition-colors duration-200" %>
                   </div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">
                     Created <%= time_ago_in_words(workflow.created_at) %> ago
@@ -89,18 +89,18 @@
                 </div>
               </div>
               <div class="flex items-center space-x-3 ml-4">
-                <%= link_to start_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 inline-flex items-center" do %>
+                <%= link_to start_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 inline-flex items-center" do %>
                   <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Start
                 <% end %>
-                <%= link_to workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+                <%= link_to workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" do %>
                   View
                 <% end %>
                 <% if workflow.can_be_edited_by?(current_user) %>
-                  <%= link_to edit_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-50/80 dark:hover:bg-blue-900/40 transition-all duration-200 hover:scale-105" do %>
+                  <%= link_to edit_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105" do %>
                     Edit
                   <% end %>
                 <% end %>
@@ -116,7 +116,7 @@
           <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows yet</h3>
           <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
             <% if current_user&.can_create_workflows? %>
-              <%= link_to "Create your first workflow", new_workflow_path, class: "text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium" %>
+              <%= link_to "Create your first workflow", new_workflow_path, class: "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 font-medium" %>
             <% else %>
               Browse public workflows or templates to get started.
             <% end %>
@@ -126,4 +126,3 @@
     </div>
   </div>
 </div>
-

@@ -5,16 +5,29 @@
 
 /* Theme customization */
 @theme {
-  /* Custom neon colors */
-  --color-neon-blue: #00f5ff;
-  --color-neon-purple: #bf00ff;
-  --color-neon-green: #00ff41;
-  --color-neon-pink: #ff00ff;
-  --color-neon-cyan: #00ffff;
+  /* Primary: Slate/Charcoal */
+  --color-primary: #475569;        /* slate-600 */
+  --color-primary-light: #64748b;  /* slate-500 */
+  --color-primary-dark: #334155;   /* slate-700 */
 
-  /* Glass morphism colors */
-  --color-glass-light: rgba(255, 255, 255, 0.3);
-  --color-glass-dark: rgba(0, 0, 0, 0.3);
+  /* Accent: Emerald */
+  --color-accent: #10b981;         /* emerald-500 */
+  --color-accent-dark: #059669;    /* emerald-600 */
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;  /* slate-50 */
+  --color-surface-dark: #1e293b;   /* slate-800 */
+  --color-surface-dark-muted: #0f172a; /* slate-900 */
+
+  /* Semantic */
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-success: #16a34a;
+
+  /* Borders */
+  --color-border: #e2e8f0;         /* slate-200 */
+  --color-border-dark: #334155;    /* slate-700 */
 
   /* Custom font family */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -25,13 +38,6 @@
   --animate-slide-in-right: slideInRight 0.3s ease-out;
   --animate-scale-in: scaleIn 0.2s ease-out;
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-glow: glow 2s ease-in-out infinite alternate;
-
-  /* Custom box shadows */
-  --shadow-neon-blue: 0 0 10px rgba(0, 245, 255, 0.5), 0 0 20px rgba(0, 245, 255, 0.3);
-  --shadow-neon-purple: 0 0 10px rgba(191, 0, 255, 0.5), 0 0 20px rgba(191, 0, 255, 0.3);
-  --shadow-neon-green: 0 0 10px rgba(0, 255, 65, 0.5), 0 0 20px rgba(0, 255, 65, 0.3);
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 
   @keyframes fadeIn {
     0% { opacity: 0; }
@@ -52,44 +58,32 @@
     0% { opacity: 0; transform: scale(0.95); }
     100% { opacity: 1; transform: scale(1); }
   }
-
-  @keyframes glow {
-    0% { box-shadow: 0 0 5px rgba(0, 245, 255, 0.5); }
-    100% { box-shadow: 0 0 20px rgba(0, 245, 255, 0.8), 0 0 30px rgba(0, 245, 255, 0.6); }
-  }
 }
 
 /* Custom utilities */
-@utility glass-card {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+@utility solid-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-@utility glass-modal {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: white;
-  border: 1px solid #d1d5db;
+@utility solid-modal {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
-@utility glass-light {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+/* Dark mode solid styles */
+.dark .solid-card {
+  background-color: var(--color-surface-dark);
+  border-color: var(--color-border-dark);
 }
 
-@utility glass-dark {
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+.dark .solid-modal {
+  background-color: var(--color-surface-dark);
+  border-color: var(--color-border-dark);
 }
 
 @utility hover-lift {
@@ -102,17 +96,6 @@
 
 @utility rotateY-24 {
   transform: rotateY(24deg);
-}
-
-/* Dark mode glass styles */
-.dark .glass-card {
-  background: rgba(31, 41, 55, 0.3);
-  border-color: rgba(55, 65, 81, 0.3);
-}
-
-.dark .glass-modal {
-  background: rgba(17, 24, 39, 0.4);
-  border-color: rgba(55, 65, 81, 0.3);
 }
 
 /* Hover effects */
@@ -196,8 +179,8 @@ trix-editor {
 trix-editor:focus {
   outline: none;
   ring: 2px;
-  --tw-ring-color: #3b82f6;
-  border-color: #3b82f6;
+  --tw-ring-color: #475569;
+  border-color: #475569;
 }
 
 .dark trix-editor {
@@ -207,8 +190,8 @@ trix-editor:focus {
 }
 
 .dark trix-editor:focus {
-  --tw-ring-color: #60a5fa;
-  border-color: #60a5fa;
+  --tw-ring-color: #64748b;
+  border-color: #64748b;
 }
 
 trix-editor h1 {
@@ -313,13 +296,13 @@ trix-toolbar .trix-button:hover {
 }
 
 trix-toolbar .trix-button.trix-active {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: #f1f5f9;
+  color: #334155;
 }
 
 .dark trix-toolbar .trix-button.trix-active {
-  background-color: #1e3a8a;
-  color: #93c5fd;
+  background-color: #334155;
+  color: #e2e8f0;
 }
 
 trix-toolbar .trix-button:disabled {

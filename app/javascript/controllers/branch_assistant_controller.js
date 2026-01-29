@@ -206,7 +206,7 @@ export default class extends Controller {
     const typeColor = this.getTypeColor(suggestion.type)
     
     return `
-      <div class="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 hover:border-blue-300 transition-all">
+      <div class="border rounded-lg p-4 bg-slate-50 border-slate-200 hover:border-slate-300 transition-all">
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2">
             <span class="${typeColor} text-xl">${typeIcon}</span>
@@ -226,7 +226,7 @@ export default class extends Controller {
         </div>
         
         <button type="button"
-                class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                class="mt-3 w-full bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium py-2 px-4 rounded-full transition-colors"
                 data-action="click->branch-assistant#applySuggestion"
                 data-suggestion-index="${index}">
           Apply This Suggestion

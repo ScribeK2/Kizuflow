@@ -69,6 +69,12 @@ Rails.application.configure do
   # Don't check for precompiled assets in development
   config.assets.check_precompiled_asset = false
 
+  # Resolve assets from the live Sprockets environment only, not the precompiled
+  # manifest. Otherwise a stale manifest in public/assets (from a previous
+  # assets:precompile) is used first, and the browser gets old CSS from public/
+  # instead of the current app/assets/builds/tailwind.css (e.g. after UI changes).
+  config.assets.resolve_with = [:environment]
+
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
 

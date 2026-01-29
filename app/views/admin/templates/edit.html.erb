@@ -4,7 +4,7 @@
     <p class="mt-2 text-gray-600 dark:text-gray-400">Modify template details.</p>
   </div>
 
-  <%= form_with model: [:admin, @template], local: true, class: "glass-card overflow-hidden animate-fade-in-up" do |form| %>
+  <%= form_with model: [:admin, @template], local: true, class: "solid-card overflow-hidden animate-fade-in-up" do |form| %>
     <% if @template.errors.any? %>
       <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
         <div class="flex">
@@ -27,21 +27,21 @@
     <div class="p-6 space-y-6">
       <div>
         <%= form.label :name, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :name, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
+        <%= form.text_field :name, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
       </div>
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_area :description, rows: 4, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
+        <%= form.text_area :description, rows: 4, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
       </div>
 
       <div>
         <%= form.label :category, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :category, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "e.g., onboarding, troubleshooting, training" %>
+        <%= form.text_field :category, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "e.g., onboarding, troubleshooting, training" %>
       </div>
 
       <div class="flex items-center">
-        <%= form.check_box :is_public, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+        <%= form.check_box :is_public, class: "h-4 w-4 text-blue-600 focus:ring-slate-500 border-gray-300 rounded" %>
         <%= form.label :is_public, "Make this template public", class: "ml-2 block text-sm text-gray-700 dark:text-gray-300" %>
       </div>
 
@@ -50,14 +50,14 @@
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
           Workflow steps as JSON array.
         </p>
-        <%= form.text_area :workflow_data, value: (@template.workflow_data.to_json if @template.workflow_data.present?), rows: 10, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
+        <%= form.text_area :workflow_data, value: (@template.workflow_data.to_json if @template.workflow_data.present?), rows: 10, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
       </div>
 
-      <div class="flex justify-end gap-3 pt-4 border-t border-white/20 dark:border-gray-700/30">
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
         <%= link_to admin_templates_path, class: "bg-white hover:bg-gray-50 text-gray-700 px-6 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 transition-all duration-200 hover:scale-105" do %>
           Cancel
         <% end %>
-        <%= form.submit "Update Template", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
+        <%= form.submit "Update Template", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
       </div>
     </div>
   <% end %>

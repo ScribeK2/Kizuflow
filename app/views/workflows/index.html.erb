@@ -2,7 +2,7 @@
   <!-- Header Section -->
   <div class="mb-8 flex justify-between items-center animate-fade-in">
     <div>
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
         Workflows
       </h1>
       <% if @selected_group.present? %>
@@ -25,13 +25,13 @@
     </div>
     <% if current_user&.can_create_workflows? %>
       <div class="flex space-x-3">
-        <%= link_to import_workflows_path, class: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center" do %>
+        <%= link_to import_workflows_path, class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center" do %>
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           Import
         <% end %>
-        <%= link_to new_workflow_path, class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center" do %>
+        <%= link_to new_workflow_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center" do %>
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
@@ -52,7 +52,7 @@
     <div class="flex-1 min-w-0">
       <!-- Search Bar -->
       <div class="mb-6 animate-fade-in-up">
-        <%= form_with url: workflows_path, method: :get, local: true, class: "glass-card overflow-hidden p-4", data: { controller: "workflow-search" } do |form| %>
+        <%= form_with url: workflows_path, method: :get, local: true, class: "solid-card overflow-hidden p-4", data: { controller: "workflow-search" } do |form| %>
           <%= hidden_field_tag :group_id, params[:group_id] if params[:group_id].present? %>
           <div class="flex items-center space-x-3">
             <div class="flex-1 relative">
@@ -61,29 +61,29 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <%= form.text_field :search, 
+              <%= form.text_field :search,
                   value: @search_query,
                   placeholder: @selected_group ? "Search workflows in #{@selected_group.name}..." : "Search workflows by title or description...",
-                  class: "block w-full pr-3 py-2 border border-white/20 dark:border-gray-700/30 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors",
+                  class: "block w-full pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400 transition-colors",
                   style: "padding-left: 3rem;" %>
             </div>
             <% if @search_query.present? %>
-              <%= link_to workflows_path(group_id: params[:group_id]), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105 inline-flex items-center" do %>
+              <%= link_to workflows_path(group_id: params[:group_id]), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105 inline-flex items-center" do %>
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
                 Clear
               <% end %>
             <% end %>
-            <%= form.submit "Search", class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
+            <%= form.submit "Search", class: "px-4 py-2 text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" %>
           </div>
         <% end %>
       </div>
 
       <!-- Workflows List -->
       <% if @workflows.any? %>
-        <div class="glass-card overflow-hidden animate-fade-in-up">
-          <ul class="divide-y divide-white/20 dark:divide-gray-700/30">
+        <div class="solid-card overflow-hidden animate-fade-in-up">
+          <ul class="divide-y divide-slate-200 dark:divide-slate-700">
             <%# Eager load associations to prevent N+1 queries %>
             <% @workflows.each_with_index do |workflow, index| %>
               <%= render partial: 'workflows/workflow_list_item', locals: { workflow: workflow, index: index } %>
@@ -91,7 +91,7 @@
           </ul>
         </div>
       <% else %>
-        <div class="glass-card p-12 text-center animate-fade-in-up">
+        <div class="solid-card p-12 text-center animate-fade-in-up">
           <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -107,7 +107,7 @@
           </p>
           <% if current_user&.can_create_workflows? %>
             <div class="mt-6">
-              <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" do %>
+              <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" do %>
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>

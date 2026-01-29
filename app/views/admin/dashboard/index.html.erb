@@ -1,7 +1,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <!-- Header Section -->
   <div class="mb-8 animate-fade-in">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
       Admin Dashboard
     </h1>
     <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
@@ -12,14 +12,14 @@
   <!-- Stats Cards Grid -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
     <!-- Users Card -->
-    <div class="glass-card overflow-hidden animate-fade-in-up">
+    <div class="solid-card overflow-hidden animate-fade-in-up">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @users_count %></p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Users</p>
           </div>
-          <div class="text-blue-600 dark:text-blue-400 opacity-80">
+          <div class="text-slate-600 dark:text-slate-400 opacity-80">
             <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -29,14 +29,14 @@
     </div>
 
     <!-- Workflows Card -->
-    <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @workflows_count %></p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Workflows</p>
           </div>
-          <div class="text-purple-600 dark:text-purple-400 opacity-80">
+          <div class="text-slate-600 dark:text-slate-400 opacity-80">
             <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -46,14 +46,14 @@
     </div>
 
     <!-- Public Workflows Card -->
-    <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;">
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @public_workflows_count %></p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Public Workflows</p>
           </div>
-          <div class="text-green-600 dark:text-green-400 opacity-80">
+          <div class="text-emerald-600 dark:text-emerald-400 opacity-80">
             <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -63,14 +63,14 @@
     </div>
 
     <!-- Templates Card -->
-    <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.3s;">
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.3s;">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @templates_count %></p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Templates</p>
           </div>
-          <div class="text-pink-600 dark:text-pink-400 opacity-80">
+          <div class="text-slate-600 dark:text-slate-400 opacity-80">
             <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
@@ -83,11 +83,11 @@
   <!-- Recent Activity Section -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <!-- Recent Users -->
-    <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.4s;">
-      <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.4s;">
+      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Users</h3>
       </div>
-      <div class="divide-y divide-white/20 dark:divide-gray-700/30">
+      <div class="divide-y divide-slate-200 dark:divide-slate-700">
         <% if @recent_users.any? %>
           <% @recent_users.each do |user| %>
             <div class="px-6 py-4">
@@ -95,7 +95,7 @@
                 <div>
                   <p class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= user.email %></p>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Role: <span class="font-medium"><%= user.role.capitalize %></span> • Joined <%= time_ago_in_words(user.created_at) %> ago
+                    Role: <span class="font-medium"><%= user.role.capitalize %></span> - Joined <%= time_ago_in_words(user.created_at) %> ago
                   </p>
                 </div>
               </div>
@@ -110,21 +110,21 @@
     </div>
 
     <!-- Recent Workflows -->
-    <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.5s;">
-      <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.5s;">
+      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Workflows</h3>
       </div>
-      <div class="divide-y divide-white/20 dark:divide-gray-700/30">
+      <div class="divide-y divide-slate-200 dark:divide-slate-700">
         <% if @recent_workflows.any? %>
           <% @recent_workflows.each do |workflow| %>
             <div class="px-6 py-4">
               <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200" %>
+                    <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-slate-600 dark:hover:text-slate-400 transition-colors duration-200" %>
                   </p>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    by <%= workflow.user.email %> • <%= workflow.is_public? ? "Public" : "Private" %> • <%= time_ago_in_words(workflow.created_at) %> ago
+                    by <%= workflow.user.email %> - <%= workflow.is_public? ? "Public" : "Private" %> - <%= time_ago_in_words(workflow.created_at) %> ago
                   </p>
                 </div>
               </div>
@@ -141,25 +141,25 @@
 
   <!-- Quick Links -->
   <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-    <%= link_to admin_users_path, class: "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
+    <%= link_to admin_users_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center justify-center" do %>
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
       Manage Users
     <% end %>
-    <%= link_to admin_workflows_path, class: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
+    <%= link_to admin_workflows_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center justify-center" do %>
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
       View All Workflows
     <% end %>
-    <%= link_to admin_groups_path, class: "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
+    <%= link_to admin_groups_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center justify-center" do %>
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
       </svg>
       Manage Groups
     <% end %>
-    <%= link_to admin_templates_path, class: "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
+    <%= link_to admin_templates_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center justify-center" do %>
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
       </svg>
@@ -167,4 +167,3 @@
     <% end %>
   </div>
 </div>
-

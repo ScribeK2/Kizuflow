@@ -7,7 +7,7 @@
   <!-- Account Overview Card - Display Name Only (No Password Required) -->
   <% overview_content = capture do %>
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-      This information helps identify you in Kizuflow.
+      This information helps identify you in Flows.
     </p>
 
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :patch }) do |f| %>
@@ -16,7 +16,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <%= f.label :display_name, "Display name", class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-          <%= f.text_field :display_name, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+          <%= f.text_field :display_name, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
           <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
             This name appears in the top bar instead of your email.
           </p>
@@ -53,10 +53,10 @@
         </div>
       </div>
 
-      <div class="mt-6 pt-4 border-t border-white/20 dark:border-gray-700/30">
+      <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <%= link_to "Back to dashboard", root_path, class: "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-medium transition-colors duration-200" %>
-          <%= f.submit "Save display name", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer" %>
+          <%= f.submit "Save display name", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer" %>
         </div>
       </div>
     <% end %>
@@ -80,19 +80,19 @@
 
       <div class="field">
         <%= f.label :email, "Email", class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-        <%= f.email_field :email, autocomplete: "email", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= f.email_field :email, autocomplete: "email", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
       </div>
 
       <div class="field mt-4">
         <%= f.label :current_password, "Current password", class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-        <%= f.password_field :current_password, autocomplete: "current-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= f.password_field :current_password, autocomplete: "current-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">We need your current password to confirm this change.</p>
       </div>
 
-      <div class="mt-6 pt-4 border-t border-white/20 dark:border-gray-700/30">
+      <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <%= link_to "Back to dashboard", root_path, class: "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-medium transition-colors duration-200" %>
-          <%= f.submit "Update email", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer" %>
+          <%= f.submit "Update email", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer" %>
         </div>
       </div>
     <% end %>
@@ -116,7 +116,7 @@
 
       <div class="field">
         <%= f.label :current_password, "Current password", class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-        <%= f.password_field :current_password, autocomplete: "current-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= f.password_field :current_password, autocomplete: "current-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">We need your current password to confirm your changes.</p>
       </div>
 
@@ -125,18 +125,18 @@
         <% if @minimum_password_length %>
           <em class="text-xs text-gray-500 dark:text-gray-400">(<%= @minimum_password_length %> characters minimum)</em>
         <% end %>
-        <%= f.password_field :password, autocomplete: "new-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= f.password_field :password, autocomplete: "new-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
       </div>
 
       <div class="field">
         <%= f.label :password_confirmation, "Confirm new password", class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-        <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
       </div>
 
-      <div class="mt-6 pt-4 border-t border-white/20 dark:border-gray-700/30">
+      <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <%= link_to "Back to dashboard", root_path, class: "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-medium transition-colors duration-200" %>
-          <%= f.submit "Update password", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer" %>
+          <%= f.submit "Update password", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer" %>
         </div>
       </div>
     <% end %>

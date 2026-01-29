@@ -25,18 +25,18 @@
     </div>
   <% end %>
 
-  <%= form_with model: @workflow, url: update_step1_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, html: { class: "glass-card animate-fade-in-up", style: "overflow: visible;" } do |form| %>
+  <%= form_with model: @workflow, url: update_step1_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, html: { class: "solid-card animate-fade-in-up", style: "overflow: visible;" } do |form| %>
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "mx-6 mt-6" } %>
 
     <div class="p-6 space-y-6">
       <div>
         <%= form.label :title, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "Enter workflow title", required: true %>
+        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "Enter workflow title", required: true %>
       </div>
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.rich_text_area :description, id: "workflow_description", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Describe what this workflow does..." %>
+        <%= form.rich_text_area :description, id: "workflow_description", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Describe what this workflow does..." %>
       </div>
 
       <% if @accessible_groups&.any? %>
@@ -46,8 +46,8 @@
       <% end %>
 
       <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-        <%= form.submit "Next: Add Steps", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Next: Add Steps", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
       </div>
     </div>
   <% end %>

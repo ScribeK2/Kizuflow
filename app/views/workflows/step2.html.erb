@@ -20,7 +20,7 @@
       
       <%# Main Content %>
       <div class="flex-1 min-w-0">
-        <div class="glass-card overflow-hidden p-6 space-y-6">
+        <div class="solid-card overflow-hidden p-6 space-y-6">
           <div data-controller="workflow-builder" 
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
@@ -143,7 +143,7 @@
           <%# Navigation Buttons %>
           <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
             <%= link_to step1_workflow_path(@workflow), 
-                class: "inline-flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+                class: "inline-flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
               </svg>
@@ -158,7 +158,7 @@
               <% end %>
               
               <%= form.submit "Next: Review →", 
-                  class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer",
+                  class: "bg-slate-600 hover:bg-slate-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer",
                   data: { 
                     action: "click->step-form#logSubmit",
                     turbo: true

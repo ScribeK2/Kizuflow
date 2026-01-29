@@ -4,7 +4,7 @@
     <p class="mt-2 text-gray-600 dark:text-gray-400">Create a new workflow by adding steps below.</p>
   </div>
 
-  <%= form_with model: @workflow, local: true, class: "glass-card overflow-hidden animate-fade-in-up" do |form| %>
+  <%= form_with model: @workflow, local: true, class: "solid-card overflow-hidden animate-fade-in-up" do |form| %>
     <% if @workflow.errors.any? %>
       <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
         <div class="flex">
@@ -27,12 +27,12 @@
     <div class="p-6 space-y-6">
       <div>
         <%= form.label :title, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
+        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400 transition-colors" %>
       </div>
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.rich_text_area :description, id: "workflow_description", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= form.rich_text_area :description, id: "workflow_description", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400" %>
       </div>
 
       <% if @accessible_groups&.any? %>
@@ -43,13 +43,13 @@
         <div class="flex justify-between items-center mb-4">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
           <div class="flex space-x-2">
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Question</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="decision" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Decision</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-3 py-1 rounded-lg text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">Add Action</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="checkpoint" class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">Add Checkpoint</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Question</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="decision" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Decision</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Action</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="checkpoint" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">Add Checkpoint</button>
           </div>
         </div>
-        <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
+        <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-slate-50 dark:bg-slate-800/50">
           <!-- Steps will be added here dynamically -->
         </div>
       </div>
@@ -69,10 +69,9 @@
       </script>
 
       <div class="flex justify-end space-x-3">
-        <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-        <%= form.submit "Create Workflow", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <%= link_to "Cancel", workflows_path, class: "bg-slate-100 dark:bg-slate-700 py-2 px-4 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Create Workflow", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105" %>
       </div>
     </div>
   <% end %>
 </div>
-

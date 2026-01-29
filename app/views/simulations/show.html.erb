@@ -31,7 +31,7 @@
   </div>
 
   <% if @simulation.stopped? %>
-    <div class="glass-card overflow-hidden mb-6 animate-fade-in-up border-l-4 border-orange-500 dark:border-orange-400">
+    <div class="solid-card overflow-hidden mb-6 animate-fade-in-up border-l-4 border-orange-500 dark:border-orange-400">
       <div class="px-6 py-5">
         <div class="flex items-start">
           <svg class="w-6 h-6 text-orange-600 dark:text-orange-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,8 +54,8 @@
     </div>
   <% end %>
 
-  <div class="glass-card overflow-hidden mb-6 animate-fade-in-up">
-    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+  <div class="solid-card overflow-hidden mb-6 animate-fade-in-up">
+    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Execution Path</h2>
     </div>
     <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>
@@ -63,7 +63,7 @@
         <% @simulation.execution_path.each_with_index do |path_item, index| %>
           <div class="border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-2 backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 rounded-r-lg animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
             <div class="flex items-center mb-2">
-              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold mr-3">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 text-white text-sm font-semibold mr-3">
                 <%= index + 1 %>
               </span>
               <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= path_item['step_title'] %></h3>
@@ -105,8 +105,8 @@
     <% end %>
   </div>
 
-  <div class="glass-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
-    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+  <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
+    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Results Summary</h2>
     </div>
     <% if @simulation.results.present? %>
@@ -128,7 +128,7 @@
   </div>
 
   <div class="mt-6 flex justify-end">
-    <%= link_to workflow_path(@workflow), class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" do %>
+    <%= link_to workflow_path(@workflow), class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" do %>
       Back to Workflow
     <% end %>
   </div>

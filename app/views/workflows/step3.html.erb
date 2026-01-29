@@ -6,7 +6,7 @@
 
   <%= render partial: "wizard_progress", locals: { current_step: 3 } %>
 
-  <%= form_with model: @workflow, url: create_from_draft_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, class: "glass-card overflow-hidden animate-fade-in-up" do |form| %>
+  <%= form_with model: @workflow, url: create_from_draft_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, class: "solid-card overflow-hidden animate-fade-in-up" do |form| %>
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "mx-6 mt-6" } %>
 
     <div class="p-6 space-y-6">
@@ -43,13 +43,13 @@
 
       <!-- Interactive Flowchart Preview -->
       <% if @workflow.steps.present? %>
-        <div class="glass-card overflow-hidden animate-fade-in-up" 
+        <div class="solid-card overflow-hidden animate-fade-in-up" 
              data-controller="wizard-flow-preview"
              data-wizard-flow-preview-workflow-id-value="<%= @workflow.id %>">
           <script type="application/json" data-wizard-flow-preview-steps-data="<%= @workflow.id %>">
             <%= raw json_escape(@workflow.steps.to_json) %>
           </script>
-          <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30 flex justify-between items-center">
+          <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Workflow Flowchart</h3>
             <button type="button" 
                     data-action="click->wizard-flow-preview#refresh" 
@@ -90,8 +90,8 @@
       <%= render partial: "workflows/step_modal" %>
 
       <div class="flex justify-between space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <%= link_to "Previous", step2_workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-        <%= form.submit "Create Workflow", class: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <%= link_to "Previous", step2_workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Create Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
       </div>
     </div>
   <% end %>

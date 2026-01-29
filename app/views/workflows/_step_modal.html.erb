@@ -1,10 +1,10 @@
 <%# Step Addition Modal %>
-<div id="step-modal" 
+<div id="step-modal"
      class="hidden fixed inset-0 z-50 overflow-y-auto"
      data-step-modal-target="modalContainer"
      data-action="click->step-modal#backdropClick">
   <%# Backdrop %>
-  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity z-0" data-step-modal-target="backdrop"></div>
+  <div class="fixed inset-0 bg-slate-900/60 transition-opacity z-0" data-step-modal-target="backdrop"></div>
 
   <%# Modal wrapper for centering %>
   <div class="fixed inset-0 z-10 overflow-y-auto">
@@ -13,13 +13,13 @@
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
       <%# Modal panel %>
-      <div class="glass-modal inline-block align-bottom text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full animate-scale-in relative z-20"
+      <div class="solid-modal inline-block align-bottom text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full animate-scale-in relative z-20"
            data-step-modal-target="modal"
            data-action="click->step-modal#stopPropagation">
       <div class="px-4 pt-5 pb-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Add Step</h3>
-          <button type="button" 
+          <button type="button"
                   data-action="click->step-modal#close"
                   class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 hover:scale-110">
             <span class="sr-only">Close</span>
@@ -35,24 +35,24 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Step Type</label>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <% [
-                { value: 'question', label: 'Question', icon: '❓', color: 'blue' },
-                { value: 'decision', label: 'Decision', icon: '🔀', color: 'green' },
-                { value: 'action', label: 'Action', icon: '⚡', color: 'purple' },
-                { value: 'checkpoint', label: 'Checkpoint', icon: '📍', color: 'yellow' }
+                { value: 'question', label: 'Question', icon: '?', color: 'slate' },
+                { value: 'decision', label: 'Decision', icon: '/', color: 'slate' },
+                { value: 'action', label: 'Action', icon: '!', color: 'emerald' },
+                { value: 'checkpoint', label: 'Checkpoint', icon: 'v', color: 'amber' }
               ].each do |type| %>
-                <label class="flex flex-col items-center gap-1 p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-gray-300 dark:border-gray-600 step-type-option" 
+                <label class="flex flex-col items-center gap-1 p-3 border-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-slate-300 dark:border-slate-600 step-type-option"
                        data-step-type-option="<%= type[:value] %>"
                        data-step-type-color="<%= type[:color] %>"
                        data-type="<%= type[:value] %>">
-                  <input type="radio" 
-                         name="step_type" 
+                  <input type="radio"
+                         name="step_type"
                          value="<%= type[:value] %>"
                          data-step-modal-target="stepType"
                          data-action="change->step-modal#updateStepType"
                          data-step-modal-type-param="<%= type[:value] %>"
                          <%= 'checked' if type[:value] == 'question' %>
                          class="sr-only">
-                  <span class="text-2xl"><%= type[:icon] %></span>
+                  <span class="text-2xl font-bold"><%= type[:icon] %></span>
                   <span class="text-xs font-medium text-gray-700 dark:text-gray-300"><%= type[:label] %></span>
                 </label>
               <% end %>
@@ -64,14 +64,14 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Apply Template (Optional)</label>
             <select data-step-modal-target="templateSelect"
                     data-action="change->step-modal#applyTemplate"
-                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                    class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
               <option value="">-- Select a template --</option>
             </select>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Quickly fill form fields with a predefined template</p>
           </div>
 
           <%# Variable Suggestions %>
-          <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700" data-step-modal-target="variableSuggest">
+          <div class="mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700" data-step-modal-target="variableSuggest">
             <p class="text-xs text-gray-500 dark:text-gray-400">Loading variables...</p>
           </div>
 
@@ -80,20 +80,20 @@
             <%# Basic fields that apply to all step types %>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Title <span class="text-red-500">*</span></label>
-              <input type="text" 
-                     name="title" 
+              <input type="text"
+                     name="title"
                      id="modal-step-title"
                      placeholder="Step title"
-                     class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                     class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Description</label>
-              <textarea name="description" 
+              <textarea name="description"
                         id="modal-step-description"
                         placeholder="Step description (optional)"
                         rows="2"
-                        class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                        class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400"></textarea>
             </div>
 
             <%# Type-specific fields - shown based on step type %>
@@ -102,17 +102,17 @@
               <div id="question-fields" class="hidden">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Question Text</label>
-                  <input type="text" 
-                         name="question" 
+                  <input type="text"
+                         name="question"
                          id="modal-step-question"
                          placeholder="Enter your question"
-                         class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                         class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Answer Type</label>
-                  <select name="answer_type" 
+                  <select name="answer_type"
                           id="modal-step-answer-type"
-                          class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                          class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
                     <option value="">Select answer type...</option>
                     <option value="text">Text</option>
                     <option value="yes_no">Yes/No</option>
@@ -125,11 +125,11 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Variable Name</label>
-                  <input type="text" 
-                         name="variable_name" 
+                  <input type="text"
+                         name="variable_name"
                          id="modal-step-variable-name"
                          placeholder="e.g., user_name, age, etc."
-                         class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                         class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional: Name this answer for use in decision steps</p>
                 </div>
               </div>
@@ -138,11 +138,11 @@
               <div id="decision-fields" class="hidden">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Condition</label>
-                  <input type="text" 
-                         name="condition" 
+                  <input type="text"
+                         name="condition"
                          id="modal-step-condition"
                          placeholder="e.g., variable_name == 'value'"
-                         class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                         class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">You can add branches after creating the step</p>
                 </div>
               </div>
@@ -151,19 +151,19 @@
               <div id="action-fields" class="hidden">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Action Type</label>
-                  <input type="text" 
-                         name="action_type" 
+                  <input type="text"
+                         name="action_type"
                          id="modal-step-action-type"
                          placeholder="e.g., Email, Notification, etc."
-                         class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                         class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Instructions</label>
-                  <textarea name="instructions" 
+                  <textarea name="instructions"
                             id="modal-step-instructions"
                             placeholder="Detailed instructions for this action..."
                             rows="3"
-                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                            class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400"></textarea>
                 </div>
               </div>
 
@@ -175,15 +175,15 @@
           </div>
 
           <div class="mt-6 flex justify-end space-x-3">
-            <button type="button" 
+            <button type="button"
                     data-action="click->step-modal#close"
-                    class="bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium border border-white/20 dark:border-gray-700/30 transition-all duration-200 hover:scale-105">
+                    class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full text-sm font-medium border border-slate-200 dark:border-slate-600 transition-all duration-200 hover:scale-105">
               Cancel
             </button>
-            <button type="button" 
+            <button type="button"
                     id="add-step-button"
                     data-action="click->step-modal#addStep"
-                    class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
               Add Step
             </button>
           </div>
@@ -193,4 +193,3 @@
     </div>
   </div>
 </div>
-

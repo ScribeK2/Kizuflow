@@ -1,21 +1,20 @@
-<div class="glass-card overflow-hidden animate-fade-in-up">
-  <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30 flex justify-between items-center">
+<div class="solid-card overflow-hidden animate-fade-in-up">
+  <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
     <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Flow Preview</h2>
-    <button type="button" data-action="click->flow-preview#render" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors duration-200">
+    <button type="button" data-action="click->flow-preview#render" class="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 font-medium transition-colors duration-200">
       Refresh
     </button>
   </div>
-  
-  <div 
-    data-flow-preview-target="canvas" 
-    class="relative bg-gray-50 dark:bg-gray-800/30 rounded-lg p-4 m-6 overflow-auto"
+
+  <div
+    data-flow-preview-target="canvas"
+    class="relative bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 m-6 overflow-auto"
     style="min-height: 300px; max-height: 600px;"
   >
     <p class="text-gray-500 dark:text-gray-400 text-center py-8">Add steps to see the flow preview</p>
   </div>
-  
+
   <div class="px-6 pb-6 text-xs text-gray-500 dark:text-gray-400">
-    <p>💡 Tip: The preview updates automatically as you edit steps. Decision branches are shown in green (Yes) and red (No).</p>
+    <p>Tip: The preview updates automatically as you edit steps. Decision branches are shown in green (Yes) and red (No).</p>
   </div>
 </div>
-

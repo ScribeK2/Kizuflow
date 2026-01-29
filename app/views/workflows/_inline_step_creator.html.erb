@@ -1,10 +1,10 @@
 <%#
   Inline Step Creator
-  
+
   Sprint 3: Navigation & Visual Improvements
   Inline step creation between existing steps.
   Shows a "+" button that expands to show step type options.
-  
+
   Local variables:
   - after_index: The index after which to insert the new step
 %>
@@ -14,32 +14,32 @@
 <div data-controller="inline-step-creator"
      data-inline-step-creator-after-index-value="<%= after_index %>"
      class="inline-step-creator my-2">
-  
+
   <%# Collapsed state - just the + button %>
   <div data-inline-step-creator-target="addButton"
        class="flex justify-center">
     <button type="button"
             data-action="click->inline-step-creator#expand"
             class="group flex items-center gap-2 px-3 py-1.5 rounded-full
-                   bg-gray-100 dark:bg-gray-700/50 
-                   hover:bg-blue-100 dark:hover:bg-blue-900/30
-                   border-2 border-dashed border-gray-300 dark:border-gray-600
-                   hover:border-blue-400 dark:hover:border-blue-500
+                   bg-slate-100 dark:bg-slate-700/50
+                   hover:bg-slate-200 dark:hover:bg-slate-600
+                   border-2 border-dashed border-slate-300 dark:border-slate-600
+                   hover:border-slate-400 dark:hover:border-slate-500
                    transition-all duration-200 hover:scale-105"
             title="Add a new step here">
-      <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
-      <span class="text-xs text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+      <span class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300">
         Add step
       </span>
     </button>
   </div>
-  
+
   <%# Expanded state - step type selector %>
   <div data-inline-step-creator-target="typeSelector"
        class="hidden">
-    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-3">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Add Step</span>
         <button type="button"
@@ -50,55 +50,43 @@
           </svg>
         </button>
       </div>
-      
+
       <div class="grid grid-cols-4 gap-2">
         <%# Question %>
         <button type="button"
                 data-action="click->inline-step-creator#createStep"
                 data-step-type="question"
-                class="flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 hover:scale-105"
-                style="background-color: #3b82f6;"
-                onmouseover="this.style.backgroundColor='#2563eb'"
-                onmouseout="this.style.backgroundColor='#3b82f6'">
+                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
           <span class="text-xs font-medium text-white">
             Question
           </span>
         </button>
-        
+
         <%# Decision %>
         <button type="button"
                 data-action="click->inline-step-creator#createStep"
                 data-step-type="decision"
-                class="flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 hover:scale-105"
-                style="background-color: #a855f7;"
-                onmouseover="this.style.backgroundColor='#9333ea'"
-                onmouseout="this.style.backgroundColor='#a855f7'">
+                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
           <span class="text-xs font-medium text-white">
             Decision
           </span>
         </button>
-        
+
         <%# Action %>
         <button type="button"
                 data-action="click->inline-step-creator#createStep"
                 data-step-type="action"
-                class="flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 hover:scale-105"
-                style="background-color: #22c55e;"
-                onmouseover="this.style.backgroundColor='#16a34a'"
-                onmouseout="this.style.backgroundColor='#22c55e'">
+                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-emerald-500 hover:bg-emerald-600">
           <span class="text-xs font-medium text-white">
             Action
           </span>
         </button>
-        
+
         <%# Checkpoint %>
         <button type="button"
                 data-action="click->inline-step-creator#createStep"
                 data-step-type="checkpoint"
-                class="flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 hover:scale-105"
-                style="background-color: #f97316;"
-                onmouseover="this.style.backgroundColor='#ea580c'"
-                onmouseout="this.style.backgroundColor='#f97316'">
+                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-amber-500 hover:bg-amber-600">
           <span class="text-xs font-medium text-white">
             Checkpoint
           </span>
@@ -107,4 +95,3 @@
     </div>
   </div>
 </div>
-

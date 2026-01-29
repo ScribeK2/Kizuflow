@@ -27,13 +27,13 @@
         <% end %>
       </div>
       <div class="flex flex-col sm:flex-row gap-2 ml-4 flex-shrink-0">
-        <%= link_to admin_workflows_path, class: "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
+        <%= link_to admin_workflows_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           Back to List
         <% end %>
-        <%= link_to workflow_path(@workflow), class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
+        <%= link_to workflow_path(@workflow), class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 inline-flex items-center justify-center" do %>
           Open Workflow
         <% end %>
       </div>
@@ -41,18 +41,18 @@
   </div>
 
   <!-- Workflow Steps Section -->
-  <div class="glass-card overflow-hidden animate-fade-in-up">
-    <div class="px-6 py-5 border-b border-white/20 dark:border-gray-700/30">
+  <div class="solid-card overflow-hidden animate-fade-in-up">
+    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Workflow Steps</h2>
     </div>
     <% if @workflow.steps.present? && @workflow.steps.any? %>
       <div class="p-6 space-y-4">
         <% @workflow.steps.each_with_index do |step, index| %>
-          <div class="backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 border border-white/20 dark:border-gray-700/30 rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
+          <div class="backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center mb-2">
-                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold mr-3 flex-shrink-0">
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 text-white text-sm font-semibold mr-3 flex-shrink-0">
                     <%= index + 1 %>
                   </span>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= step['title'] %></h3>

@@ -1,10 +1,10 @@
 <%#
   Step Outline Sidebar
-  
+
   Sprint 3: Navigation & Visual Improvements
   Sidebar navigation outline for long workflows.
   Shows all steps with quick navigation and status indicators.
-  
+
   Local variables:
   - workflow: The workflow object
   - show_by_default: Whether to show the sidebar by default (optional, default: true for >5 steps)
@@ -15,76 +15,76 @@
 
 <div data-controller="step-outline"
      class="step-outline-sidebar">
-  
+
   <%# Sidebar Container %>
   <div data-step-outline-target="outlineContainer"
-       class="<%= show_by_default ? 'w-64' : 'w-64' %> bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden flex flex-col">
-    
+       class="<%= show_by_default ? 'w-64' : 'w-64' %> bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden flex flex-col">
+
     <%# Header %>
-    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
       <div class="flex items-center gap-2">
         <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
         </svg>
         <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Step Outline</span>
       </div>
-      <span data-step-count class="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+      <span data-step-count class="text-xs text-gray-500 dark:text-gray-400 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
         <%= step_count %> step<%= step_count != 1 ? 's' : '' %>
       </span>
     </div>
-    
+
     <%# Quick Actions %>
-    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
+    <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-700 flex gap-2">
       <button type="button"
               onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.expand(); })"
-              class="flex-1 text-xs px-2 py-1.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              class="flex-1 text-xs px-2 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               title="Expand all steps">
-        <span class="mr-1">↕️</span> Expand
+        Expand
       </button>
       <button type="button"
               onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.collapse(); })"
-              class="flex-1 text-xs px-2 py-1.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              class="flex-1 text-xs px-2 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               title="Collapse all steps">
-        <span class="mr-1">↔️</span> Collapse
+        Collapse
       </button>
     </div>
-    
+
     <%# Step List %>
     <div data-step-outline-target="stepList"
          class="flex-1 overflow-y-auto p-2 space-y-1">
       <% if workflow&.steps.present? %>
         <% workflow.steps.each_with_index do |step, index| %>
-          <% 
+          <%
             step_type = step['type']&.to_s&.downcase
             step_title = step['title'].presence || "Untitled #{step_type&.titleize}"
             step_id = step['id'] || "step-#{index}"
-            
+
             # Check for incomplete steps
             has_warning = case step_type
               when 'question' then step['question'].blank?
               when 'action' then step['instructions'].blank?
               else false
             end
-            
-            # Type colors (using inline styles for reliability)
+
+            # Type colors (using slate/emerald theme)
             type_bg_styles = {
-              'question' => 'background-color: #dbeafe; color: #1d4ed8;',
-              'decision' => 'background-color: #f3e8ff; color: #7c3aed;',
-              'simple_decision' => 'background-color: #f3e8ff; color: #7c3aed;',
-              'action' => 'background-color: #dcfce7; color: #16a34a;',
-              'checkpoint' => 'background-color: #ffedd5; color: #ea580c;'
+              'question' => 'background-color: #f1f5f9; color: #475569;',
+              'decision' => 'background-color: #f1f5f9; color: #475569;',
+              'simple_decision' => 'background-color: #f1f5f9; color: #475569;',
+              'action' => 'background-color: #d1fae5; color: #059669;',
+              'checkpoint' => 'background-color: #fef3c7; color: #d97706;'
             }
-            
+
             type_icons = {
-              'question' => '❓',
-              'decision' => '🔀',
-              'simple_decision' => '🔀',
-              'action' => '⚡',
-              'checkpoint' => '📍'
+              'question' => '?',
+              'decision' => '/',
+              'simple_decision' => '/',
+              'action' => '!',
+              'checkpoint' => 'v'
             }
           %>
           <button type="button"
-                  class="step-outline-item w-full text-left px-3 py-2 rounded-lg transition-all duration-200 group hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  class="step-outline-item w-full text-left px-3 py-2 rounded-lg transition-all duration-200 group hover:bg-slate-100 dark:hover:bg-slate-700/50"
                   data-action="click->step-outline#scrollToStep"
                   data-step-index="<%= index %>"
                   data-step-id="<%= step_id %>">
@@ -93,21 +93,21 @@
                     style="<%= type_bg_styles[step_type] || 'background-color: #f3f4f6; color: #374151;' %>">
                 <%= index + 1 %>
               </span>
-              <span class="flex-shrink-0 text-base" title="<%= step_type&.titleize %>">
-                <%= type_icons[step_type] || '📝' %>
+              <span class="flex-shrink-0 text-base font-bold" title="<%= step_type&.titleize %>">
+                <%= type_icons[step_type] || '#' %>
               </span>
               <span class="flex-1 text-sm truncate text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
                 <%= step_title %>
               </span>
               <% if has_warning %>
-                <span class="flex-shrink-0 text-amber-500" title="Incomplete">⚠️</span>
+                <span class="flex-shrink-0 text-amber-500" title="Incomplete">!</span>
               <% end %>
             </div>
           </button>
         <% end %>
       <% end %>
     </div>
-    
+
     <%# Empty State %>
     <div data-step-outline-target="emptyState"
          class="<%= workflow&.steps.present? ? 'hidden' : '' %> flex-1 flex flex-col items-center justify-center p-4 text-center">
@@ -117,13 +117,12 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">No steps yet</p>
       <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Add steps using the buttons above</p>
     </div>
-    
+
     <%# Footer with help %>
-    <div class="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-100 dark:border-blue-900/50">
-      <p class="text-xs text-blue-700 dark:text-blue-300">
-        💡 Click a step to jump to it
+    <div class="px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
+      <p class="text-xs text-slate-700 dark:text-slate-300">
+        Click a step to jump to it
       </p>
     </div>
   </div>
 </div>
-

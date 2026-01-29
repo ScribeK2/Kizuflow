@@ -4,7 +4,7 @@
     <p class="mt-2 text-gray-600 dark:text-gray-400">Run the workflow step-by-step to test its logic and flow.</p>
   </div>
 
-  <%= form_with model: Simulation.new, url: workflow_simulations_path(@workflow), local: true, class: "glass-card overflow-hidden animate-fade-in-up" do |form| %>
+  <%= form_with model: Simulation.new, url: workflow_simulations_path(@workflow), local: true, class: "solid-card overflow-hidden animate-fade-in-up" do |form| %>
     <%= form.hidden_field :workflow_id, value: @workflow.id %>
 
     <% if @simulation && @simulation.errors.any? %>
@@ -49,8 +49,8 @@
       </div>
 
       <div class="flex justify-end space-x-3">
-        <%= link_to "Back", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-        <%= form.submit "Start Simulation", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <%= link_to "Back", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+        <%= form.submit "Start Simulation", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
       </div>
     </div>
   <% end %>

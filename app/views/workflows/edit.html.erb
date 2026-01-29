@@ -16,11 +16,11 @@
     </div>
   </div>
 
-  <%= form_with model: @workflow, local: true, class: "glass-card overflow-hidden animate-fade-in-up", 
+  <%= form_with model: @workflow, local: true, class: "solid-card overflow-hidden animate-fade-in-up",
                 data: { controller: "autosave", autosave_workflow_id_value: @workflow.id, autosave_lock_version_value: @workflow.lock_version } do |form| %>
     <%# Hidden field for optimistic locking - prevents race conditions when multiple users edit %>
     <%= form.hidden_field :lock_version %>
-    
+
     <% if @conflict_detected %>
       <div class="mx-6 mt-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 p-4">
         <div class="flex">
@@ -32,25 +32,25 @@
               Workflow Conflict Detected
             </h3>
             <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
-              This workflow was modified by another user while you were editing. The current version is now displayed below. 
+              This workflow was modified by another user while you were editing. The current version is now displayed below.
               Please review the changes and try your edit again.
             </p>
           </div>
         </div>
       </div>
     <% end %>
-    
+
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "mx-6 mt-6" } %>
 
     <div class="p-6 space-y-6">
       <div>
         <%= form.label :title, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors" %>
+        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400 transition-colors" %>
       </div>
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.rich_text_area :description, id: "workflow_description_#{@workflow.id}", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+        <%= form.rich_text_area :description, id: "workflow_description_#{@workflow.id}", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400" %>
       </div>
 
       <% if @accessible_groups&.any? %>
@@ -59,7 +59,7 @@
 
       <% if current_user&.can_edit_workflows? %>
         <div class="flex items-center">
-          <%= form.check_box :is_public, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+          <%= form.check_box :is_public, class: "h-4 w-4 text-slate-600 focus:ring-slate-500 border-gray-300 rounded" %>
           <%= form.label :is_public, "Make this workflow public (visible to all users)", class: "ml-2 block text-sm text-gray-700 dark:text-gray-300" %>
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -94,14 +94,14 @@
             <%= render partial: "step_outline", locals: { workflow: @workflow } %>
           </div>
         <% end %>
-        
+
         <%# Main Steps Section %>
         <div style="min-width: 0;">
             <div data-controller="workflow-builder variable-autocomplete"
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
                data-variable-autocomplete-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
-            
+
             <%# Header with Add Step Buttons %>
             <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -116,42 +116,30 @@
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="question"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #3b82f6;"
-                        onmouseover="this.style.backgroundColor='#2563eb'"
-                        onmouseout="this.style.backgroundColor='#3b82f6'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
                   Question
                 </button>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="decision"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #a855f7;"
-                        onmouseover="this.style.backgroundColor='#9333ea'"
-                        onmouseout="this.style.backgroundColor='#a855f7'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
                   Decision
                 </button>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="action"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #22c55e;"
-                        onmouseover="this.style.backgroundColor='#16a34a'"
-                        onmouseout="this.style.backgroundColor='#22c55e'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
                   Action
                 </button>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="checkpoint"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #f97316;"
-                        onmouseover="this.style.backgroundColor='#ea580c'"
-                        onmouseout="this.style.backgroundColor='#f97316'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-amber-500 hover:bg-amber-600">
                   Checkpoint
                 </button>
               </div>
             </div>
-            
+
             <%# Expand/Collapse All Controls (Sprint 2) %>
             <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
               <div class="flex justify-end gap-2 mb-3">
@@ -168,21 +156,21 @@
                 </button>
               </div>
             <% end %>
-            
+
             <%# Steps Container %>
-            <div data-workflow-builder-target="container" class="space-y-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
+            <div data-workflow-builder-target="container" class="space-y-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-slate-50 dark:bg-slate-800/50">
               <% if @workflow.steps.present? %>
                 <%# Inline step creator at the beginning %>
                 <%= render partial: "inline_step_creator", locals: { after_index: -1 } %>
-                
+
                 <% @workflow.steps.each_with_index do |step, index| %>
-                  <%= render partial: "step_item", locals: { 
-                    step: step, 
-                    index: index, 
+                  <%= render partial: "step_item", locals: {
+                    step: step,
+                    index: index,
                     workflow: @workflow,
                     expanded: @workflow.steps.length <= 5 || index == @workflow.steps.length - 1
                   } %>
-                  
+
                   <%# Inline step creator after each step %>
                   <%= render partial: "inline_step_creator", locals: { after_index: index } %>
                 <% end %>
@@ -196,19 +184,19 @@
                   <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Get started by adding your first step using the buttons above.
                   </p>
-                  
+
                   <%# Quick start buttons in empty state %>
                   <div class="flex flex-wrap justify-center gap-3">
-                    <button type="button" 
+                    <button type="button"
                             data-action="click->workflow-builder#addStepDirect"
                             data-step-type="question"
-                            class="inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-medium">
+                            class="inline-flex items-center px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors font-medium">
                       Start with a Question
                     </button>
-                    <button type="button" 
+                    <button type="button"
                             data-action="click->workflow-builder#addStepDirect"
                             data-step-type="action"
-                            class="inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors font-medium">
+                            class="inline-flex items-center px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors font-medium">
                       Start with an Action
                     </button>
                   </div>
@@ -228,13 +216,13 @@
           Ready to save
         </div>
         <div class="flex space-x-3">
-          <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-white/20 dark:border-gray-700/30 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-          <button type="button" 
+          <%= link_to "Cancel", workflow_path(@workflow), class: "bg-slate-100 dark:bg-slate-700 py-2 px-4 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" %>
+          <button type="button"
                   onclick="document.getElementById('save-template-modal').classList.remove('hidden')"
-                  class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
             Save as Template
           </button>
-          <%= form.submit "Update Workflow", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+          <%= form.submit "Update Workflow", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105" %>
         </div>
       </div>
     </div>
@@ -247,13 +235,13 @@
      data-autosave-target="conflictModal">
   <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
     <%# Backdrop %>
-    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 bg-slate-900/60 transition-opacity"></div>
 
     <%# Center modal %>
     <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
     <%# Modal panel %>
-    <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-amber-200 dark:border-amber-800/30">
+    <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-amber-200 dark:border-amber-800/30">
       <div class="bg-amber-50 dark:bg-amber-900/20 px-6 py-4 border-b border-amber-200 dark:border-amber-800/30">
         <div class="flex items-center">
           <div class="flex-shrink-0">
@@ -274,43 +262,43 @@
 
       <div class="px-6 py-4">
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          <strong data-conflict-user class="text-gray-900 dark:text-gray-100">Another user</strong> 
+          <strong data-conflict-user class="text-gray-900 dark:text-gray-100">Another user</strong>
           saved changes to this workflow. Your local changes may conflict with their updates.
         </p>
-        
-        <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4 mb-4">
+
+        <div class="bg-gray-100 dark:bg-slate-700/50 rounded-lg p-4 mb-4">
           <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Your options:</h4>
           <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
             <li class="flex items-start">
-              <span class="text-blue-500 mr-2">•</span>
+              <span class="text-slate-500 mr-2">-</span>
               <span><strong>Refresh</strong> - Load the latest version (your unsaved changes will be lost)</span>
             </li>
             <li class="flex items-start">
-              <span class="text-amber-500 mr-2">•</span>
+              <span class="text-amber-500 mr-2">-</span>
               <span><strong>Force Save</strong> - Overwrite with your changes (other user's changes will be lost)</span>
             </li>
             <li class="flex items-start">
-              <span class="text-gray-500 mr-2">•</span>
+              <span class="text-gray-500 mr-2">-</span>
               <span><strong>Dismiss</strong> - Continue editing (your next save will include current server version)</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200 dark:border-gray-700">
+      <div class="bg-gray-50 dark:bg-slate-900/50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200 dark:border-slate-700">
         <button type="button"
                 data-action="click->autosave#dismissConflict"
-                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-full hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
           Dismiss
         </button>
         <button type="button"
                 data-action="click->autosave#forceSave"
-                class="px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
+                class="px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
           Force Save
         </button>
         <button type="button"
                 data-action="click->autosave#refreshPage"
-                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm">
+                class="px-4 py-2 text-sm font-medium text-white bg-slate-600 dark:bg-slate-500 rounded-full hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors shadow-sm">
           Refresh Page
         </button>
       </div>
@@ -319,25 +307,25 @@
 </div>
 
 <%# Save as Template Modal %>
-<div id="save-template-modal" 
+<div id="save-template-modal"
      class="hidden fixed inset-0 z-50 overflow-y-auto"
      data-controller="modal"
      data-modal-target="backdrop"
      data-action="click->modal#backdropClick">
   <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
     <%# Backdrop %>
-    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" data-modal-target="backdrop"></div>
+    <div class="fixed inset-0 bg-slate-900/60 transition-opacity" data-modal-target="backdrop"></div>
 
     <%# Center modal %>
     <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
     <%# Modal panel %>
-    <div class="glass-modal inline-block align-bottom text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full animate-scale-in"
+    <div class="solid-modal inline-block align-bottom text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full animate-scale-in"
          data-modal-target="content">
       <%= form_with url: save_as_template_workflow_path(@workflow), method: :post, local: true, class: "px-4 pt-5 pb-4 sm:p-6 sm:pb-4" do |form| %>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Save as Template</h3>
-          <button type="button" 
+          <button type="button"
                   onclick="document.getElementById('save-template-modal').classList.add('hidden')"
                   class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 hover:scale-110">
             <span class="sr-only">Close</span>
@@ -350,12 +338,12 @@
         <div class="space-y-4">
           <div>
             <label for="template_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Template Name</label>
-            <%= text_field_tag "template[name]", @workflow.title, id: "template_name", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true %>
+            <%= text_field_tag "template[name]", @workflow.title, id: "template_name", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400", required: true %>
           </div>
 
           <div>
             <label for="template_category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-            <%= select_tag "template[category]", 
+            <%= select_tag "template[category]",
                 options_for_select([
                   ["Post-Onboarding", "post-onboarding"],
                   ["Troubleshooting", "troubleshooting"],
@@ -363,31 +351,30 @@
                   ["Custom", "custom"],
                   ["Other", "other"]
                 ], "custom"),
-                { id: "template_category", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true } %>
+                { id: "template_category", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400", required: true } %>
           </div>
 
           <div>
             <label for="template_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-            <%= text_area_tag "template[description]", @workflow.description_text, id: "template_description", rows: 3, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400" %>
+            <%= text_area_tag "template[description]", @workflow.description_text, id: "template_description", rows: 3, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400" %>
           </div>
 
           <div class="flex items-center">
             <%= hidden_field_tag "template[is_public]", "false" %>
-            <%= check_box_tag "template[is_public]", "true", true, id: "template_is_public", class: "rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-gray-800/50" %>
+            <%= check_box_tag "template[is_public]", "true", true, id: "template_is_public", class: "rounded border-gray-300 dark:border-gray-600 text-slate-600 dark:text-slate-400 focus:ring-slate-500 dark:focus:ring-slate-400 bg-white dark:bg-slate-800" %>
             <label for="template_is_public" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Make this template public</label>
           </div>
         </div>
 
         <div class="mt-6 flex justify-end space-x-3">
-          <button type="button" 
+          <button type="button"
                   onclick="document.getElementById('save-template-modal').classList.add('hidden')"
-                  class="bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium border border-white/20 dark:border-gray-700/30 transition-all duration-200 hover:scale-105">
+                  class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full text-sm font-medium border border-slate-200 dark:border-slate-600 transition-all duration-200 hover:scale-105">
             Cancel
           </button>
-          <%= form.submit "Save Template", class: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+          <%= form.submit "Save Template", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105" %>
         </div>
       <% end %>
     </div>
   </div>
 </div>
-
