@@ -4,8 +4,12 @@ class Simulation < ApplicationRecord
   belongs_to :workflow
   belongs_to :user
 
+  # Parent/child simulation associations for sub-flows
+  belongs_to :parent_simulation, class_name: 'Simulation', optional: true
+  has_many :child_simulations, class_name: 'Simulation', foreign_key: 'parent_simulation_id', dependent: :destroy
+
   # Status constants
-  STATUSES = %w[active completed stopped timeout error].freeze
+  STATUSES = %w[active completed stopped timeout error awaiting_subflow].freeze
 
   # Simulation limits to prevent infinite loops and DoS
   MAX_ITERATIONS = ENV.fetch("SIMULATION_MAX_ITERATIONS", 1000).to_i
@@ -32,11 +36,40 @@ class Simulation < ApplicationRecord
     self.results ||= {}
     self.inputs ||= {}
   end
-  
-  # Get the current step
+
+  # Check if workflow is in graph mode
+  def graph_mode?
+    workflow&.graph_mode? || false
+  end
+
+  # Get the current step (works for both linear and graph mode)
   def current_step
     return nil unless workflow&.steps&.present?
-    workflow.steps[current_step_index] if current_step_index < workflow.steps.length
+
+    if graph_mode? && current_node_uuid.present?
+      workflow.find_step_by_id(current_node_uuid)
+    else
+      workflow.steps[current_step_index] if current_step_index < workflow.steps.length
+    end
+  end
+
+  # Get the current step UUID (graph mode) or generate one (linear mode)
+  def current_step_uuid
+    if graph_mode?
+      current_node_uuid
+    else
+      current_step&.dig('id')
+    end
+  end
+
+  # Check if waiting for sub-flow to complete
+  def awaiting_subflow?
+    status == 'awaiting_subflow'
+  end
+
+  # Get the active child simulation (if any)
+  def active_child_simulation
+    child_simulations.find_by(status: %w[active awaiting_subflow])
   end
   
   # Check if simulation is stopped
@@ -48,8 +81,15 @@ class Simulation < ApplicationRecord
   def complete?
     return true if status == 'completed'
     return true if stopped?
+    return false if awaiting_subflow?
     return true unless workflow&.steps&.present?
-    current_step_index >= workflow.steps.length
+
+    if graph_mode?
+      # In graph mode, complete when no current node or current node is nil
+      current_node_uuid.nil? && status != 'active'
+    else
+      current_step_index >= workflow.steps.length
+    end
   end
   
   # Stop the workflow execution
@@ -105,14 +145,19 @@ class Simulation < ApplicationRecord
     return false if complete?
     return false if stopped?
     return false if status == 'timeout' || status == 'error'
-    
+
+    # If awaiting sub-flow completion, check child status
+    if awaiting_subflow?
+      return process_subflow_completion
+    end
+
     step = current_step
     return false unless step
-    
+
     # Track iterations to prevent infinite loops in step-by-step mode
     self.iteration_count ||= execution_path&.length || 0
     self.iteration_count += 1
-    
+
     if iteration_count > MAX_ITERATIONS
       self.status = 'error'
       self.results ||= {}
@@ -120,96 +165,277 @@ class Simulation < ApplicationRecord
       save
       raise SimulationIterationLimit, "Simulation exceeded maximum of #{MAX_ITERATIONS} steps"
     end
-    
+
     # Initialize execution_path if needed
     initialize_execution_data
-    
+
     # Add step to execution path
-    path_entry = {
-      step_index: current_step_index,
+    path_entry = build_path_entry(step)
+
+    case step['type']
+    when 'question'
+      process_question_step(step, answer, path_entry)
+
+    when 'decision', 'simple_decision'
+      process_decision_step(step, path_entry)
+
+    when 'action'
+      process_action_step(step, path_entry)
+
+    when 'checkpoint'
+      # Checkpoints don't auto-advance - user must resolve them
+      return false
+
+    when 'sub_flow'
+      return process_subflow_step(step, path_entry)
+
+    else
+      # Unknown step type, advance to next
+      advance_to_next_step(step)
+    end
+
+    # Mark as completed if we've reached the end
+    check_completion
+
+    save
+  end
+
+  private
+
+  # Build execution path entry for a step
+  def build_path_entry(step)
+    entry = {
       step_title: step['title'],
       step_type: step['type']
     }
-    
-    case step['type']
-    when 'question'
-      # Store the answer
-      input_key = step['variable_name'].present? ? step['variable_name'] : current_step_index.to_s
-      self.inputs ||= {}
-      self.inputs[input_key] = answer if answer.present?
 
-      # Also store by title for lookup
-      self.inputs[step['title']] = answer if answer.present?
+    if graph_mode?
+      entry[:step_uuid] = step['id']
+    else
+      entry[:step_index] = current_step_index
+    end
 
-      # Update results
-      self.results ||= {}
-      self.results[step['title']] = answer if answer.present?
-      self.results[step['variable_name']] = answer if step['variable_name'].present? && answer.present?
+    entry
+  end
 
-      path_entry[:answer] = answer
+  # Process a question step
+  def process_question_step(step, answer, path_entry)
+    input_key = step['variable_name'].present? ? step['variable_name'] : current_step_index.to_s
+    self.inputs ||= {}
+    self.inputs[input_key] = answer if answer.present?
+    self.inputs[step['title']] = answer if answer.present?
+
+    self.results ||= {}
+    self.results[step['title']] = answer if answer.present?
+    self.results[step['variable_name']] = answer if step['variable_name'].present? && answer.present?
+
+    path_entry[:answer] = answer
+    self.execution_path << path_entry
+
+    advance_to_next_step(step)
+  end
+
+  # Process a decision step
+  def process_decision_step(step, path_entry)
+    self.results ||= {}
+
+    if graph_mode?
+      resolver = StepResolver.new(workflow)
+      next_uuid = resolver.resolve_next(step, self.results)
+      path_entry[:condition_result] = "routing to #{next_uuid || 'end'}"
       self.execution_path << path_entry
-
-      # Check for jumps or move to next step
+      advance_to_step_uuid(next_uuid)
+    else
       next_step_index = determine_next_step_index(step, self.results)
-      self.current_step_index = next_step_index
-
-    when 'decision', 'simple_decision'
-      # Process decision based on current results
-      # simple_decision is a variant used for yes/no routing in workflow builder
-      self.results ||= {}
-      next_step_index = determine_next_step_index(step, self.results)
-
       path_entry[:condition_result] = "routing to step #{next_step_index + 1}"
       self.execution_path << path_entry
-
       self.current_step_index = next_step_index
+    end
+  end
 
-    when 'action'
-      # Actions are automatically completed
-      path_entry[:action_completed] = true
+  # Process an action step
+  def process_action_step(step, path_entry)
+    path_entry[:action_completed] = true
+    self.results ||= {}
+    self.results[step['title']] = "Action executed"
+
+    # Process output_fields if defined
+    if step['output_fields'].present? && step['output_fields'].is_a?(Array)
+      step['output_fields'].each do |output_field|
+        next unless output_field.is_a?(Hash) && output_field['name'].present?
+
+        variable_name = output_field['name'].to_s
+        raw_value = output_field['value'] || ""
+        interpolated_value = VariableInterpolator.interpolate(raw_value, self.results)
+        self.results[variable_name] = interpolated_value
+      end
+    end
+
+    self.execution_path << path_entry
+    advance_to_next_step(step)
+  end
+
+  # Process a sub-flow step - creates child simulation
+  def process_subflow_step(step, path_entry)
+    target_workflow_id = step['target_workflow_id']
+    target_workflow = Workflow.find_by(id: target_workflow_id)
+
+    unless target_workflow
       self.results ||= {}
-      self.results[step['title']] = "Action executed"
-      
-      # Process output_fields if defined
-      if step['output_fields'].present? && step['output_fields'].is_a?(Array)
-        step['output_fields'].each do |output_field|
-          next unless output_field.is_a?(Hash) && output_field['name'].present?
-          
-          variable_name = output_field['name'].to_s
-          # Interpolate the value using existing results
-          raw_value = output_field['value'] || ""
-          interpolated_value = VariableInterpolator.interpolate(raw_value, self.results)
-          
-          # Store the output variable in results
-          self.results[variable_name] = interpolated_value
+      self.results['_error'] = "Sub-flow target workflow #{target_workflow_id} not found"
+      self.status = 'error'
+      save
+      return false
+    end
+
+    # Save current position for resumption
+    self.resume_node_uuid = step['id']
+
+    # Create child simulation with inherited variables
+    child_results = self.results.dup || {}
+
+    # Apply variable mapping if defined
+    variable_mapping = step['variable_mapping'] || {}
+    variable_mapping.each do |parent_var, child_var|
+      if self.results&.key?(parent_var)
+        child_results[child_var] = self.results[parent_var]
+      end
+    end
+
+    child_simulation = Simulation.create!(
+      workflow: target_workflow,
+      user: user,
+      parent_simulation: self,
+      results: child_results,
+      inputs: {},
+      status: 'active'
+    )
+
+    # Initialize child's starting position
+    if target_workflow.graph_mode?
+      child_simulation.update!(current_node_uuid: target_workflow.start_node_uuid)
+    end
+
+    path_entry[:subflow_started] = true
+    path_entry[:child_simulation_id] = child_simulation.id
+    path_entry[:target_workflow_title] = target_workflow.title
+    self.execution_path << path_entry
+
+    # Mark parent as awaiting sub-flow
+    self.status = 'awaiting_subflow'
+    save
+
+    true
+  end
+
+  # Process completion of a sub-flow
+  def process_subflow_completion
+    child = active_child_simulation
+
+    # If child is still running, wait
+    return false if child && !child.complete?
+
+    # Merge child results back to parent
+    if child&.results.present?
+      self.results ||= {}
+
+      # Get variable mapping from the sub-flow step
+      resume_step = workflow.find_step_by_id(resume_node_uuid)
+      variable_mapping = resume_step&.dig('variable_mapping') || {}
+
+      # Merge all child results, applying reverse mapping if defined
+      child.results.each do |key, value|
+        next if key.start_with?('_') # Skip internal keys
+
+        # Check if there's a reverse mapping
+        mapped_key = variable_mapping.invert[key] || key
+        self.results[mapped_key] = value
+      end
+    end
+
+    # Move to next step after sub-flow
+    self.status = 'active'
+
+    if graph_mode?
+      resolver = StepResolver.new(workflow)
+      resume_step = workflow.find_step_by_id(resume_node_uuid)
+      next_uuid = resolver.resolve_next(resume_step, self.results) if resume_step
+
+      # Skip the sub-flow marker and get actual next step
+      if next_uuid.is_a?(StepResolver::SubflowMarker)
+        # This shouldn't happen, but handle it
+        advance_to_step_uuid(nil)
+      else
+        advance_to_step_uuid(next_uuid)
+      end
+    else
+      # Linear mode: advance past the sub-flow step
+      resume_step = workflow.find_step_by_id(resume_node_uuid)
+      if resume_step
+        resume_index = workflow.steps.index(resume_step)
+        self.current_step_index = (resume_index || 0) + 1
+      end
+    end
+
+    self.resume_node_uuid = nil
+    check_completion
+    save
+
+    true
+  end
+
+  # Advance to the next step based on mode
+  def advance_to_next_step(step)
+    if graph_mode?
+      resolver = StepResolver.new(workflow)
+      next_uuid = resolver.resolve_next(step, self.results)
+
+      if next_uuid.is_a?(StepResolver::SubflowMarker)
+        # Will be handled in next process_step call
+        advance_to_step_uuid(next_uuid.step_uuid)
+      else
+        advance_to_step_uuid(next_uuid)
+      end
+    else
+      next_step_index = determine_next_step_index(step, self.results)
+      self.current_step_index = next_step_index
+    end
+  end
+
+  # Advance to a specific step UUID (graph mode)
+  def advance_to_step_uuid(uuid)
+    if uuid.nil?
+      # Reached end of workflow
+      self.current_node_uuid = nil
+    else
+      self.current_node_uuid = uuid
+    end
+  end
+
+  # Check if simulation is complete
+  def check_completion
+    return if status == 'stopped' || status == 'awaiting_subflow'
+
+    if graph_mode?
+      # Complete if no current node or current node is terminal
+      if current_node_uuid.nil?
+        self.status = 'completed'
+      else
+        step = current_step
+        if step.nil?
+          self.status = 'completed'
+        elsif StepResolver.new(workflow).terminal?(step) && step['type'] != 'sub_flow'
+          # Terminal node that's not a sub-flow - will complete after processing
         end
       end
-      
-      self.execution_path << path_entry
-
-      # Check for jumps or move to next step
-      next_step_index = determine_next_step_index(step, self.results)
-      self.current_step_index = next_step_index
-      
-    when 'checkpoint'
-      # Checkpoints don't auto-advance - user must resolve them
-      # Don't add to execution_path yet - that happens when resolved
-      # Don't increment current_step_index - stay on checkpoint
-      return false  # Return false to indicate no advancement
-      
     else
-      # Unknown step type, check for jumps or just advance
-      next_step_index = determine_next_step_index(step, self.results)
-      self.current_step_index = next_step_index
+      if current_step_index >= workflow.steps.length
+        self.status = 'completed'
+      end
     end
-    
-    # Mark as completed if we've reached the end
-    if current_step_index >= workflow.steps.length && status != 'stopped'
-      self.status = 'completed'
-    end
-    
-    save
   end
+
+  public
   
   # Check for universal jumps on any step type
   def check_jumps(step, results)
@@ -258,64 +484,94 @@ class Simulation < ApplicationRecord
 
   # Determine next step index based on decision logic
   def determine_next_step_index(step, results)
+    Rails.logger.debug "[Simulation ##{id}] determine_next_step_index: step='#{step['title']}', type=#{step['type']}"
+    Rails.logger.debug "[Simulation ##{id}] Results: #{results.inspect}"
+
     # First check for universal jumps (works for all step types)
     jump_result = check_jumps(step, results)
-    return jump_result unless jump_result.nil?
+    if jump_result
+      Rails.logger.debug "[Simulation ##{id}] Jump matched -> index #{jump_result}"
+      return jump_result
+    end
+
     # Handle multi-branch format (new)
     if step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
       # Evaluate branches in order, take first match
-      step['branches'].each do |branch|
+      step['branches'].each_with_index do |branch, idx|
         branch_condition = branch['condition'] || branch[:condition]
         branch_path = branch['path'] || branch[:path]
-        
+
+        Rails.logger.debug "[Simulation ##{id}] Branch #{idx + 1}: condition='#{branch_condition}', path='#{branch_path}'"
+
         if branch_condition.present? && branch_path.present?
           condition_result = evaluate_condition_string(branch_condition, results)
+          Rails.logger.debug "[Simulation ##{id}] Branch #{idx + 1} evaluated: #{condition_result}"
+
           if condition_result
             # Use ID-based resolution (supports both IDs and titles for backward compatibility)
             next_step = resolve_step_reference(branch_path)
             if next_step
               next_index = workflow.steps.index(next_step)
+              Rails.logger.debug "[Simulation ##{id}] Branch matched -> '#{next_step['title']}' at index #{next_index}"
               return next_index unless next_index.nil?
+            else
+              Rails.logger.warn "[Simulation ##{id}] Branch path '#{branch_path}' not found!"
             end
           end
         end
       end
-      
+
       # No branch matched, check else_path
       if step['else_path'].present?
+        Rails.logger.debug "[Simulation ##{id}] No branch matched, trying else_path: '#{step['else_path']}'"
         # Use ID-based resolution (supports both IDs and titles for backward compatibility)
         next_step = resolve_step_reference(step['else_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
+          Rails.logger.debug "[Simulation ##{id}] else_path resolved -> index #{next_index}"
           return next_index unless next_index.nil?
+        else
+          Rails.logger.warn "[Simulation ##{id}] else_path '#{step['else_path']}' not found!"
         end
       end
-      
+
       # Default: move to next step - check bounds
       next_index = current_step_index + 1
+      Rails.logger.debug "[Simulation ##{id}] Defaulting to next step: #{next_index}"
       return next_index < workflow.steps.length ? next_index : workflow.steps.length
     else
       # Legacy format (true_path/false_path)
+      Rails.logger.debug "[Simulation ##{id}] Using legacy format (true_path/false_path)"
       condition_result = evaluate_condition(step, results)
-      
+      Rails.logger.debug "[Simulation ##{id}] Legacy condition evaluated: #{condition_result}"
+
       if condition_result && step['true_path'].present?
+        Rails.logger.debug "[Simulation ##{id}] Following true_path: '#{step['true_path']}'"
         # Use ID-based resolution (supports both IDs and titles for backward compatibility)
         next_step = resolve_step_reference(step['true_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
+          Rails.logger.debug "[Simulation ##{id}] true_path resolved -> index #{next_index}"
           return next_index unless next_index.nil?
+        else
+          Rails.logger.warn "[Simulation ##{id}] true_path '#{step['true_path']}' not found!"
         end
       elsif !condition_result && step['false_path'].present?
+        Rails.logger.debug "[Simulation ##{id}] Following false_path: '#{step['false_path']}'"
         # Use ID-based resolution (supports both IDs and titles for backward compatibility)
         next_step = resolve_step_reference(step['false_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
+          Rails.logger.debug "[Simulation ##{id}] false_path resolved -> index #{next_index}"
           return next_index unless next_index.nil?
+        else
+          Rails.logger.warn "[Simulation ##{id}] false_path '#{step['false_path']}' not found!"
         end
       end
-      
+
       # Default: move to next step - check bounds
       next_index = current_step_index + 1
+      Rails.logger.debug "[Simulation ##{id}] Legacy defaulting to next step: #{next_index}"
       return next_index < workflow.steps.length ? next_index : workflow.steps.length
     end
   end
@@ -497,7 +753,14 @@ class Simulation < ApplicationRecord
   end
 
   def find_step_by_title(title)
-    workflow.steps.find { |s| s['title'] == title }
+    return nil unless title.present?
+
+    # Exact match first
+    step = workflow.steps.find { |s| s['title'] == title }
+    return step if step
+
+    # Case-insensitive fallback
+    workflow.steps.find { |s| s['title']&.downcase == title.downcase }
   end
 
   def find_step_by_id(id)
@@ -509,13 +772,26 @@ class Simulation < ApplicationRecord
   # Returns the step hash or nil if not found
   def resolve_step_reference(reference)
     return nil if reference.blank?
-    
+
+    Rails.logger.debug "[Simulation ##{id}] resolve_step_reference: '#{reference}'"
+
     # First try to resolve to ID using workflow's helper (handles both IDs and titles)
     step_id = workflow.resolve_step_reference_to_id(reference)
-    return find_step_by_id(step_id) if step_id.present?
-    
+    if step_id.present?
+      step = find_step_by_id(step_id)
+      Rails.logger.debug "[Simulation ##{id}] Resolved via ID: #{step ? step['title'] : 'NOT FOUND'}"
+      return step if step
+    end
+
     # Fallback to title-based lookup for backward compatibility
-    find_step_by_title(reference)
+    step = find_step_by_title(reference)
+    Rails.logger.debug "[Simulation ##{id}] Resolved via title: #{step ? step['title'] : 'NOT FOUND'}"
+
+    unless step
+      Rails.logger.error "[Simulation ##{id}] Could not resolve '#{reference}'. Available: #{workflow.steps.map { |s| s['title'] }}"
+    end
+
+    step
   end
 end
 

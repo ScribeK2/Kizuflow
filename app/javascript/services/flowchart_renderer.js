@@ -17,8 +17,57 @@ export class FlowchartRenderer {
     return steps.find(s => s.title === title)
   }
 
+  // Find step by ID (for graph mode)
+  findStepById(steps, id) {
+    return steps.find(s => s.id === id)
+  }
+
+  // Check if workflow is in graph mode (steps have transitions arrays)
+  isGraphMode(steps) {
+    return steps.some(s => Array.isArray(s.transitions))
+  }
+
   // Build a map of connections between steps
   buildConnections(steps) {
+    // Check if this is a graph mode workflow
+    if (this.isGraphMode(steps)) {
+      return this.buildGraphConnections(steps)
+    }
+    return this.buildLinearConnections(steps)
+  }
+
+  // Build connections for graph mode workflows (using explicit transitions)
+  buildGraphConnections(steps) {
+    const connections = []
+    const transitionColors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"]
+
+    steps.forEach((step) => {
+      if (!step.transitions || !Array.isArray(step.transitions)) return
+
+      step.transitions.forEach((transition, tIndex) => {
+        if (!transition.target_uuid) return
+
+        const targetStep = this.findStepById(steps, transition.target_uuid)
+        if (!targetStep) return
+
+        const color = transitionColors[tIndex % transitionColors.length]
+        const label = transition.label || transition.condition || ""
+
+        connections.push({
+          from: step.index,
+          to: targetStep.index,
+          type: transition.condition ? "conditional" : "default",
+          label: label.length > 20 ? label.substring(0, 17) + "..." : label,
+          color: transition.condition ? color : "#6b7280"
+        })
+      })
+    })
+
+    return connections
+  }
+
+  // Build connections for linear mode workflows (sequential + branches)
+  buildLinearConnections(steps) {
     const connections = []
     const decisionSteps = new Set()
     const branchTargets = new Set()
@@ -197,7 +246,7 @@ export class FlowchartRenderer {
   }
 
   // Build SVG path for a connection
-  buildConnectionPath(fromPos, toPos, connType) {
+  buildConnectionPath(fromPos, toPos, connType, connIndex = 0) {
     const fromX = fromPos.x + this.nodeWidth
     const fromY = fromPos.y + this.nodeHeight / 2
     const toX = toPos.x
@@ -222,6 +271,14 @@ export class FlowchartRenderer {
         ? Math.max(fromY, toY) + controlOffset
         : Math.min(fromY, toY) - controlOffset
       return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`
+    } else if (connType === "conditional") {
+      // Graph mode conditional transition - curved path
+      const controlOffset = Math.min(50, Math.abs(dy) * 0.5) + (connIndex * 20)
+      const controlX = fromX + (toX - fromX) * 0.5
+      const controlY = connIndex % 2 === 0
+        ? Math.max(fromY, toY) + controlOffset
+        : Math.min(fromY, toY) - controlOffset
+      return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`
     } else if (connType === "else") {
       return `M ${fromX} ${fromY} L ${toX} ${toY}`
     } else {
@@ -243,6 +300,18 @@ export class FlowchartRenderer {
         <marker id="${prefix}arrowhead-red" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
           <polygon points="0 0, 10 3, 0 6" fill="#ef4444" />
         </marker>
+        <marker id="${prefix}arrowhead-indigo" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#6366f1" />
+        </marker>
+        <marker id="${prefix}arrowhead-amber" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#f59e0b" />
+        </marker>
+        <marker id="${prefix}arrowhead-purple" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#8b5cf6" />
+        </marker>
+        <marker id="${prefix}arrowhead-pink" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#ec4899" />
+        </marker>
       </defs>
     `
   }
@@ -252,6 +321,10 @@ export class FlowchartRenderer {
     const prefix = this.arrowIdPrefix
     if (conn.color === "#10b981" || conn.type === "true") return `${prefix}arrowhead-green`
     if (conn.color === "#ef4444" || conn.type === "false") return `${prefix}arrowhead-red`
+    if (conn.color === "#6366f1") return `${prefix}arrowhead-indigo`
+    if (conn.color === "#f59e0b") return `${prefix}arrowhead-amber`
+    if (conn.color === "#8b5cf6") return `${prefix}arrowhead-purple`
+    if (conn.color === "#ec4899") return `${prefix}arrowhead-pink`
     return `${prefix}arrowhead-gray`
   }
 
@@ -264,7 +337,7 @@ export class FlowchartRenderer {
     let svgHtml = `<svg class="absolute inset-0 pointer-events-none" style="width: ${maxX}px; height: ${maxY}px; z-index: 0;">`
     svgHtml += this.buildSvgDefs()
 
-    connections.forEach(conn => {
+    connections.forEach((conn, connIndex) => {
       const fromPos = positions[conn.from]
       const toPos = positions[conn.to]
 
@@ -275,21 +348,29 @@ export class FlowchartRenderer {
       const toX = toPos.x
       const toY = toPos.y + this.nodeHeight / 2
 
-      const path = this.buildConnectionPath(fromPos, toPos, conn.type)
+      const path = this.buildConnectionPath(fromPos, toPos, conn.type, connIndex)
       const color = conn.color || "#6b7280"
       const arrowId = this.getArrowId(conn)
       const strokeDasharray = conn.type === "else" ? "5,5" : "none"
 
       svgHtml += `<path d="${path}" stroke="${color}" stroke-width="${strokeWidth}" fill="none" stroke-dasharray="${strokeDasharray}" marker-end="url(#${arrowId})"/>`
 
-      // Add label for decision branches
-      if (conn.label && (conn.type === "true" || conn.type === "false" || conn.type.startsWith("branch_") || conn.type === "else")) {
+      // Add label for branches and conditional connections
+      const showLabel = conn.label && (
+        conn.type === "true" ||
+        conn.type === "false" ||
+        conn.type.startsWith("branch_") ||
+        conn.type === "else" ||
+        conn.type === "conditional"
+      )
+
+      if (showLabel) {
         const labelX = (fromX + toX) / 2
         const labelY = (fromY + toY) / 2 - 5
         const labelText = this.escapeHtml(conn.label)
         const textLength = labelText.length * charWidth
         svgHtml += `
-          <rect x="${labelX - textLength/2 - 4}" y="${labelY - 8}" width="${textLength + 8}" height="14" fill="white" opacity="0.8" rx="2"/>
+          <rect x="${labelX - textLength/2 - 4}" y="${labelY - 8}" width="${textLength + 8}" height="14" fill="white" opacity="0.9" rx="2"/>
           <text x="${labelX}" y="${labelY}" text-anchor="middle" fill="${color}" font-size="${fontSize}" font-weight="600">${labelText}</text>
         `
       }
@@ -306,6 +387,7 @@ export class FlowchartRenderer {
       case "decision": return "bg-green-100 text-green-800"
       case "action": return "bg-purple-100 text-purple-800"
       case "checkpoint": return "bg-orange-100 text-orange-800"
+      case "sub_flow": return "bg-indigo-100 text-indigo-800"
       default: return "bg-gray-100 text-gray-800"
     }
   }
@@ -317,6 +399,7 @@ export class FlowchartRenderer {
       case "decision": return "border-green-300"
       case "action": return "border-purple-300"
       case "checkpoint": return "border-orange-300"
+      case "sub_flow": return "border-indigo-300"
       default: return "border-gray-300"
     }
   }
@@ -327,7 +410,8 @@ export class FlowchartRenderer {
       question: "#3b82f6",
       decision: "#10b981",
       action: "#8b5cf6",
-      checkpoint: "#f59e0b"
+      checkpoint: "#f59e0b",
+      sub_flow: "#6366f1"
     }
     return colors[type] || "#6b7280"
   }

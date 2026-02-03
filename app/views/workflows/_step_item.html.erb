@@ -21,7 +21,8 @@
   'decision' => '#475569',
   'simple_decision' => '#475569',
   'action' => '#10b981',
-  'checkpoint' => '#f59e0b'
+  'checkpoint' => '#f59e0b',
+  'sub_flow' => '#6366f1'
 } %>
 
 <%# Step type icons %>
@@ -30,7 +31,8 @@
   'decision' => '/',
   'simple_decision' => '/',
   'action' => '!',
-  'checkpoint' => 'v'
+  'checkpoint' => 'v',
+  'sub_flow' => '↪'
 } %>
 
 <div class="step-item border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200"
@@ -104,6 +106,16 @@
   <input type="hidden" name="workflow[steps][][index]" value="<%= index %>">
   <input type="hidden" name="workflow[steps][][type]" value="<%= step_type %>">
 
+  <%# Graph Mode: Transitions data stored as hidden field %>
+  <% if workflow&.graph_mode? %>
+    <% transitions = step['transitions'] || [] %>
+    <input type="hidden"
+           name="workflow[steps][][transitions_json]"
+           value="<%= transitions.to_json %>"
+           data-step-transitions-target="hiddenInput"
+           data-step-id="<%= step_id %>">
+  <% end %>
+
   <%# Collapsible Content %>
   <div data-collapsible-step-target="content" class="p-4">
 
@@ -147,7 +159,7 @@
         <%= render partial: "step_fields", locals: {
           step: step,
           step_type: step_type,
-          available_steps: workflow.steps,
+          available_steps: workflow.steps || [],
           step_index: index,
           workflow: workflow
         } %>
@@ -165,5 +177,113 @@
         </div>
       </div>
     </div>
+
+    <%# Graph Mode: Connections Editor %>
+    <% if workflow&.graph_mode? %>
+      <% transitions = step['transitions'] || [] %>
+      <% other_steps = (workflow.steps || []).reject { |s| s['id'] == step_id } %>
+
+      <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700"
+           data-controller="step-transitions"
+           data-step-transitions-step-id-value="<%= step_id %>"
+           data-step-transitions-step-index-value="<%= index %>">
+
+        <div class="flex items-center justify-between mb-3">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            <svg class="inline w-4 h-4 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+            Connections
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">(Graph Mode)</span>
+          </label>
+          <button type="button"
+                  data-action="click->step-transitions#addTransition"
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add Connection
+          </button>
+        </div>
+
+        <div data-step-transitions-target="transitionsList" class="space-y-2">
+          <% if transitions.empty? %>
+            <p class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
+              No connections yet. Add a connection to link this step to another.
+            </p>
+          <% else %>
+            <% transitions.each_with_index do |transition, t_index| %>
+              <div class="flex flex-wrap items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                   data-transition-index="<%= t_index %>">
+                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+                <select data-action="change->step-transitions#updateTransition"
+                        data-transition-field="target_uuid"
+                        class="flex-1 min-w-[120px] text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <option value="">-- Select target step --</option>
+                  <% other_steps.each do |other_step| %>
+                    <option value="<%= other_step['id'] %>" <%= 'selected' if transition['target_uuid'] == other_step['id'] %>>
+                      <%= other_step['title'].presence || "Step #{(workflow.steps || []).index(other_step)&.+ 1}" %>
+                    </option>
+                  <% end %>
+                </select>
+                <div class="flex items-center gap-1 flex-1 min-w-[180px]"
+                     data-controller="condition-preset"
+                     data-condition-preset-condition-value="<%= h(transition['condition']) %>"
+                     data-condition-preset-label-value="<%= h(transition['label']) %>">
+                  <select data-condition-preset-target="presetDropdown"
+                          data-action="change->condition-preset#handlePresetChange"
+                          class="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          title="Select a condition preset or choose Custom">
+                    <%# Options populated by JavaScript %>
+                  </select>
+                  <div data-condition-preset-target="numericContainer" class="hidden flex items-center gap-1">
+                    <input type="number"
+                           data-condition-preset-target="numericValueInput"
+                           data-action="input->condition-preset#handleNumericChange"
+                           placeholder="Value"
+                           class="w-20 text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+                  </div>
+                  <div data-condition-preset-target="customContainer" class="hidden flex items-center gap-1">
+                    <input type="text"
+                           data-condition-preset-target="customInput"
+                           data-action="input->condition-preset#handleCustomInput"
+                           placeholder='e.g., answer == "yes"'
+                           class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+                  </div>
+                  <input type="hidden"
+                         data-condition-preset-target="conditionHidden"
+                         data-transition-field="condition"
+                         data-action="input->step-transitions#updateTransition"
+                         value="<%= h(transition['condition']) %>">
+                </div>
+                <input type="text"
+                       data-action="input->step-transitions#updateTransition input->condition-preset#handleLabelInput"
+                       data-transition-field="label"
+                       data-condition-preset-target="labelInput"
+                       value="<%= h(transition['label']) %>"
+                       placeholder="Label"
+                       title="Display label for this connection"
+                       class="w-20 text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+                <button type="button"
+                        data-action="click->step-transitions#removeTransition"
+                        class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                        title="Remove connection">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <strong>Tip:</strong> Select a preset from the dropdown, or choose "Custom..." to write your own condition.
+          Use "Default" for a fallback connection when no other conditions match.
+        </p>
+      </div>
+    <% end %>
   </div>
 </div>

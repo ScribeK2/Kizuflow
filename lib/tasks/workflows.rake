@@ -90,5 +90,171 @@ namespace :workflows do
     puts "Migrated: #{migrated_count} workflows"
     puts "Errors: #{error_count} workflows"
   end
+
+  desc "Convert linear workflows to graph mode (DAG-based)"
+  task migrate_to_graph: :environment do
+    puts "Converting linear workflows to graph mode..."
+    puts "=" * 60
+
+    converted_count = 0
+    skipped_count = 0
+    error_count = 0
+    error_details = []
+
+    Workflow.find_each do |workflow|
+      begin
+        # Skip if already in graph mode
+        if workflow.graph_mode?
+          puts "  [SKIP] Workflow #{workflow.id}: Already in graph mode"
+          skipped_count += 1
+          next
+        end
+
+        # Skip if no steps
+        unless workflow.steps.present?
+          puts "  [SKIP] Workflow #{workflow.id}: No steps"
+          skipped_count += 1
+          next
+        end
+
+        puts "  [CONVERTING] Workflow #{workflow.id}: #{workflow.title}"
+
+        converter = WorkflowGraphConverter.new(workflow)
+        converted_steps = converter.convert
+
+        if converted_steps
+          workflow.steps = converted_steps
+          workflow.graph_mode = true
+          workflow.start_node_uuid = converted_steps.first&.dig('id')
+
+          if workflow.save
+            puts "    ✓ Converted successfully"
+            converted_count += 1
+          else
+            error_msg = "Validation failed: #{workflow.errors.full_messages.join(', ')}"
+            puts "    ✗ #{error_msg}"
+            error_details << { id: workflow.id, title: workflow.title, error: error_msg }
+            error_count += 1
+          end
+        else
+          error_msg = "Conversion failed: #{converter.errors.join(', ')}"
+          puts "    ✗ #{error_msg}"
+          error_details << { id: workflow.id, title: workflow.title, error: error_msg }
+          error_count += 1
+        end
+      rescue => e
+        error_msg = "Exception: #{e.message}"
+        puts "    ✗ #{error_msg}"
+        error_details << { id: workflow.id, title: workflow.title, error: error_msg }
+        error_count += 1
+      end
+    end
+
+    puts "\n" + "=" * 60
+    puts "Graph conversion complete!"
+    puts "  Converted: #{converted_count} workflows"
+    puts "  Skipped:   #{skipped_count} workflows"
+    puts "  Errors:    #{error_count} workflows"
+
+    if error_details.any?
+      puts "\nError details:"
+      error_details.each do |detail|
+        puts "  - Workflow #{detail[:id]} (#{detail[:title]}): #{detail[:error]}"
+      end
+    end
+  end
+
+  desc "Preview graph conversion for a single workflow (dry run)"
+  task :preview_graph_conversion, [:workflow_id] => :environment do |_t, args|
+    workflow_id = args[:workflow_id]
+
+    unless workflow_id
+      puts "Usage: rake workflows:preview_graph_conversion[WORKFLOW_ID]"
+      exit 1
+    end
+
+    workflow = Workflow.find_by(id: workflow_id)
+
+    unless workflow
+      puts "Workflow #{workflow_id} not found"
+      exit 1
+    end
+
+    puts "Preview graph conversion for: #{workflow.title}"
+    puts "=" * 60
+
+    if workflow.graph_mode?
+      puts "Workflow is already in graph mode"
+      exit 0
+    end
+
+    converter = WorkflowGraphConverter.new(workflow)
+    converted_steps = converter.convert
+
+    if converted_steps
+      puts "Conversion would succeed!"
+      puts "\nConverted steps:"
+
+      converted_steps.each_with_index do |step, index|
+        puts "\n#{index + 1}. #{step['title']} (#{step['type']})"
+        puts "   ID: #{step['id']}"
+
+        transitions = step['transitions'] || []
+        if transitions.any?
+          puts "   Transitions:"
+          transitions.each do |t|
+            condition = t['condition'] ? " when: #{t['condition']}" : " (default)"
+            label = t['label'] ? " [#{t['label']}]" : ""
+            puts "     → #{t['target_uuid']}#{condition}#{label}"
+          end
+        else
+          puts "   Transitions: (terminal node)"
+        end
+      end
+    else
+      puts "Conversion would fail:"
+      converter.errors.each do |error|
+        puts "  - #{error}"
+      end
+    end
+  end
+
+  desc "Revert a workflow from graph mode to linear mode"
+  task :revert_from_graph, [:workflow_id] => :environment do |_t, args|
+    workflow_id = args[:workflow_id]
+
+    unless workflow_id
+      puts "Usage: rake workflows:revert_from_graph[WORKFLOW_ID]"
+      exit 1
+    end
+
+    workflow = Workflow.find_by(id: workflow_id)
+
+    unless workflow
+      puts "Workflow #{workflow_id} not found"
+      exit 1
+    end
+
+    unless workflow.graph_mode?
+      puts "Workflow is not in graph mode"
+      exit 0
+    end
+
+    puts "Reverting workflow from graph mode: #{workflow.title}"
+
+    # Remove transitions from all steps
+    workflow.steps.each do |step|
+      step.delete('transitions') if step.is_a?(Hash)
+    end
+
+    workflow.graph_mode = false
+    workflow.start_node_uuid = nil
+
+    if workflow.save
+      puts "Successfully reverted to linear mode"
+    else
+      puts "Failed to revert: #{workflow.errors.full_messages.join(', ')}"
+    end
+  end
 end
 

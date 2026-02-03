@@ -45,6 +45,28 @@
         </div>
       <% end %>
 
+      <%# Graph Mode Toggle %>
+      <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", id: "workflow_graph_mode_step1" %>
+            <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
+              Enable Graph Mode
+              <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
+                Beta
+              </span>
+            <% end %>
+          </div>
+          <% if @workflow.graph_mode? %>
+            <span class="text-xs text-green-600 dark:text-green-400 font-medium">Active</span>
+          <% end %>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
+          Steps can connect to any other step, not just the next one in sequence.
+        </p>
+      </div>
+
       <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
         <%= form.submit "Next: Add Steps", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>

@@ -8,15 +8,27 @@ class Workflow < ApplicationRecord
   # Group associations
   has_many :group_workflows, dependent: :destroy
   has_many :groups, through: :group_workflows
-  
+
   # Simulation associations
   has_many :simulations, dependent: :destroy
+
+  # Sub-flow associations: track which workflows reference this one as a sub-flow
+  has_many :referencing_workflows, class_name: 'Workflow', foreign_key: 'id', primary_key: 'id' do
+    def with_subflow_references(target_workflow_id)
+      # Find workflows with steps that reference target_workflow_id as a sub_flow
+      # This is a custom query since the reference is in JSON
+      where("steps::text LIKE ?", "%\"target_workflow_id\":#{target_workflow_id}%")
+    end
+  end
 
   # Steps stored as JSON - automatically serialized/deserialized
   validates :title, presence: true, length: { maximum: 255 }
   validates :user_id, presence: true
   validate :validate_steps
   validate :validate_workflow_size
+  validate :validate_graph_structure, if: :should_validate_graph_structure?
+  validate :validate_subflow_steps
+  validate :validate_subflow_circular_references, if: :has_subflow_steps?
 
   # Size limits to prevent DoS and ensure performance
   # These can be overridden via environment variables if needed
@@ -200,6 +212,19 @@ class Workflow < ApplicationRecord
   def published?
     status == 'published' || status.nil?
   end
+
+  # Determine if graph structure validation should run
+  # Only validate graph structure when publishing, not during draft saves.
+  # This allows incremental workflow building without requiring all steps
+  # to be connected before saving.
+  def should_validate_graph_structure?
+    graph_mode? && (status == 'published' || @validate_graph_now)
+  end
+
+  # Force graph validation on next save (for explicit validation requests)
+  def validate_graph_now!
+    @validate_graph_now = true
+  end
   
   # Class method to cleanup expired drafts
   # Can be called from a scheduled job
@@ -260,9 +285,16 @@ class Workflow < ApplicationRecord
 
   # Find a step by its title (for backward compatibility)
   # Returns the step hash or nil if not found
+  # Uses case-insensitive fallback if exact match not found
   def find_step_by_title(title)
     return nil unless steps.present? && title.present?
-    steps.find { |step| step['title'] == title }
+
+    # Exact match first
+    step = steps.find { |step| step['title'] == title }
+    return step if step
+
+    # Case-insensitive fallback
+    steps.find { |step| step['title']&.downcase == title.downcase }
   end
 
   # Get step info for display purposes
@@ -390,8 +422,162 @@ class Workflow < ApplicationRecord
     when 'decision' then '🔀'
     when 'action' then '⚡'
     when 'checkpoint' then '📍'
+    when 'sub_flow' then '🔗'
     else '📝'
     end
+  end
+
+  # ============================================================================
+  # Graph Mode Support (DAG-Based Workflow)
+  # These methods support the graph-based workflow structure where steps are
+  # connected via explicit transitions rather than sequential array order.
+  # ============================================================================
+
+  # Check if workflow is in graph mode
+  def graph_mode?
+    graph_mode == true
+  end
+
+  # Check if workflow is in linear (array-based) mode
+  def linear_mode?
+    !graph_mode?
+  end
+
+  # Get steps as a hash keyed by UUID for graph-based operations
+  # Returns { "uuid-1" => step_hash, "uuid-2" => step_hash, ... }
+  def graph_steps
+    return {} unless steps.present?
+
+    steps.each_with_object({}) do |step, hash|
+      next unless step.is_a?(Hash) && step['id'].present?
+      hash[step['id']] = step
+    end
+  end
+
+  # Get the starting node for graph traversal
+  # Returns the step hash of the start node, or nil if not found
+  def start_node
+    return nil unless steps.present?
+
+    if start_node_uuid.present?
+      find_step_by_id(start_node_uuid)
+    else
+      # Default to first step if no start node is set
+      steps.first
+    end
+  end
+
+  # Get all terminal nodes (steps with no outgoing transitions)
+  # In graph mode, a terminal node has no transitions array or an empty one
+  def terminal_nodes
+    return [] unless steps.present?
+
+    if graph_mode?
+      steps.select do |step|
+        transitions = step['transitions'] || []
+        transitions.empty? && step['type'] != 'sub_flow'
+      end
+    else
+      # In linear mode, the last step is the terminal
+      [steps.last].compact
+    end
+  end
+
+  # Get all transitions from a given step
+  # Returns array of { condition: string, target_uuid: string } hashes
+  def transitions_from(step_or_id)
+    step = step_or_id.is_a?(Hash) ? step_or_id : find_step_by_id(step_or_id)
+    return [] unless step
+
+    step['transitions'] || []
+  end
+
+  # Get all steps that transition to a given step
+  # Returns array of step hashes
+  def steps_leading_to(step_or_id)
+    target_id = step_or_id.is_a?(Hash) ? step_or_id['id'] : step_or_id
+    return [] unless target_id && steps.present?
+
+    steps.select do |step|
+      transitions = step['transitions'] || []
+      transitions.any? { |t| t['target_uuid'] == target_id }
+    end
+  end
+
+  # Add a transition between two steps (graph mode only)
+  # condition: optional condition string for the transition
+  # Returns true if successful, false otherwise
+  def add_transition(from_step_id, to_step_id, condition: nil)
+    return false unless graph_mode?
+
+    from_step = find_step_by_id(from_step_id)
+    to_step = find_step_by_id(to_step_id)
+    return false unless from_step && to_step
+
+    from_step['transitions'] ||= []
+
+    # Don't add duplicate transitions
+    existing = from_step['transitions'].find { |t| t['target_uuid'] == to_step_id }
+    return false if existing
+
+    transition = { 'target_uuid' => to_step_id }
+    transition['condition'] = condition if condition.present?
+    from_step['transitions'] << transition
+
+    true
+  end
+
+  # Remove a transition between two steps (graph mode only)
+  # Returns true if successful, false otherwise
+  def remove_transition(from_step_id, to_step_id)
+    return false unless graph_mode?
+
+    from_step = find_step_by_id(from_step_id)
+    return false unless from_step
+
+    from_step['transitions'] ||= []
+    initial_count = from_step['transitions'].length
+    from_step['transitions'].reject! { |t| t['target_uuid'] == to_step_id }
+
+    from_step['transitions'].length < initial_count
+  end
+
+  # Convert this workflow from linear to graph mode
+  # This creates explicit transitions based on the current step order
+  # Returns true if conversion was successful
+  def convert_to_graph_mode!
+    return true if graph_mode?
+    return false unless steps.present?
+
+    require_relative '../services/workflow_graph_converter'
+    converter = WorkflowGraphConverter.new(self)
+    converted_steps = converter.convert
+
+    if converted_steps
+      self.steps = converted_steps
+      self.graph_mode = true
+      self.start_node_uuid = steps.first&.dig('id')
+      save
+    else
+      false
+    end
+  end
+
+  # Get sub-flow step configuration
+  def subflow_steps
+    return [] unless steps.present?
+
+    steps.select { |step| step['type'] == 'sub_flow' }
+  end
+
+  # Get all workflow IDs referenced as sub-flows
+  def referenced_workflow_ids
+    subflow_steps.map { |step| step['target_workflow_id'] }.compact.uniq
+  end
+
+  # Check if this workflow has any sub-flow steps
+  def has_subflow_steps?
+    subflow_steps.any?
   end
 
   # Validate step references (e.g., decision steps reference valid step titles)
@@ -466,6 +652,70 @@ class Workflow < ApplicationRecord
 
   private
 
+  # Validate graph structure (only in graph mode)
+  # Uses GraphValidator service for comprehensive checks
+  def validate_graph_structure
+    return unless graph_mode? && steps.present?
+
+    require_relative '../services/graph_validator'
+    validator = GraphValidator.new(graph_steps, start_node_uuid || steps.first&.dig('id'))
+
+    unless validator.valid?
+      validator.errors.each do |error|
+        errors.add(:steps, error)
+      end
+    end
+  end
+
+  # Validate sub-flow step references
+  def validate_subflow_steps
+    return unless steps.present?
+
+    subflow_steps.each_with_index do |step, _|
+      step_index = steps.index(step) + 1
+
+      target_id = step['target_workflow_id']
+
+      if target_id.blank?
+        errors.add(:steps, "Step #{step_index}: Sub-flow step requires a target workflow")
+        next
+      end
+
+      # Check that target workflow exists
+      target_workflow = Workflow.find_by(id: target_id)
+      unless target_workflow
+        errors.add(:steps, "Step #{step_index}: Target workflow #{target_id} does not exist")
+        next
+      end
+
+      # Check that target workflow is published
+      unless target_workflow.published?
+        errors.add(:steps, "Step #{step_index}: Target workflow '#{target_workflow.title}' is not published")
+      end
+
+      # Check for circular references (self-reference)
+      if target_id.to_i == id
+        errors.add(:steps, "Step #{step_index}: Sub-flow cannot reference itself")
+      end
+    end
+
+    # Deep circular reference check is handled by SubflowValidator during save
+  end
+
+  # Validate no circular sub-flow references exist
+  def validate_subflow_circular_references
+    return unless persisted? # Only check on existing workflows
+
+    require_relative '../services/subflow_validator'
+    validator = SubflowValidator.new(id)
+
+    unless validator.valid?
+      validator.errors.each do |error|
+        errors.add(:steps, error)
+      end
+    end
+  end
+
   def validate_steps
     return unless steps.present?
     
@@ -487,7 +737,8 @@ class Workflow < ApplicationRecord
       
       # Validate step type
       # Note: simple_decision is a variant of decision used for yes/no routing
-      unless %w[question decision simple_decision action checkpoint].include?(step['type'])
+      # Note: sub_flow is used for calling other workflows as sub-routines
+      unless %w[question decision simple_decision action checkpoint sub_flow].include?(step['type'])
         errors.add(:steps, "Step #{step_num}: Invalid step type '#{step['type']}'")
         next
       end
@@ -585,9 +836,15 @@ class Workflow < ApplicationRecord
         # Validate jumps if present (decision steps can use jumps instead of branches)
         validate_jumps(step, step_num)
 
-      when 'action'
-        # Action steps don't have required fields beyond title
-        # But we could validate action_type if needed
+      when 'sub_flow'
+        # Sub-flow validation is handled by validate_subflow_steps
+        # Here we just validate the jumps if present
+        validate_jumps(step, step_num)
+
+        # Validate transitions if in graph mode
+        if graph_mode? && step['transitions'].present?
+          validate_graph_transitions(step, step_num)
+        end
       end
     end
     
@@ -597,6 +854,37 @@ class Workflow < ApplicationRecord
 
   def valid_condition_format?(condition)
     ConditionEvaluator.valid?(condition)
+  end
+
+  # Validate graph-mode transitions for a step
+  def validate_graph_transitions(step, step_num)
+    transitions = step['transitions']
+    return unless transitions.present? && transitions.is_a?(Array)
+
+    step_ids = steps.map { |s| s['id'] }.compact
+
+    transitions.each_with_index do |transition, transition_index|
+      unless transition.is_a?(Hash)
+        errors.add(:steps, "Step #{step_num}, Transition #{transition_index + 1}: must be an object")
+        next
+      end
+
+      target_uuid = transition['target_uuid']
+      if target_uuid.blank?
+        errors.add(:steps, "Step #{step_num}, Transition #{transition_index + 1}: target_uuid is required")
+        next
+      end
+
+      unless step_ids.include?(target_uuid)
+        errors.add(:steps, "Step #{step_num}, Transition #{transition_index + 1}: references non-existent step ID: #{target_uuid}")
+      end
+
+      # Validate condition if present
+      condition = transition['condition']
+      if condition.present? && !valid_condition_format?(condition)
+        errors.add(:steps, "Step #{step_num}, Transition #{transition_index + 1}: Invalid condition format")
+      end
+    end
   end
 
   def validate_jumps(step, step_num)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_16_153049) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_31_182950) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -83,6 +83,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_16_153049) do
     t.integer "current_step_index", default: 0, null: false
     t.string "status", default: "active", null: false
     t.integer "stopped_at_step_index"
+    t.string "current_node_uuid"
+    t.integer "parent_simulation_id"
+    t.string "resume_node_uuid"
+    t.index ["current_node_uuid"], name: "index_simulations_on_current_node_uuid"
+    t.index ["parent_simulation_id"], name: "index_simulations_on_parent_simulation_id"
     t.index ["status"], name: "index_simulations_on_status"
     t.index ["user_id"], name: "index_simulations_on_user_id"
     t.index ["workflow_id"], name: "index_simulations_on_workflow_id"
@@ -136,11 +141,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_16_153049) do
     t.string "status", default: "published", null: false
     t.datetime "draft_expires_at"
     t.integer "lock_version", default: 0, null: false
+    t.boolean "graph_mode", default: false, null: false
+    t.string "start_node_uuid"
     t.index ["created_at"], name: "index_workflows_on_created_at"
     t.index ["draft_expires_at"], name: "index_workflows_on_draft_expires_at"
+    t.index ["graph_mode"], name: "index_workflows_on_graph_mode"
     t.index ["is_public"], name: "index_workflows_on_is_public"
     t.index ["status", "user_id"], name: "index_workflows_on_status_and_user_id"
     t.index ["status"], name: "index_workflows_on_status"
+    t.index ["steps"], name: "index_workflows_on_steps"
     t.index ["user_id"], name: "index_workflows_on_user_id"
   end
 
@@ -148,6 +157,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_16_153049) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "group_workflows", "groups"
   add_foreign_key "group_workflows", "workflows"
+  add_foreign_key "simulations", "simulations", column: "parent_simulation_id", on_delete: :nullify
   add_foreign_key "simulations", "users"
   add_foreign_key "simulations", "workflows"
   add_foreign_key "user_groups", "groups"

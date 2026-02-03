@@ -34,15 +34,15 @@
     </div>
 
     <%# Quick Actions %>
-    <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-700 flex gap-2">
+    <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-700 flex gap-2" data-controller="step-controls">
       <button type="button"
-              onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.expand(); })"
+              data-action="click->step-controls#expandAll"
               class="flex-1 text-xs px-2 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               title="Expand all steps">
         Expand
       </button>
       <button type="button"
-              onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.collapse(); })"
+              data-action="click->step-controls#collapseAll"
               class="flex-1 text-xs px-2 py-1.5 rounded bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               title="Collapse all steps">
         Collapse

@@ -55,9 +55,17 @@ export default class extends Controller {
     }
   }
 
+  // Check if graph mode is enabled
+  isGraphMode() {
+    const graphModeCheckbox = document.querySelector("input[name*='graph_mode']")
+    return graphModeCheckbox?.checked || false
+  }
+
   // Parse steps from the form
   parseSteps() {
     const steps = []
+    const isGraphMode = this.isGraphMode()
+
     // Find step items within the workflow builder container
     const workflowBuilder = document.querySelector("[data-controller*='workflow-builder']")
     const stepItems = workflowBuilder
@@ -67,6 +75,7 @@ export default class extends Controller {
     stepItems.forEach((stepItem, index) => {
       const typeInput = stepItem.querySelector("input[name*='[type]']")
       const titleInput = stepItem.querySelector("input[name*='[title]']")
+      const idInput = stepItem.querySelector("input[name*='[id]']")
 
       if (!typeInput || !titleInput) {
         return
@@ -74,14 +83,30 @@ export default class extends Controller {
 
       const type = typeInput.value
       const title = titleInput.value.trim() || `Step ${index + 1}`
+      const id = idInput?.value || `step-${index}`
 
       // Skip if no type
       if (!type) return
 
       const step = {
+        id: id,
         type: type,
         title: title,
         index: index
+      }
+
+      // Parse graph mode transitions
+      if (isGraphMode) {
+        const transitionsInput = stepItem.querySelector("input[name*='transitions_json']")
+        if (transitionsInput && transitionsInput.value) {
+          try {
+            step.transitions = JSON.parse(transitionsInput.value)
+          } catch (e) {
+            step.transitions = []
+          }
+        } else {
+          step.transitions = []
+        }
       }
 
       // Get type-specific fields
@@ -120,6 +145,9 @@ export default class extends Controller {
       } else if (type === "action") {
         const instructionsInput = stepItem.querySelector("textarea[name*='[instructions]']")
         step.instructions = instructionsInput ? instructionsInput.value : ""
+      } else if (type === "sub_flow") {
+        const targetInput = stepItem.querySelector("input[name*='target_workflow_id']")
+        step.target_workflow_id = targetInput ? targetInput.value : ""
       }
 
       steps.push(step)

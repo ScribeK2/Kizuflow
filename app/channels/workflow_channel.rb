@@ -196,6 +196,36 @@ class WorkflowChannel < ApplicationCable::Channel
           else
             formatted_step[key_str] = []
           end
+        when "transitions_json"
+          # Parse transitions_json (from Graph Mode UI) into transitions array
+          begin
+            transitions = value.is_a?(String) ? JSON.parse(value) : value
+            if transitions.is_a?(Array)
+              formatted_step["transitions"] = transitions.map do |t|
+                t.is_a?(Hash) ? t.transform_keys(&:to_s) : t
+              end
+              Rails.logger.info "Autosave: Parsed transitions_json for step, got #{formatted_step['transitions'].length} transitions"
+            end
+          rescue JSON::ParserError => e
+            Rails.logger.warn "Autosave: Failed to parse transitions_json: #{e.message}"
+          end
+          # Don't store transitions_json itself, only the parsed transitions
+        when "transitions"
+          # Handle transitions if passed directly as array
+          if value.is_a?(Array)
+            formatted_step[key_str] = value.map do |t|
+              t.is_a?(Hash) ? t.transform_keys(&:to_s) : t
+            end
+          elsif value.is_a?(String)
+            begin
+              parsed = JSON.parse(value)
+              formatted_step[key_str] = parsed.is_a?(Array) ? parsed : []
+            rescue JSON::ParserError
+              formatted_step[key_str] = []
+            end
+          else
+            formatted_step[key_str] = []
+          end
         else
           formatted_step[key_str] = value
         end

@@ -74,6 +74,9 @@ export default class extends Controller {
     } else if (type === "action") {
       stepData.action_type = "Instruction"
       stepData.instructions = ""
+    } else if (type === "sub_flow") {
+      stepData.target_workflow_id = ""
+      stepData.variable_mapping = {}
     }
     
     // Insert the step at the specified position
@@ -124,6 +127,10 @@ export default class extends Controller {
         break
       case "checkpoint":
         stepData.checkpoint_message = ""
+        break
+      case "sub_flow":
+        stepData.target_workflow_id = ""
+        stepData.variable_mapping = {}
         break
     }
     
@@ -222,6 +229,28 @@ export default class extends Controller {
   notifyPreviewUpdate() {
     // Dispatch custom event for flow preview to listen to
     document.dispatchEvent(new CustomEvent("workflow:updated"))
+  }
+
+  /**
+   * Handle graph mode toggle
+   */
+  toggleGraphMode(event) {
+    const enabled = event.target.checked
+    console.log(`[WorkflowBuilder] Graph mode ${enabled ? 'enabled' : 'disabled'}`)
+
+    // Notify the preview to update
+    this.notifyPreviewUpdate()
+
+    // Show/hide sub-flow button based on graph mode
+    const subflowButton = document.querySelector('[data-step-type="sub_flow"]')
+    if (subflowButton) {
+      subflowButton.style.display = enabled ? '' : 'none'
+    }
+
+    // Dispatch event for other components
+    document.dispatchEvent(new CustomEvent("workflow:graph-mode-changed", {
+      detail: { enabled }
+    }))
   }
 
   // Get all step titles from the current form
@@ -342,6 +371,15 @@ export default class extends Controller {
     `
   }
 
+  refreshAllTransitions() {
+    const transitionControllers = this.application.controllers.filter(c => c.identifier === "step-transitions")
+    transitionControllers.forEach(controller => {
+      if (typeof controller.refresh === 'function') {
+        controller.refresh()
+      }
+    })
+  }
+
   // Refresh all dropdowns in all decision steps
   refreshAllDropdowns() {
     if (!this.hasContainerTarget) return
@@ -440,7 +478,10 @@ export default class extends Controller {
       console.warn("[WorkflowBuilder] No container target found")
       return
     }
-    
+
+    // Remove empty state if present
+    this.removeEmptyState()
+
     const existingSteps = this.containerTarget.querySelectorAll(".step-item")
     const totalSteps = existingSteps.length
     
@@ -449,25 +490,34 @@ export default class extends Controller {
     
     // Get workflow ID for server-side rendering
     const workflowId = this.getWorkflowIdFromPage()
-    console.log(`[WorkflowBuilder] Adding step: type=${stepType}, index=${insertIndex}, workflowId=${workflowId}`)
+    console.log(`[WorkflowBuilder] Adding step: type=${stepType}, index=${insertIndex}`)
+    console.log(`[WorkflowBuilder] Workflow ID from page: ${workflowId}`)
+    console.log(`[WorkflowBuilder] Has workflowIdValue: ${this.hasWorkflowIdValue}, value: ${this.workflowIdValue}`)
     
     let stepHtml
-    
+    let usedServerRendering = false
+
     // Try server-side rendering if we have a workflow ID
     if (workflowId) {
       try {
         console.log("[WorkflowBuilder] Attempting server-side rendering...")
         stepHtml = await this.fetchStepHtml(workflowId, stepType, insertIndex, stepData)
-        console.log("[WorkflowBuilder] Server-side rendering successful")
+        console.log("[WorkflowBuilder] Server-side rendering successful, HTML length:", stepHtml.length)
+        usedServerRendering = true
       } catch (error) {
-        console.warn("[WorkflowBuilder] Server-side rendering failed, falling back to client-side:", error)
+        console.warn("[WorkflowBuilder] Server-side rendering failed:", error.message)
+        console.warn("[WorkflowBuilder] Falling back to client-side rendering")
         stepHtml = this.buildStepHtml(stepType, insertIndex, stepData)
       }
     } else {
       // Fallback to client-side rendering for new workflows
-      console.log("[WorkflowBuilder] No workflow ID, using client-side rendering")
+      console.log("[WorkflowBuilder] No workflow ID found, using client-side rendering")
+      console.log("[WorkflowBuilder] URL:", window.location.pathname)
+      console.log("[WorkflowBuilder] Element:", this.element?.id || 'no-id')
       stepHtml = this.buildStepHtml(stepType, insertIndex, stepData)
     }
+
+    console.log(`[WorkflowBuilder] Inserting step (server=${usedServerRendering}), HTML preview:`, stepHtml.substring(0, 200))
     
     // Insert at the specified position
     if (insertAtIndex !== null && insertAtIndex < totalSteps) {
@@ -478,13 +528,18 @@ export default class extends Controller {
       // Insert at the end
       this.containerTarget.insertAdjacentHTML("beforeend", stepHtml)
     }
-    
+
+    // Wait for Stimulus to connect controllers in the new HTML
+    // Use a small delay to ensure MutationObserver has processed the changes
+    await new Promise(resolve => setTimeout(resolve, 50))
+
     // Update indices for all steps
     this.updateAllStepIndices()
-    
+
     // Refresh dropdowns after adding new step
     this.refreshAllDropdowns()
     this.refreshAllRuleBuilders()
+    this.refreshAllTransitions()
     this.notifyPreviewUpdate()
     
     // Dispatch events
@@ -522,38 +577,51 @@ export default class extends Controller {
   async fetchStepHtml(workflowId, stepType, stepIndex, stepData = {}) {
     const url = `/workflows/${workflowId}/render_step`
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-    
+
     console.log(`[WorkflowBuilder] Fetching step HTML from ${url}`)
     console.log(`[WorkflowBuilder] CSRF Token present: ${!!csrfToken}`)
-    
+
     const requestBody = {
       step_type: stepType,
       step_index: stepIndex,
       step_data: stepData
     }
     console.log("[WorkflowBuilder] Request body:", requestBody)
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken || '',
-        'Accept': 'text/html'
-      },
-      body: JSON.stringify(requestBody)
-    })
-    
-    console.log(`[WorkflowBuilder] Server response status: ${response.status}`)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`[WorkflowBuilder] Server error response:`, errorText)
-      throw new Error(`Server returned ${response.status}: ${errorText}`)
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || '',
+          'Accept': 'text/html'
+        },
+        credentials: 'same-origin', // Ensure cookies are sent
+        body: JSON.stringify(requestBody)
+      })
+
+      console.log(`[WorkflowBuilder] Server response status: ${response.status}`)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`[WorkflowBuilder] Server error response:`, errorText.substring(0, 500))
+        throw new Error(`Server returned ${response.status}`)
+      }
+
+      const html = await response.text()
+      console.log(`[WorkflowBuilder] Received HTML (${html.length} chars)`)
+
+      // Validate that we got actual step HTML, not an error page
+      if (!html.includes('step-item') && !html.includes('data-step-index')) {
+        console.warn('[WorkflowBuilder] Response does not appear to be valid step HTML')
+        throw new Error('Invalid step HTML response')
+      }
+
+      return html
+    } catch (fetchError) {
+      console.error('[WorkflowBuilder] Fetch error:', fetchError.message)
+      throw fetchError
     }
-    
-    const html = await response.text()
-    console.log(`[WorkflowBuilder] Received HTML (${html.length} chars)`)
-    return html
   }
   
   /**
@@ -623,6 +691,7 @@ export default class extends Controller {
       this.updateOrderIndices()
       this.refreshAllDropdowns()
       this.refreshAllRuleBuilders()
+      this.refreshAllTransitions()
       this.notifyPreviewUpdate()
       
       // Reinitialize Sortable after removing element
@@ -728,9 +797,64 @@ export default class extends Controller {
         return templateSelector + this.getDecisionFieldsHtml(stepData, truePathOptions, falsePathOptions)
       case "action":
         return templateSelector + this.getActionFieldsHtml(stepData)
+      case "sub_flow":
+        return this.getSubflowFieldsHtml(stepData)
+      case "checkpoint":
+        return this.getCheckpointFieldsHtml(stepData)
       default:
         return ""
     }
+  }
+
+  getCheckpointFieldsHtml(stepData = {}) {
+    return `
+      <div class="field-container">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Checkpoint Message</label>
+        <textarea name="workflow[steps][][checkpoint_message]"
+                  placeholder="Message to display at checkpoint..."
+                  class="w-full border rounded px-3 py-2"
+                  rows="2"
+                  data-step-form-target="field">${this.escapeHtml(stepData.checkpoint_message || "")}</textarea>
+        <p class="mt-1 text-xs text-gray-500">This message will be shown when the simulation reaches this checkpoint.</p>
+      </div>
+    `
+  }
+
+  getSubflowFieldsHtml(stepData = {}) {
+    const workflowId = this.getWorkflowIdFromPage()
+
+    return `
+      <div class="field-container" data-controller="subflow-selector" data-subflow-selector-current-workflow-id-value="${workflowId || ''}">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Target Workflow</label>
+        <input type="hidden"
+               name="workflow[steps][][target_workflow_id]"
+               value="${this.escapeHtml(stepData.target_workflow_id || "")}"
+               data-subflow-selector-target="hiddenInput"
+               data-step-form-target="field">
+        <select data-subflow-selector-target="select"
+                data-action="change->subflow-selector#selectWorkflow"
+                class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="">-- Select a workflow --</option>
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Select a published workflow to run as a sub-routine. Variables will be inherited.</p>
+      </div>
+
+      <div class="field-container mt-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Variable Mapping (Optional)</label>
+        <div class="bg-gray-50 rounded p-3 border border-gray-200">
+          <p class="text-xs text-gray-500 mb-2">
+            Map parent workflow variables to child workflow variables. Child workflow results will be merged back.
+          </p>
+          <input type="hidden"
+                 name="workflow[steps][][variable_mapping]"
+                 value="${this.escapeHtml(JSON.stringify(stepData.variable_mapping || {}))}"
+                 data-step-form-target="field">
+          <div class="text-xs text-gray-400 italic">
+            Variable mapping editor coming soon. Currently, all parent variables are automatically passed to sub-flows.
+          </div>
+        </div>
+      </div>
+    `
   }
 
   getTemplateSelectorHtml(stepType) {
@@ -1140,6 +1264,19 @@ export default class extends Controller {
     const div = document.createElement("div")
     div.textContent = text
     return div.innerHTML
+  }
+
+  /**
+   * Remove the empty state message when steps are added
+   */
+  removeEmptyState() {
+    if (!this.hasContainerTarget) return
+
+    // Find and remove the empty state div (contains "No steps yet" text)
+    const emptyState = this.containerTarget.querySelector('.text-center.py-12')
+    if (emptyState && emptyState.textContent.includes('No steps yet')) {
+      emptyState.remove()
+    }
   }
 
   extractStepData(stepElement) {

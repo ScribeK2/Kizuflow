@@ -62,17 +62,33 @@
       Define variables that will be set when this action executes. Use <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">{{variable_name}}</code> to reference other variables.
     </p>
     
+    <%
+      # Normalize output_fields: parse JSON string if needed, default to empty array
+      output_fields_raw = step['output_fields']
+      output_fields_array = if output_fields_raw.is_a?(Array)
+        output_fields_raw
+      elsif output_fields_raw.is_a?(String) && output_fields_raw.present?
+        begin
+          parsed = JSON.parse(output_fields_raw)
+          parsed.is_a?(Array) ? parsed : []
+        rescue JSON::ParserError
+          []
+        end
+      else
+        []
+      end
+    %>
     <div data-controller="output-fields"
-         data-output-fields-fields-value="<%= (step['output_fields'] || []).to_json %>">
-      <input type="hidden" 
-             name="workflow[steps][][output_fields]" 
-             value="<%= (step['output_fields'] || []).to_json %>"
+         data-output-fields-fields-value="<%= output_fields_array.to_json %>">
+      <input type="hidden"
+             name="workflow[steps][][output_fields]"
+             value="<%= output_fields_array.to_json %>"
              data-output-fields-target="outputFieldsInput"
              data-step-form-target="field">
-      
+
       <div data-output-fields-target="fieldsList" class="space-y-3 mb-3">
-        <% if step['output_fields'].present? && step['output_fields'].is_a?(Array) %>
-          <% step['output_fields'].each_with_index do |field, index| %>
+        <% if output_fields_array.present? %>
+          <% output_fields_array.each_with_index do |field, index| %>
             <div class="flex gap-2 items-start" data-field-index="<%= index %>">
               <div class="flex-1 grid grid-cols-2 gap-2">
                 <input type="text" 

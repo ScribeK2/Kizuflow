@@ -2,11 +2,14 @@
 
 # Handles step normalization, variable name generation, and format conversion
 # for workflows. Ensures backward compatibility with legacy step formats.
+# Also handles graph-mode normalization for DAG-based workflows.
 module WorkflowNormalization
   extend ActiveSupport::Concern
 
   included do
     before_validation :normalize_steps_on_save
+    before_validation :normalize_graph_steps, if: :graph_mode?
+    before_validation :ensure_start_node_uuid, if: :graph_mode?
   end
 
   # Ensure all steps have unique IDs
@@ -202,5 +205,74 @@ module WorkflowNormalization
         end
 
     variable_names.compact.uniq
+  end
+
+  # ============================================================================
+  # Graph Mode Normalization
+  # These methods handle normalization for DAG-based workflows.
+  # ============================================================================
+
+  # Normalize graph-mode steps
+  # Ensures all transitions have valid structure and target_uuid references
+  def normalize_graph_steps
+    return unless steps.present?
+
+    step_ids = steps.map { |s| s['id'] }.compact
+
+    steps.each do |step|
+      next unless step.is_a?(Hash)
+
+      # Normalize transitions array
+      if step['transitions'].present? && step['transitions'].is_a?(Array)
+        step['transitions'] = step['transitions'].map do |transition|
+          next nil unless transition.is_a?(Hash)
+
+          normalized = {}
+
+          # Normalize target_uuid (support both string keys and symbol keys)
+          target = transition['target_uuid'] || transition[:target_uuid]
+          normalized['target_uuid'] = target.to_s if target.present?
+
+          # Normalize condition
+          condition = transition['condition'] || transition[:condition]
+          normalized['condition'] = condition.to_s.strip if condition.present?
+
+          # Normalize label (optional display name for the transition)
+          label = transition['label'] || transition[:label]
+          normalized['label'] = label.to_s.strip if label.present?
+
+          # Only include valid transitions with target_uuid
+          normalized['target_uuid'].present? ? normalized : nil
+        end.compact
+      else
+        # Initialize empty transitions array for graph mode
+        step['transitions'] ||= []
+      end
+
+      # For sub_flow steps, normalize target_workflow_id
+      if step['type'] == 'sub_flow'
+        target_id = step['target_workflow_id'] || step[:target_workflow_id]
+        step['target_workflow_id'] = target_id.to_i if target_id.present?
+        step.delete(:target_workflow_id)
+
+        # Normalize variable_mapping for sub-flows
+        if step['variable_mapping'].present? && step['variable_mapping'].is_a?(Hash)
+          step['variable_mapping'] = step['variable_mapping'].transform_keys(&:to_s)
+        end
+      end
+    end
+  end
+
+  # Ensure start_node_uuid is set for graph mode workflows
+  def ensure_start_node_uuid
+    return unless steps.present?
+
+    if start_node_uuid.blank?
+      # Default to first step's ID
+      self.start_node_uuid = steps.first&.dig('id')
+    elsif find_step_by_id(start_node_uuid).nil?
+      # If start_node_uuid references a non-existent step, reset to first step
+      self.start_node_uuid = steps.first&.dig('id')
+    end
   end
 end

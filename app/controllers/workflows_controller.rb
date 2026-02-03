@@ -5,6 +5,7 @@ class WorkflowsController < ApplicationController
   before_action :ensure_can_view_workflow!, only: [:show, :export, :export_pdf, :start, :begin_execution]
   before_action :ensure_can_edit_workflow!, only: [:edit, :update, :save_as_template]
   before_action :ensure_can_delete_workflow!, only: [:destroy]
+  before_action :parse_transitions_json, only: [:create, :update, :update_step2]
 
   def index
     # Eager load associations to prevent N+1 queries (especially important for caching)
@@ -49,6 +50,24 @@ class WorkflowsController < ApplicationController
     end
 
     @search_query = params[:search]
+
+    respond_to do |format|
+      format.html
+      format.json do
+        # Return simplified workflow data for API consumers (e.g., sub-flow selector)
+        workflows_data = @workflows.map do |w|
+          {
+            id: w.id,
+            title: w.title,
+            description: w.description_text&.truncate(100),
+            status: w.status,
+            graph_mode: w.graph_mode?,
+            step_count: w.steps&.length || 0
+          }
+        end
+        render json: workflows_data
+      end
+    end
   end
 
   def show
@@ -205,10 +224,23 @@ class WorkflowsController < ApplicationController
   # This allows the JavaScript to request server-rendered HTML for new steps,
   # ensuring all the new Sprint 2/3 features are included
   def render_step
+    Rails.logger.debug "[render_step] Params: #{params.inspect}"
+
     step_type = params[:step_type]
     step_index = params[:step_index].to_i
-    step_data = params[:step_data] || {}
-    
+
+    # Convert step_data to hash with indifferent access (allows both string and symbol keys)
+    raw_step_data = params[:step_data]
+    step_data = if raw_step_data.is_a?(ActionController::Parameters)
+                  raw_step_data.to_unsafe_h.with_indifferent_access
+                elsif raw_step_data.is_a?(Hash)
+                  raw_step_data.with_indifferent_access
+                else
+                  {}.with_indifferent_access
+                end
+
+    Rails.logger.debug "[render_step] step_type=#{step_type}, step_index=#{step_index}, step_data=#{step_data.inspect}"
+
     # Build a step hash from the parameters
     step = {
       'id' => SecureRandom.uuid,
@@ -216,7 +248,7 @@ class WorkflowsController < ApplicationController
       'title' => step_data[:title] || '',
       'description' => step_data[:description] || ''
     }
-    
+
     # Add type-specific fields
     case step_type
     when 'question'
@@ -233,17 +265,26 @@ class WorkflowsController < ApplicationController
       step['attachments'] = step_data[:attachments] || []
     when 'checkpoint'
       step['checkpoint_message'] = step_data[:checkpoint_message] || ''
+    when 'sub_flow'
+      step['target_workflow_id'] = step_data[:target_workflow_id] || ''
+      step['variable_mapping'] = step_data[:variable_mapping] || {}
     end
     
     # Render the step_item partial
-    render partial: 'workflows/step_item', 
-           locals: { 
-             step: step, 
-             index: step_index, 
-             workflow: @workflow,
-             expanded: true 
-           },
-           formats: [:html]
+    begin
+      render partial: 'workflows/step_item',
+             locals: {
+               step: step,
+               index: step_index,
+               workflow: @workflow,
+               expanded: true
+             },
+             formats: [:html]
+    rescue => e
+      Rails.logger.error "[render_step] Error rendering step: #{e.message}"
+      Rails.logger.error e.backtrace.first(10).join("\n")
+      render plain: "Error rendering step: #{e.message}", status: :internal_server_error
+    end
   end
 
   def save_as_template
@@ -571,14 +612,17 @@ class WorkflowsController < ApplicationController
   def workflow_params
     # Permit nested steps hash structure
     # lock_version is used for optimistic locking to prevent race conditions
-    permitted = params.require(:workflow).permit(:title, :description, :is_public, :lock_version, 
+    # graph_mode and start_node_uuid are for DAG-based workflows
+    permitted = params.require(:workflow).permit(:title, :description, :is_public, :lock_version,
+      :graph_mode, :start_node_uuid,
       steps: [
       :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
-      :checkpoint_message,
+      :checkpoint_message, :target_workflow_id,
       options: [:label, :value],
       branches: [:condition, :path],
       jumps: [:condition, :next_step_id],
+      transitions: [:target_uuid, :condition, :label],
       attachments: [],
       output_fields: [:name, :value]
     ])
@@ -586,21 +630,23 @@ class WorkflowsController < ApplicationController
   end
 
   def workflow_step1_params
-    # Permit only title and description for step 1
-    params.require(:workflow).permit(:title, :description)
+    # Permit title, description, and graph_mode for step 1
+    params.require(:workflow).permit(:title, :description, :graph_mode)
   end
 
   def workflow_step2_params
     # Permit steps for step 2
     # NOTE: Must match workflow_params to ensure all nested structures are permitted
     # Missing fields identified in Phase 1 diagnosis: :id, :checkpoint_message, :jumps, output_fields
+    # Added: target_workflow_id for sub-flow steps, transitions for graph mode
     params.require(:workflow).permit(steps: [
       :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
-      :checkpoint_message,
+      :checkpoint_message, :target_workflow_id,
       options: [:label, :value],
       branches: [:condition, :path],
       jumps: [:condition, :next_step_id],
+      transitions: [:target_uuid, :condition, :label],
       attachments: [],
       output_fields: [:name, :value]
     ])
@@ -723,5 +769,46 @@ class WorkflowsController < ApplicationController
 
   def incomplete_steps_count
     @workflow.steps&.count { |step| step['_import_incomplete'] } || 0
+  end
+
+  # Parse transitions_json from form submissions into proper transitions array
+  # The frontend sends transitions and output_fields as JSON strings,
+  # but strong params expects them as nested array structures.
+  # This before_action converts the JSON strings to the expected format.
+  def parse_transitions_json
+    return unless params[:workflow]&.dig(:steps).present?
+
+    Rails.logger.info "[parse_transitions_json] Processing #{params[:workflow][:steps].length} steps"
+
+    params[:workflow][:steps].each_with_index do |step, index|
+      next unless step.is_a?(ActionController::Parameters) || step.is_a?(Hash)
+
+      Rails.logger.info "[parse_transitions_json] Step #{index}: transitions_json=#{step[:transitions_json].inspect}"
+
+      # Parse transitions_json to transitions array
+      if step[:transitions_json].present?
+        begin
+          parsed = JSON.parse(step[:transitions_json])
+          step[:transitions] = parsed if parsed.is_a?(Array)
+          Rails.logger.info "[parse_transitions_json] Step #{index}: parsed #{parsed.length} transitions"
+        rescue JSON::ParserError => e
+          Rails.logger.error "[parse_transitions_json] Step #{index}: JSON parse error: #{e.message}"
+          step[:transitions] = []
+        end
+        step.delete(:transitions_json)
+      else
+        Rails.logger.info "[parse_transitions_json] Step #{index}: NO transitions_json field"
+      end
+
+      # Parse output_fields if it's a JSON string
+      if step[:output_fields].is_a?(String)
+        begin
+          parsed = JSON.parse(step[:output_fields])
+          step[:output_fields] = parsed if parsed.is_a?(Array)
+        rescue JSON::ParserError
+          step[:output_fields] = []
+        end
+      end
+    end
   end
 end

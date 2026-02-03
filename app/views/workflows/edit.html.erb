@@ -65,6 +65,31 @@
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Public workflows can be viewed and simulated by all users, but only you (or admins) can edit them.
         </p>
+
+        <%# Graph Mode Toggle (DAG-based workflow) %>
+        <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", data: { action: "change->workflow-builder#toggleGraphMode" } %>
+              <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
+                Enable Graph Mode
+                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
+                  Beta
+                </span>
+              <% end %>
+            </div>
+            <% if @workflow.graph_mode? %>
+              <span class="text-xs text-green-600 dark:text-green-400 font-medium">Active</span>
+            <% end %>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
+            Steps can connect to any other step, not just the next one in sequence.
+          </p>
+          <% if @workflow.graph_mode? %>
+            <%= form.hidden_field :start_node_uuid %>
+          <% end %>
+        </div>
       <% end %>
 
       <% if @workflow.steps&.any? { |s| s['_import_incomplete'] } %>
@@ -137,20 +162,28 @@
                         class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-amber-500 hover:bg-amber-600">
                   Checkpoint
                 </button>
+                <% if @workflow.graph_mode? || current_user&.admin? %>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="sub_flow"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
+                    Sub-flow
+                  </button>
+                <% end %>
               </div>
             </div>
 
             <%# Expand/Collapse All Controls (Sprint 2) %>
             <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
-              <div class="flex justify-end gap-2 mb-3">
+              <div class="flex justify-end gap-2 mb-3" data-controller="step-controls">
                 <button type="button"
-                        onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.expand(); })"
+                        data-action="click->step-controls#expandAll"
                         class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
                   Expand all
                 </button>
                 <span class="text-gray-400">|</span>
                 <button type="button"
-                        onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.collapse(); })"
+                        data-action="click->step-controls#collapseAll"
                         class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
                   Collapse all
                 </button>
@@ -305,6 +338,11 @@
     </div>
   </div>
 </div>
+
+<%# Graph Mode: Transition Editor Modal %>
+<% if @workflow.graph_mode? %>
+  <%= render partial: "transition_modal" %>
+<% end %>
 
 <%# Save as Template Modal %>
 <div id="save-template-modal"

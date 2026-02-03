@@ -10,33 +10,101 @@ export default class extends Controller {
   connect() {
     // Check if branches already exist (rendered by ERB)
     const existingBranches = this.branchesContainerTarget.querySelectorAll('.branch-item')
-    
+
     if (existingBranches.length === 0) {
       // No branches exist, check for legacy format or add one empty branch
       this.initializeBranches()
     } else {
-      // Branches already exist from ERB, initialize rule builders and step selectors
-      // Use a longer delay to ensure Stimulus controllers are connected
-      setTimeout(() => {
-        existingBranches.forEach((branchItem, index) => {
-          this.initializeBranchRuleBuilder(index)
-          this.initializeBranchStepSelector(index)
-        })
-        // Also initialize else path step selector
-        this.initializeElsePathStepSelector()
-      }, 300)
+      // Branches already exist from ERB, initialize with retry pattern
+      this.initializeExistingBranchesWithRetry(existingBranches)
     }
     
     // Listen for template-applied events
     this.handleTemplateApplied = this.handleTemplateApplied.bind(this)
     this.element.addEventListener('template-applied', this.handleTemplateApplied)
-    
+
     // Listen for Yes/No branch quick setup events (Sprint 1)
     this.handleYesNoBranchApply = this.handleYesNoBranchApply.bind(this)
     this.element.addEventListener('yes-no-branch:apply', this.handleYesNoBranchApply)
-    
+
     // Set up listeners for workflow changes
     this.setupWorkflowChangeListener()
+  }
+
+  // Initialize with exponential backoff retry (100ms, 200ms, 400ms, 800ms, 1600ms)
+  initializeExistingBranchesWithRetry(branchElements, attempt = 0) {
+    const maxAttempts = 5
+    const baseDelay = 100
+
+    const allReady = this.tryInitializeBranches(branchElements)
+
+    if (!allReady && attempt < maxAttempts) {
+      setTimeout(() => {
+        this.initializeExistingBranchesWithRetry(branchElements, attempt + 1)
+      }, baseDelay * Math.pow(2, attempt))
+    }
+  }
+
+  tryInitializeBranches(branchElements) {
+    let allSucceeded = true
+
+    branchElements.forEach((branchItem, index) => {
+      if (!this.initializeBranchControllerSafe(index, 'rule-builder', 'refreshVariables')) {
+        allSucceeded = false
+      }
+      if (!this.initializeBranchControllerSafe(index, 'step-selector', 'refresh')) {
+        allSucceeded = false
+      }
+    })
+
+    if (!this.initializeElsePathSafe()) {
+      allSucceeded = false
+    }
+
+    return allSucceeded
+  }
+
+  initializeBranchControllerSafe(index, controllerName, methodName) {
+    const branchItem = this.branchesContainerTarget.querySelector(`[data-branch-index="${index}"]`)
+    if (!branchItem) return true // No branch is OK
+
+    const element = branchItem.querySelector(`[data-controller*="${controllerName}"]`)
+    if (!element) return true // No controller element is OK
+
+    const application = window.Stimulus
+    if (!application) return false
+
+    try {
+      const controller = application.getControllerForElementAndIdentifier(element, controllerName)
+      if (controller && typeof controller[methodName] === 'function') {
+        controller[methodName]()
+        return true
+      }
+    } catch (e) {
+      // Controller not ready yet
+    }
+    return false
+  }
+
+  initializeElsePathSafe() {
+    if (!this.hasElsePathContainerTarget) return true
+
+    const stepSelector = this.elsePathContainerTarget.querySelector('[data-controller*="step-selector"]')
+    if (!stepSelector) return true
+
+    const application = window.Stimulus
+    if (!application) return false
+
+    try {
+      const controller = application.getControllerForElementAndIdentifier(stepSelector, "step-selector")
+      if (controller && typeof controller.refresh === 'function') {
+        controller.refresh()
+        return true
+      }
+    } catch (e) {
+      // Controller not ready yet
+    }
+    return false
   }
   
   /**
@@ -112,24 +180,9 @@ export default class extends Controller {
   }
   
   initializeElsePathStepSelector() {
-    if (!this.hasElsePathContainerTarget) return
-    
-    const stepSelector = this.elsePathContainerTarget.querySelector('[data-controller*="step-selector"]')
-    if (!stepSelector) return
-    
-    setTimeout(() => {
-      const application = window.Stimulus
-      if (application) {
-        try {
-          const controller = application.getControllerForElementAndIdentifier(stepSelector, "step-selector")
-          if (controller && typeof controller.refresh === 'function') {
-            controller.refresh()
-          }
-        } catch (e) {
-          console.warn(`Error initializing else path step selector: ${e.message}`)
-        }
-      }
-    }, 100)
+    // Legacy method - now uses initializeElsePathSafe() with retry pattern
+    // Kept for backward compatibility with addBranchDirect calls
+    this.initializeElsePathSafe()
   }
 
   initializeBranches() {

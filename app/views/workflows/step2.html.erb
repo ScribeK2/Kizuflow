@@ -21,8 +21,10 @@
       <%# Main Content %>
       <div class="flex-1 min-w-0">
         <div class="solid-card overflow-hidden p-6 space-y-6">
-          <div data-controller="workflow-builder" 
+          <div data-controller="workflow-builder variable-autocomplete"
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
+               data-workflow-builder-graph-mode-value="<%= @workflow.graph_mode? %>"
+               data-variable-autocomplete-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
             
             <%# Header with Add Step Buttons %>
@@ -39,53 +41,49 @@
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="question"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #3b82f6;"
-                        onmouseover="this.style.backgroundColor='#2563eb'"
-                        onmouseout="this.style.backgroundColor='#3b82f6'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
                   Question
                 </button>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="decision"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #a855f7;"
-                        onmouseover="this.style.backgroundColor='#9333ea'"
-                        onmouseout="this.style.backgroundColor='#a855f7'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
                   Decision
                 </button>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="action"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #22c55e;"
-                        onmouseover="this.style.backgroundColor='#16a34a'"
-                        onmouseout="this.style.backgroundColor='#22c55e'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
                   Action
                 </button>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="checkpoint"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
-                        style="background-color: #f97316;"
-                        onmouseover="this.style.backgroundColor='#ea580c'"
-                        onmouseout="this.style.backgroundColor='#f97316'">
+                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-amber-500 hover:bg-amber-600">
                   Checkpoint
                 </button>
+                <% if @workflow.graph_mode? %>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="sub_flow"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
+                    Sub-flow
+                  </button>
+                <% end %>
               </div>
             </div>
             
             <%# Expand/Collapse All Controls (Sprint 2) %>
             <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
-              <div class="flex justify-end gap-2 mb-3">
+              <div class="flex justify-end gap-2 mb-3" data-controller="step-controls">
                 <button type="button"
-                        onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.expand(); })"
+                        data-action="click->step-controls#expandAll"
                         class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
                   Expand all
                 </button>
                 <span class="text-gray-400">|</span>
                 <button type="button"
-                        onclick="document.querySelectorAll('[data-controller*=collapsible-step]').forEach(el => { const c = window.Stimulus?.getControllerForElementAndIdentifier(el, 'collapsible-step'); c?.collapse(); })"
+                        data-action="click->step-controls#collapseAll"
                         class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
                   Collapse all
                 </button>
@@ -122,16 +120,16 @@
                   
                   <%# Quick start buttons in empty state %>
                   <div class="flex flex-wrap justify-center gap-3">
-                    <button type="button" 
+                    <button type="button"
                             data-action="click->workflow-builder#addStepDirect"
                             data-step-type="question"
-                            class="inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-medium">
+                            class="inline-flex items-center px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors font-medium">
                       Start with a Question
                     </button>
-                    <button type="button" 
+                    <button type="button"
                             data-action="click->workflow-builder#addStepDirect"
                             data-step-type="action"
-                            class="inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors font-medium">
+                            class="inline-flex items-center px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors font-medium">
                       Start with an Action
                     </button>
                   </div>
@@ -140,28 +138,32 @@
             </div>
           </div>
 
+          <%# Flow Preview Section %>
+          <div data-controller="flow-preview" class="mt-6">
+            <%= render partial: "flow_preview" %>
+          </div>
+
           <%# Navigation Buttons %>
           <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-            <%= link_to step1_workflow_path(@workflow), 
-                class: "inline-flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+            <%= link_to step1_workflow_path(@workflow),
+                class: "inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-700 py-2 px-4 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
               </svg>
               Previous
             <% end %>
-            
+
             <div class="flex items-center gap-3">
               <% if @workflow.steps.present? %>
                 <span class="text-sm text-gray-500 dark:text-gray-400">
                   <%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %> added
                 </span>
               <% end %>
-              
-              <%= form.submit "Next: Review →", 
-                  class: "bg-slate-600 hover:bg-slate-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer",
-                  data: { 
-                    action: "click->step-form#logSubmit",
-                    turbo: true
+
+              <%= form.submit "Next: Review →",
+                  class: "bg-slate-600 hover:bg-slate-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer",
+                  data: {
+                    action: "click->step-form#logSubmit"
                   } %>
             </div>
           </div>
@@ -170,3 +172,8 @@
     </div>
   <% end %>
 </div>
+
+<%# Graph Mode: Transition Editor Modal %>
+<% if @workflow.graph_mode? %>
+  <%= render partial: "transition_modal" %>
+<% end %>

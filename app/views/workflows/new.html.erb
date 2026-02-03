@@ -39,7 +39,25 @@
         <%= render partial: "workflows/group_selector", locals: { selected_group_ids: [] } %>
       <% end %>
 
-      <div data-controller="workflow-builder" id="workflow-builder-container">
+      <%# Graph Mode Toggle %>
+      <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", id: "workflow_graph_mode", data: { action: "change->workflow-builder#toggleGraphMode" } %>
+            <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
+              Enable Graph Mode
+              <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
+                Beta
+              </span>
+            <% end %>
+          </div>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
+        </p>
+      </div>
+
+      <div data-controller="workflow-builder" id="workflow-builder-container" data-workflow-builder-graph-mode-value="false">
         <div class="flex justify-between items-center mb-4">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
           <div class="flex space-x-2">
@@ -47,6 +65,7 @@
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="decision" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Decision</button>
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Action</button>
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="checkpoint" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">Add Checkpoint</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="sub_flow" data-step-type="sub_flow" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105" data-workflow-builder-target="subflowButton">Add Sub-flow</button>
           </div>
         </div>
         <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-slate-50 dark:bg-slate-800/50">
