@@ -66,30 +66,38 @@
           Public workflows can be viewed and simulated by all users, but only you (or admins) can edit them.
         </p>
 
-        <%# Graph Mode Toggle (DAG-based workflow) %>
-        <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", data: { action: "change->workflow-builder#toggleGraphMode" } %>
-              <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
-                Enable Graph Mode
-                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
-                  Beta
-                </span>
+        <%# Graph Mode Toggle (DAG-based workflow) - Hidden when graph mode is the default %>
+        <% if show_graph_mode_toggle? %>
+          <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", data: { action: "change->workflow-builder#toggleGraphMode" } %>
+                <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
+                  Enable Graph Mode
+                  <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
+                    Beta
+                  </span>
+                <% end %>
+              </div>
+              <% if @workflow.graph_mode? %>
+                <span class="text-xs text-green-600 dark:text-green-400 font-medium">Active</span>
               <% end %>
             </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
+              Steps can connect to any other step, not just the next one in sequence.
+            </p>
             <% if @workflow.graph_mode? %>
-              <span class="text-xs text-green-600 dark:text-green-400 font-medium">Active</span>
+              <%= form.hidden_field :start_node_uuid %>
             <% end %>
           </div>
-          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
-            Steps can connect to any other step, not just the next one in sequence.
-          </p>
+        <% else %>
+          <%# Hidden fields to preserve graph_mode and start_node_uuid when toggle is hidden %>
+          <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
           <% if @workflow.graph_mode? %>
             <%= form.hidden_field :start_node_uuid %>
           <% end %>
-        </div>
+        <% end %>
       <% end %>
 
       <% if @workflow.steps&.any? { |s| s['_import_incomplete'] } %>

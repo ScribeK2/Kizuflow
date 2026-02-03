@@ -17,7 +17,9 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
   test "complete wizard flow creates working workflow" do
     # Step 1: Create draft via GET /workflows/new
-    get new_workflow_path
+    # Use force_linear_mode=1 to test linear workflow creation
+    # (graph mode is now the default; this test validates linear mode still works)
+    get new_workflow_path(force_linear_mode: 1)
     assert_response :redirect
     follow_redirect!
 
@@ -26,12 +28,14 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     draft_workflow = Workflow.drafts.last
     assert_not_nil draft_workflow
     assert_equal "draft", draft_workflow.status
+    assert_equal false, draft_workflow.graph_mode, "Should be linear mode with force_linear_mode param"
 
     # Step 2: Complete Step 1 - Title and Description
     patch update_step1_workflow_path(draft_workflow), params: {
       workflow: {
         title: "Customer Support Flow",
-        description: "Workflow for handling customer inquiries"
+        description: "Workflow for handling customer inquiries",
+        graph_mode: false  # Preserve linear mode
       }
     }
     assert_response :redirect

@@ -75,7 +75,12 @@ class WorkflowsController < ApplicationController
 
   def new
     # Create a draft workflow and redirect to wizard step 1
-    @workflow = current_user.workflows.build(status: 'draft', title: 'Untitled Workflow')
+    # Graph mode is now default; use ?force_linear_mode=1 to create linear workflow
+    @workflow = current_user.workflows.build(
+      status: 'draft',
+      title: 'Untitled Workflow',
+      graph_mode: determine_graph_mode_for_new
+    )
     if @workflow.save
       redirect_to step1_workflow_path(@workflow), notice: "Let's create your workflow step by step."
     else
@@ -582,6 +587,16 @@ class WorkflowsController < ApplicationController
 
   def set_workflow
     @workflow = Workflow.find(params[:id])
+  end
+
+  # Determine graph_mode for new workflows
+  # Graph mode is the default; use ?force_linear_mode=1 to create linear workflow
+  def determine_graph_mode_for_new
+    if params[:force_linear_mode].present? && FeatureFlags.allow_linear_mode_override?
+      false
+    else
+      FeatureFlags.graph_mode_default?
+    end
   end
 
   # Override parent methods to use @workflow instance variable

@@ -219,6 +219,133 @@ namespace :workflows do
     end
   end
 
+  desc "Convert all linear workflows to graph mode with safety checks"
+  task migrate_all_to_graph: :environment do
+    puts "=" * 70
+    puts "GRAPH MODE MIGRATION"
+    puts "=" * 70
+    puts "This will convert all linear workflows to graph mode."
+    puts "Existing graph mode workflows will be skipped."
+    puts ""
+
+    # Count workflows
+    total = Workflow.count
+    linear = Workflow.where(graph_mode: false).count
+    graph = Workflow.where(graph_mode: true).count
+
+    puts "Current state:"
+    puts "  Total workflows:  #{total}"
+    puts "  Linear mode:      #{linear}"
+    puts "  Graph mode:       #{graph}"
+    puts ""
+
+    if linear == 0
+      puts "All workflows are already in graph mode. Nothing to do."
+      exit 0
+    end
+
+    # In production or CI, auto-confirm; otherwise prompt
+    unless ENV['RAILS_ENV'] == 'production' || ENV['CI'] || ENV['AUTO_CONFIRM']
+      print "Proceed with migration? (yes/no): "
+      response = STDIN.gets&.chomp&.downcase
+      unless response == 'yes'
+        puts "Migration cancelled."
+        exit 0
+      end
+    else
+      puts "Auto-confirmed (production/CI environment)"
+    end
+
+    puts "\nStarting migration..."
+    Rake::Task['workflows:migrate_to_graph'].invoke
+  end
+
+  desc "Dry-run: Preview graph migration for all workflows"
+  task preview_graph_migration: :environment do
+    puts "=" * 70
+    puts "GRAPH MODE MIGRATION PREVIEW (DRY RUN)"
+    puts "=" * 70
+    puts ""
+
+    total = Workflow.count
+    linear = Workflow.where(graph_mode: false).count
+    graph = Workflow.where(graph_mode: true).count
+
+    puts "Current state:"
+    puts "  Total workflows:  #{total}"
+    puts "  Linear mode:      #{linear}"
+    puts "  Graph mode:       #{graph}"
+    puts ""
+
+    if linear == 0
+      puts "All workflows are already in graph mode."
+      exit 0
+    end
+
+    success_count = 0
+    failure_count = 0
+    empty_count = 0
+    failures = []
+
+    Workflow.where(graph_mode: false).find_each do |workflow|
+      unless workflow.steps.present?
+        empty_count += 1
+        next
+      end
+
+      converter = WorkflowGraphConverter.new(workflow)
+      if converter.valid_for_conversion?
+        success_count += 1
+        print "."
+      else
+        failure_count += 1
+        failures << { id: workflow.id, title: workflow.title, errors: converter.errors }
+        print "x"
+      end
+    end
+
+    puts "\n\nResults:"
+    puts "  Would convert successfully: #{success_count}"
+    puts "  Would fail:                 #{failure_count}"
+    puts "  Empty (no steps):           #{empty_count}"
+
+    if failures.any?
+      puts "\nWorkflows that would fail:"
+      failures.first(10).each do |f|
+        puts "  - ID #{f[:id]}: #{f[:title]}"
+        f[:errors].each { |e| puts "      Error: #{e}" }
+      end
+      if failures.length > 10
+        puts "  ... and #{failures.length - 10} more"
+      end
+    end
+
+    puts "\nTo run the actual migration:"
+    puts "  bin/rails workflows:migrate_all_to_graph"
+  end
+
+  desc "Show current graph mode statistics"
+  task graph_stats: :environment do
+    total = Workflow.count
+    linear = Workflow.where(graph_mode: false).count
+    graph = Workflow.where(graph_mode: true).count
+    drafts = Workflow.where(status: 'draft').count
+    published = Workflow.where(status: 'published').count
+
+    puts "Workflow Statistics"
+    puts "=" * 40
+    puts "Total workflows:     #{total}"
+    puts "  - Graph mode:      #{graph} (#{(graph.to_f / total * 100).round(1)}%)"
+    puts "  - Linear mode:     #{linear} (#{(linear.to_f / total * 100).round(1)}%)"
+    puts ""
+    puts "By status:"
+    puts "  - Published:       #{published}"
+    puts "  - Draft:           #{drafts}"
+    puts ""
+    puts "Feature flag status:"
+    puts "  - GRAPH_MODE_DEFAULT: #{FeatureFlags.graph_mode_default?}"
+  end
+
   desc "Revert a workflow from graph mode to linear mode"
   task :revert_from_graph, [:workflow_id] => :environment do |_t, args|
     workflow_id = args[:workflow_id]

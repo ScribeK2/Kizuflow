@@ -39,23 +39,28 @@
         <%= render partial: "workflows/group_selector", locals: { selected_group_ids: [] } %>
       <% end %>
 
-      <%# Graph Mode Toggle %>
-      <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", id: "workflow_graph_mode", data: { action: "change->workflow-builder#toggleGraphMode" } %>
-            <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
-              Enable Graph Mode
-              <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
-                Beta
-              </span>
-            <% end %>
+      <%# Graph Mode Toggle - Hidden when graph mode is the default %>
+      <% if show_graph_mode_toggle? %>
+        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", id: "workflow_graph_mode", data: { action: "change->workflow-builder#toggleGraphMode" } %>
+              <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
+                Enable Graph Mode
+                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
+                  Beta
+                </span>
+              <% end %>
+            </div>
           </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
+          </p>
         </div>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
-        </p>
-      </div>
+      <% else %>
+        <%# Hidden field to preserve graph_mode value when toggle is hidden %>
+        <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
+      <% end %>
 
       <div data-controller="workflow-builder" id="workflow-builder-container" data-workflow-builder-graph-mode-value="false">
         <div class="flex justify-between items-center mb-4">
