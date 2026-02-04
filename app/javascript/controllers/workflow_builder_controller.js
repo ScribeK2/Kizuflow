@@ -77,8 +77,21 @@ export default class extends Controller {
     } else if (type === "sub_flow") {
       stepData.target_workflow_id = ""
       stepData.variable_mapping = {}
+    } else if (type === "message") {
+      stepData.content = ""
+    } else if (type === "escalate") {
+      stepData.target_type = ""
+      stepData.target_value = ""
+      stepData.priority = "normal"
+      stepData.reason_required = false
+      stepData.notes = ""
+    } else if (type === "resolve") {
+      stepData.resolution_type = "success"
+      stepData.resolution_code = ""
+      stepData.notes_required = false
+      stepData.survey_trigger = false
     }
-    
+
     // Insert the step at the specified position
     await this.addStepFromModal(type, stepData, afterIndex + 1)
   }
@@ -131,6 +144,22 @@ export default class extends Controller {
       case "sub_flow":
         stepData.target_workflow_id = ""
         stepData.variable_mapping = {}
+        break
+      case "message":
+        stepData.content = ""
+        break
+      case "escalate":
+        stepData.target_type = ""
+        stepData.target_value = ""
+        stepData.priority = "normal"
+        stepData.reason_required = false
+        stepData.notes = ""
+        break
+      case "resolve":
+        stepData.resolution_type = "success"
+        stepData.resolution_code = ""
+        stepData.notes_required = false
+        stepData.survey_trigger = false
         break
     }
     
@@ -801,6 +830,12 @@ export default class extends Controller {
         return this.getSubflowFieldsHtml(stepData)
       case "checkpoint":
         return this.getCheckpointFieldsHtml(stepData)
+      case "message":
+        return this.getMessageFieldsHtml(stepData)
+      case "escalate":
+        return this.getEscalateFieldsHtml(stepData)
+      case "resolve":
+        return this.getResolveFieldsHtml(stepData)
       default:
         return ""
     }
@@ -816,6 +851,165 @@ export default class extends Controller {
                   rows="2"
                   data-step-form-target="field">${this.escapeHtml(stepData.checkpoint_message || "")}</textarea>
         <p class="mt-1 text-xs text-gray-500">This message will be shown when the simulation reaches this checkpoint.</p>
+      </div>
+    `
+  }
+
+  getMessageFieldsHtml(stepData = {}) {
+    return `
+      <div class="field-container">
+        <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-3 mb-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-cyan-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm text-cyan-800">
+              <strong>Message Step:</strong> Display information to the CSR. Auto-advances without user input.
+            </p>
+          </div>
+        </div>
+
+        <label class="block text-sm font-medium text-gray-700 mb-1">Message Content</label>
+        <textarea name="workflow[steps][][content]"
+                  placeholder="Enter the message to display..."
+                  class="w-full border rounded px-3 py-2"
+                  rows="4"
+                  data-step-form-target="field">${this.escapeHtml(stepData.content || "")}</textarea>
+        <p class="mt-1 text-xs text-gray-500">Supports variable interpolation with {{variable_name}} syntax.</p>
+      </div>
+    `
+  }
+
+  getEscalateFieldsHtml(stepData = {}) {
+    const targetTypes = ['team', 'queue', 'supervisor', 'channel']
+    const priorities = ['low', 'normal', 'high', 'urgent']
+
+    return `
+      <div class="field-container">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-orange-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+            </svg>
+            <p class="text-sm text-orange-800">
+              <strong>Escalate Step:</strong> Transfer to another team, queue, or supervisor.
+            </p>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Target Type</label>
+          <select name="workflow[steps][][target_type]"
+                  class="w-full border rounded px-3 py-2"
+                  data-step-form-target="field">
+            <option value="">-- Select target type --</option>
+            ${targetTypes.map(t => `<option value="${t}" ${stepData.target_type === t ? 'selected' : ''}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Target Name/ID</label>
+          <input type="text"
+                 name="workflow[steps][][target_value]"
+                 value="${this.escapeHtml(stepData.target_value || "")}"
+                 placeholder="e.g., Billing Team, Supervisor Queue"
+                 class="w-full border rounded px-3 py-2"
+                 data-step-form-target="field">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <select name="workflow[steps][][priority]"
+                  class="w-full border rounded px-3 py-2"
+                  data-step-form-target="field">
+            ${priorities.map(p => `<option value="${p}" ${(stepData.priority || 'normal') === p ? 'selected' : ''}>${p.charAt(0).toUpperCase() + p.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="flex items-center cursor-pointer">
+            <input type="hidden" name="workflow[steps][][reason_required]" value="false">
+            <input type="checkbox"
+                   name="workflow[steps][][reason_required]"
+                   value="true"
+                   ${stepData.reason_required ? 'checked' : ''}
+                   class="h-4 w-4 text-orange-600 border-gray-300 rounded"
+                   data-step-form-target="field">
+            <span class="ml-2 text-sm text-gray-700">Require reason for escalation</span>
+          </label>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+          <textarea name="workflow[steps][][notes]"
+                    placeholder="Additional context for the escalation..."
+                    class="w-full border rounded px-3 py-2"
+                    rows="2"
+                    data-step-form-target="field">${this.escapeHtml(stepData.notes || "")}</textarea>
+        </div>
+      </div>
+    `
+  }
+
+  getResolveFieldsHtml(stepData = {}) {
+    const resolutionTypes = ['success', 'failure', 'cancelled', 'transferred', 'other']
+
+    return `
+      <div class="field-container">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm text-green-800">
+              <strong>Resolve Step:</strong> Terminal step that completes the workflow. Cannot have outgoing connections.
+            </p>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Type</label>
+          <select name="workflow[steps][][resolution_type]"
+                  class="w-full border rounded px-3 py-2"
+                  data-step-form-target="field">
+            ${resolutionTypes.map(t => `<option value="${t}" ${(stepData.resolution_type || 'success') === t ? 'selected' : ''}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Code (optional)</label>
+          <input type="text"
+                 name="workflow[steps][][resolution_code]"
+                 value="${this.escapeHtml(stepData.resolution_code || "")}"
+                 placeholder="e.g., RES-001, BILLING-RESOLVED"
+                 class="w-full border rounded px-3 py-2"
+                 data-step-form-target="field">
+          <p class="mt-1 text-xs text-gray-500">CRM or tracking system code for this resolution.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <label class="flex items-center cursor-pointer">
+            <input type="hidden" name="workflow[steps][][notes_required]" value="false">
+            <input type="checkbox"
+                   name="workflow[steps][][notes_required]"
+                   value="true"
+                   ${stepData.notes_required ? 'checked' : ''}
+                   class="h-4 w-4 text-green-600 border-gray-300 rounded"
+                   data-step-form-target="field">
+            <span class="ml-2 text-sm text-gray-700">Require notes</span>
+          </label>
+
+          <label class="flex items-center cursor-pointer">
+            <input type="hidden" name="workflow[steps][][survey_trigger]" value="false">
+            <input type="checkbox"
+                   name="workflow[steps][][survey_trigger]"
+                   value="true"
+                   ${stepData.survey_trigger ? 'checked' : ''}
+                   class="h-4 w-4 text-green-600 border-gray-300 rounded"
+                   data-step-form-target="field">
+            <span class="ml-2 text-sm text-gray-700">Trigger survey</span>
+          </label>
+        </div>
       </div>
     `
   }

@@ -193,95 +193,75 @@ export class FlowchartRenderer {
     return connections
   }
 
-  // Calculate node positions
+  // Calculate node positions (vertical layout - top to bottom)
   calculatePositions(steps, connections) {
     const positions = {}
     const horizontalSpacing = this.nodeWidth + this.nodeMargin
-    const verticalSpacing = this.nodeHeight + this.nodeMargin
+    const verticalSpacing = this.nodeHeight + 60 // More spacing for vertical arrows
 
-    // Track branch targets
+    // Track branch targets and sources for layout decisions
     const branchTargets = new Set()
+    const branchSources = new Map() // Maps target index to array of source indices
     connections.forEach(conn => {
-      if (conn.type === "true" || conn.type === "false" || conn.type.startsWith("branch_") || conn.type === "else") {
+      if (conn.type === "true" || conn.type === "false" || conn.type.startsWith("branch_") || conn.type === "else" || conn.type === "conditional") {
         branchTargets.add(conn.to)
+        if (!branchSources.has(conn.to)) {
+          branchSources.set(conn.to, [])
+        }
+        branchSources.get(conn.to).push(conn.from)
       }
     })
 
-    let currentX = this.nodeMargin
+    // Center horizontally for simple vertical flow
+    const centerX = this.nodeMargin + this.nodeWidth / 2
     let currentY = this.nodeMargin
-    let maxY = this.nodeMargin
+    let maxX = this.nodeMargin
 
     steps.forEach((step, index) => {
-      const isBranchTarget = branchTargets.has(index)
+      // For simple vertical layout, center all nodes
+      let nodeX = this.nodeMargin
 
-      if (isBranchTarget && index > 0) {
-        let foundY = false
-
-        for (let i = 0; i < index; i++) {
-          const existingPos = positions[i]
-          if (existingPos && Math.abs(existingPos.x - currentX) < horizontalSpacing / 2) {
-            currentY = Math.max(currentY, existingPos.y + verticalSpacing)
-            foundY = true
-          }
-        }
-
-        if (!foundY) {
-          currentY = maxY + verticalSpacing
-        }
-      } else if (index > 0 && !isBranchTarget) {
-        currentY = this.nodeMargin
-      }
-
-      positions[index] = { x: currentX, y: currentY }
-      maxY = Math.max(maxY, currentY + this.nodeHeight)
-
-      if (step.type === "decision") {
-        currentX += horizontalSpacing * 1.5
-      } else {
-        currentX += horizontalSpacing
-      }
+      // If this step has multiple incoming branches or is a branch target from non-adjacent step,
+      // we might offset it slightly, but for now keep it simple and centered
+      positions[index] = { x: nodeX, y: currentY }
+      maxX = Math.max(maxX, nodeX + this.nodeWidth)
+      currentY += verticalSpacing
     })
 
     return positions
   }
 
-  // Build SVG path for a connection
+  // Build SVG path for a connection (vertical layout - top to bottom)
   buildConnectionPath(fromPos, toPos, connType, connIndex = 0) {
-    const fromX = fromPos.x + this.nodeWidth
-    const fromY = fromPos.y + this.nodeHeight / 2
-    const toX = toPos.x
-    const toY = toPos.y + this.nodeHeight / 2
+    // For vertical layout: connect from bottom center of source to top center of target
+    const fromX = fromPos.x + this.nodeWidth / 2
+    const fromY = fromPos.y + this.nodeHeight
+    const toX = toPos.x + this.nodeWidth / 2
+    const toY = toPos.y
+    const dx = toX - fromX
     const dy = toY - fromY
 
-    if (connType === "true") {
-      const controlOffset = Math.min(40, Math.abs(dy) * 0.5)
-      const controlX = fromX + (toX - fromX) * 0.5
-      const controlY = Math.max(fromY, toY) + controlOffset
-      return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`
+    // If going backwards (target is above source), curve around
+    if (dy < 0) {
+      const curveOffset = 60 + (connIndex * 20)
+      return `M ${fromX} ${fromY} C ${fromX + curveOffset} ${fromY + 30}, ${toX + curveOffset} ${toY - 30}, ${toX} ${toY}`
+    }
+
+    // For conditional/branch connections, add slight curve based on index
+    if (connType === "true" || connType === "conditional" || connType.startsWith("branch_")) {
+      const curveOffset = 20 + (connIndex * 15)
+      const controlY = fromY + dy * 0.5
+      return `M ${fromX} ${fromY} Q ${fromX + curveOffset} ${controlY}, ${toX} ${toY}`
     } else if (connType === "false") {
-      const controlOffset = Math.min(40, Math.abs(dy) * 0.5)
-      const controlX = fromX + (toX - fromX) * 0.5
-      const controlY = Math.min(fromY, toY) - controlOffset
-      return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`
-    } else if (connType.startsWith("branch_")) {
-      const branchIndex = parseInt(connType.replace("branch_", "")) || 0
-      const controlOffset = Math.min(60, Math.abs(dy) * 0.5) + (branchIndex * 30)
-      const controlX = fromX + (toX - fromX) * 0.5
-      const controlY = branchIndex % 2 === 0
-        ? Math.max(fromY, toY) + controlOffset
-        : Math.min(fromY, toY) - controlOffset
-      return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`
-    } else if (connType === "conditional") {
-      // Graph mode conditional transition - curved path
-      const controlOffset = Math.min(50, Math.abs(dy) * 0.5) + (connIndex * 20)
-      const controlX = fromX + (toX - fromX) * 0.5
-      const controlY = connIndex % 2 === 0
-        ? Math.max(fromY, toY) + controlOffset
-        : Math.min(fromY, toY) - controlOffset
-      return `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`
+      const curveOffset = -20 - (connIndex * 15)
+      const controlY = fromY + dy * 0.5
+      return `M ${fromX} ${fromY} Q ${fromX + curveOffset} ${controlY}, ${toX} ${toY}`
     } else if (connType === "else") {
-      return `M ${fromX} ${fromY} L ${toX} ${toY}`
+      // Dashed line, slight curve
+      const controlY = fromY + dy * 0.5
+      return `M ${fromX} ${fromY} Q ${fromX - 15} ${controlY}, ${toX} ${toY}`
     } else {
+      // Default straight vertical line
       return `M ${fromX} ${fromY} L ${toX} ${toY}`
     }
   }
@@ -294,8 +274,14 @@ export class FlowchartRenderer {
         <marker id="${prefix}arrowhead-gray" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
           <polygon points="0 0, 10 3, 0 6" fill="#6b7280" />
         </marker>
-        <marker id="${prefix}arrowhead-green" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+        <marker id="${prefix}arrowhead-slate" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#475569" />
+        </marker>
+        <marker id="${prefix}arrowhead-emerald" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
           <polygon points="0 0, 10 3, 0 6" fill="#10b981" />
+        </marker>
+        <marker id="${prefix}arrowhead-green" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#22c55e" />
         </marker>
         <marker id="${prefix}arrowhead-red" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
           <polygon points="0 0, 10 3, 0 6" fill="#ef4444" />
@@ -305,6 +291,12 @@ export class FlowchartRenderer {
         </marker>
         <marker id="${prefix}arrowhead-amber" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
           <polygon points="0 0, 10 3, 0 6" fill="#f59e0b" />
+        </marker>
+        <marker id="${prefix}arrowhead-orange" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#f97316" />
+        </marker>
+        <marker id="${prefix}arrowhead-cyan" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 10 3, 0 6" fill="#06b6d4" />
         </marker>
         <marker id="${prefix}arrowhead-purple" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
           <polygon points="0 0, 10 3, 0 6" fill="#8b5cf6" />
@@ -319,20 +311,25 @@ export class FlowchartRenderer {
   // Get arrow marker ID based on connection color
   getArrowId(conn) {
     const prefix = this.arrowIdPrefix
-    if (conn.color === "#10b981" || conn.type === "true") return `${prefix}arrowhead-green`
+    // Map colors to arrow IDs
+    if (conn.color === "#10b981" || conn.type === "true") return `${prefix}arrowhead-emerald`
+    if (conn.color === "#22c55e") return `${prefix}arrowhead-green`
     if (conn.color === "#ef4444" || conn.type === "false") return `${prefix}arrowhead-red`
     if (conn.color === "#6366f1") return `${prefix}arrowhead-indigo`
     if (conn.color === "#f59e0b") return `${prefix}arrowhead-amber`
+    if (conn.color === "#f97316") return `${prefix}arrowhead-orange`
+    if (conn.color === "#06b6d4") return `${prefix}arrowhead-cyan`
+    if (conn.color === "#475569") return `${prefix}arrowhead-slate`
     if (conn.color === "#8b5cf6") return `${prefix}arrowhead-purple`
     if (conn.color === "#ec4899") return `${prefix}arrowhead-pink`
     return `${prefix}arrowhead-gray`
   }
 
-  // Build SVG for all connections
+  // Build SVG for all connections (vertical layout)
   buildConnectionsSvg(connections, positions, maxX, maxY) {
     const strokeWidth = this.compact ? 1.5 : 2
     const fontSize = this.compact ? 9 : 11
-    const charWidth = this.compact ? 4 : 6
+    const charWidth = this.compact ? 5 : 6
 
     let svgHtml = `<svg class="absolute inset-0 pointer-events-none" style="width: ${maxX}px; height: ${maxY}px; z-index: 0;">`
     svgHtml += this.buildSvgDefs()
@@ -343,10 +340,11 @@ export class FlowchartRenderer {
 
       if (!fromPos || !toPos) return
 
-      const fromX = fromPos.x + this.nodeWidth
-      const fromY = fromPos.y + this.nodeHeight / 2
-      const toX = toPos.x
-      const toY = toPos.y + this.nodeHeight / 2
+      // For vertical layout: connect from bottom center to top center
+      const fromX = fromPos.x + this.nodeWidth / 2
+      const fromY = fromPos.y + this.nodeHeight
+      const toX = toPos.x + this.nodeWidth / 2
+      const toY = toPos.y
 
       const path = this.buildConnectionPath(fromPos, toPos, conn.type, connIndex)
       const color = conn.color || "#6b7280"
@@ -365,13 +363,16 @@ export class FlowchartRenderer {
       )
 
       if (showLabel) {
-        const labelX = (fromX + toX) / 2
-        const labelY = (fromY + toY) / 2 - 5
+        // Position label to the side of the connection for vertical layout
+        const midY = (fromY + toY) / 2
+        const labelOffset = conn.type === "false" || connIndex % 2 === 1 ? -8 : 8
+        const labelX = fromX + labelOffset + (this.nodeWidth / 4)
+        const labelY = midY
         const labelText = this.escapeHtml(conn.label)
         const textLength = labelText.length * charWidth
         svgHtml += `
-          <rect x="${labelX - textLength/2 - 4}" y="${labelY - 8}" width="${textLength + 8}" height="14" fill="white" opacity="0.9" rx="2"/>
-          <text x="${labelX}" y="${labelY}" text-anchor="middle" fill="${color}" font-size="${fontSize}" font-weight="600">${labelText}</text>
+          <rect x="${labelX - 4}" y="${labelY - 10}" width="${textLength + 8}" height="16" fill="white" opacity="0.95" rx="3"/>
+          <text x="${labelX + textLength/2}" y="${labelY + 2}" text-anchor="middle" fill="${color}" font-size="${fontSize}" font-weight="600">${labelText}</text>
         `
       }
     })
@@ -380,81 +381,113 @@ export class FlowchartRenderer {
     return svgHtml
   }
 
-  // Get step background color class
+  // Get step background color class (matches step_item colors)
   getStepColorClass(type) {
     switch(type) {
-      case "question": return "bg-blue-100 text-blue-800"
-      case "decision": return "bg-green-100 text-green-800"
-      case "action": return "bg-purple-100 text-purple-800"
-      case "checkpoint": return "bg-orange-100 text-orange-800"
-      case "sub_flow": return "bg-indigo-100 text-indigo-800"
-      default: return "bg-gray-100 text-gray-800"
+      case "question": return "bg-slate-100 text-slate-700"
+      case "decision": return "bg-slate-100 text-slate-700"
+      case "simple_decision": return "bg-slate-100 text-slate-700"
+      case "action": return "bg-emerald-100 text-emerald-700"
+      case "checkpoint": return "bg-amber-100 text-amber-700"
+      case "sub_flow": return "bg-indigo-100 text-indigo-700"
+      case "message": return "bg-cyan-100 text-cyan-700"
+      case "escalate": return "bg-orange-100 text-orange-700"
+      case "resolve": return "bg-green-100 text-green-700"
+      default: return "bg-gray-100 text-gray-700"
     }
   }
 
-  // Get step border color class
+  // Get step border color class (matches step_item colors)
   getStepBorderClass(type) {
     switch(type) {
-      case "question": return "border-blue-300"
-      case "decision": return "border-green-300"
-      case "action": return "border-purple-300"
-      case "checkpoint": return "border-orange-300"
-      case "sub_flow": return "border-indigo-300"
+      case "question": return "border-slate-400"
+      case "decision": return "border-slate-400"
+      case "simple_decision": return "border-slate-400"
+      case "action": return "border-emerald-400"
+      case "checkpoint": return "border-amber-400"
+      case "sub_flow": return "border-indigo-400"
+      case "message": return "border-cyan-400"
+      case "escalate": return "border-orange-400"
+      case "resolve": return "border-green-400"
       default: return "border-gray-300"
     }
   }
 
-  // Get step color (hex)
+  // Get step color (hex) - matches step_item header colors
   getStepColor(type) {
     const colors = {
-      question: "#3b82f6",
-      decision: "#10b981",
-      action: "#8b5cf6",
-      checkpoint: "#f59e0b",
-      sub_flow: "#6366f1"
+      question: "#475569",      // slate-600
+      decision: "#475569",      // slate-600
+      simple_decision: "#475569", // slate-600
+      action: "#10b981",        // emerald-500
+      checkpoint: "#f59e0b",    // amber-500
+      sub_flow: "#6366f1",      // indigo-500
+      message: "#06b6d4",       // cyan-500
+      escalate: "#f97316",      // orange-500
+      resolve: "#22c55e"        // green-500
     }
     return colors[type] || "#6b7280"
   }
 
-  // Build HTML for a single step node
+  // Get step type icon
+  getStepIcon(type) {
+    const icons = {
+      question: '?',
+      decision: '/',
+      simple_decision: '/',
+      action: '!',
+      checkpoint: 'v',
+      sub_flow: '↪',
+      message: 'i',
+      escalate: '↑',
+      resolve: '✓'
+    }
+    return icons[type] || '#'
+  }
+
+  // Build HTML for a single step node (with colored header)
   buildNodeHtml(step, pos, options = {}) {
     const bgColorClass = this.getStepColorClass(step.type)
     const borderClass = this.getStepBorderClass(step.type)
+    const headerColor = this.getStepColor(step.type)
     const fontSize = this.compact ? "text-xs" : "text-sm"
     const padding = this.compact ? 8 : 12
-    const badgeSize = this.compact ? 16 : 24
+    const badgeSize = this.compact ? 18 : 22
+    const icon = this.getStepIcon(step.type)
 
     const darkModeClasses = this.darkMode
       ? "dark:bg-gray-800 dark:text-gray-100"
       : ""
 
-    const clickableAttrs = this.clickable
-      ? `data-action="click->wizard-flow-preview#editStep" class="cursor-pointer hover:opacity-80 transition-opacity"`
-      : ""
-
     const lineClamp = this.compact
       ? 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'
-      : 'display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;'
+      : 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'
 
     return `
       <div class="absolute workflow-node z-10 ${this.clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}"
            style="left: ${pos.x}px; top: ${pos.y}px; width: ${this.nodeWidth}px;"
            data-step-index="${step.index}"
            ${this.clickable ? `data-action="click->wizard-flow-preview#editStep"` : ''}>
-        <div class="border-2 rounded-lg bg-white shadow-sm ${borderClass} ${darkModeClasses}"
-             style="min-height: ${this.nodeHeight}px; padding: ${padding}px;">
-          <div class="flex items-center mb-1">
-            <span class="inline-flex items-center justify-center rounded-full ${fontSize} font-semibold ${bgColorClass} mr-2"
-                  style="width: ${badgeSize}px; height: ${badgeSize}px;">
+        <div class="rounded-lg bg-white shadow-md overflow-hidden border ${borderClass} ${darkModeClasses}"
+             style="min-height: ${this.nodeHeight}px;">
+          <!-- Colored header bar -->
+          <div class="flex items-center gap-2 px-3 py-2" style="background-color: ${headerColor};">
+            <span class="inline-flex items-center justify-center rounded-full bg-white/30 text-white font-bold"
+                  style="width: ${badgeSize}px; height: ${badgeSize}px; font-size: 11px;">
               ${step.index + 1}
             </span>
-            <span class="${fontSize} font-medium uppercase text-gray-600">${this.escapeHtml(step.type || 'unknown')}</span>
+            <span class="text-white/90 font-bold text-sm">${icon}</span>
+            <span class="text-xs font-semibold uppercase text-white/90 tracking-wide">${this.escapeHtml(step.type || 'unknown')}</span>
           </div>
-          <h4 class="font-semibold ${fontSize} text-gray-900 mb-1 break-words" style="${lineClamp}">
-            ${this.escapeHtml(step.title || `Step ${step.index + 1}`)}
-          </h4>
-          ${step.type === "decision" && step.condition ? `<p class="${fontSize} text-gray-600 mt-1">${this.escapeHtml(step.condition)}</p>` : ""}
-          ${this.clickable ? `<p class="text-xs text-gray-500 mt-2">Click to edit</p>` : ''}
+          <!-- Content -->
+          <div style="padding: ${padding}px;">
+            <h4 class="font-semibold ${fontSize} text-gray-900 break-words" style="${lineClamp}">
+              ${this.escapeHtml(step.title || `Step ${step.index + 1}`)}
+            </h4>
+            ${step.type === "decision" && step.condition ? `<p class="text-xs text-gray-500 mt-1 truncate">${this.escapeHtml(step.condition)}</p>` : ""}
+            ${step.type === "resolve" ? `<p class="text-xs text-green-600 mt-1 font-medium">Terminal</p>` : ""}
+            ${this.clickable ? `<p class="text-xs text-gray-400 mt-2">Click to edit</p>` : ''}
+          </div>
         </div>
       </div>
     `

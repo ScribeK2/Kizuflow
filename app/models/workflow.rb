@@ -30,6 +30,12 @@ class Workflow < ApplicationRecord
   validate :validate_subflow_steps
   validate :validate_subflow_circular_references, if: :has_subflow_steps?
 
+  # Valid step types for workflows
+  # Note: simple_decision is a variant of decision used for yes/no routing
+  # Note: sub_flow is used for calling other workflows as sub-routines
+  # Note: message, escalate, resolve are Graph Mode step types
+  VALID_STEP_TYPES = %w[question decision simple_decision action checkpoint sub_flow message escalate resolve].freeze
+
   # Size limits to prevent DoS and ensure performance
   # These can be overridden via environment variables if needed
   MAX_STEPS = ENV.fetch("WORKFLOW_MAX_STEPS", 200).to_i
@@ -736,9 +742,7 @@ class Workflow < ApplicationRecord
       end
       
       # Validate step type
-      # Note: simple_decision is a variant of decision used for yes/no routing
-      # Note: sub_flow is used for calling other workflows as sub-routines
-      unless %w[question decision simple_decision action checkpoint sub_flow].include?(step['type'])
+      unless VALID_STEP_TYPES.include?(step['type'])
         errors.add(:steps, "Step #{step_num}: Invalid step type '#{step['type']}'")
         next
       end
@@ -845,9 +849,39 @@ class Workflow < ApplicationRecord
         if graph_mode? && step['transitions'].present?
           validate_graph_transitions(step, step_num)
         end
+
+      when 'message'
+        # Message steps are simple - content is optional, just validate jumps if present
+        validate_jumps(step, step_num) if step['jumps'].present?
+
+      when 'escalate'
+        # Validate escalation target type if present
+        if step['target_type'].present?
+          unless %w[team queue supervisor channel].include?(step['target_type'])
+            errors.add(:steps, "Step #{step_num}: Invalid escalation target type '#{step['target_type']}'")
+          end
+        end
+        # Validate priority if present
+        if step['priority'].present?
+          unless %w[low normal high urgent].include?(step['priority'])
+            errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
+          end
+        end
+
+      when 'resolve'
+        # Validate resolution type if present
+        if step['resolution_type'].present?
+          unless %w[success failure cancelled transferred other].include?(step['resolution_type'])
+            errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
+          end
+        end
+        # Resolve steps cannot have outgoing transitions in graph mode (they're always terminal)
+        if graph_mode? && step['transitions'].present? && step['transitions'].any?
+          errors.add(:steps, "Step #{step_num}: Resolve steps cannot have outgoing transitions")
+        end
       end
     end
-    
+
     # Validate step references
     validate_step_references
   end

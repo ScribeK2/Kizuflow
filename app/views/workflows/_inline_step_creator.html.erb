@@ -51,47 +51,76 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-4 gap-2">
-        <%# Question %>
-        <button type="button"
-                data-action="click->inline-step-creator#createStep"
-                data-step-type="question"
-                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
-          <span class="text-xs font-medium text-white">
-            Question
-          </span>
-        </button>
+      <% if @workflow&.graph_mode? %>
+        <%# Graph Mode: Show Question, Message, Action, Escalate, Resolve %>
+        <div class="grid grid-cols-5 gap-2">
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="question"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
+            <span class="text-xs font-medium text-white">Question</span>
+          </button>
 
-        <%# Decision %>
-        <button type="button"
-                data-action="click->inline-step-creator#createStep"
-                data-step-type="decision"
-                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
-          <span class="text-xs font-medium text-white">
-            Decision
-          </span>
-        </button>
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="message"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-cyan-500 hover:bg-cyan-600">
+            <span class="text-xs font-medium text-white">Message</span>
+          </button>
 
-        <%# Action %>
-        <button type="button"
-                data-action="click->inline-step-creator#createStep"
-                data-step-type="action"
-                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-emerald-500 hover:bg-emerald-600">
-          <span class="text-xs font-medium text-white">
-            Action
-          </span>
-        </button>
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="action"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-emerald-500 hover:bg-emerald-600">
+            <span class="text-xs font-medium text-white">Action</span>
+          </button>
 
-        <%# Checkpoint %>
-        <button type="button"
-                data-action="click->inline-step-creator#createStep"
-                data-step-type="checkpoint"
-                class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-amber-500 hover:bg-amber-600">
-          <span class="text-xs font-medium text-white">
-            Checkpoint
-          </span>
-        </button>
-      </div>
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="escalate"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-orange-500 hover:bg-orange-600">
+            <span class="text-xs font-medium text-white">Escalate</span>
+          </button>
+
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="resolve"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-green-500 hover:bg-green-600">
+            <span class="text-xs font-medium text-white">Resolve</span>
+          </button>
+        </div>
+      <% else %>
+        <%# Linear Mode: Show Question, Decision, Action, Checkpoint %>
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="question"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
+            <span class="text-xs font-medium text-white">Question</span>
+          </button>
+
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="decision"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
+            <span class="text-xs font-medium text-white">Decision</span>
+          </button>
+
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="action"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-emerald-500 hover:bg-emerald-600">
+            <span class="text-xs font-medium text-white">Action</span>
+          </button>
+
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="checkpoint"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-amber-500 hover:bg-amber-600">
+            <span class="text-xs font-medium text-white">Checkpoint</span>
+          </button>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>

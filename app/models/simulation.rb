@@ -189,6 +189,15 @@ class Simulation < ApplicationRecord
     when 'sub_flow'
       return process_subflow_step(step, path_entry)
 
+    when 'message'
+      process_message_step(step, path_entry)
+
+    when 'escalate'
+      process_escalate_step(step, path_entry)
+
+    when 'resolve'
+      process_resolve_step(step, path_entry)
+
     else
       # Unknown step type, advance to next
       advance_to_next_step(step)
@@ -273,6 +282,64 @@ class Simulation < ApplicationRecord
 
     self.execution_path << path_entry
     advance_to_next_step(step)
+  end
+
+  # Process a message step (Graph Mode)
+  # Message steps display information to the CSR and auto-advance
+  def process_message_step(step, path_entry)
+    path_entry[:message_displayed] = true
+    self.results ||= {}
+    self.results[step['title']] = "Message displayed"
+
+    # Interpolate content if present
+    if step['content'].present?
+      path_entry[:content] = VariableInterpolator.interpolate(step['content'], self.results)
+    end
+
+    self.execution_path << path_entry
+    advance_to_next_step(step)
+  end
+
+  # Process an escalate step (Graph Mode)
+  # Escalate steps record escalation metadata and can either be terminal or continue
+  def process_escalate_step(step, path_entry)
+    path_entry[:escalated] = true
+    self.results ||= {}
+    self.results[step['title']] = "Escalated"
+
+    # Store escalation metadata in results
+    self.results['_escalation'] = {
+      'type' => step['target_type'],
+      'value' => step['target_value'],
+      'priority' => step['priority'] || 'normal',
+      'reason_required' => step['reason_required'] || false,
+      'notes' => step['notes']
+    }.compact
+
+    self.execution_path << path_entry
+    advance_to_next_step(step)
+  end
+
+  # Process a resolve step (Graph Mode)
+  # Resolve steps are always terminal and complete the simulation
+  def process_resolve_step(step, path_entry)
+    path_entry[:resolved] = true
+    self.results ||= {}
+    self.results[step['title']] = "Issue resolved"
+
+    # Store resolution metadata in results
+    self.results['_resolution'] = {
+      'type' => step['resolution_type'] || 'success',
+      'code' => step['resolution_code'],
+      'notes_required' => step['notes_required'] || false,
+      'survey_trigger' => step['survey_trigger'] || false
+    }.compact
+
+    self.execution_path << path_entry
+
+    # Resolve steps are always terminal - complete the simulation
+    self.status = 'completed'
+    self.current_node_uuid = nil if graph_mode?
   end
 
   # Process a sub-flow step - creates child simulation

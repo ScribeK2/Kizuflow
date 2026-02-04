@@ -114,6 +114,9 @@ class SimulationsController < ApplicationController
       end
       return
     end
+
+    # Note: escalate and resolve steps show UI first, then process on Continue click
+    # They are NOT auto-advanced here - they need user acknowledgment
   end
   
   def stop
@@ -179,8 +182,9 @@ class SimulationsController < ApplicationController
       if @simulation.complete?
         redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
       else
-        # Check if next step is a decision - if so, auto-advance
-        # Both 'decision' and 'simple_decision' types should auto-advance
+        # Check if next step is auto-advancing - if so, process it
+        # Only decision and simple_decision types auto-advance (routing steps)
+        # escalate, resolve, and message steps show UI first and need user acknowledgment
         next_step = @simulation.current_step
         if next_step && %w[decision simple_decision].include?(next_step['type'])
           @simulation.process_step(nil)

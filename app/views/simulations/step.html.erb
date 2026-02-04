@@ -185,7 +185,7 @@
                 </div>
               </div>
             </div>
-            
+
             <%= form_with url: resolve_checkpoint_simulation_path(@simulation), method: :post, local: true, class: "space-y-4" do |form| %>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -193,11 +193,105 @@
                 </label>
                 <%= form.text_area :notes, { rows: 3, class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Add any notes about the resolution..." } %>
               </div>
-              
+
               <div class="flex justify-end space-x-3 pt-4">
                 <%= form.hidden_field :resolved, value: "false" %>
                 <%= form.submit "Continue Workflow", name: "resolved", value: "false", class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
                 <%= form.submit "Issue Resolved", name: "resolved", value: "true", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+              </div>
+            <% end %>
+
+          <% when 'message' %>
+            <div class="backdrop-blur-sm bg-cyan-50/50 dark:bg-cyan-900/20 border border-cyan-200/30 dark:border-cyan-800/30 rounded-lg p-4 mb-4">
+              <div class="flex items-start">
+                <svg class="w-6 h-6 text-cyan-600 dark:text-cyan-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="flex-1">
+                  <% if step['content'].present? %>
+                    <div class="text-sm text-cyan-800 dark:text-cyan-300 whitespace-pre-line"><%= VariableInterpolator.interpolate(step['content'], @simulation.results || {}) %></div>
+                  <% else %>
+                    <p class="text-sm text-cyan-800 dark:text-cyan-300 italic">No message content provided.</p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+              <%= form.hidden_field :answer, value: "" %>
+              <div class="flex justify-end space-x-3 pt-4">
+                <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+                <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+              </div>
+            <% end %>
+
+          <% when 'escalate' %>
+            <div class="backdrop-blur-sm bg-orange-50/50 dark:bg-orange-900/20 border border-orange-200/30 dark:border-orange-800/30 rounded-lg p-4 mb-4">
+              <div class="flex items-start">
+                <svg class="w-6 h-6 text-orange-600 dark:text-orange-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                </svg>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-2">Escalation Required</h3>
+                  <% if step['target_type'].present? || step['target_value'].present? %>
+                    <p class="text-sm text-orange-800 dark:text-orange-300 mb-2">
+                      <strong>Target:</strong>
+                      <%= step['target_type']&.titleize %><%= " - #{step['target_value']}" if step['target_value'].present? %>
+                    </p>
+                  <% end %>
+                  <% if step['priority'].present? && step['priority'] != 'normal' %>
+                    <p class="text-sm text-orange-800 dark:text-orange-300 mb-2">
+                      <strong>Priority:</strong>
+                      <span class="<%= step['priority'] == 'urgent' ? 'text-red-600 dark:text-red-400 font-semibold' : step['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : '' %>">
+                        <%= step['priority']&.titleize %>
+                      </span>
+                    </p>
+                  <% end %>
+                  <% if step['notes'].present? %>
+                    <div class="text-sm text-orange-700 dark:text-orange-300 mt-2 whitespace-pre-line"><%= VariableInterpolator.interpolate(step['notes'], @simulation.results || {}) %></div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+              <%= form.hidden_field :answer, value: "" %>
+              <div class="flex justify-end space-x-3 pt-4">
+                <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+                <%= form.submit "Continue", class: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+              </div>
+            <% end %>
+
+          <% when 'resolve' %>
+            <div class="backdrop-blur-sm bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-200/30 dark:border-emerald-800/30 rounded-lg p-4 mb-4">
+              <div class="flex items-start">
+                <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-2">Resolution</h3>
+                  <% if step['resolution_type'].present? %>
+                    <p class="text-sm text-emerald-800 dark:text-emerald-300 mb-2">
+                      <strong>Type:</strong>
+                      <span class="<%= step['resolution_type'] == 'success' ? 'text-green-600 dark:text-green-400' : step['resolution_type'] == 'failure' ? 'text-red-600 dark:text-red-400' : '' %>">
+                        <%= step['resolution_type']&.titleize %>
+                      </span>
+                    </p>
+                  <% end %>
+                  <% if step['resolution_code'].present? %>
+                    <p class="text-sm text-emerald-800 dark:text-emerald-300 mb-2">
+                      <strong>Code:</strong> <%= step['resolution_code'] %>
+                    </p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+              <%= form.hidden_field :answer, value: "" %>
+              <div class="flex justify-end space-x-3 pt-4">
+                <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+                <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
               </div>
             <% end %>
           <% end %>

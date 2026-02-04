@@ -61,6 +61,9 @@ class StepResolver
   def terminal?(step)
     return false unless step
 
+    # Resolve steps are always terminal regardless of mode
+    return true if step['type'] == 'resolve'
+
     if @workflow.graph_mode?
       transitions = step['transitions'] || []
       transitions.empty? && step['type'] != 'sub_flow'

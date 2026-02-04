@@ -38,37 +38,74 @@
                 <% end %>
               </label>
               <div class="flex flex-wrap gap-2">
+                <%# Question button - always shown %>
                 <button type="button"
                         data-action="click->workflow-builder#addStepDirect"
                         data-step-type="question"
                         class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
                   Question
                 </button>
-                <button type="button"
-                        data-action="click->workflow-builder#addStepDirect"
-                        data-step-type="decision"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
-                  Decision
-                </button>
-                <button type="button"
-                        data-action="click->workflow-builder#addStepDirect"
-                        data-step-type="action"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
-                  Action
-                </button>
-                <button type="button"
-                        data-action="click->workflow-builder#addStepDirect"
-                        data-step-type="checkpoint"
-                        class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-amber-500 hover:bg-amber-600">
-                  Checkpoint
-                </button>
+
                 <% if @workflow.graph_mode? %>
+                  <%# Graph Mode: Show Message, Escalate, Resolve instead of Decision, Checkpoint %>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="message"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-cyan-500 hover:bg-cyan-600">
+                    Message
+                  </button>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="action"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
+                    Action
+                  </button>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="escalate"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-orange-500 hover:bg-orange-600">
+                    Escalate
+                  </button>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="resolve"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-green-500 hover:bg-green-600">
+                    Resolve
+                  </button>
                   <button type="button"
                           data-action="click->workflow-builder#addStepDirect"
                           data-step-type="sub_flow"
                           class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
                     Sub-flow
                   </button>
+                <% else %>
+                  <%# Linear Mode: Show Decision, Action, Checkpoint %>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="decision"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
+                    Decision
+                  </button>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="action"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
+                    Action
+                  </button>
+                  <button type="button"
+                          data-action="click->workflow-builder#addStepDirect"
+                          data-step-type="checkpoint"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-amber-500 hover:bg-amber-600">
+                    Checkpoint
+                  </button>
+                  <% if current_user&.admin? %>
+                    <button type="button"
+                            data-action="click->workflow-builder#addStepDirect"
+                            data-step-type="sub_flow"
+                            class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
+                      Sub-flow
+                    </button>
+                  <% end %>
                 <% end %>
               </div>
             </div>
