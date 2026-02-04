@@ -59,10 +59,20 @@
         <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
           <h3 class="text-sm font-medium text-slate-800 dark:text-slate-200 mb-2">Supported Formats</h3>
           <ul class="text-sm text-slate-700 dark:text-slate-300 space-y-1">
-            <li><strong>JSON:</strong> Native Flows export format or compatible JSON structure</li>
-            <li><strong>CSV:</strong> Spreadsheet format with columns: Type, Title, Question, Answer Type, etc.</li>
-            <li><strong>YAML:</strong> Structured configuration format with hierarchical key-value pairs</li>
+            <li><strong>JSON:</strong> Native export format with full Graph Mode support (recommended)</li>
+            <li><strong>CSV:</strong> Spreadsheet format with columns for step data and transitions</li>
+            <li><strong>YAML:</strong> Structured configuration format with hierarchical steps</li>
             <li><strong>Markdown:</strong> Documentation format with step headers and field definitions</li>
+          </ul>
+        </div>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-lg p-4">
+          <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Graph Mode Workflows</h3>
+          <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+            <li>All imports use Graph Mode with explicit step transitions</li>
+            <li>Each step requires a unique ID and defines its outgoing transitions</li>
+            <li>Supported step types: <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">question</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">action</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">message</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">escalate</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code></li>
+            <li>Use <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code> steps to end workflows (success, failure, transferred, etc.)</li>
           </ul>
         </div>
 
@@ -72,6 +82,7 @@
             <li>Incomplete steps will be imported and marked for your attention</li>
             <li>You'll be redirected to the edit page to complete any missing information</li>
             <li>Workflows are imported as private by default</li>
+            <li>Graph structure is validated after import (cycles, unreachable steps)</li>
           </ul>
         </div>
 
@@ -87,74 +98,316 @@
     <div class="p-6">
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">File Format Examples</h2>
 
-      <div class="space-y-4">
+      <div class="space-y-6">
+        <%# JSON Format Example %>
         <div>
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">JSON Format</h3>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">JSON Format (Recommended)</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-500 mb-2">Full Graph Mode structure with explicit transitions between steps.</p>
           <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code>{
-  "title": "Customer Onboarding",
-  "description": "Onboard new customers",
+  "title": "Customer Support Flow",
+  "description": "Handle customer inquiries with routing and resolution",
+  "graph_mode": true,
+  "start_node_uuid": "step-1",
   "steps": [
     {
+      "id": "step-1",
       "type": "question",
       "title": "Get Customer Name",
       "question": "What is your name?",
       "answer_type": "text",
-      "variable_name": "customer_name"
+      "variable_name": "customer_name",
+      "transitions": [
+        { "target_uuid": "step-2" }
+      ]
+    },
+    {
+      "id": "step-2",
+      "type": "question",
+      "title": "Select Issue Type",
+      "question": "What type of issue are you experiencing?",
+      "answer_type": "multiple_choice",
+      "variable_name": "issue_type",
+      "options": [
+        { "label": "Billing", "value": "billing" },
+        { "label": "Technical", "value": "technical" },
+        { "label": "Other", "value": "other" }
+      ],
+      "transitions": [
+        { "target_uuid": "step-3", "condition": "issue_type == 'billing'", "label": "Billing Issue" },
+        { "target_uuid": "step-4", "condition": "issue_type == 'technical'", "label": "Technical Issue" },
+        { "target_uuid": "step-5", "condition": "issue_type == 'other'", "label": "Other Issue" }
+      ]
+    },
+    {
+      "id": "step-3",
+      "type": "escalate",
+      "title": "Route to Billing Team",
+      "target_type": "team",
+      "priority": "high",
+      "reason": "Customer has a billing inquiry",
+      "transitions": [
+        { "target_uuid": "step-6" }
+      ]
+    },
+    {
+      "id": "step-4",
+      "type": "action",
+      "title": "Troubleshooting Steps",
+      "instructions": "Walk the customer through basic troubleshooting:\n1. Restart the device\n2. Check internet connection\n3. Clear cache and cookies",
+      "transitions": [
+        { "target_uuid": "step-6" }
+      ]
+    },
+    {
+      "id": "step-5",
+      "type": "message",
+      "title": "General Assistance",
+      "content": "Thank you for contacting us. A representative will assist you shortly.",
+      "transitions": [
+        { "target_uuid": "step-6" }
+      ]
+    },
+    {
+      "id": "step-6",
+      "type": "resolve",
+      "title": "Complete Interaction",
+      "resolution_type": "success",
+      "resolution_notes": "Customer inquiry handled"
     }
   ]
 }</code></pre>
         </div>
 
+        <%# CSV Format Example %>
         <div>
           <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CSV Format</h3>
-          <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code>Type,Title,Question,Answer Type,Variable Name
-question,Get Customer Name,What is your name?,text,customer_name
-decision,Check Name,customer_name != "",,,"Step 3,Step 4"
-action,Welcome Customer,,,"Send welcome email"</code></pre>
+          <p class="text-xs text-gray-500 dark:text-gray-500 mb-2">
+            Spreadsheet format. Use semicolons to separate multiple transitions: <code>target:condition</code>.
+            Options use format: <code>Label:value,Label2:value2</code> or JSON array.
+          </p>
+          <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code>workflow_title,id,type,title,question,answer_type,variable_name,options,instructions,content,target_type,priority,reason,resolution_type,resolution_notes,transitions
+Customer Support,step-1,question,Get Name,What is your name?,text,customer_name,,,,,,,,,step-2
+,step-2,question,Issue Type,What type of issue?,multiple_choice,issue_type,"Billing:billing,Technical:technical,Other:other",,,,,,,,step-3:issue_type == 'billing';step-4:issue_type == 'technical';step-5
+,step-3,escalate,Route to Billing,,,,,,,team,high,Billing inquiry,,,step-6
+,step-4,action,Troubleshooting,,,,,"Follow troubleshooting steps",,,,,,,step-6
+,step-5,message,General Help,,,,,,"A representative will assist you shortly",,,,,,step-6
+,step-6,resolve,Complete,,,,,,,,,,success,Issue resolved,</code></pre>
         </div>
 
+        <%# YAML Format Example %>
         <div>
           <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">YAML Format</h3>
-          <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code>title: "Customer Onboarding"
-description: "Onboard new customers"
+          <p class="text-xs text-gray-500 dark:text-gray-500 mb-2">Structured format with nested arrays for options and transitions.</p>
+          <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code>title: "Customer Support Flow"
+description: "Handle customer inquiries"
+graph_mode: true
+start_node_uuid: "step-1"
 steps:
-  - type: question
+  - id: "step-1"
+    type: question
     title: "Get Customer Name"
     question: "What is your name?"
     answer_type: text
     variable_name: customer_name
-  - type: decision
-    title: "Check Name"
-    branches:
-      - condition: customer_name != ""
-        path: "Welcome Customer"
-  - type: action
-    title: "Welcome Customer"
-    instructions: "Send welcome email"</code></pre>
+    transitions:
+      - target_uuid: "step-2"
+
+  - id: "step-2"
+    type: question
+    title: "Issue Type"
+    question: "What type of issue are you experiencing?"
+    answer_type: multiple_choice
+    variable_name: issue_type
+    options:
+      - label: "Billing"
+        value: "billing"
+      - label: "Technical"
+        value: "technical"
+      - label: "Other"
+        value: "other"
+    transitions:
+      - target_uuid: "step-3"
+        condition: "issue_type == 'billing'"
+        label: "Billing"
+      - target_uuid: "step-4"
+        condition: "issue_type == 'technical'"
+        label: "Technical"
+      - target_uuid: "step-5"
+        condition: "issue_type == 'other'"
+        label: "Other"
+
+  - id: "step-3"
+    type: escalate
+    title: "Route to Billing"
+    target_type: team
+    priority: high
+    reason: "Customer billing inquiry"
+    transitions:
+      - target_uuid: "step-6"
+
+  - id: "step-4"
+    type: action
+    title: "Troubleshooting"
+    instructions: "Walk through troubleshooting steps"
+    transitions:
+      - target_uuid: "step-6"
+
+  - id: "step-5"
+    type: message
+    title: "General Help"
+    content: "A representative will assist you shortly."
+    transitions:
+      - target_uuid: "step-6"
+
+  - id: "step-6"
+    type: resolve
+    title: "Complete"
+    resolution_type: success
+    resolution_notes: "Issue resolved"</code></pre>
         </div>
 
+        <%# Markdown Format Example %>
         <div>
           <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Markdown Format</h3>
-          <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code># Customer Onboarding
+          <p class="text-xs text-gray-500 dark:text-gray-500 mb-2">
+            Documentation-friendly format. Options use comma-separated <code>Label:value</code> format.
+            Transitions can include conditions in parentheses.
+          </p>
+          <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code># Customer Support Flow
 
-Workflow to onboard new customers.
+Handle customer inquiries with routing and resolution.
 
 ## Step 1: Get Customer Name
 Type: question
 Question: What is your name?
 Answer Type: text
 Variable: customer_name
+Transitions: Step 2
 
-## Step 2: Check Name
-Type: decision
-Condition: customer_name != ""
-If true: Step 3
-If false: Step 4
+## Step 2: Select Issue Type
+Type: question
+Question: What type of issue are you experiencing?
+Answer Type: multiple_choice
+Variable: issue_type
+Options: Billing:billing, Technical:technical, Other:other
+Transitions: Step 3 (if issue_type == 'billing'), Step 4 (if issue_type == 'technical'), Step 5
 
-## Step 3: Welcome Customer
+## Step 3: Route to Billing Team
+Type: escalate
+Target Type: team
+Priority: high
+Reason: Customer has billing inquiry
+Transitions: Step 6
+
+## Step 4: Troubleshooting Steps
 Type: action
-Instructions: Send welcome email</code></pre>
+Instructions: Walk customer through basic troubleshooting steps
+Transitions: Step 6
+
+## Step 5: General Assistance
+Type: message
+Content: Thank you for contacting us. A representative will assist you shortly.
+Transitions: Step 6
+
+## Step 6: Complete Interaction
+Type: resolve
+Resolution Type: success
+Resolution Notes: Customer inquiry handled</code></pre>
         </div>
+
+        <%# Legacy Format Note %>
+        <details class="bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <summary class="text-sm font-medium text-gray-700 dark:text-gray-300 p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg">
+            Legacy Format Support (click to expand)
+          </summary>
+          <div class="px-4 pb-4">
+            <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              Files from older versions without explicit transitions are automatically converted to Graph Mode during import.
+              Legacy step types (<code>decision</code>, <code>checkpoint</code>) and formats (<code>branches</code>, <code>true_path</code>/<code>false_path</code>) are converted to the appropriate Graph Mode equivalents.
+            </p>
+            <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 text-xs overflow-x-auto"><code>{
+  "title": "Legacy Workflow",
+  "steps": [
+    {
+      "type": "question",
+      "title": "Get Name",
+      "question": "What is your name?",
+      "variable_name": "name"
+    },
+    {
+      "type": "decision",
+      "title": "Check Name",
+      "branches": [
+        { "condition": "name != ''", "path": "Continue" }
+      ],
+      "else_path": "Ask Again"
+    },
+    { "type": "action", "title": "Continue", "instructions": "Proceed with workflow" },
+    { "type": "action", "title": "Ask Again", "instructions": "Request name again" }
+  ]
+}</code></pre>
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+              This format will be converted to Graph Mode with proper transitions and UUIDs assigned to each step.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <%# Step Types Reference %>
+  <div class="mt-8 solid-card overflow-hidden animate-fade-in-up">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Step Types Reference</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+          <h4 class="font-medium text-slate-800 dark:text-slate-200">question</h4>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">Collect user input.</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
+            Required: <code>question</code><br>
+            Optional: <code>answer_type</code> (text, yes_no, multiple_choice, number, date), <code>variable_name</code>, <code>options</code> (for multiple_choice)
+          </p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+          <h4 class="font-medium text-slate-800 dark:text-slate-200">action</h4>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">Display instructions for the agent to follow.</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
+            Required: <code>instructions</code><br>
+            Optional: <code>action_type</code>
+          </p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+          <h4 class="font-medium text-slate-800 dark:text-slate-200">message</h4>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">Display a message or announcement.</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
+            Required: <code>content</code>
+          </p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+          <h4 class="font-medium text-slate-800 dark:text-slate-200">escalate</h4>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">Escalate to a team, queue, supervisor, or channel.</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
+            Required: <code>target_type</code> (team, queue, supervisor, channel)<br>
+            Optional: <code>target_id</code>, <code>priority</code> (low, medium, normal, high, urgent), <code>reason</code>
+          </p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 md:col-span-2">
+          <h4 class="font-medium text-slate-800 dark:text-slate-200">resolve</h4>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">End the workflow with a resolution status. This is a terminal step with no outgoing transitions.</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
+            Required: <code>resolution_type</code> (success, failure, cancelled, escalated, transferred, other)<br>
+            Optional: <code>resolution_notes</code>
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">Transitions</h4>
+        <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+          Each step (except <code>resolve</code>) must define <code>transitions</code> to specify which step(s) come next.
+          Use conditional transitions to route based on variables: <code>"condition": "variable_name == 'value'"</code>.
+          Steps without conditions are followed by default when no other condition matches.
+        </p>
       </div>
     </div>
   </div>

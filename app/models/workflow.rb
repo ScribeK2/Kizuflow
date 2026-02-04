@@ -863,7 +863,7 @@ class Workflow < ApplicationRecord
         end
         # Validate priority if present
         if step['priority'].present?
-          unless %w[low normal high urgent].include?(step['priority'])
+          unless %w[low medium normal high urgent].include?(step['priority'])
             errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
           end
         end
@@ -871,7 +871,7 @@ class Workflow < ApplicationRecord
       when 'resolve'
         # Validate resolution type if present
         if step['resolution_type'].present?
-          unless %w[success failure cancelled transferred other].include?(step['resolution_type'])
+          unless %w[success failure cancelled escalated transferred other].include?(step['resolution_type'])
             errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
           end
         end

@@ -1,4 +1,5 @@
 # CSV Parser for Kizuflow workflow imports
+# Updated for Graph Mode support
 require 'csv'
 
 module WorkflowParsers
@@ -6,7 +7,7 @@ module WorkflowParsers
     def parse
       begin
         csv = CSV.parse(@file_content, headers: true, header_converters: :symbol)
-        
+
         if csv.headers.nil? || csv.headers.empty?
           add_error("CSV file must have a header row")
           return nil
@@ -20,7 +21,7 @@ module WorkflowParsers
           return nil
         end
 
-        # Extract workflow title from first row or use default
+        # Extract workflow metadata from first row or use defaults
         title = csv.headers.include?(:workflow_title) ? csv.first[:workflow_title] : nil
         title ||= csv.headers.include?(:title) ? csv.first[:title] : nil
         title ||= "Imported Workflow"
@@ -62,15 +63,19 @@ module WorkflowParsers
 
     private
 
+    # Valid step types for CSV import
+    VALID_CSV_TYPES = %w[question decision action checkpoint sub_flow message escalate resolve].freeze
+
     def parse_csv_row(row, row_number)
       step_type = (row[:type] || row[:step_type] || 'action').to_s.downcase.strip
-      
-      unless ['question', 'decision', 'action'].include?(step_type)
+
+      unless VALID_CSV_TYPES.include?(step_type)
         add_warning("Row #{row_number}: Invalid step type '#{step_type}', defaulting to 'action'")
         step_type = 'action'
       end
 
       step = {
+        id: row[:id] || row[:step_id],  # Allow explicit ID in CSV
         type: step_type,
         title: row[:title] || row[:step_title] || "Step #{row_number}",
         description: row[:description] || row[:step_description] || ''
@@ -81,11 +86,16 @@ module WorkflowParsers
         step[:question] = row[:question] || row[:question_text] || ''
         step[:answer_type] = (row[:answer_type] || row[:answer] || 'text').to_s.downcase
         step[:variable_name] = row[:variable_name] || row[:variable] || ''
-        
-        # Parse options
+
         if row[:options]
           step[:options] = parse_options(row[:options])
         end
+
+        # Parse transitions for Graph Mode
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
       when 'decision'
         # Parse branches
         if row[:condition] && row[:path]
@@ -96,11 +106,58 @@ module WorkflowParsers
         elsif row[:branches]
           step[:branches] = parse_branches(row[:branches])
         end
-        
+
         step[:else_path] = row[:else_path] || row[:else] || ''
+
+        # Parse transitions for Graph Mode (new)
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
       when 'action'
         step[:instructions] = row[:instructions] || row[:action] || ''
         step[:action_type] = row[:action_type] || ''
+
+        # Parse transitions for Graph Mode
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
+      when 'checkpoint'
+        step[:checkpoint_message] = row[:checkpoint_message] || row[:message] || ''
+
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
+      when 'sub_flow'
+        step[:target_workflow_id] = row[:target_workflow_id] || row[:workflow_id]
+
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
+      when 'message'
+        step[:content] = row[:content] || row[:message] || ''
+
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
+      when 'escalate'
+        step[:target_type] = row[:target_type] || ''
+        step[:target_id] = row[:target_id]
+        step[:priority] = row[:priority] || 'normal'
+        step[:reason] = row[:reason] || ''
+
+        if row[:transitions]
+          step[:transitions] = parse_transitions(row[:transitions])
+        end
+
+      when 'resolve'
+        step[:resolution_type] = row[:resolution_type] || 'success'
+        step[:resolution_notes] = row[:resolution_notes] || row[:notes] || ''
+        # Resolve steps don't have transitions (terminal)
       end
 
       step
@@ -120,7 +177,6 @@ module WorkflowParsers
       # Parse as comma-separated values
       options_string.split(',').map do |opt|
         opt = opt.strip
-        # Try to parse as "label:value" format
         if opt.include?(':')
           parts = opt.split(':', 2)
           { label: parts[0].strip, value: parts[1].strip }
@@ -141,10 +197,15 @@ module WorkflowParsers
         # Fall through to comma-separated parsing
       end
 
-      # Parse as comma-separated "condition:path" format
-      branches_string.split(',').map do |branch|
+      # Parse as semicolon-separated "condition:path" format
+      # Using semicolon because conditions may contain commas
+      branches_string.split(';').map do |branch|
         branch = branch.strip
-        if branch.include?(':')
+        if branch.include?('->')
+          # Format: "condition -> path"
+          parts = branch.split('->', 2)
+          { condition: parts[0].strip, path: parts[1].strip }
+        elsif branch.include?(':')
           parts = branch.split(':', 2)
           { condition: parts[0].strip, path: parts[1].strip }
         else
@@ -152,6 +213,73 @@ module WorkflowParsers
         end
       end
     end
+
+    # Parse transitions column for Graph Mode
+    # Supports JSON array or semicolon-separated format:
+    #   "uuid1" or "uuid1;uuid2" (simple)
+    #   "uuid1:condition1;uuid2:condition2" (with conditions)
+    #   "uuid1->label1;uuid2->label2" (with labels)
+    #   JSON: [{"target_uuid":"...", "condition":"...", "label":"..."}]
+    def parse_transitions(transitions_string)
+      return [] if transitions_string.blank?
+
+      # Try to parse as JSON first
+      begin
+        parsed = JSON.parse(transitions_string)
+        if parsed.is_a?(Array)
+          return parsed.map do |t|
+            {
+              'target_uuid' => t['target_uuid'] || t['target'],
+              'condition' => t['condition'],
+              'label' => t['label']
+            }.compact
+          end
+        end
+      rescue JSON::ParserError
+        # Fall through to text parsing
+      end
+
+      # Parse as semicolon-separated format
+      transitions_string.split(';').map do |transition|
+        transition = transition.strip
+        next nil if transition.blank?
+
+        target_uuid = nil
+        condition = nil
+        label = nil
+
+        if transition.include?(':') && transition.include?('->')
+          # Format: "uuid:condition->label"
+          parts = transition.split('->', 2)
+          left = parts[0]
+          label = parts[1]&.strip
+          if left.include?(':')
+            uuid_cond = left.split(':', 2)
+            target_uuid = uuid_cond[0].strip
+            condition = uuid_cond[1].strip
+          else
+            target_uuid = left.strip
+          end
+        elsif transition.include?(':')
+          # Format: "uuid:condition"
+          parts = transition.split(':', 2)
+          target_uuid = parts[0].strip
+          condition = parts[1].strip
+        elsif transition.include?('->')
+          # Format: "uuid->label"
+          parts = transition.split('->', 2)
+          target_uuid = parts[0].strip
+          label = parts[1].strip
+        else
+          # Just target UUID or step title
+          target_uuid = transition
+        end
+
+        result = { 'target_uuid' => target_uuid }
+        result['condition'] = condition if condition.present?
+        result['label'] = label if label.present?
+        result
+      end.compact
+    end
   end
 end
-

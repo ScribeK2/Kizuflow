@@ -178,24 +178,77 @@ class WorkflowsController < ApplicationController
   end
 
   def export
-    send_data @workflow.to_json(except: [:id, :user_id, :status, :draft_expires_at]), 
+    # Build comprehensive export data including Graph Mode fields
+    export_data = {
+      title: @workflow.title,
+      description: @workflow.description_text || "",
+      graph_mode: @workflow.graph_mode?,
+      start_node_uuid: @workflow.start_node_uuid,
+      steps: @workflow.steps || [],
+      exported_at: Time.current.iso8601,
+      export_version: "2.0" # Version 2.0 indicates Graph Mode support
+    }
+
+    send_data export_data.to_json,
               filename: "#{@workflow.title.parameterize}.json",
               type: "application/json"
   end
 
   def export_pdf
     require "prawn"
-    
+
     pdf = Prawn::Document.new
     pdf.text @workflow.title, size: 24, style: :bold
     pdf.move_down 10
     pdf.text @workflow.description_text, size: 12 if @workflow.description_text.present?
+    pdf.move_down 10
+
+    # Show workflow mode
+    mode_text = @workflow.graph_mode? ? "Graph Mode" : "Linear Mode"
+    pdf.text "Mode: #{mode_text}", size: 10, style: :italic
     pdf.move_down 20
 
     if @workflow.steps.present?
       @workflow.steps.each_with_index do |step, index|
-        pdf.text "#{index + 1}. #{step['title']}", size: 14, style: :bold
+        # Step header with type badge
+        step_type = step['type']&.capitalize || 'Unknown'
+        pdf.text "#{index + 1}. #{step['title']} [#{step_type}]", size: 14, style: :bold
         pdf.text step['description'], size: 10 if step['description'].present?
+
+        # Type-specific content
+        case step['type']
+        when 'question'
+          pdf.text "Question: #{step['question']}", size: 10 if step['question'].present?
+          pdf.text "Variable: #{step['variable_name']}", size: 9, style: :italic if step['variable_name'].present?
+        when 'action'
+          pdf.text "Instructions: #{step['instructions']}", size: 10 if step['instructions'].present?
+        when 'decision'
+          if step['branches'].present?
+            step['branches'].each_with_index do |branch, bi|
+              pdf.text "  Branch #{bi + 1}: #{branch['condition']} → #{branch['path']}", size: 9
+            end
+          end
+        when 'message'
+          pdf.text "Message: #{step['content']}", size: 10 if step['content'].present?
+        when 'escalate'
+          pdf.text "Escalate to: #{step['target_type']}", size: 10 if step['target_type'].present?
+          pdf.text "Priority: #{step['priority']}", size: 10 if step['priority'].present?
+        when 'resolve'
+          pdf.text "Resolution: #{step['resolution_type']}", size: 10 if step['resolution_type'].present?
+        end
+
+        # Show transitions for graph mode workflows
+        if @workflow.graph_mode? && step['transitions'].present?
+          pdf.text "Transitions:", size: 10, style: :bold
+          step['transitions'].each do |transition|
+            target_step = @workflow.find_step_by_id(transition['target_uuid'])
+            target_name = target_step ? target_step['title'] : transition['target_uuid']
+            condition_text = transition['condition'].present? ? " (if #{transition['condition']})" : ""
+            # Use ASCII arrow instead of Unicode to avoid encoding issues
+            pdf.text "  -> #{target_name}#{condition_text}", size: 9
+          end
+        end
+
         pdf.move_down 10
       end
     end
@@ -346,7 +399,7 @@ class WorkflowsController < ApplicationController
 
     uploaded_file = params[:file]
     file_content = uploaded_file.read
-    
+
     # Validate file size (max 10MB)
     if file_content.bytesize > 10.megabytes
       redirect_to import_workflows_path, alert: "File is too large. Maximum size is 10MB."
@@ -355,7 +408,7 @@ class WorkflowsController < ApplicationController
 
     # Detect file format
     format = detect_file_format(uploaded_file.original_filename, uploaded_file.content_type)
-    
+
     unless format
       redirect_to import_workflows_path, alert: "Unsupported file format. Please use JSON, CSV, YAML, or Markdown files."
       return
@@ -366,21 +419,28 @@ class WorkflowsController < ApplicationController
     workflow_data = parser.parse
 
     unless workflow_data
-      redirect_to import_workflows_path, alert: "Failed to parse file: #{parser.errors.join(', ')}"
+      # Truncate error messages to prevent cookie overflow
+      error_summary = truncate_for_flash(parser.errors, max_items: 3)
+      redirect_to import_workflows_path, alert: "Failed to parse file: #{error_summary}"
       return
     end
 
-    # Create workflow with import metadata
-    # Imported workflows are always published (not drafts)
+    # Create workflow with Graph Mode support
+    # Imported workflows are always:
+    # - Graph Mode enabled (default for new workflows)
+    # - Published (not drafts) so they're immediately usable
+    # - Private by default for security
     @workflow = current_user.workflows.build(
       title: workflow_data[:title],
       description: workflow_data[:description] || "",
       steps: workflow_data[:steps] || [],
+      graph_mode: workflow_data[:graph_mode] != false, # Default to true unless explicitly false
+      start_node_uuid: workflow_data[:start_node_uuid] || workflow_data[:steps]&.first&.dig('id'),
       is_public: false,
       status: 'published'
     )
 
-    # Store import metadata in a way we can access later
+    # Store import metadata
     @import_metadata = workflow_data[:import_metadata] || {}
     @import_warnings = parser.warnings
     @import_errors = parser.errors
@@ -388,21 +448,31 @@ class WorkflowsController < ApplicationController
     # Check if workflow has incomplete steps
     @has_incomplete_steps = workflow_data[:steps]&.any? { |step| step['_import_incomplete'] }
 
+    # Run post-import graph validation
+    if @workflow.graph_mode?
+      graph_validation_errors = validate_imported_graph(@workflow)
+      if graph_validation_errors.any?
+        @import_warnings.concat(graph_validation_errors)
+      end
+    end
+
     # Try to save (validation will skip incomplete imported steps)
     if @workflow.save
       # If there are warnings or incomplete steps, redirect to edit with a notice
       if @has_incomplete_steps || @import_warnings.any?
         notice_parts = []
-        notice_parts << "Workflow imported successfully!"
+        notice_parts << "Workflow imported successfully in Graph Mode!"
         notice_parts << "#{incomplete_steps_count} incomplete step(s) need attention." if @has_incomplete_steps
         notice_parts << "#{@import_warnings.count} warning(s) occurred." if @import_warnings.any?
-        
+
         redirect_to edit_workflow_path(@workflow), notice: notice_parts.join(" ")
       else
-        redirect_to @workflow, notice: "Workflow imported successfully!"
+        redirect_to @workflow, notice: "Workflow imported successfully in Graph Mode!"
       end
     else
-      redirect_to import_workflows_path, alert: "Failed to create workflow: #{@workflow.errors.full_messages.join(', ')}"
+      # Truncate error messages to prevent cookie overflow
+      error_summary = truncate_for_flash(@workflow.errors.full_messages, max_items: 3)
+      redirect_to import_workflows_path, alert: "Failed to create workflow: #{error_summary}"
     end
   end
 
@@ -784,6 +854,48 @@ class WorkflowsController < ApplicationController
 
   def incomplete_steps_count
     @workflow.steps&.count { |step| step['_import_incomplete'] } || 0
+  end
+
+  # Truncate an array of messages to prevent cookie overflow
+  # Rails session cookies have a 4KB limit
+  def truncate_for_flash(messages, max_items: 3, max_length: 500)
+    return "" if messages.blank?
+
+    truncated = messages.first(max_items).map { |m| m.to_s.truncate(150) }
+    result = truncated.join(", ")
+
+    if messages.length > max_items
+      result += " (and #{messages.length - max_items} more...)"
+    end
+
+    result.truncate(max_length)
+  end
+
+  # Validate imported graph structure and return any errors
+  def validate_imported_graph(workflow)
+    errors = []
+    return errors unless workflow.steps.present?
+
+    # Build graph steps hash
+    graph_steps = {}
+    workflow.steps.each do |step|
+      graph_steps[step['id']] = step if step.is_a?(Hash) && step['id']
+    end
+
+    start_uuid = workflow.start_node_uuid || workflow.steps.first&.dig('id')
+
+    begin
+      validator = GraphValidator.new(graph_steps, start_uuid)
+      unless validator.valid?
+        validator.errors.each do |error|
+          errors << "Graph validation: #{error}"
+        end
+      end
+    rescue NameError
+      # GraphValidator not loaded - skip validation
+    end
+
+    errors
   end
 
   # Parse transitions_json from form submissions into proper transitions array

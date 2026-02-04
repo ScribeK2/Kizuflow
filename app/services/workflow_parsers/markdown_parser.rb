@@ -1,11 +1,12 @@
 # Markdown Parser for Kizuflow workflow imports
+# Updated for Graph Mode support
 module WorkflowParsers
   class MarkdownParser < BaseParser
     def parse
       begin
         # Parse markdown content
         lines = @file_content.split("\n")
-        
+
         # Extract title (first H1 or frontmatter)
         title = extract_title(lines)
         description = extract_description(lines)
@@ -29,12 +30,12 @@ module WorkflowParsers
 
         # Parse and normalize steps
         workflow_data = to_workflow_data(parsed_data)
-        
-        # Explicitly resolve step references for markdown (in case base parser doesn't catch it)
+
+        # Explicitly resolve step references for markdown
         if workflow_data[:steps].present?
           workflow_data[:steps] = resolve_step_references(workflow_data[:steps])
         end
-        
+
         workflow_data
       rescue => e
         add_error("Error parsing Markdown: #{e.message}")
@@ -44,9 +45,12 @@ module WorkflowParsers
 
     private
 
+    # Valid step types for Markdown import
+    VALID_MD_TYPES = %w[question decision action checkpoint sub_flow message escalate resolve].freeze
+
     def extract_title(lines)
       # Check for frontmatter title
-      if lines.first.strip == "---"
+      if lines.first&.strip == "---"
         lines.each_with_index do |line, index|
           next if index == 0
           break if line.strip == "---"
@@ -98,13 +102,11 @@ module WorkflowParsers
         # Collect description after title and before first step
         if found_title && !stripped.match(/^##\s+Step|^##\s+Steps|^###\s+Step|^\d+\./)
           if stripped.match(/^##\s+(.+)$/)
-            # Found a section header, stop collecting description
             break
           elsif !stripped.empty?
             description_lines << stripped
             in_description = true
           elsif in_description && stripped.empty?
-            # Empty line after description, stop collecting
             break
           end
         end
@@ -130,9 +132,8 @@ module WorkflowParsers
         if match = stripped.match(/^##\s+Step\s+(\d+)[:.]?\s*(.+)$/i)
           step_num = match[1]
           step_title_text = match[2].strip
-          # Preserve "Step X: Title" format for reference resolution
           title = "Step #{step_num}: #{step_title_text}"
-          
+
           # Save previous step if exists
           if current_step && current_step[:title].present?
             steps << normalize_step(current_step, step_index)
@@ -140,22 +141,12 @@ module WorkflowParsers
           end
 
           # Start new step
-          current_step = {
-            type: 'action', # Default type
-            title: title,
-            description: '',
-            question: '',
-            instructions: '',
-            answer_type: 'text',
-            variable_name: '',
-            branches: [],
-            else_path: ''
-          }
+          current_step = create_new_step(title)
           in_step = true
           next
         elsif stripped.match(/^###\s+Step\s+\d+[:.]?\s*(.+)$/i) ||
-           stripped.match(/^##\s+(.+)$/) ||
-           stripped.match(/^\d+\.\s+\*\*(.+?)\*\*/)
+              stripped.match(/^##\s+(.+)$/) ||
+              stripped.match(/^\d+\.\s+\*\*(.+?)\*\*/)
 
           # Save previous step if exists
           if current_step && current_step[:title].present?
@@ -163,93 +154,15 @@ module WorkflowParsers
             step_index += 1
           end
 
-          # Start new step (for non-Step X format)
           title = $1.strip
-          current_step = {
-            type: 'action', # Default type
-            title: title,
-            description: '',
-            question: '',
-            instructions: '',
-            answer_type: 'text',
-            variable_name: '',
-            branches: [],
-            else_path: ''
-          }
+          current_step = create_new_step(title)
           in_step = true
           next
         end
 
         # Parse step content
         if in_step && current_step
-          # Extract type
-          if stripped.match(/^\*\*Type\*\*:\s*(.+)$/i)
-            current_step[:type] = $1.strip.downcase
-          elsif stripped.match(/^Type:\s*(.+)$/i)
-            current_step[:type] = $1.strip.downcase
-          end
-
-          # Extract question
-          if stripped.match(/^\*\*Question\*\*:\s*(.+)$/i)
-            current_step[:question] = $1.strip
-          elsif stripped.match(/^Question:\s*(.+)$/i)
-            current_step[:question] = $1.strip
-          end
-
-          # Extract answer type
-          if stripped.match(/^\*\*Answer\s+Type\*\*:\s*(.+)$/i)
-            current_step[:answer_type] = $1.strip.downcase
-          elsif stripped.match(/^Answer\s+Type:\s*(.+)$/i)
-            current_step[:answer_type] = $1.strip.downcase
-          end
-
-          # Extract variable name
-          if stripped.match(/^\*\*Variable\*\*:\s*(.+)$/i)
-            current_step[:variable_name] = $1.strip
-          elsif stripped.match(/^Variable:\s*(.+)$/i)
-            current_step[:variable_name] = $1.strip
-          end
-
-          # Extract instructions
-          if stripped.match(/^\*\*Instructions\*\*:\s*(.+)$/i)
-            current_step[:instructions] = $1.strip
-          elsif stripped.match(/^Instructions:\s*(.+)$/i)
-            current_step[:instructions] = $1.strip
-          end
-
-          # Extract condition
-          if stripped.match(/^\*\*Condition\*\*:\s*(.+)$/i)
-            current_step[:branches] = [{
-              condition: $1.strip,
-              path: ''
-            }]
-          elsif stripped.match(/^Condition:\s*(.+)$/i)
-            current_step[:branches] = [{
-              condition: $1.strip,
-              path: ''
-            }]
-          end
-
-          # Extract path/branches
-          if stripped.match(/^\*\*If\s+true\*\*:\s*(.+)$/i) || stripped.match(/^If\s+true:\s*(.+)$/i)
-            if current_step[:branches].empty?
-              current_step[:branches] = [{ condition: '', path: $1.strip }]
-            else
-              current_step[:branches][0][:condition] ||= ''
-              current_step[:branches][0][:path] = $1.strip
-            end
-          end
-
-          if stripped.match(/^\*\*If\s+false\*\*:\s*(.+)$/i) || stripped.match(/^If\s+false:\s*(.+)$/i)
-            current_step[:else_path] = $1.strip
-          end
-
-          # Extract description (everything else that's not a field)
-          if !stripped.match(/^\*\*|\*\*:\s*|Type:|Question:|Answer|Variable:|Instructions:|Condition:|If\s+(true|false):/i) &&
-             !stripped.match(/^##|^###|^\d+\./) &&
-             !stripped.empty?
-            current_step[:description] += " #{stripped}" unless current_step[:description].include?(stripped)
-          end
+          parse_step_line(current_step, stripped)
         end
       end
 
@@ -261,24 +174,244 @@ module WorkflowParsers
       steps
     end
 
+    def create_new_step(title)
+      {
+        type: 'action',
+        title: title,
+        description: '',
+        question: '',
+        instructions: '',
+        action_type: '',
+        answer_type: 'text',
+        variable_name: '',
+        options: [],
+        branches: [],
+        else_path: '',
+        transitions: [],
+        # New Graph Mode step fields
+        content: '',
+        target_type: '',
+        target_id: '',
+        priority: 'normal',
+        reason: '',
+        resolution_type: '',
+        resolution_notes: ''
+      }
+    end
+
+    def parse_step_line(current_step, stripped)
+      # Extract type
+      if match = stripped.match(/^\*\*Type\*\*:\s*(.+)$/i) || stripped.match(/^Type:\s*(.+)$/i)
+        step_type = (match ? match[1] : $1).strip.downcase
+        current_step[:type] = VALID_MD_TYPES.include?(step_type) ? step_type : 'action'
+        return
+      end
+
+      # Extract question
+      if match = stripped.match(/^\*\*Question\*\*:\s*(.+)$/i) || stripped.match(/^Question:\s*(.+)$/i)
+        current_step[:question] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract answer type
+      if match = stripped.match(/^\*\*Answer\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Answer\s+Type:\s*(.+)$/i)
+        current_step[:answer_type] = (match ? match[1] : $1).strip.downcase
+        return
+      end
+
+      # Extract variable name
+      if match = stripped.match(/^\*\*Variable\*\*:\s*(.+)$/i) || stripped.match(/^Variable:\s*(.+)$/i)
+        current_step[:variable_name] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract options (for multiple choice questions)
+      # Format: "Options: Yes, No" or "Options: Billing:billing, Technical:technical"
+      if match = stripped.match(/^\*\*Options\*\*:\s*(.+)$/i) || stripped.match(/^Options:\s*(.+)$/i)
+        options_str = (match ? match[1] : $1).strip
+        current_step[:options] = parse_markdown_options(options_str)
+        return
+      end
+
+      # Extract instructions
+      if match = stripped.match(/^\*\*Instructions\*\*:\s*(.+)$/i) || stripped.match(/^Instructions:\s*(.+)$/i)
+        current_step[:instructions] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract action type (for action steps)
+      if match = stripped.match(/^\*\*Action\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Action\s+Type:\s*(.+)$/i)
+        current_step[:action_type] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract condition (for decision steps)
+      if match = stripped.match(/^\*\*Condition\*\*:\s*(.+)$/i) || stripped.match(/^Condition:\s*(.+)$/i)
+        current_step[:branches] = [{
+          condition: (match ? match[1] : $1).strip,
+          path: ''
+        }]
+        return
+      end
+
+      # Extract If true path
+      if match = stripped.match(/^\*\*If\s+true\*\*:\s*(.+)$/i) || stripped.match(/^If\s+true:\s*(.+)$/i)
+        path = (match ? match[1] : $1).strip
+        if current_step[:branches].empty?
+          current_step[:branches] = [{ condition: '', path: path }]
+        else
+          current_step[:branches][0][:path] = path
+        end
+        return
+      end
+
+      # Extract If false path (becomes else_path)
+      if match = stripped.match(/^\*\*If\s+false\*\*:\s*(.+)$/i) || stripped.match(/^If\s+false:\s*(.+)$/i)
+        current_step[:else_path] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract transitions (Graph Mode)
+      # Format: "Transitions: Step 2, Step 3" or "Transitions: uuid1, uuid2"
+      if match = stripped.match(/^\*\*Transitions?\*\*:\s*(.+)$/i) || stripped.match(/^Transitions?:\s*(.+)$/i)
+        transitions_str = (match ? match[1] : $1).strip
+        current_step[:transitions] = parse_markdown_transitions(transitions_str)
+        return
+      end
+
+      # Extract content (for message steps)
+      if match = stripped.match(/^\*\*Content\*\*:\s*(.+)$/i) || stripped.match(/^Content:\s*(.+)$/i)
+        current_step[:content] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract target type (for escalate steps)
+      if match = stripped.match(/^\*\*Target\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+Type:\s*(.+)$/i)
+        current_step[:target_type] = (match ? match[1] : $1).strip.downcase
+        return
+      end
+
+      # Extract target ID (for escalate steps)
+      if match = stripped.match(/^\*\*Target\s+ID\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+ID:\s*(.+)$/i)
+        current_step[:target_id] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract priority (for escalate steps)
+      if match = stripped.match(/^\*\*Priority\*\*:\s*(.+)$/i) || stripped.match(/^Priority:\s*(.+)$/i)
+        current_step[:priority] = (match ? match[1] : $1).strip.downcase
+        return
+      end
+
+      # Extract reason (for escalate steps)
+      if match = stripped.match(/^\*\*Reason\*\*:\s*(.+)$/i) || stripped.match(/^Reason:\s*(.+)$/i)
+        current_step[:reason] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract resolution type (for resolve steps)
+      if match = stripped.match(/^\*\*Resolution\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Resolution\s+Type:\s*(.+)$/i)
+        current_step[:resolution_type] = (match ? match[1] : $1).strip.downcase
+        return
+      end
+
+      # Extract resolution notes (for resolve steps)
+      if match = stripped.match(/^\*\*Resolution\s+Notes\*\*:\s*(.+)$/i) || stripped.match(/^Resolution\s+Notes:\s*(.+)$/i)
+        current_step[:resolution_notes] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract description (everything else that's not a recognized field)
+      unless stripped.match(/^\*\*|Type:|Question:|Answer|Variable:|Options:|Instructions:|Action\s+Type:|Condition:|If\s+(true|false):|Transitions?:|Content:|Target\s+(Type|ID):|Priority:|Reason:|Resolution/i) ||
+             stripped.match(/^##|^###|^\d+\./) ||
+             stripped.empty?
+        current_step[:description] += " #{stripped}" unless current_step[:description].include?(stripped)
+      end
+    end
+
+    # Parse markdown options format
+    # Supports: "Yes, No" or "Billing:billing, Technical:technical, Other:other"
+    def parse_markdown_options(options_str)
+      options_str.split(',').map do |opt|
+        opt = opt.strip
+        next nil if opt.blank?
+
+        if opt.include?(':')
+          parts = opt.split(':', 2)
+          { 'label' => parts[0].strip, 'value' => parts[1].strip }
+        else
+          { 'label' => opt, 'value' => opt.downcase.gsub(/\s+/, '_') }
+        end
+      end.compact
+    end
+
+    # Parse markdown transitions format
+    # Supports: "Step 2, Step 3" or "uuid1, uuid2" or "Step 2 (if condition)"
+    def parse_markdown_transitions(transitions_str)
+      transitions_str.split(',').map do |t|
+        t = t.strip
+        next nil if t.blank?
+
+        target = t
+        condition = nil
+        label = nil
+
+        # Check for condition in parentheses: "Step 2 (if condition)"
+        if match = t.match(/^(.+?)\s*\(if\s+(.+?)\)$/i)
+          target = match[1].strip
+          condition = match[2].strip
+        elsif match = t.match(/^(.+?)\s*\((.+?)\)$/)
+          target = match[1].strip
+          label = match[2].strip
+        end
+
+        result = { 'target_uuid' => target }
+        result['condition'] = condition if condition.present?
+        result['label'] = label if label.present?
+        result
+      end.compact
+    end
+
     def normalize_step(step, index)
       normalized = {
         type: step[:type] || 'action',
         title: step[:title] || "Step #{index + 1}",
-        description: step[:description].strip,
-        question: step[:question] || '',
-        answer_type: step[:answer_type] || 'text',
-        variable_name: step[:variable_name] || '',
-        instructions: step[:instructions] || '',
-        branches: step[:branches] || [],
-        else_path: step[:else_path] || ''
+        description: step[:description].to_s.gsub(/\s+/, ' ').strip
       }
 
-      # Clean up description
-      normalized[:description] = normalized[:description].gsub(/\s+/, ' ').strip
+      # Add type-specific fields
+      case normalized[:type]
+      when 'question'
+        normalized[:question] = step[:question] || ''
+        normalized[:answer_type] = step[:answer_type] || 'text'
+        normalized[:variable_name] = step[:variable_name] || ''
+        normalized[:options] = step[:options] || [] if step[:options].present?
+      when 'decision'
+        normalized[:branches] = step[:branches] || []
+        normalized[:else_path] = step[:else_path] || ''
+      when 'action'
+        normalized[:instructions] = step[:instructions] || ''
+        normalized[:action_type] = step[:action_type] || '' if step[:action_type].present?
+      when 'checkpoint'
+        normalized[:checkpoint_message] = step[:checkpoint_message] || ''
+      when 'message'
+        normalized[:content] = step[:content] || ''
+      when 'escalate'
+        normalized[:target_type] = step[:target_type] || ''
+        normalized[:target_id] = step[:target_id] if step[:target_id].present?
+        normalized[:priority] = step[:priority] || 'normal'
+        normalized[:reason] = step[:reason] || ''
+      when 'resolve'
+        normalized[:resolution_type] = step[:resolution_type] || 'success'
+        normalized[:resolution_notes] = step[:resolution_notes] || ''
+      end
+
+      # Add transitions if present (Graph Mode)
+      if step[:transitions].present? && step[:transitions].any?
+        normalized[:transitions] = step[:transitions]
+      end
 
       normalized
     end
   end
 end
-

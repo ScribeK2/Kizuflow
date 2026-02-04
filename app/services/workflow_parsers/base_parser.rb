@@ -1,5 +1,6 @@
 # Workflow Import Parser Service
 # Base class for all import parsers
+# Updated for Graph Mode default support
 module WorkflowParsers
   class BaseParser
     attr_reader :file_content, :errors, :warnings
@@ -29,18 +30,258 @@ module WorkflowParsers
     end
 
     # Convert parsed data to Kizuflow workflow format
+    # Now includes Graph Mode support with automatic conversion
     def to_workflow_data(parsed_data)
+      steps = normalize_steps(parsed_data[:steps] || [])
+
+      # Detect if input is already in graph format or needs conversion
+      is_graph_format = detect_graph_format(steps)
+      graph_mode = parsed_data[:graph_mode] == true || is_graph_format
+
+      # Ensure all steps have UUIDs
+      ensure_step_uuids(steps)
+
+      # Convert linear format to graph format if needed (Graph Mode is default)
+      unless is_graph_format
+        steps = convert_to_graph_format(steps)
+        add_warning("Converted from linear format to Graph Mode") unless steps.empty?
+      end
+
+      # Determine start node UUID
+      start_node_uuid = parsed_data[:start_node_uuid] || steps.first&.dig('id')
+
+      # Validate graph structure
+      validate_graph_structure(steps, start_node_uuid) if steps.any?
+
       {
         title: parsed_data[:title] || "Imported Workflow",
         description: parsed_data[:description] || "",
-        steps: normalize_steps(parsed_data[:steps] || []),
+        graph_mode: true, # Always import as Graph Mode (new default)
+        start_node_uuid: start_node_uuid,
+        steps: steps,
         import_metadata: {
           source_format: self.class.name.demodulize.downcase.gsub('parser', ''),
           imported_at: Time.current.iso8601,
+          original_format: is_graph_format ? 'graph' : 'linear',
           warnings: @warnings,
           errors: @errors
         }
       }
+    end
+
+    # Detect if steps are already in graph format (have transitions)
+    def detect_graph_format(steps)
+      return false unless steps.is_a?(Array) && steps.any?
+
+      # If any step has a non-empty transitions array, it's graph format
+      steps.any? do |step|
+        step.is_a?(Hash) && step['transitions'].is_a?(Array) && step['transitions'].any?
+      end
+    end
+
+    # Ensure all steps have UUIDs
+    def ensure_step_uuids(steps)
+      return unless steps.is_a?(Array)
+
+      steps.each do |step|
+        next unless step.is_a?(Hash)
+        step['id'] ||= SecureRandom.uuid
+      end
+    end
+
+    # Convert linear format steps to graph format with explicit transitions
+    def convert_to_graph_format(steps)
+      return [] unless steps.is_a?(Array) && steps.any?
+
+      # Build title-to-id map for path resolution
+      title_to_id = {}
+      steps.each { |s| title_to_id[s['title']] = s['id'] if s.is_a?(Hash) && s['title'] && s['id'] }
+
+      steps.each_with_index do |step, index|
+        next unless step.is_a?(Hash)
+
+        step['transitions'] ||= []
+
+        case step['type']
+        when 'decision', 'simple_decision'
+          convert_decision_to_graph(step, steps, title_to_id)
+        when 'resolve'
+          # Resolve steps are terminal - no transitions
+          step['transitions'] = []
+        when 'checkpoint'
+          # Checkpoints can be terminal or continue
+          # Only add transition to next if not last step
+          if index < steps.length - 1 && step['transitions'].empty?
+            next_step = steps[index + 1]
+            step['transitions'] << {
+              'target_uuid' => next_step['id'],
+              'condition' => nil,
+              'label' => nil
+            }
+          end
+        else
+          # Sequential steps: question, action, message, escalate, sub_flow
+          convert_sequential_to_graph(step, index, steps, title_to_id)
+        end
+      end
+
+      steps
+    end
+
+    # Convert a decision step's branches to graph transitions
+    def convert_decision_to_graph(step, steps, title_to_id)
+      transitions = []
+
+      # Handle multi-branch format
+      if step['branches'].is_a?(Array) && step['branches'].any?
+        step['branches'].each do |branch|
+          condition = branch['condition'] || branch[:condition]
+          path = branch['path'] || branch[:path]
+
+          next unless path.present?
+
+          target_uuid = resolve_path_to_uuid(path, title_to_id)
+          if target_uuid
+            transitions << {
+              'target_uuid' => target_uuid,
+              'condition' => condition.presence,
+              'label' => condition.present? ? "If #{condition}" : nil
+            }
+          else
+            add_warning("Decision step '#{step['title']}': Branch path '#{path}' could not be resolved to a step")
+          end
+        end
+      end
+
+      # Handle legacy format (true_path/false_path)
+      if step['true_path'].present?
+        target_uuid = resolve_path_to_uuid(step['true_path'], title_to_id)
+        if target_uuid
+          condition = step['condition'] || 'true'
+          transitions << {
+            'target_uuid' => target_uuid,
+            'condition' => condition,
+            'label' => 'If true'
+          }
+        end
+      end
+
+      if step['false_path'].present?
+        target_uuid = resolve_path_to_uuid(step['false_path'], title_to_id)
+        if target_uuid
+          condition = step['condition'] ? negate_condition(step['condition']) : 'false'
+          transitions << {
+            'target_uuid' => target_uuid,
+            'condition' => condition,
+            'label' => 'If false'
+          }
+        end
+      end
+
+      # Handle else_path (default/fallback)
+      if step['else_path'].present?
+        target_uuid = resolve_path_to_uuid(step['else_path'], title_to_id)
+        if target_uuid
+          transitions << {
+            'target_uuid' => target_uuid,
+            'condition' => nil,
+            'label' => 'Else'
+          }
+        end
+      end
+
+      step['transitions'] = transitions
+    end
+
+    # Convert sequential step to graph format
+    def convert_sequential_to_graph(step, index, steps, title_to_id)
+      transitions = step['transitions'] || []
+
+      # Handle jumps (conditional transitions)
+      if step['jumps'].is_a?(Array)
+        step['jumps'].each do |jump|
+          condition = jump['condition'] || jump[:condition]
+          next_step_id = jump['next_step_id'] || jump[:next_step_id]
+
+          if next_step_id.present?
+            target_uuid = resolve_path_to_uuid(next_step_id, title_to_id)
+            if target_uuid
+              transitions << {
+                'target_uuid' => target_uuid,
+                'condition' => condition.presence,
+                'label' => condition.present? ? "Jump: #{condition}" : nil
+              }
+            end
+          end
+        end
+      end
+
+      # Add default transition to next step if not last and no unconditional transition
+      if index < steps.length - 1
+        next_step = steps[index + 1]
+        has_default = transitions.any? { |t| t['condition'].blank? }
+        unless has_default
+          transitions << {
+            'target_uuid' => next_step['id'],
+            'condition' => nil,
+            'label' => nil
+          }
+        end
+      end
+
+      step['transitions'] = transitions
+    end
+
+    # Resolve a path reference (title, ID, or "Step N") to a UUID
+    def resolve_path_to_uuid(path, title_to_id)
+      return nil if path.blank?
+
+      # Already a UUID?
+      if path.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+        return path if title_to_id.values.include?(path)
+      end
+
+      # Direct title match
+      return title_to_id[path] if title_to_id.key?(path)
+
+      # Case-insensitive title match
+      title_to_id.each do |title, id|
+        return id if title.downcase == path.downcase
+      end
+
+      nil
+    end
+
+    # Negate a condition for false path conversion
+    def negate_condition(condition)
+      return nil if condition.blank?
+
+      if condition.include?('==')
+        condition.gsub('==', '!=')
+      elsif condition.include?('!=')
+        condition.gsub('!=', '==')
+      else
+        "!(#{condition})"
+      end
+    end
+
+    # Validate graph structure after conversion
+    def validate_graph_structure(steps, start_uuid)
+      return if steps.empty?
+
+      # Build steps hash for validator
+      steps_hash = {}
+      steps.each { |s| steps_hash[s['id']] = s if s.is_a?(Hash) && s['id'] }
+
+      validator = GraphValidator.new(steps_hash, start_uuid)
+      unless validator.valid?
+        validator.errors.each do |error|
+          add_warning("Graph validation: #{error}")
+        end
+      end
+    rescue NameError
+      # GraphValidator not loaded - skip validation during parse
+      # Will be validated on workflow save
     end
 
     # Normalize steps to ensure they match Kizuflow format
@@ -48,59 +289,97 @@ module WorkflowParsers
       return [] unless steps.is_a?(Array)
 
       normalized_steps = steps.map.with_index do |step, index|
-        normalized = {
-          'type' => step[:type] || step['type'] || 'action',
-          'title' => step[:title] || step['title'] || "Step #{index + 1}",
-          'description' => step[:description] || step['description'] || ''
-        }
+        normalize_single_step(step, index)
+      end.compact
 
-        # Add type-specific fields
-        case normalized['type']
-        when 'question'
-          normalized['question'] = step[:question] || step['question'] || ''
-          normalized['answer_type'] = step[:answer_type] || step['answer_type'] || 'text'
-          normalized['variable_name'] = step[:variable_name] || step['variable_name'] || ''
-          normalized['options'] = normalize_options(step[:options] || step['options'] || [])
-        when 'decision'
-          normalized['branches'] = normalize_branches(step[:branches] || step['branches'] || [])
-          normalized['else_path'] = step[:else_path] || step['else_path'] || ''
-        when 'action'
-          normalized['instructions'] = step[:instructions] || step['instructions'] || ''
-          normalized['action_type'] = step[:action_type] || step['action_type'] || ''
-        end
+      # Assign UUIDs before resolving step references (needed for transition resolution)
+      ensure_step_uuids(normalized_steps)
 
-        # Mark incomplete steps
-        normalized['_import_incomplete'] = is_step_incomplete?(normalized)
-        normalized['_import_errors'] = step_errors(normalized) if normalized['_import_incomplete']
-
-        normalized
-      end
-
-      # Resolve step references for markdown imports (after normalization so we have final titles)
-      if self.class.name == 'WorkflowParsers::MarkdownParser' || self.class.name.include?('MarkdownParser')
+      # Resolve step number references for markdown imports
+      if self.class.name.include?('MarkdownParser')
         normalized_steps = resolve_step_references(normalized_steps)
       end
-      
+
       # Mark decision steps as incomplete if they reference non-existent steps
-      step_titles = normalized_steps.map { |s| s['title'] }.compact
-      normalized_steps.each do |step|
-        if step['type'] == 'decision' && step['branches'].present?
-          step['branches'].each do |branch|
-            if branch['path'].present? && !step_titles.include?(branch['path'])
-              step['_import_incomplete'] = true
-              step['_import_errors'] ||= []
-              step['_import_errors'] << "Branch references non-existent step: #{branch['path']}"
-            end
-          end
-          if step['else_path'].present? && !step_titles.include?(step['else_path'])
-            step['_import_incomplete'] = true
-            step['_import_errors'] ||= []
-            step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
-          end
-        end
-      end
+      validate_branch_references(normalized_steps)
 
       normalized_steps
+    end
+
+    # Normalize a single step
+    def normalize_single_step(step, index)
+      return nil unless step.is_a?(Hash)
+
+      normalized = {
+        'id' => step['id'] || step[:id],
+        'type' => step[:type] || step['type'] || 'action',
+        'title' => step[:title] || step['title'] || "Step #{index + 1}",
+        'description' => step[:description] || step['description'] || ''
+      }
+
+      # Normalize type-specific fields
+      case normalized['type']
+      when 'question'
+        normalized['question'] = step[:question] || step['question'] || ''
+        normalized['answer_type'] = step[:answer_type] || step['answer_type'] || 'text'
+        normalized['variable_name'] = step[:variable_name] || step['variable_name'] || ''
+        normalized['options'] = normalize_options(step[:options] || step['options'] || [])
+      when 'decision', 'simple_decision'
+        normalized['branches'] = normalize_branches(step[:branches] || step['branches'] || [])
+        normalized['else_path'] = step[:else_path] || step['else_path'] || ''
+        # Preserve legacy fields for conversion
+        normalized['condition'] = step[:condition] || step['condition'] if step[:condition] || step['condition']
+        normalized['true_path'] = step[:true_path] || step['true_path'] if step[:true_path] || step['true_path']
+        normalized['false_path'] = step[:false_path] || step['false_path'] if step[:false_path] || step['false_path']
+      when 'action'
+        normalized['instructions'] = step[:instructions] || step['instructions'] || ''
+        normalized['action_type'] = step[:action_type] || step['action_type'] || ''
+      when 'checkpoint'
+        normalized['checkpoint_message'] = step[:checkpoint_message] || step['checkpoint_message'] || ''
+      when 'sub_flow'
+        normalized['target_workflow_id'] = step[:target_workflow_id] || step['target_workflow_id']
+        normalized['variable_mapping'] = step[:variable_mapping] || step['variable_mapping'] || {}
+      when 'message'
+        normalized['content'] = step[:content] || step['content'] || ''
+      when 'escalate'
+        normalized['target_type'] = step[:target_type] || step['target_type'] || ''
+        normalized['priority'] = step[:priority] || step['priority'] || 'normal'
+        normalized['target_id'] = step[:target_id] || step['target_id']
+        normalized['reason'] = step[:reason] || step['reason'] || ''
+      when 'resolve'
+        normalized['resolution_type'] = step[:resolution_type] || step['resolution_type'] || 'success'
+        normalized['resolution_notes'] = step[:resolution_notes] || step['resolution_notes'] || ''
+      end
+
+      # Preserve transitions if already present (graph format import)
+      if (step['transitions'] || step[:transitions]).is_a?(Array)
+        normalized['transitions'] = normalize_transitions(step['transitions'] || step[:transitions])
+      end
+
+      # Preserve jumps for linear format
+      if (step['jumps'] || step[:jumps]).is_a?(Array)
+        normalized['jumps'] = step['jumps'] || step[:jumps]
+      end
+
+      # Mark incomplete steps
+      normalized['_import_incomplete'] = is_step_incomplete?(normalized)
+      normalized['_import_errors'] = step_errors(normalized) if normalized['_import_incomplete']
+
+      normalized
+    end
+
+    # Normalize transitions array
+    def normalize_transitions(transitions)
+      return [] unless transitions.is_a?(Array)
+
+      transitions.map do |t|
+        next nil unless t.is_a?(Hash)
+        {
+          'target_uuid' => t['target_uuid'] || t[:target_uuid],
+          'condition' => t['condition'] || t[:condition],
+          'label' => t['label'] || t[:label]
+        }.compact
+      end.compact
     end
 
     def normalize_options(options)
@@ -133,15 +412,19 @@ module WorkflowParsers
         step['question'].blank?
       when 'decision'
         branches = step['branches'] || []
-        # Check if branches are empty OR if any branch references invalid steps
-        if branches.empty?
+        transitions = step['transitions'] || []
+        # Complete if has transitions (graph mode) or branches with content
+        if transitions.any?
+          false
+        elsif branches.empty?
           true
         else
-          # Check if all branches have both condition and path
           branches.all? { |b| b['condition'].blank? && b['path'].blank? }
         end
       when 'action'
         step['instructions'].blank?
+      when 'resolve'
+        step['resolution_type'].blank?
       else
         false
       end
@@ -154,8 +437,9 @@ module WorkflowParsers
         errors << "Question text is required" if step['question'].blank?
       when 'decision'
         branches = step['branches'] || []
-        if branches.empty?
-          errors << "At least one decision branch is required"
+        transitions = step['transitions'] || []
+        if transitions.empty? && branches.empty?
+          errors << "At least one decision branch or transition is required"
         else
           branches.each_with_index do |branch, idx|
             if branch['condition'].present? && branch['path'].blank?
@@ -167,35 +451,74 @@ module WorkflowParsers
         end
       when 'action'
         errors << "Instructions are required" if step['instructions'].blank?
+      when 'resolve'
+        errors << "Resolution type is required" if step['resolution_type'].blank?
       end
       errors
     end
 
-    # Resolve step number references (e.g., "Step 3" -> actual step title)
-    # This is called after normalization so we have the final step titles
+    # Validate branch references point to existing steps
+    def validate_branch_references(normalized_steps)
+      step_titles = normalized_steps.map { |s| s['title'] }.compact
+
+      normalized_steps.each do |step|
+        if step['type'] == 'decision' && step['branches'].present?
+          step['branches'].each do |branch|
+            if branch['path'].present? && !step_titles.include?(branch['path'])
+              step['_import_incomplete'] = true
+              step['_import_errors'] ||= []
+              step['_import_errors'] << "Branch references non-existent step: #{branch['path']}"
+            end
+          end
+          if step['else_path'].present? && !step_titles.include?(step['else_path'])
+            step['_import_incomplete'] = true
+            step['_import_errors'] ||= []
+            step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
+          end
+        end
+      end
+    end
+
+    # Resolve step number references (e.g., "Step 3" -> actual step title or ID)
     def resolve_step_references(normalized_steps)
       return normalized_steps unless normalized_steps.is_a?(Array) && normalized_steps.length > 0
 
-      # Build a map of step number references to actual step titles
-      step_title_map = {}
+      # Build maps of step number references to titles and IDs
+      step_title_map = {}  # Maps "Step 2" -> "Step 2: Select Issue Type"
+      step_id_map = {}     # Maps "Step 2" -> step['id'] (UUID)
+      title_to_id = {}     # Maps "Step 2: Select Issue Type" -> step['id']
+
       normalized_steps.each_with_index do |step, index|
         step_num = index + 1
         step_title = step['title'] || "Step #{step_num}"
-        
-        # Map variations: "Step 3", "Step 3:", "3", etc. to actual title
-        step_title_map["Step #{step_num}"] = step_title
-        step_title_map["Step #{step_num}:"] = step_title
-        step_title_map["step #{step_num}"] = step_title
-        step_title_map["step #{step_num}:"] = step_title
-        step_title_map[step_num.to_s] = step_title
-        step_title_map["Go to Step #{step_num}"] = step_title
-        step_title_map["go to step #{step_num}"] = step_title
-        
-        # Also check if step title starts with "Step X" and map that
+        step_id = step['id']
+
+        # Map title to ID
+        title_to_id[step_title] = step_id if step_id
+
+        # Map variations to both title and ID
+        variations = [
+          "Step #{step_num}",
+          "Step #{step_num}:",
+          "step #{step_num}",
+          "step #{step_num}:",
+          step_num.to_s,
+          "Go to Step #{step_num}",
+          "go to step #{step_num}"
+        ]
+
+        variations.each do |v|
+          step_title_map[v] = step_title
+          step_id_map[v] = step_id if step_id
+        end
+
+        # Also map if title starts with "Step X"
         if step_title.match(/^Step\s+(\d+)/i)
           step_num_from_title = $1.to_i
           step_title_map["Step #{step_num_from_title}"] = step_title
           step_title_map["step #{step_num_from_title}"] = step_title
+          step_id_map["Step #{step_num_from_title}"] = step_id if step_id
+          step_id_map["step #{step_num_from_title}"] = step_id if step_id
         end
       end
 
@@ -208,73 +531,101 @@ module WorkflowParsers
           resolved_step['branches'] = resolved_step['branches'].map do |branch|
             resolved_branch = branch.dup
             path = resolved_branch['path']
-            
+
             if path.present?
-              original_path = path
-              # Try to resolve step number references
-              resolved_path = step_title_map[path] || step_title_map[path.strip]
-              
-              # If not found, try to extract step number from phrases like "Go to Step 3"
-              if resolved_path.nil?
-                if path.match(/step\s+(\d+)/i)
-                  step_num = $1.to_i
-                  if step_num > 0 && step_num <= normalized_steps.length
-                    resolved_path = step_title_map["Step #{step_num}"]
-                  end
-                end
-              end
-              
-              # If still not resolved, try case-insensitive match
-              if resolved_path.nil?
-                step_title_map.each do |key, title|
-                  if key.downcase == path.downcase || key.downcase.strip == path.downcase.strip
-                    resolved_path = title
-                    break
-                  end
-                end
-              end
-              
-              # Use resolved path or keep original if couldn't resolve
+              resolved_path = resolve_step_reference(path, step_title_map, normalized_steps)
               resolved_branch['path'] = resolved_path || path
             end
-            
+
             resolved_branch
           end
         end
 
         # Resolve else_path
-        else_path = resolved_step['else_path']
-        if else_path.present?
-          original_else_path = else_path
-          resolved_else_path = step_title_map[else_path] || step_title_map[else_path.strip]
-          
-          # If not found, try to extract step number from phrases like "Go to Step 4"
-          if resolved_else_path.nil?
-            if else_path.match(/step\s+(\d+)/i)
-              step_num = $1.to_i
-              if step_num > 0 && step_num <= normalized_steps.length
-                resolved_else_path = step_title_map["Step #{step_num}"]
-              end
+        if resolved_step['else_path'].present?
+          resolved_else_path = resolve_step_reference(resolved_step['else_path'], step_title_map, normalized_steps)
+          resolved_step['else_path'] = resolved_else_path || resolved_step['else_path']
+        end
+
+        # Resolve transition target_uuid references (for Markdown imports)
+        # Transitions should resolve to step IDs (UUIDs), not titles
+        if resolved_step['transitions'].present? && resolved_step['transitions'].is_a?(Array)
+          resolved_step['transitions'] = resolved_step['transitions'].map do |transition|
+            resolved_transition = transition.dup
+            target = resolved_transition['target_uuid']
+
+            if target.present? && !target.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+              # Not a UUID, try to resolve as step reference to ID
+              resolved_id = resolve_step_reference_to_id(target, step_id_map, title_to_id, normalized_steps)
+              resolved_transition['target_uuid'] = resolved_id || target
             end
+
+            resolved_transition
           end
-          
-          # If still not resolved, try case-insensitive match
-          if resolved_else_path.nil?
-            step_title_map.each do |key, title|
-              if key.downcase == else_path.downcase || key.downcase.strip == else_path.downcase.strip
-                resolved_else_path = title
-                break
-              end
-            end
-          end
-          
-          # Use resolved path or keep original if couldn't resolve
-          resolved_step['else_path'] = resolved_else_path || else_path
         end
 
         resolved_step
       end
     end
+
+    # Resolve a step reference to a step ID (UUID)
+    def resolve_step_reference_to_id(ref, step_id_map, title_to_id, normalized_steps)
+      return nil if ref.blank?
+
+      # Direct match in step_id_map (handles "Step 2" -> uuid)
+      return step_id_map[ref] if step_id_map.key?(ref)
+      return step_id_map[ref.strip] if step_id_map.key?(ref.strip)
+
+      # Try title_to_id (handles full titles)
+      return title_to_id[ref] if title_to_id.key?(ref)
+      return title_to_id[ref.strip] if title_to_id.key?(ref.strip)
+
+      # Extract step number from "Go to Step X" patterns
+      if ref.match(/step\s+(\d+)/i)
+        step_num = $1.to_i
+        if step_num > 0 && step_num <= normalized_steps.length
+          return step_id_map["Step #{step_num}"]
+        end
+      end
+
+      # Case-insensitive fallback
+      step_id_map.each do |key, id|
+        if key.downcase == ref.downcase || key.downcase.strip == ref.downcase.strip
+          return id
+        end
+      end
+
+      title_to_id.each do |title, id|
+        if title.downcase == ref.downcase
+          return id
+        end
+      end
+
+      nil
+    end
+
+    # Resolve a single step reference
+    def resolve_step_reference(path, step_title_map, normalized_steps)
+      # Direct match
+      return step_title_map[path] if step_title_map.key?(path)
+      return step_title_map[path.strip] if step_title_map.key?(path.strip)
+
+      # Extract step number from "Go to Step X" patterns
+      if path.match(/step\s+(\d+)/i)
+        step_num = $1.to_i
+        if step_num > 0 && step_num <= normalized_steps.length
+          return step_title_map["Step #{step_num}"]
+        end
+      end
+
+      # Case-insensitive fallback
+      step_title_map.each do |key, title|
+        if key.downcase == path.downcase || key.downcase.strip == path.downcase.strip
+          return title
+        end
+      end
+
+      nil
+    end
   end
 end
-
