@@ -23,6 +23,9 @@ gem "devise"
 # PDF generation
 gem "prawn"
 
+# Markdown rendering for step content
+gem "redcarpet"
+
 # Rich text editing with Trix
 gem "trix-rails"
 gem "actiontext"

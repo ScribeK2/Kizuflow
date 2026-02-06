@@ -249,6 +249,7 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
+    redcarpet (3.6.1)
     redis (5.4.1)
       redis-client (>= 0.22.0)
     redis-client (0.26.1)
@@ -380,6 +381,7 @@ DEPENDENCIES
   prawn
   puma (>= 5.0)
   rails (~> 8.0.0)
+  redcarpet
   redis (~> 5.0)
   rspec-rails
   selenium-webdriver

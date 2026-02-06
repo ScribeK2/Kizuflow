@@ -87,7 +87,7 @@
           </div>
 
           <% if step['description'].present? %>
-            <p class="text-gray-600 dark:text-gray-300 mb-4"><%= VariableInterpolator.interpolate(step['description'], @simulation.results || {}) %></p>
+            <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @simulation.results || {})) %></div>
           <% end %>
 
           <% case step['type'] %>
@@ -142,7 +142,7 @@
           <% when 'action' %>
             <div class="backdrop-blur-sm bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200/30 dark:border-blue-800/30 rounded-lg p-4 mb-4">
               <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Instructions:</h3>
-              <div class="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-line"><%= VariableInterpolator.interpolate(step['instructions'], @simulation.results || {}) %></div>
+              <div class="text-sm text-blue-800 dark:text-blue-300"><%= render_step_markdown(VariableInterpolator.interpolate(step['instructions'], @simulation.results || {})) %></div>
             </div>
             
             <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
@@ -175,13 +175,13 @@
                 </svg>
                 <div class="flex-1">
                   <h3 class="text-sm font-semibold text-green-900 dark:text-green-200 mb-2">Checkpoint</h3>
-                  <p class="text-sm text-green-800 dark:text-green-300">
+                  <div class="text-sm text-green-800 dark:text-green-300">
                     <% if step['description'].present? %>
-                      <%= step['description'] %>
+                      <%= render_step_markdown(step['description']) %>
                     <% else %>
                       Is the issue resolved? You can mark it as resolved to complete the workflow early, or continue to the next step.
                     <% end %>
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -209,7 +209,7 @@
                 </svg>
                 <div class="flex-1">
                   <% if step['content'].present? %>
-                    <div class="text-sm text-cyan-800 dark:text-cyan-300 whitespace-pre-line"><%= VariableInterpolator.interpolate(step['content'], @simulation.results || {}) %></div>
+                    <div class="text-sm text-cyan-800 dark:text-cyan-300"><%= render_step_markdown(VariableInterpolator.interpolate(step['content'], @simulation.results || {})) %></div>
                   <% else %>
                     <p class="text-sm text-cyan-800 dark:text-cyan-300 italic">No message content provided.</p>
                   <% end %>
@@ -248,7 +248,7 @@
                     </p>
                   <% end %>
                   <% if step['notes'].present? %>
-                    <div class="text-sm text-orange-700 dark:text-orange-300 mt-2 whitespace-pre-line"><%= VariableInterpolator.interpolate(step['notes'], @simulation.results || {}) %></div>
+                    <div class="text-sm text-orange-700 dark:text-orange-300 mt-2"><%= render_step_markdown(VariableInterpolator.interpolate(step['notes'], @simulation.results || {})) %></div>
                   <% end %>
                 </div>
               </div>

@@ -15,10 +15,10 @@
         
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
+            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
-        
+
         <% if step["question"].present? %>
           <p class="font-medium text-gray-800"><%= VariableInterpolator.interpolate(step["question"], sample_variables) %></p>
         <% end %>
@@ -96,10 +96,10 @@
         
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
+            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
-        
+
         <% if step["action_type"].present? %>
           <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
             <%= step["action_type"].humanize %>
@@ -108,7 +108,7 @@
         
         <% if step["instructions"].present? %>
           <div class="mt-2 p-3 bg-white border rounded-md">
-            <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= VariableInterpolator.interpolate(step["instructions"], sample_variables) %></p>
+            <div class="text-sm text-gray-700"><%= render_step_markdown(VariableInterpolator.interpolate(step["instructions"], sample_variables)) %></div>
           </div>
         <% end %>
         
@@ -146,7 +146,7 @@
 
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
+            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
 
@@ -186,7 +186,7 @@
 
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
+            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
 
@@ -195,7 +195,7 @@
             <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 text-cyan-700 text-xs font-bold flex-shrink-0">i</span>
             <div class="flex-1">
               <% if step["content"].present? %>
-                <p class="text-sm text-cyan-800"><%= VariableInterpolator.interpolate(step["content"], sample_variables) %></p>
+                <div class="text-sm text-cyan-800"><%= render_step_markdown(VariableInterpolator.interpolate(step["content"], sample_variables)) %></div>
               <% else %>
                 <p class="text-sm text-cyan-600 italic">No message content yet</p>
               <% end %>
@@ -216,7 +216,7 @@
 
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
+            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
 
@@ -266,7 +266,7 @@
 
         <% if step["description"].present? %>
           <div class="text-sm text-gray-600">
-            <%= simple_format(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
+            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
           </div>
         <% end %>
 

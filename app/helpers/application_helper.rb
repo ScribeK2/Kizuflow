@@ -25,6 +25,33 @@ module ApplicationHelper
     end
   end
 
+  # Render Markdown content from workflow step fields (instructions, descriptions, etc.)
+  # Sanitizes output to allow only safe HTML tags.
+  def render_step_markdown(text)
+    return "".html_safe if text.blank?
+
+    renderer = Redcarpet::Render::HTML.new(
+      hard_wrap: true,
+      link_attributes: { target: "_blank", rel: "noopener noreferrer" }
+    )
+    markdown = Redcarpet::Markdown.new(renderer,
+      fenced_code_blocks: true,
+      autolink: true,
+      tables: true,
+      strikethrough: true,
+      no_intra_emphasis: true
+    )
+
+    html = markdown.render(text)
+
+    safe_html = sanitize(html,
+      tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del],
+      attributes: %w[href target rel]
+    )
+
+    content_tag(:div, safe_html, class: "step-markdown-content")
+  end
+
   # Render glassmorphism card with block content
   def render_card(title: nil, icon: nil, with_3d: false, css_class: nil, controller: nil, content_class: nil, footer: nil, &block)
     content = capture(&block) if block_given?
