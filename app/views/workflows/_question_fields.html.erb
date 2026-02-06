@@ -31,13 +31,12 @@
     
     <% answer_types.each do |answer_type| %>
       <label class="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50 <%= 'bg-blue-50 border-blue-500' if step['answer_type'] == answer_type[:value] %>">
-        <input type="radio" 
-               name="workflow[steps][][answer_type]" 
+        <input type="radio"
+               name="answer_type_step_<%= step_index %>"
                value="<%= answer_type[:value] %>"
                <%= 'checked' if step['answer_type'] == answer_type[:value] %>
                data-question-form-target="answerType"
                data-action="change->question-form#handleAnswerTypeChange"
-               data-step-form-target="field"
                class="cursor-pointer">
         <span class="text-sm"><%= answer_type[:label] %></span>
       </label>

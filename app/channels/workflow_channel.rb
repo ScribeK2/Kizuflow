@@ -106,7 +106,29 @@ class WorkflowChannel < ApplicationCable::Channel
         
         # Apply updates
         workflow.title = title unless title.blank?
-        workflow.steps = formatted_steps
+
+        # Merge autosaved steps with existing steps to preserve fields
+        # the client may not have extracted (e.g., options, output_fields).
+        # Match steps by ID and overlay submitted fields onto existing data.
+        if workflow.steps.present? && formatted_steps.present?
+          existing_by_id = workflow.steps.each_with_object({}) { |s, h| h[s['id']] = s if s['id'].present? }
+          workflow.steps = formatted_steps.map do |submitted_step|
+            existing = existing_by_id[submitted_step['id']]
+            if existing
+              merged = existing.deep_dup
+              submitted_step.each do |key, value|
+                # Only overwrite if the submitted value is present or if
+                # the key is explicitly being set (not just missing from extraction)
+                merged[key] = value
+              end
+              merged
+            else
+              submitted_step
+            end
+          end
+        else
+          workflow.steps = formatted_steps
+        end
         
         # Save without validation (allow incomplete forms)
         # lock_version is automatically incremented by Rails

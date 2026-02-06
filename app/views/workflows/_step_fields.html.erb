@@ -1,6 +1,6 @@
 <% if step_type == "question" %>
   <%= render partial: "step_template_selector", locals: { step_type: step_type, step: step } %>
-  <%= render partial: "question_fields", locals: { step: step } %>
+  <%= render partial: "question_fields", locals: { step: step, step_index: defined?(step_index) ? step_index : 0 } %>
 <% elsif step_type == "decision" %>
   <%= render partial: "step_template_selector", locals: { step_type: step_type, step: step } %>
   <%= render partial: "decision_fields", locals: { step: step, available_steps: available_steps, step_index: step_index, workflow: defined?(workflow) ? workflow : nil } %>
@@ -26,7 +26,7 @@
   </div>
   <%# Try to infer type from step data and render appropriate fields %>
   <% if step['question'].present? %>
-    <%= render partial: "question_fields", locals: { step: step } %>
+    <%= render partial: "question_fields", locals: { step: step, step_index: defined?(step_index) ? step_index : 0 } %>
   <% elsif step['condition'].present? || step['branches'].present? %>
     <%= render partial: "decision_fields", locals: { step: step, available_steps: available_steps, step_index: defined?(step_index) ? step_index : nil, workflow: defined?(workflow) ? workflow : nil } %>
   <% elsif step['action_type'].present? || step['instructions'].present? %>

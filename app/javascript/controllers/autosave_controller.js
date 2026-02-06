@@ -201,14 +201,22 @@ export default class extends Controller {
             step.attachments = []
           }
         } else if (name.includes("[options]")) {
-          // Handle options array - collect all option inputs
-          if (!step.options) step.options = []
-          const match = name.match(/\[options\]\[(\d+)\]\[(\w+)\]/)
-          if (match) {
-            const index = parseInt(match[1])
-            const field = match[2]
-            if (!step.options[index]) step.options[index] = {}
-            step.options[index][field] = input.value
+          // Handle options array - collect from .option-item containers
+          // Form uses empty-bracket notation ([][]) so we extract by DOM structure
+          if (!step._optionsProcessed) {
+            step._optionsProcessed = true
+            step.options = []
+            const optionItems = container.querySelectorAll('.option-item')
+            optionItems.forEach(optItem => {
+              const labelInput = optItem.querySelector('input[name*="[options]"][name*="[label]"]')
+              const valueInput = optItem.querySelector('input[name*="[options]"][name*="[value]"]')
+              if (labelInput || valueInput) {
+                step.options.push({
+                  label: labelInput?.value || '',
+                  value: valueInput?.value || ''
+                })
+              }
+            })
           }
         } else {
           // Regular field: workflow[steps][][field]
@@ -264,6 +272,9 @@ export default class extends Controller {
         }
       }
       
+      // Clean up internal processing flags
+      delete step._optionsProcessed
+
       // Only add step if it has at least a type
       if (step.type) {
         steps.push(step)

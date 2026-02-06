@@ -79,6 +79,17 @@ export default class extends Controller {
       this.hiddenAnswerTypeTarget.value = answerType
     }
 
+    // Update visual highlight on radio labels
+    this.answerTypeTargets.forEach(radio => {
+      const label = radio.closest('label')
+      if (!label) return
+      if (radio.value === answerType) {
+        label.classList.add('bg-blue-50', 'border-blue-500')
+      } else {
+        label.classList.remove('bg-blue-50', 'border-blue-500')
+      }
+    })
+
     // Show/hide options container based on answer type
     if (this.hasOptionsContainerTarget) {
       if (typesWithOptions.includes(answerType)) {
