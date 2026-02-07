@@ -1,128 +1,261 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <!-- Header Section -->
-  <div class="mb-12 animate-fade-in">
+  <%# ── A. Personalized Header ── %>
+  <div class="mb-8 animate-fade-in">
     <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
       Dashboard
     </h1>
     <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-      Welcome back! Here's an overview of your workflows.
+      Welcome back, <%= current_user.display_label %>!
     </p>
   </div>
 
-  <!-- Stats Cards Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-    <!-- Total Workflows Card -->
-    <%= render_card title: "Total Workflows",
-      icon: '<svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>',
-      with_3d: true do %>
-      <div>
-        <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @workflow_count %></p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Active workflows</p>
+  <%# ── B. Quick Actions Row (editors/admins only) ── %>
+  <% if current_user&.can_create_workflows? %>
+    <div class="flex flex-wrap gap-3 mb-8 animate-fade-in">
+      <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800", aria: { label: "Create a new workflow" } do %>
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Create Workflow
+      <% end %>
+      <%= link_to templates_path, class: "inline-flex items-center px-4 py-2 bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800", aria: { label: "Browse workflow templates" } do %>
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        Browse Templates
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# ── C. Stat Cards Grid ── %>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <%# Card 1: Total Workflows %>
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;" aria-label="Total workflows: <%= @workflow_count %>">
+      <div class="px-6 py-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @workflow_count %></p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Workflows</p>
+          </div>
+          <div class="text-slate-600 dark:text-slate-400 opacity-80">
+            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        </div>
       </div>
-    <% end %>
+    </div>
 
-    <!-- Quick Actions Card -->
-    <% if current_user&.can_create_workflows? %>
-      <%= render_card title: "Quick Actions",
-        icon: '<svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>',
-        with_3d: true do %>
+    <%# Card 2: Published %>
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.15s;" aria-label="Published workflows: <%= @published_count %>">
+      <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Get started</p>
-            <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" do %>
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Create Workflow
+            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @published_count %></p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Published</p>
+            <% if @draft_count > 0 %>
+              <p class="text-xs text-amber-600 dark:text-amber-400 mt-1"><%= @draft_count %> draft<%= @draft_count == 1 ? "" : "s" %></p>
             <% end %>
           </div>
+          <div class="text-emerald-600 dark:text-emerald-400 opacity-80">
+            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
-      <% end %>
-    <% end %>
+      </div>
+    </div>
 
-    <!-- Templates Card -->
-    <% if current_user&.can_create_workflows? %>
-      <%= render_card title: "Browse Templates",
-        icon: '<svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>',
-        with_3d: true do %>
+    <%# Card 3: Simulations Run %>
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;" aria-label="Simulations run: <%= @simulation_total %>">
+      <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Start from a template</p>
-            <%= link_to templates_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" do %>
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              View Templates
+            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @simulation_total %></p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Simulations Run</p>
+            <% if @simulation_active > 0 %>
+              <p class="text-xs text-blue-600 dark:text-blue-400 mt-1"><%= @simulation_active %> active</p>
             <% end %>
           </div>
+          <div class="text-slate-600 dark:text-slate-400 opacity-80">
+            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
-      <% end %>
-    <% end %>
+      </div>
+    </div>
+
+    <%# Card 4: Completion Rate %>
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.25s;" aria-label="Simulation completion rate: <%= @simulation_completion_rate %>%">
+      <div class="px-6 py-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @simulation_completion_rate %>%</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Completion Rate</p>
+            <% if @simulation_total > 0 %>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><%= @simulation_completed %> of <%= @simulation_total %></p>
+            <% end %>
+          </div>
+          <div class="text-emerald-600 dark:text-emerald-400 opacity-80">
+            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Recent Workflows Section -->
-  <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;">
-    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
-      <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Workflows</h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your most recently created workflows</p>
-    </div>
-    <div class="divide-y divide-slate-200 dark:divide-slate-700">
-      <% if @workflows.any? %>
-        <% @workflows.each_with_index do |workflow, index| %>
-          <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center flex-1 min-w-0">
-                <div class="flex-shrink-0 mr-4">
-                  <div class="w-10 h-10 rounded-lg bg-slate-600 dark:bg-slate-500 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  <%# ── D. Section Separator ── %>
+  <div class="border-t border-slate-200 dark:border-slate-700 mb-10"></div>
+
+  <%# ── E. Two-Column Content ── %>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%# Left: Recent Workflows (2/3) %>
+    <div class="lg:col-span-2 solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.3s;">
+      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Workflows</h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your most recently created workflows</p>
+        </div>
+        <%= link_to "View all", workflows_path, class: "text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 transition-colors duration-200", aria: { label: "View all workflows" } %>
+      </div>
+      <div class="divide-y divide-slate-200 dark:divide-slate-700">
+        <% if @workflows.any? %>
+          <% @workflows.each_with_index do |workflow, index| %>
+            <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= 0.35 + (index * 0.05) %>s;">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center flex-1 min-w-0">
+                  <div class="flex-shrink-0 mr-4">
+                    <div class="w-10 h-10 rounded-lg bg-slate-600 dark:bg-slate-500 flex items-center justify-center">
+                      <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <%= link_to workflow.title, workflow_path(workflow), class: "text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-slate-600 dark:hover:text-slate-400 transition-colors duration-200 truncate", aria: { label: "View workflow: #{workflow.title}" } %>
+                      <%= workflow_status_badge(workflow) %>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      Created <%= time_ago_in_words(workflow.created_at) %> ago
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 ml-4">
+                  <%= link_to start_workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 inline-flex items-center", aria: { label: "Start simulation for #{workflow.title}" } do %>
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                  </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-slate-600 dark:hover:text-slate-400 transition-colors duration-200" %>
-                  </div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
-                    Created <%= time_ago_in_words(workflow.created_at) %> ago
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-3 ml-4">
-                <%= link_to start_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 inline-flex items-center" do %>
-                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Start
-                <% end %>
-                <%= link_to workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" do %>
-                  View
-                <% end %>
-                <% if workflow.can_be_edited_by?(current_user) %>
-                  <%= link_to edit_workflow_path(workflow), class: "px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105" do %>
-                    Edit
+                    Start
                   <% end %>
-                <% end %>
+                  <%= link_to workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105", aria: { label: "View workflow: #{workflow.title}" } do %>
+                    View
+                  <% end %>
+                  <% if workflow.can_be_edited_by?(current_user) %>
+                    <%= link_to edit_workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105", aria: { label: "Edit workflow: #{workflow.title}" } do %>
+                      Edit
+                    <% end %>
+                  <% end %>
+                </div>
               </div>
             </div>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="px-6 py-12 text-center">
-          <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows yet</h3>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            <% if current_user&.can_create_workflows? %>
-              <%= link_to "Create your first workflow", new_workflow_path, class: "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 font-medium" %>
+          <% end %>
+        <% else %>
+          <div class="px-6 py-16 text-center">
+            <svg class="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows yet</h3>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <% if current_user&.can_create_workflows? %>
+                Get started by creating your first workflow or browsing templates.
+              </p>
+              <div class="mt-4 flex items-center justify-center gap-3">
+                <%= link_to new_workflow_path, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105", aria: { label: "Create your first workflow" } do %>
+                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Workflow
+                <% end %>
+                <%= link_to templates_path, class: "inline-flex items-center px-4 py-2 bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105", aria: { label: "Browse workflow templates" } do %>
+                  Browse Templates
+                <% end %>
+              </div>
             <% else %>
               Browse public workflows or templates to get started.
+            </p>
             <% end %>
-          </p>
-        </div>
-      <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Right: Recent Activity / Simulations (1/3) %>
+    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.35s;">
+      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Activity</h2>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your latest simulations</p>
+      </div>
+      <div class="divide-y divide-slate-200 dark:divide-slate-700">
+        <% if @recent_simulations.any? %>
+          <% @recent_simulations.each do |simulation| %>
+            <% workflow = simulation.workflow %>
+            <% if workflow %>
+              <%= link_to simulation_path(simulation), class: "block px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200", aria: { label: "View simulation for #{workflow.title}" } do %>
+                <div class="flex items-start gap-3">
+                  <div class="flex-shrink-0 mt-1">
+                    <% case simulation.status %>
+                    <% when "completed" %>
+                      <span class="block w-2.5 h-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <% when "active" %>
+                      <span class="block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse-slow" aria-hidden="true"></span>
+                    <% when "stopped" %>
+                      <span class="block w-2.5 h-2.5 rounded-full bg-gray-400" aria-hidden="true"></span>
+                    <% when "error", "timeout" %>
+                      <span class="block w-2.5 h-2.5 rounded-full bg-red-500" aria-hidden="true"></span>
+                    <% else %>
+                      <span class="block w-2.5 h-2.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+                    <% end %>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"><%= workflow.title %></p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <%= simulation.status.capitalize %> &middot; <%= time_ago_in_words(simulation.created_at) %> ago
+                    </p>
+                  </div>
+                </div>
+              <% end %>
+            <% else %>
+              <div class="px-6 py-4">
+                <div class="flex items-start gap-3">
+                  <div class="flex-shrink-0 mt-1">
+                    <span class="block w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true"></span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-400 dark:text-gray-500 italic truncate">Deleted workflow</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <%= simulation.status.capitalize %> &middot; <%= time_ago_in_words(simulation.created_at) %> ago
+                    </p>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        <% else %>
+          <div class="px-6 py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Start a workflow to see your activity here</p>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 </div>

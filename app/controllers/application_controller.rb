@@ -4,6 +4,8 @@ class ApplicationController < ActionController::Base
 
   before_action :authenticate_user!
   before_action :set_sentry_context
+
+  layout :resolve_layout
   
   # Devise redirect methods
   def after_sign_in_path_for(resource)
@@ -56,6 +58,14 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def resolve_layout
+    if devise_controller? && !(controller_name == 'registrations' && action_name == 'edit')
+      'devise'
+    else
+      'application'
+    end
+  end
 
   # Set Sentry context for error tracking
   # This helps identify which user experienced an error and provides useful debugging context

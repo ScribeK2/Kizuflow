@@ -33,7 +33,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_response :success
-    assert_select "h3", text: /Workflow/
+    assert_select "h2", text: /Recent Workflows/
   end
 
   test "should require authentication" do
@@ -41,5 +41,62 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
     assert_redirected_to new_user_session_path
   end
-end
 
+  test "should show personalized greeting with display name" do
+    @user.update!(display_name: "Alice")
+
+    get root_path
+    assert_response :success
+    assert_select "p", text: /Welcome back, Alice!/
+  end
+
+  test "should show personalized greeting with email when no display name" do
+    get root_path
+    assert_response :success
+    assert_select "p", text: /Welcome back, test@example.com!/
+  end
+
+  test "should show simulation stats" do
+    workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    Simulation.create!(workflow: workflow, user: @user, status: "completed")
+    Simulation.create!(workflow: workflow, user: @user, status: "active")
+
+    get root_path
+    assert_response :success
+    # Check that simulation stat cards are present with correct ARIA labels
+    assert_select "[aria-label=?]", "Simulations run: 2"
+    assert_select "[aria-label=?]", "Simulation completion rate: 50%"
+  end
+
+  test "should show draft count for editors" do
+    @user.update!(role: "editor")
+    Workflow.create!(title: "Published WF", user: @user, status: "published")
+    Workflow.create!(title: "Draft WF", user: @user, status: "draft")
+
+    get root_path
+    assert_response :success
+    # Draft sub-line should be visible
+    assert_select "p", text: /1 draft/
+  end
+
+  test "should not show draft count for regular users" do
+    get root_path
+    assert_response :success
+    assert_select "p", text: /draft/, count: 0
+  end
+
+  test "should show quick actions for editors" do
+    @user.update!(role: "editor")
+
+    get root_path
+    assert_response :success
+    assert_select "a[aria-label='Create a new workflow']"
+    assert_select "a[aria-label='Browse workflow templates']"
+  end
+
+  test "should not show quick actions for regular users" do
+    get root_path
+    assert_response :success
+    assert_select "a[aria-label='Create a new workflow']", count: 0
+  end
+end

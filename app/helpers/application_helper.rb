@@ -73,6 +73,19 @@ module ApplicationHelper
     build_tree_nodes(roots, groups)
   end
 
+  # Render a pill badge indicating workflow draft/published status
+  def workflow_status_badge(workflow)
+    if workflow.draft?
+      content_tag(:span, "Draft",
+        class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+        aria: { label: "Draft workflow" })
+    else
+      content_tag(:span, "Published",
+        class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        aria: { label: "Published workflow" })
+    end
+  end
+
   private
 
   def build_tree_nodes(parents, all_groups)
