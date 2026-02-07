@@ -1,6 +1,6 @@
 # Kizuflow
 
-<img width="1560" height="1117" alt="Kizuflow Dashboard" src="https://github.com/user-attachments/assets/6be51bf9-8719-4ba0-9207-12e9a2c0f7f7" />
+<img width="1535" height="1282" alt="image" src="https://github.com/user-attachments/assets/3b67a44b-b412-438a-9938-48b1d3f1d085" />
 
 A workflow builder for call/chat centers to create, simulate, and manage training and troubleshooting flows. Built as a Ruby on Rails monolith using Hotwire for interactivity.
 
