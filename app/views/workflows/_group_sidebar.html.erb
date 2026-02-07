@@ -22,7 +22,7 @@
         <!-- All Workflows Option -->
         <li>
           <%= link_to workflows_path(search: params[:search]),
-                      class: "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors #{'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200' if @selected_group.nil?} #{'text-gray-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700' if @selected_group.present?}" do %>
+                      class: "flex items-center pl-2 pr-3 py-2 rounded-lg text-sm font-medium transition-colors border-l-4 #{'border-slate-600 dark:border-slate-400 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200' if @selected_group.nil?} #{'border-transparent text-gray-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700' if @selected_group.present?}" do %>
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>

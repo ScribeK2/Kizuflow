@@ -7,15 +7,14 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center flex-1 min-w-0">
           <div class="flex-shrink-0 mr-4">
-            <div class="w-10 h-10 rounded-lg bg-slate-600 dark:bg-slate-500 flex items-center justify-center">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+            <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex flex-wrap items-center justify-center gap-0.5 p-1">
+              <%= step_type_composition_dots(workflow) || content_tag(:svg, content_tag(:path, nil, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'), class: 'h-6 w-6 text-slate-400 dark:text-slate-500', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor') %>
             </div>
           </div>
           <div class="ml-4 flex-1 min-w-0">
             <div class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
               <%= link_to workflow.title, workflow_path(workflow), class: "hover:text-slate-600 dark:hover:text-slate-400 transition-colors duration-200" %>
+              <%= workflow_status_badge(workflow) %>
               <% if workflow.is_public? %>
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300" title="Public workflow">
                   Public
@@ -30,11 +29,11 @@
                 </span>
               <% end %>
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">
-              <%= truncate(workflow.description_text.presence || "No description", length: 100) %>
+            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1 line-clamp-2">
+              <%= workflow.description_text.presence || "No description" %>
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              <%= pluralize(workflow.steps&.length || 0, "step") %> - Created <%= time_ago_in_words(workflow.created_at) %> ago
+              <%= pluralize(workflow.steps&.length || 0, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago
             </div>
           </div>
         </div>

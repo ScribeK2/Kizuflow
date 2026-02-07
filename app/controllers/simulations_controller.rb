@@ -51,8 +51,61 @@ class SimulationsController < ApplicationController
       return
     end
     
+    # Handle going back to the previous interactive step
+    if params[:back].present?
+      if @simulation.execution_path.present? && @simulation.execution_path.length > 0
+        # Pop entries from the end, skipping decision/simple_decision types
+        # (auto-advancing steps users never interact with), until we find an interactive step
+        popped_step = nil
+        while @simulation.execution_path.length > 0
+          candidate = @simulation.execution_path.pop
+          if %w[decision simple_decision].include?(candidate['step_type'])
+            next
+          else
+            popped_step = candidate
+            break
+          end
+        end
+
+        if popped_step
+          # Rebuild results and inputs from the remaining execution_path
+          @simulation.results = {}
+          @simulation.inputs = {}
+          @simulation.execution_path.each do |path_entry|
+            if path_entry['answer'].present?
+              if @simulation.graph_mode? && path_entry['step_uuid'].present?
+                step = @workflow.find_step_by_id(path_entry['step_uuid'])
+              elsif path_entry['step_index'].present?
+                idx = path_entry['step_index'].to_i
+                step = @workflow.steps[idx] if idx >= 0 && idx < @workflow.steps.length
+              end
+
+              if step && step['type'] == 'question'
+                input_key = step['variable_name'].present? ? step['variable_name'] : (path_entry['step_index'] || 0).to_s
+                @simulation.inputs[input_key] = path_entry['answer']
+                @simulation.inputs[step['title']] = path_entry['answer']
+                @simulation.results[step['title']] = path_entry['answer']
+                @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
+              end
+            end
+          end
+
+          # Set current position to the popped interactive step so the user re-sees it
+          if @simulation.graph_mode? && popped_step['step_uuid'].present?
+            @simulation.current_node_uuid = popped_step['step_uuid']
+          elsif popped_step['step_index'].present?
+            @simulation.current_step_index = popped_step['step_index'].to_i
+          end
+
+          # Reset status to active if it was completed (edge case: back from final step)
+          @simulation.status = 'active' if @simulation.status == 'completed'
+
+          @simulation.save
+        end
+      end
+
     # Handle jumping to a specific step in execution path
-    if params[:step].present?
+    elsif params[:step].present?
       step_index = params[:step].to_i
       if step_index >= 0 && step_index < @simulation.execution_path.length
         # Find the step_index from the execution path
@@ -60,10 +113,10 @@ class SimulationsController < ApplicationController
         if path_item && path_item['step_index'].present?
           # Restore simulation state to this point
           target_step_index = path_item['step_index']
-          
+
           # Truncate execution_path to this point
           @simulation.execution_path = @simulation.execution_path[0..step_index]
-          
+
           # Rebuild results and inputs from execution path up to this point
           @simulation.results = {}
           @simulation.inputs = {}
@@ -83,7 +136,7 @@ class SimulationsController < ApplicationController
               end
             end
           end
-          
+
           # Set current_step_index to the next step after the selected one
           # Validate that target_step_index + 1 doesn't exceed workflow length
           next_step_index = target_step_index.to_i + 1
@@ -93,7 +146,7 @@ class SimulationsController < ApplicationController
           else
             @simulation.current_step_index = next_step_index
           end
-          
+
           @simulation.save
         end
       end

@@ -254,5 +254,57 @@ module WorkflowsHelper
     else "Step #{step_number}"
     end
   end
+
+  # ============================================================================
+  # Step Type Composition Dots
+  # ============================================================================
+
+  # Renders small colored dots representing the composition of step types in a workflow.
+  # Groups steps by type and shows up to 4 dots per type. Returns nil if no steps.
+  def step_type_composition_dots(workflow)
+    steps = workflow.steps
+    return nil if steps.blank?
+
+    dot_colors = {
+      'question'   => 'bg-blue-500',
+      'decision'   => 'bg-purple-500',
+      'action'     => 'bg-emerald-500',
+      'checkpoint' => 'bg-amber-500',
+      'message'    => 'bg-cyan-500',
+      'escalate'   => 'bg-red-500',
+      'resolve'    => 'bg-green-500',
+      'sub_flow'   => 'bg-indigo-500'
+    }
+
+    dot_labels = {
+      'question'   => 'Question',
+      'decision'   => 'Decision',
+      'action'     => 'Action',
+      'checkpoint' => 'Checkpoint',
+      'message'    => 'Message',
+      'escalate'   => 'Escalate',
+      'resolve'    => 'Resolve',
+      'sub_flow'   => 'Sub-flow'
+    }
+
+    # Group steps by type and count them
+    type_counts = steps.each_with_object(Hash.new(0)) do |step, counts|
+      step_type = step['type']
+      counts[step_type] += 1 if step_type.present?
+    end
+
+    return nil if type_counts.empty?
+
+    dots = type_counts.flat_map do |type, count|
+      color = dot_colors[type] || 'bg-slate-400'
+      label = dot_labels[type] || type&.titleize || 'Step'
+      visible_count = [count, 4].min
+      visible_count.times.map do
+        content_tag(:span, '', class: "inline-block w-2 h-2 rounded-full #{color}", title: "#{label} (#{count})")
+      end
+    end
+
+    safe_join(dots)
+  end
 end
 

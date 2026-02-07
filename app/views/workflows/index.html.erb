@@ -75,9 +75,49 @@
                 Clear
               <% end %>
             <% end %>
-            <%= form.submit "Search", class: "px-4 py-2 text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" %>
           </div>
         <% end %>
+      </div>
+
+      <!-- Status Filter Tabs + Sort Controls -->
+      <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fade-in-up">
+        <%# Status filter segmented control %>
+        <div class="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+          <%
+            filter_tabs = [
+              { key: 'all', label: 'All' },
+              { key: 'published', label: 'Published' }
+            ]
+            filter_tabs << { key: 'draft', label: 'Drafts' } if current_user&.can_create_workflows?
+          %>
+          <% filter_tabs.each do |tab| %>
+            <% active = @status_filter == tab[:key] %>
+            <%= link_to workflows_path(status: tab[:key], search: params[:search], group_id: params[:group_id], sort: params[:sort]),
+                        class: "px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 #{active ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}",
+                        data: { turbo_action: "replace" } do %>
+              <%= tab[:label] %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <%# Sort dropdown %>
+        <%
+          sort_options = [
+            { key: 'recent', label: 'Recently Updated' },
+            { key: 'alphabetical', label: 'Alphabetical' },
+            { key: 'most_steps', label: 'Most Steps' }
+          ]
+        %>
+        <select data-controller="sort-select"
+                data-action="change->sort-select#navigate"
+                class="text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 transition-colors cursor-pointer">
+          <% sort_options.each do |opt| %>
+            <option value="<%= workflows_path(sort: opt[:key], status: params[:status], search: params[:search], group_id: params[:group_id]) %>"
+                    <%= 'selected' if @sort_by == opt[:key] %>>
+              <%= opt[:label] %>
+            </option>
+          <% end %>
+        </select>
       </div>
 
       <!-- Workflows List -->

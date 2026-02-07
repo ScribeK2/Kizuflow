@@ -8,11 +8,38 @@ class WorkflowsController < ApplicationController
   before_action :parse_transitions_json, only: [:create, :update, :update_step2]
 
   def index
+    @status_filter = params[:status].presence || 'all'
+    @sort_by = params[:sort].presence || 'recent'
+
+    # Build base scope based on status filter
+    case @status_filter
+    when 'draft'
+      # Only show the current user's own drafts (drafts are never shared)
+      @workflows = current_user.workflows.drafts
+    when 'published'
+      # Published workflows visible to the current user
+      @workflows = Workflow.visible_to(current_user)
+    else
+      # "all" — published visible + own drafts
+      published_ids = Workflow.visible_to(current_user).select(:id)
+      own_draft_ids = current_user.workflows.drafts.select(:id)
+      @workflows = Workflow.where(id: published_ids).or(Workflow.where(id: own_draft_ids))
+    end
+
     # Eager load associations to prevent N+1 queries (especially important for caching)
-    @workflows = Workflow.visible_to(current_user)
-                         .includes(:user, :rich_text_description)
-                         .search_by(params[:search])
-                         .recent
+    @workflows = @workflows.includes(:user, :rich_text_description)
+                           .search_by(params[:search])
+
+    # Apply sort order
+    case @sort_by
+    when 'alphabetical'
+      @workflows = @workflows.order(Arel.sql('LOWER(title) ASC'))
+    when 'most_steps'
+      @workflows = @workflows.order(Arel.sql("COALESCE(json_array_length(steps), 0) DESC"))
+    else
+      # 'recent' — order by updated_at
+      @workflows = @workflows.order(updated_at: :desc)
+    end
 
     # Filter by group if selected
     if params[:group_id].present?

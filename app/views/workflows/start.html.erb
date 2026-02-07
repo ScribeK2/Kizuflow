@@ -1,4 +1,4 @@
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 sm:pb-8">
   <!-- Header Section -->
   <div class="mb-8 animate-fade-in text-center">
     <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-4">
@@ -34,44 +34,65 @@
           </div>
         <% end %>
       </div>
+      <% dots = step_type_composition_dots(@workflow) %>
+      <% if dots %>
+        <div class="flex items-center justify-center gap-1 mt-3">
+          <%= dots %>
+        </div>
+      <% end %>
     </div>
   </div>
 
   <!-- Start Button -->
-  <div class="text-center animate-fade-in-up" style="animation-delay: 0.2s;">
-    <%= form_with url: begin_execution_workflow_path(@workflow), method: :post, local: true, class: "inline-block" do |form| %>
-      <%= form.submit "Start Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-12 py-5 rounded-full text-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center justify-center min-w-[200px]" %>
+  <div class="text-center animate-fade-in-up sm:relative sm:bg-transparent fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 sm:border-0 p-4 sm:p-0 z-10" style="animation-delay: 0.2s;">
+    <%= form_with url: begin_execution_workflow_path(@workflow), method: :post, local: true,
+        class: "inline-block",
+        data: { controller: "form-submit", action: "submit->form-submit#submit" } do |form| %>
+      <%= form.submit "Start Workflow",
+          data: { form_submit_target: "submit" },
+          aria: { label: "Start workflow: #{@workflow.title}" },
+          class: "bg-emerald-500 hover:bg-emerald-600 text-white px-12 py-5 rounded-full text-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center justify-center min-w-[200px]" %>
     <% end %>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-3">
+      Begin step-by-step guided execution
+    </p>
   </div>
 
-  <!-- Optional: Workflow Preview (Collapsible) -->
+  <!-- Workflow Steps Preview -->
   <% if @workflow.steps.present? && @workflow.steps.any? %>
     <div class="mt-8 animate-fade-in-up" style="animation-delay: 0.3s;">
-      <details class="solid-card overflow-hidden">
-        <summary class="px-6 py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
-          <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">Preview Workflow Steps</span>
-        </summary>
+      <div class="solid-card overflow-hidden">
+        <div class="px-6 py-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Workflow Steps (<%= @workflow.steps.length %> total)
+          </h3>
+        </div>
         <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
-          <div class="space-y-3">
-            <% @workflow.steps.each_with_index do |step, index| %>
-              <div class="flex items-start space-x-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 dark:bg-slate-500 text-white text-sm font-semibold flex-shrink-0">
-                  <%= index + 1 %>
-                </span>
-                <div class="flex-1 min-w-0">
-                  <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100"><%= step['title'] %></h4>
-                  <% if step['description'].present? %>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1"><%= step['description'] %></p>
-                  <% end %>
-                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300 mt-2">
-                    <%= step['type'] %>
+          <div class="border-l-2 border-slate-200 dark:border-slate-700 ml-4" role="list">
+            <div class="space-y-3 pl-4">
+              <% @workflow.steps.each_with_index do |step, index| %>
+                <div class="flex items-start space-x-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50" role="listitem">
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 dark:bg-slate-500 text-white text-sm font-semibold flex-shrink-0">
+                    <%= index + 1 %>
                   </span>
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+                      <%= step_type_icon(step['type']) %> <%= step['title'] %>
+                    </h4>
+                    <% snippet = step['question'] || step['content'] || step['instructions'] || step['description'] %>
+                    <% if snippet.present? %>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2"><%= truncate(snippet, length: 120) %></p>
+                    <% end %>
+                    <span class="<%= step_type_badge_classes(step['type']) %> mt-2">
+                      <%= step_type_label(step['type']) %>
+                    </span>
+                  </div>
                 </div>
-              </div>
-            <% end %>
+              <% end %>
+            </div>
           </div>
         </div>
-      </details>
+      </div>
     </div>
   <% end %>
 
