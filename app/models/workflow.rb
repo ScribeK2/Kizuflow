@@ -421,15 +421,18 @@ class Workflow < ApplicationRecord
     changed
   end
 
-  # Get an emoji icon for a step type
+  # Get a plain text symbol for a step type (safe for <option> tags)
   def step_type_icon(type)
     case type
-    when 'question' then '❓'
-    when 'decision' then '🔀'
-    when 'action' then '⚡'
-    when 'checkpoint' then '📍'
-    when 'sub_flow' then '🔗'
-    else '📝'
+    when 'question' then '?'
+    when 'decision' then '/'
+    when 'action' then '!'
+    when 'checkpoint' then 'v'
+    when 'sub_flow' then '~'
+    when 'message' then 'm'
+    when 'escalate' then '^'
+    when 'resolve' then 'r'
+    else '#'
     end
   end
 
@@ -857,13 +860,13 @@ class Workflow < ApplicationRecord
       when 'escalate'
         # Validate escalation target type if present
         if step['target_type'].present?
-          unless %w[team queue supervisor channel].include?(step['target_type'])
+          unless %w[team queue supervisor channel department ticket].include?(step['target_type'])
             errors.add(:steps, "Step #{step_num}: Invalid escalation target type '#{step['target_type']}'")
           end
         end
         # Validate priority if present
         if step['priority'].present?
-          unless %w[low medium normal high urgent].include?(step['priority'])
+          unless %w[low medium normal high urgent critical].include?(step['priority'])
             errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
           end
         end
@@ -871,7 +874,7 @@ class Workflow < ApplicationRecord
       when 'resolve'
         # Validate resolution type if present
         if step['resolution_type'].present?
-          unless %w[success failure cancelled escalated transferred other].include?(step['resolution_type'])
+          unless %w[success failure cancelled escalated transferred other transfer ticket manager_escalation].include?(step['resolution_type'])
             errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
           end
         end

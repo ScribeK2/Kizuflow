@@ -34,7 +34,7 @@
     <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
-          <span class="text-2xl">✨</span>
+          <%= ui_svg_icon('sparkles', css_classes: "w-6 h-6 text-amber-400") %>
           <div>
             <h4 class="font-semibold text-gray-900 dark:text-gray-100">Smart Branch Suggestions</h4>
             <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">We found question steps that can be used for branching</p>
@@ -307,7 +307,7 @@
           If no conditions match, the "Else" path is used (if set).
         </p>
         <p class="mt-1 text-blue-600 dark:text-blue-400">
-          💡 Variables come from Question steps with a variable name set.
+          <%= ui_svg_icon('lightbulb', css_classes: "w-4 h-4 inline-block align-text-bottom") %> Variables come from Question steps with a variable name set.
         </p>
       </div>
     </div>

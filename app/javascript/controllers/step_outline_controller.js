@@ -1,8 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
+import { renderStepIcon, renderIcon, UI_ICON_PATHS } from "../services/icon_service"
 
 /**
  * Step Outline Controller
- * 
+ *
  * Sprint 3: Navigation & Visual Improvements
  * Provides a sidebar navigation outline for long workflows.
  * Shows all steps with quick navigation and status indicators.
@@ -65,13 +66,13 @@ export default class extends Controller {
                        ${this.getStepNumberClasses(step.type)}">
             ${index + 1}
           </span>
-          <span class="flex-shrink-0 text-base" title="${step.type}">
-            ${this.getStepIcon(step.type)}
+          <span class="flex-shrink-0" title="${step.type}">
+            ${renderStepIcon(step.type, "w-4 h-4")}
           </span>
           <span class="flex-1 text-sm truncate text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
             ${this.escapeHtml(step.title || `Untitled ${step.type || 'step'}`)}
           </span>
-          ${step.hasWarning ? '<span class="flex-shrink-0 text-amber-500" title="Incomplete">⚠️</span>' : ''}
+          ${step.hasWarning ? `<span class="flex-shrink-0 text-amber-500" title="Incomplete">${renderIcon(UI_ICON_PATHS.warning, "w-4 h-4")}</span>` : ''}
         </div>
       </button>
     `).join("")
@@ -242,19 +243,6 @@ export default class extends Controller {
       checkpoint: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
     }
     return classes[type] || "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-  }
-
-  /**
-   * Get emoji icon for step type
-   */
-  getStepIcon(type) {
-    const icons = {
-      question: "❓",
-      decision: "🔀",
-      action: "⚡",
-      checkpoint: "📍"
-    }
-    return icons[type] || "📝"
   }
 
   /**

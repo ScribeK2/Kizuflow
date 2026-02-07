@@ -20,88 +20,33 @@
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
       Resolution Type
     </label>
-    <div class="flex flex-wrap gap-2 mb-2">
+    <div class="flex flex-wrap gap-2 mb-2"
+         data-controller="selection-group"
+         data-selection-group-active-class="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
+         data-selection-group-inactive-class="bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700">
       <% [
-        { value: 'success', label: 'Success', icon: 'check', color: 'green' },
-        { value: 'failure', label: 'Failure', icon: 'x', color: 'red' },
-        { value: 'cancelled', label: 'Cancelled', icon: 'ban', color: 'gray' },
-        { value: 'transferred', label: 'Transferred', icon: 'arrow-right', color: 'blue' },
-        { value: 'other', label: 'Other', icon: 'dots', color: 'purple' }
+        { value: 'success', label: 'Success' },
+        { value: 'transfer', label: 'Transfer' },
+        { value: 'ticket', label: 'Ticket' },
+        { value: 'manager_escalation', label: 'Manager Escalation' }
       ].each do |resolution| %>
         <% is_selected = step['resolution_type'] == resolution[:value] || (step['resolution_type'].blank? && resolution[:value] == 'success') %>
         <button type="button"
+                data-selection-group-target="button"
+                data-action="click->selection-group#select"
+                data-selection-group-value-param="<%= resolution[:value] %>"
                 class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
                        <%= is_selected ?
                            'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700' :
-                           'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700' %>"
-                onclick="this.closest('.field-container').querySelector('input[name*=resolution_type]').value = '<%= resolution[:value] %>';
-                         this.closest('.flex').querySelectorAll('button').forEach(b => {
-                           b.classList.remove('bg-green-100', 'text-green-700', 'border-green-300', 'dark:bg-green-900/30', 'dark:text-green-300', 'dark:border-green-700');
-                           b.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
-                         });
-                         this.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
-                         this.classList.add('bg-green-100', 'text-green-700', 'border-green-300', 'dark:bg-green-900/30', 'dark:text-green-300', 'dark:border-green-700');">
+                           'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700' %>">
           <%= resolution[:label] %>
         </button>
       <% end %>
-    </div>
-    <input type="hidden"
-           name="workflow[steps][][resolution_type]"
-           value="<%= step['resolution_type'] || 'success' %>"
-           data-step-form-target="field">
-  </div>
-
-  <%# Resolution Code %>
-  <div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-      Resolution Code
-      <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
-    </label>
-    <input type="text"
-           name="workflow[steps][][resolution_code]"
-           value="<%= step['resolution_code'] %>"
-           placeholder="e.g., RES-001, BILLING-RESOLVED, TECH-FIXED"
-           class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-           data-step-form-target="field">
-    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-      CRM or tracking system code for this resolution type.
-    </p>
-  </div>
-
-  <%# Options Row %>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-    <%# Notes Required Checkbox %>
-    <div>
-      <label class="flex items-center cursor-pointer">
-        <input type="hidden" name="workflow[steps][][notes_required]" value="false">
-        <input type="checkbox"
-               name="workflow[steps][][notes_required]"
-               value="true"
-               <%= 'checked' if step['notes_required'] == true || step['notes_required'] == 'true' %>
-               class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-               data-step-form-target="field">
-        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Require resolution notes</span>
-      </label>
-      <p class="mt-1 ml-6 text-xs text-gray-500 dark:text-gray-400">
-        CSR must provide notes when resolving.
-      </p>
-    </div>
-
-    <%# Survey Trigger Checkbox %>
-    <div>
-      <label class="flex items-center cursor-pointer">
-        <input type="hidden" name="workflow[steps][][survey_trigger]" value="false">
-        <input type="checkbox"
-               name="workflow[steps][][survey_trigger]"
-               value="true"
-               <%= 'checked' if step['survey_trigger'] == true || step['survey_trigger'] == 'true' %>
-               class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-               data-step-form-target="field">
-        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Trigger satisfaction survey</span>
-      </label>
-      <p class="mt-1 ml-6 text-xs text-gray-500 dark:text-gray-400">
-        Send customer satisfaction survey after resolution.
-      </p>
+      <input type="hidden"
+             name="workflow[steps][][resolution_type]"
+             value="<%= step['resolution_type'] || 'success' %>"
+             data-selection-group-target="input"
+             data-step-form-target="field">
     </div>
   </div>
 </div>

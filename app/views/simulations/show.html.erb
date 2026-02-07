@@ -128,10 +128,10 @@
                       <dd class="text-orange-800 dark:text-orange-200"><%= escalation['type']&.titleize %><%= " - #{escalation['value']}" if escalation['value'].present? %></dd>
                     </div>
                   <% end %>
-                  <% if escalation['priority'].present? && escalation['priority'] != 'normal' %>
+                  <% if escalation['priority'].present? && !%w[normal medium].include?(escalation['priority']) %>
                     <div class="flex">
                       <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Priority:</dt>
-                      <dd class="<%= escalation['priority'] == 'urgent' ? 'text-red-600 dark:text-red-400 font-semibold' : escalation['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-orange-800 dark:text-orange-200' %>"><%= escalation['priority']&.titleize %></dd>
+                      <dd class="<%= %w[urgent critical].include?(escalation['priority']) ? 'text-red-600 dark:text-red-400 font-semibold' : escalation['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-orange-800 dark:text-orange-200' %>"><%= escalation['priority']&.titleize %></dd>
                     </div>
                   <% end %>
                   <% if escalation['notes'].present? %>
@@ -160,13 +160,7 @@
                   <% if resolution['type'].present? %>
                     <div class="flex">
                       <dt class="font-medium text-emerald-700 dark:text-emerald-300 w-24">Type:</dt>
-                      <dd class="<%= resolution['type'] == 'success' ? 'text-green-600 dark:text-green-400' : resolution['type'] == 'failure' ? 'text-red-600 dark:text-red-400' : 'text-emerald-800 dark:text-emerald-200' %>"><%= resolution['type']&.titleize %></dd>
-                    </div>
-                  <% end %>
-                  <% if resolution['code'].present? %>
-                    <div class="flex">
-                      <dt class="font-medium text-emerald-700 dark:text-emerald-300 w-24">Code:</dt>
-                      <dd class="text-emerald-800 dark:text-emerald-200 font-mono"><%= resolution['code'] %></dd>
+                      <dd class="<%= resolution['type'] == 'success' ? 'text-green-600 dark:text-green-400' : resolution['type'] == 'failure' ? 'text-red-600 dark:text-red-400' : %w[transfer ticket].include?(resolution['type']) ? 'text-blue-600 dark:text-blue-400' : resolution['type'] == 'manager_escalation' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-800 dark:text-emerald-200' %>"><%= resolution['type']&.titleize %></dd>
                     </div>
                   <% end %>
                 </dl>

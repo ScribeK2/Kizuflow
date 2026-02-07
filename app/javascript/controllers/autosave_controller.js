@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { subscribeToWorkflow } from "../channels/workflow_channel"
+import { renderIcon, UI_ICON_PATHS } from "../services/icon_service"
 
 export default class extends Controller {
   static targets = ["status", "lockVersion", "conflictModal"]
@@ -350,7 +351,7 @@ export default class extends Controller {
     
     // Update status to show conflict
     const conflictUser = data.conflict_user ? data.conflict_user.name : "another user"
-    this.updateStatus("conflict", `⚠️ Conflict: Modified by ${conflictUser}`)
+    this.updateConflictStatus(`Conflict: Modified by ${conflictUser}`)
     
     // Show conflict modal or alert
     this.showConflictNotification(data)
@@ -430,7 +431,7 @@ export default class extends Controller {
 
     // Update status classes
     this.statusTarget.className = "text-sm font-medium "
-    
+
     switch(status) {
       case "saving":
         this.statusTarget.className += "text-yellow-600"
@@ -441,9 +442,25 @@ export default class extends Controller {
       case "error":
         this.statusTarget.className += "text-red-600"
         break
+      case "conflict":
+        this.statusTarget.className += "text-red-600"
+        break
       default:
         this.statusTarget.className += "text-gray-600"
     }
+  }
+
+  updateConflictStatus(message) {
+    if (!this.hasStatusTarget) return
+
+    this.statusTarget.className = "text-sm font-medium text-red-600 inline-flex items-center gap-1"
+    this.statusTarget.innerHTML = `${renderIcon(UI_ICON_PATHS.warning, "w-4 h-4")} ${this.escapeHtml(message)}`
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement("div")
+    div.textContent = text
+    return div.innerHTML
   }
 
   debounce(func, delay) {

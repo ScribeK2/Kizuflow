@@ -72,7 +72,7 @@
             <li>All imports use Graph Mode with explicit step transitions</li>
             <li>Each step requires a unique ID and defines its outgoing transitions</li>
             <li>Supported step types: <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">question</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">action</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">message</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">escalate</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code></li>
-            <li>Use <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code> steps to end workflows (success, failure, transferred, etc.)</li>
+            <li>Use <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code> steps to end workflows (success, transfer, ticket, manager_escalation)</li>
           </ul>
         </div>
 
@@ -141,8 +141,8 @@
     {
       "id": "step-3",
       "type": "escalate",
-      "title": "Route to Billing Team",
-      "target_type": "team",
+      "title": "Route to Billing Department",
+      "target_type": "department",
       "priority": "high",
       "reason": "Customer has a billing inquiry",
       "transitions": [
@@ -188,7 +188,7 @@
           <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-xs overflow-x-auto"><code>workflow_title,id,type,title,question,answer_type,variable_name,options,instructions,content,target_type,priority,reason,resolution_type,resolution_notes,transitions
 Customer Support,step-1,question,Get Name,What is your name?,text,customer_name,,,,,,,,,step-2
 ,step-2,question,Issue Type,What type of issue?,multiple_choice,issue_type,"Billing:billing,Technical:technical,Other:other",,,,,,,,step-3:issue_type == 'billing';step-4:issue_type == 'technical';step-5
-,step-3,escalate,Route to Billing,,,,,,,team,high,Billing inquiry,,,step-6
+,step-3,escalate,Route to Billing,,,,,,,department,high,Billing inquiry,,,step-6
 ,step-4,action,Troubleshooting,,,,,"Follow troubleshooting steps",,,,,,,step-6
 ,step-5,message,General Help,,,,,,"A representative will assist you shortly",,,,,,step-6
 ,step-6,resolve,Complete,,,,,,,,,,success,Issue resolved,</code></pre>
@@ -239,7 +239,7 @@ steps:
   - id: "step-3"
     type: escalate
     title: "Route to Billing"
-    target_type: team
+    target_type: department
     priority: high
     reason: "Customer billing inquiry"
     transitions:
@@ -292,9 +292,9 @@ Variable: issue_type
 Options: Billing:billing, Technical:technical, Other:other
 Transitions: Step 3 (if issue_type == 'billing'), Step 4 (if issue_type == 'technical'), Step 5
 
-## Step 3: Route to Billing Team
+## Step 3: Route to Billing Department
 Type: escalate
-Target Type: team
+Target Type: department
 Priority: high
 Reason: Customer has billing inquiry
 Transitions: Step 6
@@ -372,8 +372,7 @@ Resolution Notes: Customer inquiry handled</code></pre>
           <h4 class="font-medium text-slate-800 dark:text-slate-200">action</h4>
           <p class="text-slate-600 dark:text-slate-400 text-xs">Display instructions for the agent to follow.</p>
           <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
-            Required: <code>instructions</code><br>
-            Optional: <code>action_type</code>
+            Required: <code>instructions</code>
           </p>
         </div>
         <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
@@ -385,17 +384,17 @@ Resolution Notes: Customer inquiry handled</code></pre>
         </div>
         <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
           <h4 class="font-medium text-slate-800 dark:text-slate-200">escalate</h4>
-          <p class="text-slate-600 dark:text-slate-400 text-xs">Escalate to a team, queue, supervisor, or channel.</p>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">Escalate to a department, supervisor, channel, or ticket.</p>
           <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
-            Required: <code>target_type</code> (team, queue, supervisor, channel)<br>
-            Optional: <code>target_id</code>, <code>priority</code> (low, medium, normal, high, urgent), <code>reason</code>
+            Required: <code>target_type</code> (department, supervisor, channel, ticket)<br>
+            Optional: <code>target_id</code>, <code>priority</code> (low, medium, high, critical), <code>reason</code>
           </p>
         </div>
         <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 md:col-span-2">
           <h4 class="font-medium text-slate-800 dark:text-slate-200">resolve</h4>
           <p class="text-slate-600 dark:text-slate-400 text-xs">End the workflow with a resolution status. This is a terminal step with no outgoing transitions.</p>
           <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
-            Required: <code>resolution_type</code> (success, failure, cancelled, escalated, transferred, other)<br>
+            Required: <code>resolution_type</code> (success, transfer, ticket, manager_escalation)<br>
             Optional: <code>resolution_notes</code>
           </p>
         </div>

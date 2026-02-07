@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { BranchTemplateService } from "../services/branch_template_service"
+import { renderIcon, UI_ICON_PATHS, ANSWER_ICON_PATHS } from "../services/icon_service"
 
 export default class extends Controller {
   static targets = ["panel", "templatesContainer", "customizationPanel", "customizationContent", "backdrop"]
@@ -154,15 +155,22 @@ export default class extends Controller {
     })
   }
 
+  resolveTemplateIcon(iconKey) {
+    const allPaths = { ...UI_ICON_PATHS, ...ANSWER_ICON_PATHS }
+    const pathData = allPaths[iconKey]
+    if (pathData) return renderIcon(pathData, "w-5 h-5")
+    return renderIcon(UI_ICON_PATHS.lightbulb, "w-5 h-5")
+  }
+
   renderTemplateCard(template) {
     const branchesCount = template.branches ? template.branches.length : 'N'
     // Don't disable buttons - let the handler check and show alert if needed
     const requiresVariable = template.requiresVariable && !this.variableValue
-    
+
     return `
       <div class="border rounded-lg p-3 bg-white hover:border-purple-300 transition-all ${requiresVariable ? 'opacity-60' : ''}">
         <div class="flex items-start gap-2 mb-2">
-          <span class="text-xl">${template.icon}</span>
+          <span class="text-gray-600">${this.resolveTemplateIcon(template.icon)}</span>
           <div class="flex-1">
             <h5 class="font-semibold text-sm text-gray-900">${this.escapeHtml(template.name)}</h5>
             <p class="text-xs text-gray-600 mt-0.5">${this.escapeHtml(template.description)}</p>

@@ -77,7 +77,7 @@
                   </span>
                   <div class="flex-1 min-w-0">
                     <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      <%= step_type_icon(step['type']) %> <%= step['title'] %>
+                      <span class="inline-flex items-center gap-1"><%= step_type_svg_icon(step['type'], css_classes: "w-4 h-4 inline-block") %> <%= step['title'] %></span>
                     </h4>
                     <% snippet = step['question'] || step['content'] || step['instructions'] || step['description'] %>
                     <% if snippet.present? %>

@@ -86,8 +86,10 @@
             <% end %>
           </div>
 
-          <% if step['description'].present? %>
-            <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @simulation.results || {})) %></div>
+          <% unless step['type'] == 'message' %>
+            <% if step['description'].present? %>
+              <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @simulation.results || {})) %></div>
+            <% end %>
           <% end %>
 
           <% case step['type'] %>
@@ -237,6 +239,10 @@
               </div>
             </div>
 
+            <% if step['description'].present? %>
+              <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @simulation.results || {})) %></div>
+            <% end %>
+
             <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
@@ -264,10 +270,10 @@
                       <%= step['target_type']&.titleize %><%= " - #{step['target_value']}" if step['target_value'].present? %>
                     </p>
                   <% end %>
-                  <% if step['priority'].present? && step['priority'] != 'normal' %>
+                  <% if step['priority'].present? && !%w[normal medium].include?(step['priority']) %>
                     <p class="text-sm text-orange-800 dark:text-orange-300 mb-2">
                       <strong>Priority:</strong>
-                      <span class="<%= step['priority'] == 'urgent' ? 'text-red-600 dark:text-red-400 font-semibold' : step['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : '' %>">
+                      <span class="<%= %w[urgent critical].include?(step['priority']) ? 'text-red-600 dark:text-red-400 font-semibold' : step['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : '' %>">
                         <%= step['priority']&.titleize %>
                       </span>
                     </p>
@@ -303,14 +309,9 @@
                   <% if step['resolution_type'].present? %>
                     <p class="text-sm text-emerald-800 dark:text-emerald-300 mb-2">
                       <strong>Type:</strong>
-                      <span class="<%= step['resolution_type'] == 'success' ? 'text-green-600 dark:text-green-400' : step['resolution_type'] == 'failure' ? 'text-red-600 dark:text-red-400' : '' %>">
+                      <span class="<%= step['resolution_type'] == 'success' ? 'text-green-600 dark:text-green-400' : step['resolution_type'] == 'failure' ? 'text-red-600 dark:text-red-400' : %w[transfer ticket].include?(step['resolution_type']) ? 'text-blue-600 dark:text-blue-400' : step['resolution_type'] == 'manager_escalation' ? 'text-orange-600 dark:text-orange-400' : '' %>">
                         <%= step['resolution_type']&.titleize %>
                       </span>
-                    </p>
-                  <% end %>
-                  <% if step['resolution_code'].present? %>
-                    <p class="text-sm text-emerald-800 dark:text-emerald-300 mb-2">
-                      <strong>Code:</strong> <%= step['resolution_code'] %>
                     </p>
                   <% end %>
                 </div>

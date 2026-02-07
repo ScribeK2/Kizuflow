@@ -4,44 +4,25 @@
 <div class="field-container"
      data-controller="instruction-template">
 
-  <%# Action Type - Now with common presets %>
-  <div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Action Type</label>
-    <div class="flex flex-wrap gap-2 mb-2">
-      <%# Quick action type buttons %>
-      <% %w[Instruction Notification Email Verification Documentation].each do |action_type| %>
-        <button type="button"
-                class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
-                       <%= step['action_type'] == action_type ? 
-                           'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700' : 
-                           'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700' %>"
-                onclick="this.closest('.field-container').querySelector('input[name*=action_type]').value = '<%= action_type %>'; 
-                         this.closest('.flex').querySelectorAll('button').forEach(b => { 
-                           b.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-300', 'dark:bg-blue-900/30', 'dark:text-blue-300', 'dark:border-blue-700');
-                           b.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
-                         });
-                         this.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
-                         this.classList.add('bg-blue-100', 'text-blue-700', 'border-blue-300', 'dark:bg-blue-900/30', 'dark:text-blue-300', 'dark:border-blue-700');">
-          <%= action_type %>
-        </button>
-      <% end %>
-    </div>
-    <input type="text" 
-           name="workflow[steps][][action_type]" 
-           value="<%= step['action_type'] %>" 
-           placeholder="Or type a custom action type..." 
-           class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-           data-step-form-target="field">
-  </div>
-
   <%# Instructions Field with Templates %>
   <div class="mb-4">
     <div class="flex items-center justify-between mb-2">
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
         Instructions <span class="text-red-500">*</span>
       </label>
-      <%= render 'workflows/instruction_templates' %>
+      <%# Toggle button inline with label %>
+      <button type="button"
+              data-action="click->instruction-template#togglePanel"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+        </svg>
+        Insert Template
+      </button>
     </div>
+
+    <%# Template panel at full column width with z-index above Live Preview %>
+    <%= render 'workflows/instruction_templates' %>
 
     <textarea name="workflow[steps][][instructions]"
               placeholder="Enter step-by-step instructions for the CSR to follow... (type {{ to insert variables)"
@@ -50,76 +31,6 @@
               data-step-form-target="field"
               data-instruction-template-target="instructionsField"
               data-variable-autocomplete-target="input"><%= step['instructions'] %></textarea>
-  </div>
-
-  <%# Output Variables Section %>
-  <div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-      Output Variables
-      <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
-    </label>
-    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-      Define variables that will be set when this action executes. Use <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">{{variable_name}}</code> to reference other variables.
-    </p>
-    
-    <%
-      # Normalize output_fields: parse JSON string if needed, default to empty array
-      output_fields_raw = step['output_fields']
-      output_fields_array = if output_fields_raw.is_a?(Array)
-        output_fields_raw
-      elsif output_fields_raw.is_a?(String) && output_fields_raw.present?
-        begin
-          parsed = JSON.parse(output_fields_raw)
-          parsed.is_a?(Array) ? parsed : []
-        rescue JSON::ParserError
-          []
-        end
-      else
-        []
-      end
-    %>
-    <div data-controller="output-fields"
-         data-output-fields-fields-value="<%= output_fields_array.to_json %>">
-      <input type="hidden"
-             name="workflow[steps][][output_fields]"
-             value="<%= output_fields_array.to_json %>"
-             data-output-fields-target="outputFieldsInput"
-             data-step-form-target="field">
-
-      <div data-output-fields-target="fieldsList" class="space-y-3 mb-3">
-        <% if output_fields_array.present? %>
-          <% output_fields_array.each_with_index do |field, index| %>
-            <div class="flex gap-2 items-start" data-field-index="<%= index %>">
-              <div class="flex-1 grid grid-cols-2 gap-2">
-                <input type="text" 
-                       placeholder="Variable name (e.g., status)"
-                       value="<%= field['name'] %>"
-                       class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                       data-action="input->output-fields#updateField"
-                       data-field-attr="name">
-                <input type="text" 
-                       placeholder="Value (e.g., completed or {{other_var}})"
-                       value="<%= field['value'] %>"
-                       class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                       data-action="input->output-fields#updateField"
-                       data-field-attr="value">
-              </div>
-              <button type="button" 
-                      class="px-3 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                      data-action="click->output-fields#removeField">
-                Remove
-              </button>
-            </div>
-          <% end %>
-        <% end %>
-      </div>
-      
-      <button type="button" 
-              class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-              data-action="click->output-fields#addField">
-        + Add Output Variable
-      </button>
-    </div>
   </div>
 
   <%# Attachments Section %>

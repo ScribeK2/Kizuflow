@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { BranchSuggestionService } from "../services/branch_suggestion_service"
+import { renderIcon, ANSWER_ICON_PATHS, UI_ICON_PATHS } from "../services/icon_service"
 
 export default class extends Controller {
   static targets = ["panel", "suggestionsContainer", "suggestionTemplate"]
@@ -202,14 +203,14 @@ export default class extends Controller {
 
   renderSuggestionCard(suggestion, index) {
     const branchesCount = suggestion.branches ? suggestion.branches.length : 0
-    const typeIcon = this.getTypeIcon(suggestion.type)
     const typeColor = this.getTypeColor(suggestion.type)
-    
+    const pathData = ANSWER_ICON_PATHS[suggestion.type] || UI_ICON_PATHS.lightbulb
+
     return `
       <div class="border rounded-lg p-4 bg-slate-50 border-slate-200 hover:border-slate-300 transition-all">
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2">
-            <span class="${typeColor} text-xl">${typeIcon}</span>
+            <span class="${typeColor}">${renderIcon(pathData, "w-5 h-5")}</span>
             <div>
               <h4 class="font-semibold text-gray-900">${this.escapeHtml(suggestion.title)}</h4>
               <p class="text-xs text-gray-600 mt-0.5">${this.escapeHtml(suggestion.description)}</p>
@@ -392,16 +393,6 @@ export default class extends Controller {
 
   dismiss() {
     this.hidePanel()
-  }
-
-  getTypeIcon(type) {
-    const icons = {
-      'yes_no': '✅',
-      'multiple_choice': '📋',
-      'numeric': '🔢',
-      'text': '📝'
-    }
-    return icons[type] || '💡'
   }
 
   getTypeColor(type) {

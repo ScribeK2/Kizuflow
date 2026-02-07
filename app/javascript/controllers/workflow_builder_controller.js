@@ -348,16 +348,6 @@ export default class extends Controller {
     
     return `
       <div class="field-container">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
-        <input type="text" 
-               name="workflow[steps][][action_type]" 
-               value="${this.escapeHtml(stepData.action_type || "")}" 
-               placeholder="e.g., Email, Notification, etc." 
-               class="w-full border rounded px-3 py-2"
-               data-step-form-target="field">
-      </div>
-      
-      <div class="field-container">
         <label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
         <textarea name="workflow[steps][][instructions]" 
                   placeholder="Detailed instructions for this action..." 
@@ -821,11 +811,11 @@ export default class extends Controller {
     const templateSelector = this.getTemplateSelectorHtml(stepType)
     switch(stepType) {
       case "question":
-        return templateSelector + this.getQuestionFieldsHtml(stepData)
+        return this.getQuestionFieldsHtml(stepData)
       case "decision":
         return templateSelector + this.getDecisionFieldsHtml(stepData, truePathOptions, falsePathOptions)
       case "action":
-        return templateSelector + this.getActionFieldsHtml(stepData)
+        return this.getActionFieldsHtml(stepData)
       case "sub_flow":
         return this.getSubflowFieldsHtml(stepData)
       case "checkpoint":
@@ -881,8 +871,8 @@ export default class extends Controller {
   }
 
   getEscalateFieldsHtml(stepData = {}) {
-    const targetTypes = ['team', 'queue', 'supervisor', 'channel']
-    const priorities = ['low', 'normal', 'high', 'urgent']
+    const targetTypes = ['department', 'supervisor', 'channel', 'ticket']
+    const priorities = ['low', 'medium', 'high', 'critical']
 
     return `
       <div class="field-container">
@@ -922,7 +912,7 @@ export default class extends Controller {
           <select name="workflow[steps][][priority]"
                   class="w-full border rounded px-3 py-2"
                   data-step-form-target="field">
-            ${priorities.map(p => `<option value="${p}" ${(stepData.priority || 'normal') === p ? 'selected' : ''}>${p.charAt(0).toUpperCase() + p.slice(1)}</option>`).join('')}
+            ${priorities.map(p => `<option value="${p}" ${(stepData.priority || 'medium') === p ? 'selected' : ''}>${p.charAt(0).toUpperCase() + p.slice(1)}</option>`).join('')}
           </select>
         </div>
 
@@ -952,7 +942,12 @@ export default class extends Controller {
   }
 
   getResolveFieldsHtml(stepData = {}) {
-    const resolutionTypes = ['success', 'failure', 'cancelled', 'transferred', 'other']
+    const resolutionTypes = [
+      { value: 'success', label: 'Success' },
+      { value: 'transfer', label: 'Transfer' },
+      { value: 'ticket', label: 'Ticket' },
+      { value: 'manager_escalation', label: 'Manager Escalation' }
+    ]
 
     return `
       <div class="field-container">
@@ -972,43 +967,8 @@ export default class extends Controller {
           <select name="workflow[steps][][resolution_type]"
                   class="w-full border rounded px-3 py-2"
                   data-step-form-target="field">
-            ${resolutionTypes.map(t => `<option value="${t}" ${(stepData.resolution_type || 'success') === t ? 'selected' : ''}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('')}
+            ${resolutionTypes.map(t => `<option value="${t.value}" ${(stepData.resolution_type || 'success') === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
           </select>
-        </div>
-
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Code (optional)</label>
-          <input type="text"
-                 name="workflow[steps][][resolution_code]"
-                 value="${this.escapeHtml(stepData.resolution_code || "")}"
-                 placeholder="e.g., RES-001, BILLING-RESOLVED"
-                 class="w-full border rounded px-3 py-2"
-                 data-step-form-target="field">
-          <p class="mt-1 text-xs text-gray-500">CRM or tracking system code for this resolution.</p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <label class="flex items-center cursor-pointer">
-            <input type="hidden" name="workflow[steps][][notes_required]" value="false">
-            <input type="checkbox"
-                   name="workflow[steps][][notes_required]"
-                   value="true"
-                   ${stepData.notes_required ? 'checked' : ''}
-                   class="h-4 w-4 text-green-600 border-gray-300 rounded"
-                   data-step-form-target="field">
-            <span class="ml-2 text-sm text-gray-700">Require notes</span>
-          </label>
-
-          <label class="flex items-center cursor-pointer">
-            <input type="hidden" name="workflow[steps][][survey_trigger]" value="false">
-            <input type="checkbox"
-                   name="workflow[steps][][survey_trigger]"
-                   value="true"
-                   ${stepData.survey_trigger ? 'checked' : ''}
-                   class="h-4 w-4 text-green-600 border-gray-300 rounded"
-                   data-step-form-target="field">
-            <span class="ml-2 text-sm text-gray-700">Trigger survey</span>
-          </label>
         </div>
       </div>
     `

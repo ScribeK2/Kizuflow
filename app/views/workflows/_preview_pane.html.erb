@@ -73,7 +73,7 @@
                    disabled />
           <% when "file" %>
             <div class="border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
-              <p class="text-sm text-gray-500">📎 File Upload</p>
+              <p class="text-sm text-gray-500 inline-flex items-center gap-1"><%= ui_svg_icon('paperclip', css_classes: "w-4 h-4") %> File Upload</p>
               <input type="file" class="mt-2" disabled />
             </div>
           <% else %>
@@ -121,13 +121,13 @@
                   <% begin %>
                     <% blob = ActiveStorage::Blob.find_signed(attachment_id) %>
                     <div class="flex items-center gap-2 p-2 bg-white border rounded-md text-sm">
-                      <span class="text-gray-600">📎</span>
+                      <span class="text-gray-600"><%= ui_svg_icon('paperclip', css_classes: "w-4 h-4") %></span>
                       <span class="text-gray-700"><%= blob.filename %></span>
                       <span class="text-xs text-gray-500">(<%= number_to_human_size(blob.byte_size) %>)</span>
                     </div>
                   <% rescue => e %>
                     <div class="flex items-center gap-2 p-2 bg-gray-100 border rounded-md text-sm text-gray-500">
-                      <span>📎</span>
+                      <span><%= ui_svg_icon('paperclip', css_classes: "w-4 h-4") %></span>
                       <span>File attachment</span>
                     </div>
                   <% end %>

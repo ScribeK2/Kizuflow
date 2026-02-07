@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import Fuse from "fuse.js"
+import { renderStepIcon } from "../services/icon_service"
 
 export default class extends Controller {
   static targets = ["button", "dropdown", "search", "options", "hiddenInput"]
@@ -265,13 +266,12 @@ export default class extends Controller {
       this.buttonTarget.innerHTML = `<span class="text-gray-500">${placeholder}</span>`
       return
     }
-    
-    const typeIcon = this.getTypeIcon(step.type)
+
     const typeColor = this.getTypeColor(step.type)
-    
+
     this.buttonTarget.innerHTML = `
       <div class="flex items-center gap-2">
-        <span class="${typeColor}">${typeIcon}</span>
+        <span class="${typeColor}">${renderStepIcon(step.type, "w-4 h-4")}</span>
         <span class="font-medium">${this.escapeHtml(step.title)}</span>
         <span class="text-xs text-gray-500">${this.escapeHtml(step.type)}</span>
       </div>
@@ -333,10 +333,9 @@ export default class extends Controller {
     }
     
     const optionsHtml = this.filteredSteps.map(step => {
-      const typeIcon = this.getTypeIcon(step.type)
       const typeColor = this.getTypeColor(step.type)
       const isSelected = step.title === this.selectedValueValue
-      
+
       return `
         <button type="button"
                 class="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors ${isSelected ? 'bg-blue-50 border-blue-200' : ''}"
@@ -345,7 +344,7 @@ export default class extends Controller {
                 data-step-selector-target="option">
           <div class="flex items-start gap-3">
             <div class="flex-shrink-0 mt-0.5">
-              <span class="${typeColor} text-lg">${typeIcon}</span>
+              <span class="${typeColor}">${renderStepIcon(step.type, "w-5 h-5")}</span>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
@@ -361,16 +360,6 @@ export default class extends Controller {
     }).join('')
     
     this.optionsTarget.innerHTML = optionsHtml
-  }
-
-  getTypeIcon(type) {
-    const icons = {
-      question: "❓",
-      decision: "🔀",
-      action: "⚡",
-      checkpoint: "✓"
-    }
-    return icons[type] || "📋"
   }
 
   getTypeColor(type) {

@@ -12,7 +12,7 @@ export class BranchTemplateService {
         id: 'yes_no',
         name: 'Yes/No Branch',
         description: 'Create two branches for Yes and No answers',
-        icon: '✅',
+        icon: 'check_circle',
         category: 'common',
         branches: [
           {
@@ -33,7 +33,7 @@ export class BranchTemplateService {
         id: 'multiple_choice',
         name: 'Multiple Choice Branch',
         description: 'Create branches for each option in a multiple choice question',
-        icon: '📋',
+        icon: 'clipboard',
         category: 'common',
         branches: [], // Will be populated dynamically based on options
         requiresVariable: true,
@@ -43,7 +43,7 @@ export class BranchTemplateService {
         id: 'numeric_range',
         name: 'Numeric Range Branch',
         description: 'Create branches for numeric ranges (low, medium, high)',
-        icon: '🔢',
+        icon: 'numbers',
         category: 'numeric',
         branches: [
           {
@@ -76,7 +76,7 @@ export class BranchTemplateService {
         id: 'empty_check',
         name: 'Empty Check Branch',
         description: 'Check if a variable is empty or has a value',
-        icon: '📝',
+        icon: 'pencil',
         category: 'common',
         branches: [
           {

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { stepTextLabel } from "../services/icon_service"
 
 /**
  * Yes/No Branch Controller
@@ -147,9 +148,8 @@ export default class extends Controller {
         option.dataset.stepId = step.id
         option.textContent = `${step.stepNumber}. ${step.title}`
         
-        // Add type indicator
-        const typeIcons = { question: '❓', decision: '🔀', action: '⚡', checkpoint: '📍' }
-        option.textContent = `${typeIcons[step.type] || ''} ${step.stepNumber}. ${step.title}`
+        // Add type indicator (plain text symbols for <option> tags)
+        option.textContent = `${stepTextLabel(step.type)} ${step.stepNumber}. ${step.title}`
         
         dropdown.appendChild(option)
       })

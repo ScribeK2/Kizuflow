@@ -1,5 +1,5 @@
 <%# Escalate-specific fields partial %>
-<%# Escalate steps transfer the interaction to another team/queue/supervisor/channel %>
+<%# Escalate steps transfer the interaction to another department/supervisor/channel/ticket %>
 
 <div class="field-container">
   <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30 rounded-lg p-3 mb-4">
@@ -9,7 +9,7 @@
       </svg>
       <div class="flex-1">
         <p class="text-sm text-orange-800 dark:text-orange-300">
-          <strong>Escalate Step:</strong> Transfer the interaction to another team, queue, supervisor, or channel. This step can be terminal (end workflow) or continue to subsequent steps via connections.
+          <strong>Escalate Step:</strong> Transfer the interaction to another department, supervisor, channel, or ticket. This step can be terminal (end workflow) or continue to subsequent steps via connections.
         </p>
       </div>
     </div>
@@ -20,28 +20,28 @@
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
       Escalation Target Type
     </label>
-    <div class="flex flex-wrap gap-2 mb-2">
-      <% %w[team queue supervisor channel].each do |target_type| %>
+    <div class="flex flex-wrap gap-2 mb-2"
+         data-controller="selection-group"
+         data-selection-group-active-class="bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700"
+         data-selection-group-inactive-class="bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700">
+      <% %w[department supervisor channel ticket].each do |target_type| %>
         <button type="button"
+                data-selection-group-target="button"
+                data-action="click->selection-group#select"
+                data-selection-group-value-param="<%= target_type %>"
                 class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors
                        <%= step['target_type'] == target_type ?
                            'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700' :
-                           'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700' %>"
-                onclick="this.closest('.field-container').querySelector('input[name*=target_type]').value = '<%= target_type %>';
-                         this.closest('.flex').querySelectorAll('button').forEach(b => {
-                           b.classList.remove('bg-orange-100', 'text-orange-700', 'border-orange-300', 'dark:bg-orange-900/30', 'dark:text-orange-300', 'dark:border-orange-700');
-                           b.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
-                         });
-                         this.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200', 'dark:bg-gray-800', 'dark:text-gray-400', 'dark:border-gray-700');
-                         this.classList.add('bg-orange-100', 'text-orange-700', 'border-orange-300', 'dark:bg-orange-900/30', 'dark:text-orange-300', 'dark:border-orange-700');">
+                           'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700' %>">
           <%= target_type.titleize %>
         </button>
       <% end %>
+      <input type="hidden"
+             name="workflow[steps][][target_type]"
+             value="<%= step['target_type'] %>"
+             data-selection-group-target="input"
+             data-step-form-target="field">
     </div>
-    <input type="hidden"
-           name="workflow[steps][][target_type]"
-           value="<%= step['target_type'] %>"
-           data-step-form-target="field">
   </div>
 
   <%# Target Value %>
@@ -52,11 +52,11 @@
     <input type="text"
            name="workflow[steps][][target_value]"
            value="<%= step['target_value'] %>"
-           placeholder="e.g., Billing Team, Supervisor Queue, #escalations-channel"
+           placeholder="e.g., Billing Department, Supervisor, #escalations-channel"
            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
            data-step-form-target="field">
     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-      The specific team, queue, or channel to escalate to.
+      The specific department, supervisor, or channel to escalate to.
     </p>
   </div>
 
@@ -69,9 +69,9 @@
             class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
             data-step-form-target="field">
       <option value="low" <%= 'selected' if step['priority'] == 'low' %>>Low</option>
-      <option value="normal" <%= 'selected' if step['priority'] == 'normal' || step['priority'].blank? %>>Normal</option>
+      <option value="medium" <%= 'selected' if step['priority'] == 'medium' || step['priority'].blank? %>>Medium</option>
       <option value="high" <%= 'selected' if step['priority'] == 'high' %>>High</option>
-      <option value="urgent" <%= 'selected' if step['priority'] == 'urgent' %>>Urgent</option>
+      <option value="critical" <%= 'selected' if step['priority'] == 'critical' %>>Critical</option>
     </select>
   </div>
 
