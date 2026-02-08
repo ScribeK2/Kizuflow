@@ -13,24 +13,29 @@
 
   <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>
     <div class="solid-card overflow-hidden mb-6 animate-fade-in-up">
-      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
+      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <h2 class="text-sm font-bold text-gray-900 dark:text-gray-100">Progress</h2>
+        <% unless @simulation.complete? %>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400"><%= simulation_step_counter(@simulation, @workflow) %></span>
+        <% end %>
       </div>
       <div class="p-6 w-full overflow-hidden">
         <div class="overflow-x-auto overflow-y-hidden progress-scroll" style="width: 100%; max-width: 100%; box-sizing: border-box;">
           <div class="flex items-center gap-2 pb-2" style="display: flex; width: max-content;">
             <% @simulation.execution_path.each_with_index do |path_item, index| %>
               <div class="flex items-center flex-shrink-0" style="flex-shrink: 0;">
-                <% 
-                  # Determine if this is the current step
-                  is_current = index == @simulation.execution_path.length - 1 && !@simulation.complete?
-                  is_completed = index < @simulation.execution_path.length - 1 || @simulation.complete?
+                <%
+                  # All execution_path items are completed — the current step being
+                  # displayed hasn't been added to the path yet (it's added on submit).
+                  is_current = false
+                  is_completed = true
                 %>
-                <button type="button" 
+                <button type="button"
                         onclick="location.href='<%= step_simulation_path(@simulation) %>?step=<%= index %>'"
-                        class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap <%= is_current ? 'bg-slate-600 text-white shadow-md ring-2 ring-slate-300 dark:ring-slate-500' : is_completed ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700' : 'bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800/80' %> cursor-pointer"
+                        class="<%= simulation_stepper_classes(is_completed, is_current) %>"
+                        title="<%= path_item['step_title'] %>"
                         style="flex-shrink: 0;">
-                  <span class="font-semibold"><%= index + 1 %></span>
+                  <%= simulation_stepper_step_content(path_item, index, is_completed, is_current) %>
                   <span class="ml-2 hidden sm:inline"><%= truncate(path_item['step_title'], length: 20) %></span>
                   <% if path_item['answer'].present? && is_completed %>
                     <span class="ml-1 text-xs opacity-75 hidden md:inline">(<%= truncate(path_item['answer'].to_s, length: 10) %>)</span>
@@ -46,7 +51,7 @@
             <% unless @simulation.complete? %>
               <div class="flex items-center flex-shrink-0 ml-2" style="flex-shrink: 0;">
                 <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center flex-shrink-0" style="flex-shrink: 0;">
-                  <span class="text-xs font-semibold text-gray-400 dark:text-gray-500"><%= @simulation.current_step_index + 1 %></span>
+                  <span class="text-xs font-semibold text-gray-400 dark:text-gray-500"><%= (@simulation.execution_path&.length || 0) + 1 %></span>
                 </div>
               </div>
             <% end %>
@@ -67,17 +72,31 @@
   <% else %>
     <% step = @simulation.current_step %>
     <% if step %>
-      <div class="solid-card overflow-hidden mb-6 animate-fade-in-up">
+      <%
+        step_info_text = "#{simulation_step_counter(@simulation, @workflow)}: #{step['title']}"
+        auto_advance = %w[yes_no multiple_choice].include?(step['answer_type'])
+        cancel_url = workflow_path(@workflow)
+        cancel_confirm = "Are you sure you want to cancel? Your simulation progress will be lost."
+      %>
+
+      <div aria-live="polite" class="sr-only" data-simulation-step-target="announce"></div>
+
+      <div class="solid-card overflow-hidden mb-6 animate-fade-in-up"
+           data-controller="simulation-step"
+           data-simulation-step-cancel-url-value="<%= cancel_url %>"
+           data-simulation-step-step-info-value="<%= step_info_text %>"
+           data-simulation-step-auto-advance-value="<%= auto_advance %>">
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center">
               <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-600 text-white text-lg font-semibold mr-4">
-                <%= @simulation.current_step_index + 1 %>
+                <%= (@simulation.execution_path&.length || 0) + 1 %>
               </span>
               <div>
                 <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100"><%= VariableInterpolator.interpolate(step['title'], @simulation.results || {}) %></h2>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 mt-1">
-                  <%= step['type'] %>
+                <span class="<%= step_type_badge_classes(step['type']) %> mt-1">
+                  <%= step_type_svg_icon(step['type'], css_classes: "w-3.5 h-3.5 inline mr-1") %>
+                  <%= step_type_label(step['type']) %>
                 </span>
               </div>
             </div>
@@ -94,73 +113,86 @@
 
           <% case step['type'] %>
           <% when 'question' %>
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, class: "space-y-4" do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, class: "space-y-4", data: { simulation_step_target: "form" } do |form| %>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <%= VariableInterpolator.interpolate(step['question'] || step['title'], @simulation.results || {}) %>
                 </label>
-                
+
                 <% if step['answer_type'] == 'yes_no' %>
                   <div class="space-y-2">
                     <div class="flex items-center">
-                      <%= form.radio_button :answer, "yes", { class: "mr-2", required: true } %>
+                      <%= form.radio_button :answer, "yes", { class: "mr-2", required: true, data: { action: "change->simulation-step#inputChanged", simulation_step_target: "input" } } %>
                       <%= form.label :answer_yes, "Yes", class: "text-gray-700 dark:text-gray-300" %>
                     </div>
                     <div class="flex items-center">
-                      <%= form.radio_button :answer, "no", { class: "mr-2", required: true } %>
+                      <%= form.radio_button :answer, "no", { class: "mr-2", required: true, data: { action: "change->simulation-step#inputChanged" } } %>
                       <%= form.label :answer_no, "No", class: "text-gray-700 dark:text-gray-300" %>
                     </div>
                   </div>
                 <% elsif step['answer_type'] == 'multiple_choice' %>
                   <% if step['options'].present? %>
                     <div class="space-y-2">
-                      <% step['options'].each do |option| %>
+                      <% step['options'].each_with_index do |option, opt_idx| %>
                         <div class="flex items-center">
-                          <%= form.radio_button :answer, option['value'] || option['label'], { class: "mr-2", required: true } %>
+                          <%= form.radio_button :answer, option['value'] || option['label'], { class: "mr-2", required: true, data: { action: "change->simulation-step#inputChanged" }.merge(opt_idx == 0 ? { simulation_step_target: "input" } : {}) } %>
                           <%= form.label :answer, option['label'] || option['value'], class: "text-gray-700 dark:text-gray-300" %>
                         </div>
                       <% end %>
                     </div>
                   <% else %>
-                    <%= form.text_field :answer, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true } %>
+                    <%= form.text_field :answer, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true, data: { action: "input->simulation-step#inputChanged", simulation_step_target: "input" } } %>
                   <% end %>
                 <% elsif step['answer_type'] == 'dropdown' %>
                   <% if step['options'].present? %>
-                    <%= form.select :answer, step['options'].map { |opt| [opt['label'] || opt['value'], opt['value'] || opt['label']] }, { prompt: "-- Select --" }, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true } %>
+                    <%= form.select :answer, step['options'].map { |opt| [opt['label'] || opt['value'], opt['value'] || opt['label']] }, { prompt: "-- Select --" }, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true, data: { action: "change->simulation-step#inputChanged", simulation_step_target: "input" } } %>
                   <% else %>
-                    <%= form.text_field :answer, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true } %>
+                    <%= form.text_field :answer, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true, data: { action: "input->simulation-step#inputChanged", simulation_step_target: "input" } } %>
                   <% end %>
                 <% else %>
-                  <%= form.text_field :answer, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true, placeholder: step['answer_type'] == 'number' ? 'Enter a number' : step['answer_type'] == 'date' ? 'YYYY-MM-DD' : '' } %>
+                  <%= form.text_field :answer, { class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", required: true, placeholder: step['answer_type'] == 'number' ? 'Enter a number' : step['answer_type'] == 'date' ? 'YYYY-MM-DD' : '', data: { action: "input->simulation-step#inputChanged", simulation_step_target: "input" } } %>
                 <% end %>
               </div>
-              
+
               <div class="flex items-center justify-between pt-4">
                 <div>
                   <%= simulation_back_button(@simulation) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, simulation_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed", disabled: true, data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
 
           <% when 'action' %>
-            <div class="backdrop-blur-sm bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200/30 dark:border-blue-800/30 rounded-lg p-4 mb-4">
-              <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Instructions:</h3>
-              <div class="text-sm text-blue-800 dark:text-blue-300"><%= render_step_markdown(VariableInterpolator.interpolate(step['instructions'], @simulation.results || {})) %></div>
+            <div class="backdrop-blur-sm bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200/30 dark:border-blue-800/30 rounded-lg p-4 mb-4 relative" data-controller="clipboard">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Instructions:</h3>
+                  <div class="text-sm text-blue-800 dark:text-blue-300" data-clipboard-target="source"><%= render_step_markdown(VariableInterpolator.interpolate(step['instructions'], @simulation.results || {})) %></div>
+                </div>
+                <button type="button"
+                        class="ml-3 mt-1 p-1.5 rounded-md text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors duration-200 flex-shrink-0"
+                        title="Copy instructions to clipboard"
+                        data-action="click->clipboard#copy"
+                        data-clipboard-target="button">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
-            
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
                   <%= simulation_back_button(@simulation) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, simulation_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
@@ -172,14 +204,14 @@
               <p class="text-sm text-purple-800 dark:text-purple-300">Processing routing decision...</p>
               <p class="text-xs text-purple-600 dark:text-purple-400 mt-2">If you see this message, please refresh the page.</p>
             </div>
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
                   <%= simulation_back_button(@simulation) %>
                 </div>
                 <div class="flex items-center">
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
@@ -203,12 +235,12 @@
               </div>
             </div>
 
-            <%= form_with url: resolve_checkpoint_simulation_path(@simulation), method: :post, local: true, class: "space-y-4" do |form| %>
+            <%= form_with url: resolve_checkpoint_simulation_path(@simulation), method: :post, local: true, class: "space-y-4", data: { simulation_step_target: "form" } do |form| %>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Optional notes:
                 </label>
-                <%= form.text_area :notes, { rows: 3, class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Add any notes about the resolution..." } %>
+                <%= form.text_area :notes, { rows: 3, class: "w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Add any notes about the resolution...", data: { simulation_step_target: "input" } } %>
               </div>
 
               <div class="flex items-center justify-between pt-4">
@@ -218,7 +250,7 @@
                 <div class="flex items-center space-x-3">
                   <%= form.hidden_field :resolved, value: "false" %>
                   <%= form.submit "Continue Workflow", name: "resolved", value: "false", class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-                  <%= form.submit "Issue Resolved", name: "resolved", value: "true", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= form.submit "Issue Resolved", name: "resolved", value: "true", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
@@ -243,15 +275,15 @@
               <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @simulation.results || {})) %></div>
             <% end %>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
                   <%= simulation_back_button(@simulation) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, simulation_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
@@ -285,15 +317,15 @@
               </div>
             </div>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
                   <%= simulation_back_button(@simulation) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-                  <%= form.submit "Continue", class: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, simulation_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
@@ -318,15 +350,15 @@
               </div>
             </div>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
                   <%= simulation_back_button(@simulation) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", workflow_path(@workflow), class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-                  <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, simulation_step_target: "cancel" } %>
+                  <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
@@ -346,4 +378,3 @@
     <%= link_to "Back to Workflow", workflow_path(@workflow), class: "text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium transition-colors duration-200" %>
   </div>
 </div>
-

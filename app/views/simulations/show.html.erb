@@ -1,26 +1,46 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <%# === Header Section === %>
   <div class="mb-8 animate-fade-in">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between flex-wrap gap-4">
       <div>
+        <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Simulation</p>
         <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Simulation Results</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">Execution path and results for <%= @workflow.title %></p>
+        <% if @simulation.complete? && !@simulation.stopped? %>
+          <p class="mt-2 text-gray-600 dark:text-gray-400"><%= simulation_summary_sentence(@simulation) %></p>
+        <% else %>
+          <p class="mt-2 text-gray-600 dark:text-gray-400">Execution path and results for <%= @workflow.title %></p>
+        <% end %>
       </div>
       <% if @simulation.stopped? %>
-        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800/30">
+        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800/30" role="status">
           <svg class="w-5 h-5 mr-2 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
           <span class="text-sm font-semibold text-orange-800 dark:text-orange-300">Workflow Stopped</span>
         </div>
+      <% elsif @simulation.status == 'timeout' %>
+        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800/30" role="status">
+          <svg class="w-5 h-5 mr-2 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-sm font-semibold text-red-800 dark:text-red-300">Timed Out</span>
+        </div>
+      <% elsif @simulation.status == 'error' %>
+        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800/30" role="status">
+          <svg class="w-5 h-5 mr-2 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-sm font-semibold text-red-800 dark:text-red-300">Error</span>
+        </div>
       <% elsif @simulation.complete? %>
-        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800/30">
+        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800/30" role="status">
           <svg class="w-5 h-5 mr-2 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
           <span class="text-sm font-semibold text-green-800 dark:text-green-300">Completed</span>
         </div>
       <% else %>
-        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/30">
+        <div class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/30" role="status">
           <svg class="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -30,6 +50,7 @@
     </div>
   </div>
 
+  <%# === Status Warning Cards === %>
   <% if @simulation.stopped? %>
     <div class="solid-card overflow-hidden mb-6 animate-fade-in-up border-l-4 border-orange-500 dark:border-orange-400">
       <div class="px-6 py-5">
@@ -45,171 +66,377 @@
                 It was stopped at step <%= @simulation.stopped_at_step_index + 1 %>.
               <% end %>
             </p>
-            <p class="text-sm text-orange-700 dark:text-orange-400">
+            <p class="text-sm text-orange-700 dark:text-orange-400 mb-4">
               Stopped on <%= @simulation.updated_at.strftime("%B %d, %Y at %I:%M %p") %>
             </p>
+            <%= link_to new_workflow_simulation_path(@workflow), class: "inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 shadow-sm transition-all duration-200 hover:scale-105" do %>
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Run Again
+            <% end %>
           </div>
         </div>
       </div>
     </div>
   <% end %>
 
-  <div class="solid-card overflow-hidden mb-6 animate-fade-in-up">
-    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
-      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Execution Path</h2>
+  <% if @simulation.status == 'timeout' %>
+    <div class="solid-card overflow-hidden mb-6 animate-fade-in-up border-l-4 border-red-500 dark:border-red-400">
+      <div class="px-6 py-5">
+        <div class="flex items-start">
+          <svg class="w-6 h-6 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">Simulation Timed Out</h3>
+            <p class="text-red-800 dark:text-red-300 mb-2">
+              The simulation exceeded the maximum execution time. This usually happens when a workflow contains an infinite loop or overly complex routing logic.
+            </p>
+            <p class="text-sm text-red-700 dark:text-red-400 mb-4">
+              Timed out on <%= @simulation.updated_at.strftime("%B %d, %Y at %I:%M %p") %>
+            </p>
+            <%= link_to new_workflow_simulation_path(@workflow), class: "inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 shadow-sm transition-all duration-200 hover:scale-105" do %>
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Try Again
+            <% end %>
+          </div>
+        </div>
+      </div>
     </div>
-    <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>
-      <div class="p-6 space-y-4">
-        <% @simulation.execution_path.each_with_index do |path_item, index| %>
-          <div class="border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-2 backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 rounded-r-lg animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
-            <div class="flex items-center mb-2">
-              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 text-white text-sm font-semibold mr-3">
-                <%= index + 1 %>
-              </span>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= path_item['step_title'] %></h3>
-              <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= path_item['step_type'] == 'checkpoint' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : path_item['step_type'] == 'decision' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' : path_item['step_type'] == 'action' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' %>">
-                <%= path_item['step_type'] %>
-              </span>
+  <% elsif @simulation.status == 'error' %>
+    <div class="solid-card overflow-hidden mb-6 animate-fade-in-up border-l-4 border-red-500 dark:border-red-400">
+      <div class="px-6 py-5">
+        <div class="flex items-start">
+          <svg class="w-6 h-6 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">Simulation Error</h3>
+            <p class="text-red-800 dark:text-red-300 mb-2">
+              An error occurred during simulation execution. This may be caused by invalid step configuration or missing references in the workflow.
+            </p>
+            <p class="text-sm text-red-700 dark:text-red-400 mb-4">
+              Error occurred on <%= @simulation.updated_at.strftime("%B %d, %Y at %I:%M %p") %>
+            </p>
+            <%= link_to new_workflow_simulation_path(@workflow), class: "inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 shadow-sm transition-all duration-200 hover:scale-105" do %>
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Try Again
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# === Tabbed Content (md+ tabs, mobile stacked) === %>
+  <div data-controller="tabs" data-tabs-active-value="0">
+    <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6"
+         role="tablist">
+      <button type="button"
+              class="px-4 py-3 text-sm font-medium border-b-2 transition-colors duration-200 border-slate-600 text-slate-700 dark:border-slate-400 dark:text-slate-200"
+              data-tabs-target="tab"
+              data-action="click->tabs#switch"
+              role="tab"
+              aria-selected="true">
+        <svg class="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        Execution Path
+      </button>
+      <button type="button"
+              class="px-4 py-3 text-sm font-medium border-b-2 transition-colors duration-200 border-transparent text-gray-500 dark:text-gray-400"
+              data-tabs-target="tab"
+              data-action="click->tabs#switch"
+              role="tab"
+              aria-selected="false">
+        <svg class="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        Results Summary
+      </button>
+    </div>
+
+    <%# === Panel 1: Execution Path === %>
+    <div data-tabs-target="panel">
+      <div class="solid-card overflow-hidden mb-6 animate-fade-in-up" data-controller="simulation-results">
+        <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Execution Path</h2>
+          <% if @simulation.execution_path.present? && @simulation.execution_path.length > 1 %>
+            <div class="flex items-center gap-2">
+              <button type="button"
+                      class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+                      data-action="click->simulation-results#expandAll">
+                Expand All
+              </button>
+              <span class="text-gray-300 dark:text-gray-600">|</span>
+              <button type="button"
+                      class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+                      data-action="click->simulation-results#collapseAll">
+                Collapse All
+              </button>
             </div>
-            <% if path_item['answer'].present? %>
-              <p class="text-gray-600 dark:text-gray-300 ml-11"><strong>Answer:</strong> <%= path_item['answer'] %></p>
+          <% end %>
+        </div>
+        <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>
+          <div class="p-6 space-y-3" role="list">
+            <% @simulation.execution_path.each_with_index do |path_item, index| %>
+              <% step_type = path_item['step_type'] || path_item['type'] %>
+              <div class="border-l-4 <%= step_type == 'question' ? 'border-blue-500 dark:border-blue-400' : step_type == 'decision' ? 'border-purple-500 dark:border-purple-400' : step_type == 'action' ? 'border-green-500 dark:border-green-400' : step_type == 'checkpoint' ? 'border-amber-500 dark:border-amber-400' : 'border-slate-400 dark:border-slate-500' %> pl-4 py-2 backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 rounded-r-lg animate-fade-in-up"
+                   style="animation-delay: <%= index * 0.05 %>s;"
+                   role="listitem"
+                   aria-label="Step <%= index + 1 %>: <%= path_item['step_title'] %> - <%= step_type %>"
+                   data-simulation-results-target="item">
+                <button type="button"
+                        class="flex items-center w-full text-left group"
+                        data-action="click->simulation-results#toggle"
+                        aria-expanded="false">
+                  <%# Green check circle for completed steps %>
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mr-3 flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                  </span>
+                  <%# Step icon + title + badge %>
+                  <div class="flex items-center flex-1 min-w-0">
+                    <span class="text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0">
+                      <%= step_type_svg_icon(step_type, css_classes: "w-4 h-4") %>
+                    </span>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate"><%= path_item['step_title'] %></h3>
+                    <span class="ml-3 flex-shrink-0 <%= step_type_badge_classes(step_type) %>">
+                      <%= step_type_label(step_type) %>
+                    </span>
+                    <span class="ml-2 text-xs text-gray-400 dark:text-gray-500 flex-shrink-0"><%= index + 1 %></span>
+                  </div>
+                  <%# Chevron toggle %>
+                  <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 ml-2 flex-shrink-0 transition-transform duration-200"
+                       data-simulation-results-target="toggleIcon"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <%# Collapsible details %>
+                <div class="hidden mt-2 ml-11" data-simulation-results-target="details">
+                  <% if path_item['answer'].present? %>
+                    <p class="text-gray-600 dark:text-gray-300">
+                      <strong class="text-gray-500 dark:text-gray-400">Answer:</strong>
+                      <span class="font-medium text-blue-700 dark:text-blue-300"><%= path_item['answer'] %></span>
+                    </p>
+                  <% end %>
+                  <% if path_item['condition_result'].present? %>
+                    <p class="text-gray-600 dark:text-gray-300 mt-1">
+                      <strong class="text-gray-500 dark:text-gray-400">Routing:</strong>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 ml-1">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                        <% if path_item['condition_result'].is_a?(String) %>
+                          <%= path_item['condition_result'] %>
+                        <% else %>
+                          <span class="<%= path_item['condition_result'] ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' %>">
+                            <%= path_item['condition_result'] ? 'True' : 'False' %>
+                          </span>
+                        <% end %>
+                      </span>
+                    </p>
+                  <% end %>
+                  <% if path_item['action_completed'].present? %>
+                    <p class="text-green-600 dark:text-green-400 mt-1">
+                      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                      Action completed
+                    </p>
+                  <% end %>
+                  <% if step_type == 'checkpoint' %>
+                    <% if path_item['resolved'] == true %>
+                      <p class="text-green-600 dark:text-green-400 mt-1">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        Issue resolved - workflow completed
+                      </p>
+                    <% else %>
+                      <p class="text-blue-600 dark:text-blue-400 mt-1">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                        Issue not resolved - workflow continued
+                      </p>
+                    <% end %>
+                    <% if path_item['notes'].present? %>
+                      <p class="text-gray-600 dark:text-gray-300 mt-1 italic">Notes: <%= path_item['notes'] %></p>
+                    <% end %>
+                  <% end %>
+                  <% if path_item['message_displayed'].present? %>
+                    <p class="text-cyan-600 dark:text-cyan-400 mt-1">
+                      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      Message displayed
+                    </p>
+                    <% if path_item['content'].present? %>
+                      <p class="text-gray-600 dark:text-gray-300 mt-1 text-sm"><%= path_item['content'] %></p>
+                    <% end %>
+                  <% end %>
+                  <% if path_item['escalated'].present? %>
+                    <p class="text-orange-600 dark:text-orange-400 mt-1">
+                      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                      Escalated
+                    </p>
+                  <% end %>
+                  <% if path_item['resolved'] == true && step_type != 'checkpoint' %>
+                    <p class="text-emerald-600 dark:text-emerald-400 mt-1">
+                      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Issue resolved
+                    </p>
+                  <% end %>
+                  <% if path_item['subflow_started'].present? %>
+                    <p class="text-indigo-600 dark:text-indigo-400 mt-1">
+                      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                      Sub-flow started: <%= path_item['target_workflow_title'] %>
+                    </p>
+                  <% end %>
+                </div>
+              </div>
             <% end %>
-            <% if path_item['condition_result'].present? %>
-              <p class="text-gray-600 dark:text-gray-300 ml-11">
-                <strong>Condition Result:</strong> 
-                <span class="<%= path_item['condition_result'] ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' %>">
-                  <%= path_item['condition_result'] ? 'True' : 'False' %>
-                </span>
-              </p>
-            <% end %>
-            <% if path_item['action_completed'].present? %>
-              <p class="text-green-600 dark:text-green-400 ml-11">✓ Action completed</p>
-            <% end %>
-            <% if path_item['step_type'] == 'checkpoint' %>
-              <% if path_item['resolved'] == true %>
-                <p class="text-green-600 dark:text-green-400 ml-11">✓ Issue resolved - workflow completed</p>
-              <% else %>
-                <p class="text-blue-600 dark:text-blue-400 ml-11">→ Issue not resolved - workflow continued</p>
-              <% end %>
-              <% if path_item['notes'].present? %>
-                <p class="text-gray-600 dark:text-gray-300 ml-11 mt-1 italic">Notes: <%= path_item['notes'] %></p>
-              <% end %>
-            <% end %>
+          </div>
+        <% else %>
+          <div class="p-12 text-center">
+            <p class="text-gray-500 dark:text-gray-400">No execution path recorded.</p>
           </div>
         <% end %>
       </div>
-    <% else %>
-      <div class="p-12 text-center">
-        <p class="text-gray-500 dark:text-gray-400">No execution path recorded.</p>
+    </div>
+
+    <%# === Panel 2: Results Summary === %>
+    <div data-tabs-target="panel">
+      <div class="solid-card overflow-hidden mb-6 animate-fade-in-up" style="animation-delay: 0.1s;">
+        <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Results Summary</h2>
+        </div>
+        <% if @simulation.results.present? %>
+          <div class="p-6">
+            <%# Display escalation info if present %>
+            <% if @simulation.results['_escalation'].present? %>
+              <% escalation = @simulation.results['_escalation'] %>
+              <div class="mb-6 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30">
+                <div class="flex items-start">
+                  <svg class="w-5 h-5 text-orange-600 dark:text-orange-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                  </svg>
+                  <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-2">Escalation Details</h3>
+                    <dl class="space-y-1 text-sm">
+                      <% if escalation['type'].present? %>
+                        <div class="flex">
+                          <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Target:</dt>
+                          <dd class="text-orange-800 dark:text-orange-200"><%= escalation['type']&.titleize %><%= " - #{escalation['value']}" if escalation['value'].present? %></dd>
+                        </div>
+                      <% end %>
+                      <% if escalation['priority'].present? && !%w[normal medium].include?(escalation['priority']) %>
+                        <div class="flex">
+                          <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Priority:</dt>
+                          <dd class="<%= %w[urgent critical].include?(escalation['priority']) ? 'text-red-600 dark:text-red-400 font-semibold' : escalation['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-orange-800 dark:text-orange-200' %>"><%= escalation['priority']&.titleize %></dd>
+                        </div>
+                      <% end %>
+                      <% if escalation['notes'].present? %>
+                        <div class="flex">
+                          <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Notes:</dt>
+                          <dd class="text-orange-800 dark:text-orange-200"><%= escalation['notes'] %></dd>
+                        </div>
+                      <% end %>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%# Display resolution info if present %>
+            <% if @simulation.results['_resolution'].present? %>
+              <% resolution = @simulation.results['_resolution'] %>
+              <div class="mb-6 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30">
+                <div class="flex items-start">
+                  <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-2">Resolution Details</h3>
+                    <dl class="space-y-1 text-sm">
+                      <% if resolution['type'].present? %>
+                        <div class="flex">
+                          <dt class="font-medium text-emerald-700 dark:text-emerald-300 w-24">Type:</dt>
+                          <dd class="<%= resolution['type'] == 'success' ? 'text-green-600 dark:text-green-400' : resolution['type'] == 'failure' ? 'text-red-600 dark:text-red-400' : %w[transfer ticket].include?(resolution['type']) ? 'text-blue-600 dark:text-blue-400' : resolution['type'] == 'manager_escalation' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-800 dark:text-emerald-200' %>"><%= resolution['type']&.titleize %></dd>
+                        </div>
+                      <% end %>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%# Display error info if present %>
+            <% if @simulation.results['_error'].present? %>
+              <div class="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30">
+                <div class="flex items-start">
+                  <svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">Error</h3>
+                    <p class="text-sm text-red-800 dark:text-red-300"><%= @simulation.results['_error'] %></p>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%# Display categorized regular results %>
+            <% result_groups = categorize_simulation_results(@simulation) %>
+            <% if result_groups.any? %>
+              <% result_groups.each do |group| %>
+                <div class="mb-6 last:mb-0">
+                  <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3"><%= group[:label] %></h3>
+                  <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                    <% group[:results].each do |key, value| %>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 py-1"><%= format_result_key(key) %></dt>
+                      <dd class="text-sm text-gray-900 dark:text-gray-100 py-1 flex items-center justify-between group" data-controller="clipboard">
+                        <span data-clipboard-target="source"><%= value.is_a?(Hash) ? value.to_json : value %></span>
+                        <button type="button"
+                                class="opacity-0 group-hover:opacity-100 ml-2 p-1 rounded text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-opacity duration-200 flex-shrink-0"
+                                title="Copy value"
+                                data-action="click->clipboard#copy"
+                                data-clipboard-target="button">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                        </button>
+                      </dd>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            <% elsif @simulation.results.keys.all? { |k| k.to_s.start_with?('_') } %>
+              <%# All results are internal, don't show "No results" message %>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-12 text-center">
+            <p class="text-gray-500 dark:text-gray-400">No results recorded.</p>
+          </div>
+        <% end %>
       </div>
-    <% end %>
+    </div>
   </div>
 
-  <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
-    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
-      <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Results Summary</h2>
+  <%# === Footer CTAs === %>
+  <div class="mt-6 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <%= link_to workflow_path(@workflow), class: "inline-flex items-center bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        Back to Workflow
+      <% end %>
+      <% if current_user&.can_create_workflows? %>
+        <%= link_to edit_workflow_path(@workflow), class: "inline-flex items-center bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" do %>
+          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          Edit Workflow
+        <% end %>
+      <% end %>
     </div>
-    <% if @simulation.results.present? %>
-      <div class="p-6">
-        <%# Display escalation info if present %>
-        <% if @simulation.results['_escalation'].present? %>
-          <% escalation = @simulation.results['_escalation'] %>
-          <div class="mb-6 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30">
-            <div class="flex items-start">
-              <svg class="w-5 h-5 text-orange-600 dark:text-orange-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-              </svg>
-              <div class="flex-1">
-                <h3 class="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-2">Escalation Details</h3>
-                <dl class="space-y-1 text-sm">
-                  <% if escalation['type'].present? %>
-                    <div class="flex">
-                      <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Target:</dt>
-                      <dd class="text-orange-800 dark:text-orange-200"><%= escalation['type']&.titleize %><%= " - #{escalation['value']}" if escalation['value'].present? %></dd>
-                    </div>
-                  <% end %>
-                  <% if escalation['priority'].present? && !%w[normal medium].include?(escalation['priority']) %>
-                    <div class="flex">
-                      <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Priority:</dt>
-                      <dd class="<%= %w[urgent critical].include?(escalation['priority']) ? 'text-red-600 dark:text-red-400 font-semibold' : escalation['priority'] == 'high' ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-orange-800 dark:text-orange-200' %>"><%= escalation['priority']&.titleize %></dd>
-                    </div>
-                  <% end %>
-                  <% if escalation['notes'].present? %>
-                    <div class="flex">
-                      <dt class="font-medium text-orange-700 dark:text-orange-300 w-24">Notes:</dt>
-                      <dd class="text-orange-800 dark:text-orange-200"><%= escalation['notes'] %></dd>
-                    </div>
-                  <% end %>
-                </dl>
-              </div>
-            </div>
-          </div>
-        <% end %>
-
-        <%# Display resolution info if present %>
-        <% if @simulation.results['_resolution'].present? %>
-          <% resolution = @simulation.results['_resolution'] %>
-          <div class="mb-6 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30">
-            <div class="flex items-start">
-              <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div class="flex-1">
-                <h3 class="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-2">Resolution Details</h3>
-                <dl class="space-y-1 text-sm">
-                  <% if resolution['type'].present? %>
-                    <div class="flex">
-                      <dt class="font-medium text-emerald-700 dark:text-emerald-300 w-24">Type:</dt>
-                      <dd class="<%= resolution['type'] == 'success' ? 'text-green-600 dark:text-green-400' : resolution['type'] == 'failure' ? 'text-red-600 dark:text-red-400' : %w[transfer ticket].include?(resolution['type']) ? 'text-blue-600 dark:text-blue-400' : resolution['type'] == 'manager_escalation' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-800 dark:text-emerald-200' %>"><%= resolution['type']&.titleize %></dd>
-                    </div>
-                  <% end %>
-                </dl>
-              </div>
-            </div>
-          </div>
-        <% end %>
-
-        <%# Display error info if present %>
-        <% if @simulation.results['_error'].present? %>
-          <div class="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30">
-            <div class="flex items-start">
-              <svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div class="flex-1">
-                <h3 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">Error</h3>
-                <p class="text-sm text-red-800 dark:text-red-300"><%= @simulation.results['_error'] %></p>
-              </div>
-            </div>
-          </div>
-        <% end %>
-
-        <%# Display regular results (excluding internal keys starting with _) %>
-        <% regular_results = @simulation.results.reject { |k, _| k.to_s.start_with?('_') } %>
-        <% if regular_results.any? %>
-          <dl class="space-y-2">
-            <% regular_results.each do |key, value| %>
-              <div class="flex">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 w-1/3"><%= key %>:</dt>
-                <dd class="text-sm text-gray-900 dark:text-gray-100"><%= value.is_a?(Hash) ? value.to_json : value %></dd>
-              </div>
-            <% end %>
-          </dl>
-        <% elsif @simulation.results.keys.all? { |k| k.to_s.start_with?('_') } %>
-          <%# All results are internal, don't show "No results" message %>
-        <% end %>
+    <div class="flex items-center gap-3">
+      <div data-controller="clipboard">
+        <span class="hidden" data-clipboard-target="source"><%= simulation_url(@simulation) %></span>
+        <button type="button"
+                class="inline-flex items-center bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105"
+                data-action="click->clipboard#copy"
+                data-clipboard-target="button">
+          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+          Copy Link
+        </button>
       </div>
-    <% else %>
-      <div class="p-12 text-center">
-        <p class="text-gray-500 dark:text-gray-400">No results recorded.</p>
-      </div>
-    <% end %>
-  </div>
-
-  <div class="mt-6 flex justify-end">
-    <%= link_to workflow_path(@workflow), class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" do %>
-      Back to Workflow
-    <% end %>
+      <%= link_to new_workflow_simulation_path(@workflow), class: "inline-flex items-center bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" do %>
+        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        Run Again
+      <% end %>
+    </div>
   </div>
 </div>
-
