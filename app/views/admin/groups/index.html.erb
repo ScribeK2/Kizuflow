@@ -1,7 +1,10 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <!-- Flash Messages -->
   <% if notice.present? %>
-    <div class="mb-6 animate-fade-in rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 p-4">
+    <div class="mb-6 animate-fade-in rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 p-4 cursor-pointer"
+         data-controller="alert"
+         data-alert-duration-value="5000"
+         data-action="click->alert#dismiss">
       <div class="flex items-center">
         <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -12,7 +15,10 @@
   <% end %>
 
   <% if alert.present? %>
-    <div class="mb-6 animate-fade-in rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
+    <div class="mb-6 animate-fade-in rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4 cursor-pointer"
+         data-controller="alert"
+         data-alert-duration-value="5000"
+         data-action="click->alert#dismiss">
       <div class="flex items-center">
         <svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

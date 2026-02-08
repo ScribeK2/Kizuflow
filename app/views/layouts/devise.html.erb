@@ -70,7 +70,10 @@
     <div class="pt-16 min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
       <!-- Flash Messages -->
       <% if notice %>
-        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 animate-fade-in-up">
+        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 animate-fade-in-up cursor-pointer"
+             data-controller="alert"
+             data-alert-duration-value="5000"
+             data-action="click->alert#dismiss">
           <div class="bg-emerald-500 dark:bg-emerald-600 border border-emerald-400 dark:border-emerald-500 text-white px-6 py-3 rounded-full shadow-lg max-w-2xl mx-auto" role="alert">
             <span class="block sm:inline font-medium"><%= notice %></span>
           </div>
@@ -78,7 +81,10 @@
       <% end %>
 
       <% if alert %>
-        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 animate-fade-in-up">
+        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 animate-fade-in-up cursor-pointer"
+             data-controller="alert"
+             data-alert-duration-value="5000"
+             data-action="click->alert#dismiss">
           <div class="bg-red-500 dark:bg-red-600 border border-red-400 dark:border-red-500 text-white px-6 py-3 rounded-full shadow-lg max-w-2xl mx-auto" role="alert">
             <span class="block sm:inline font-medium"><%= alert %></span>
           </div>
