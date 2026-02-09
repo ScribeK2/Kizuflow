@@ -33,6 +33,7 @@ module WorkflowParsers
     # Now includes Graph Mode support with automatic conversion
     def to_workflow_data(parsed_data)
       steps = normalize_steps(parsed_data[:steps] || [])
+      resolve_subflow_titles(steps)
 
       # Detect if input is already in graph format or needs conversion
       is_graph_format = detect_graph_format(steps)
@@ -284,6 +285,53 @@ module WorkflowParsers
       # Will be validated on workflow save
     end
 
+    # Resolve target_workflow_title to target_workflow_id for sub_flow steps
+    # Queries published workflows by title (case-insensitive) and sets the ID.
+    # If target_workflow_id is already set, title resolution is skipped.
+    # Unresolved or ambiguous titles mark the step as _import_incomplete.
+    def resolve_subflow_titles(steps)
+      return unless steps.is_a?(Array)
+
+      subflow_steps = steps.select { |s| s.is_a?(Hash) && s['type'] == 'sub_flow' && s['target_workflow_title'].present? }
+      return if subflow_steps.empty?
+
+      subflow_steps.each do |step|
+        # ID takes precedence — skip title resolution if already set
+        if step['target_workflow_id'].present?
+          step.delete('target_workflow_title')
+          next
+        end
+
+        title = step['target_workflow_title'].to_s.strip
+        if title.blank?
+          step.delete('target_workflow_title')
+          next
+        end
+
+        # Case-insensitive search among published workflows only
+        matches = Workflow.where(status: 'published').where('LOWER(title) = LOWER(?)', title)
+
+        if matches.count == 1
+          step['target_workflow_id'] = matches.first.id
+          add_warning("Sub-flow step '#{step['title']}': Resolved target workflow title '#{title}' to workflow ##{matches.first.id}")
+        elsif matches.count == 0
+          step['_import_incomplete'] = true
+          step['_import_errors'] ||= []
+          step['_import_errors'] << "Target workflow '#{title}' not found among published workflows"
+          add_warning("Sub-flow step '#{step['title']}': No published workflow found with title '#{title}'")
+        else
+          step['_import_incomplete'] = true
+          step['_import_errors'] ||= []
+          matching_titles = matches.map { |w| "#{w.title} (##{w.id})" }.join(', ')
+          step['_import_errors'] << "Multiple published workflows match title '#{title}': #{matching_titles}"
+          add_warning("Sub-flow step '#{step['title']}': Ambiguous title '#{title}' matches #{matches.count} published workflows")
+        end
+
+        # Clean up transient field — not persisted to DB
+        step.delete('target_workflow_title')
+      end
+    end
+
     # Normalize steps to ensure they match Kizuflow format
     def normalize_steps(steps)
       return [] unless steps.is_a?(Array)
@@ -338,6 +386,7 @@ module WorkflowParsers
         normalized['checkpoint_message'] = step[:checkpoint_message] || step['checkpoint_message'] || ''
       when 'sub_flow'
         normalized['target_workflow_id'] = step[:target_workflow_id] || step['target_workflow_id']
+        normalized['target_workflow_title'] = step[:target_workflow_title] || step['target_workflow_title']
         normalized['variable_mapping'] = step[:variable_mapping] || step['variable_mapping'] || {}
       when 'message'
         normalized['content'] = step[:content] || step['content'] || ''

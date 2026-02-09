@@ -45,21 +45,43 @@ class SimulationsController < ApplicationController
       return
     end
     
-    # If simulation is complete, redirect to show page
+    # If simulation is complete, redirect appropriately
     if @simulation.complete?
-      redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+      if @simulation.parent_simulation.present?
+        redirect_to step_simulation_path(@simulation.parent_simulation)
+      else
+        redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+      end
       return
+    end
+
+    # If parent is awaiting sub-flow, redirect to active child or process completion
+    if @simulation.awaiting_subflow?
+      active_child = @simulation.active_child_simulation
+      if active_child && !active_child.complete?
+        redirect_to step_simulation_path(active_child)
+        return
+      else
+        # Child is complete (or no active child found) — process completion and resume parent
+        @simulation.process_subflow_completion
+        if @simulation.complete?
+          redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+        else
+          redirect_to step_simulation_path(@simulation)
+        end
+        return
+      end
     end
     
     # Handle going back to the previous interactive step
     if params[:back].present?
       if @simulation.execution_path.present? && @simulation.execution_path.length > 0
-        # Pop entries from the end, skipping decision/simple_decision types
+        # Pop entries from the end, skipping decision/simple_decision/sub_flow types
         # (auto-advancing steps users never interact with), until we find an interactive step
         popped_step = nil
         while @simulation.execution_path.length > 0
           candidate = @simulation.execution_path.pop
-          if %w[decision simple_decision].include?(candidate['step_type'])
+          if %w[decision simple_decision sub_flow].include?(candidate['step_type'])
             next
           else
             popped_step = candidate
@@ -152,17 +174,32 @@ class SimulationsController < ApplicationController
       end
     end
     
-    # Auto-advance decision steps immediately without user interaction
+    # Auto-advance decision, simple_decision, and sub_flow steps immediately without user interaction
     # Note: checkpoint steps don't auto-advance - they require user resolution
-    # Both 'decision' and 'simple_decision' types should auto-advance
     current_step = @simulation.current_step
-    if current_step && %w[decision simple_decision].include?(current_step['type'])
-      # Process decision immediately and advance
+    if current_step && %w[decision simple_decision sub_flow].include?(current_step['type'])
+      # Process step immediately and advance
       @simulation.process_step(nil)
+
+      # After processing a sub_flow step, parent may now be awaiting_subflow
+      if @simulation.awaiting_subflow?
+        active_child = @simulation.active_child_simulation
+        if active_child
+          redirect_to step_simulation_path(active_child)
+        else
+          redirect_to step_simulation_path(@simulation)
+        end
+        return
+      end
+
       if @simulation.complete?
-        redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+        if @simulation.parent_simulation.present?
+          redirect_to step_simulation_path(@simulation.parent_simulation)
+        else
+          redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+        end
       else
-        # Redirect to next step (don't show decision step)
+        # Redirect to next step (don't show decision/sub_flow step)
         redirect_to step_simulation_path(@simulation)
       end
       return
@@ -232,17 +269,49 @@ class SimulationsController < ApplicationController
     # Process the current step
     # Note: checkpoint steps won't process here - they use resolve_checkpoint instead
     if @simulation.process_step(answer)
+      # After processing a sub_flow step, parent may now be awaiting_subflow
+      if @simulation.awaiting_subflow?
+        active_child = @simulation.active_child_simulation
+        if active_child
+          redirect_to step_simulation_path(active_child)
+        else
+          redirect_to step_simulation_path(@simulation)
+        end
+        return
+      end
+
       if @simulation.complete?
-        redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
+        # If this is a child simulation, redirect to parent's step view to resume it
+        if @simulation.parent_simulation.present?
+          redirect_to step_simulation_path(@simulation.parent_simulation)
+        else
+          redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
+        end
       else
         # Check if next step is auto-advancing - if so, process it
-        # Only decision and simple_decision types auto-advance (routing steps)
+        # decision, simple_decision, and sub_flow types auto-advance (routing steps)
         # escalate, resolve, and message steps show UI first and need user acknowledgment
         next_step = @simulation.current_step
-        if next_step && %w[decision simple_decision].include?(next_step['type'])
+        if next_step && %w[decision simple_decision sub_flow].include?(next_step['type'])
           @simulation.process_step(nil)
+
+          # After processing a sub_flow step, parent may now be awaiting_subflow
+          if @simulation.awaiting_subflow?
+            active_child = @simulation.active_child_simulation
+            if active_child
+              redirect_to step_simulation_path(active_child)
+            else
+              redirect_to step_simulation_path(@simulation)
+            end
+            return
+          end
+
           if @simulation.complete?
-            redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
+            if @simulation.parent_simulation.present?
+              redirect_to step_simulation_path(@simulation.parent_simulation)
+            else
+              redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
+            end
           else
             redirect_to step_simulation_path(@simulation)
           end

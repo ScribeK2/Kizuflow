@@ -45,6 +45,22 @@ class StepResolver
     end
   end
 
+  # Resolve the next step after a sub-flow completes (bypasses SubflowMarker interception).
+  # This directly evaluates the sub_flow step's outgoing transitions/linear position
+  # to determine where the parent simulation should resume.
+  # @param step [Hash] The sub_flow step that just completed
+  # @param results [Hash] Current simulation results
+  # @return [String, nil] Next step UUID or nil
+  def resolve_next_after_subflow(step, results)
+    return nil unless step
+
+    if @workflow.graph_mode?
+      resolve_graph_next(step, results)
+    else
+      resolve_linear_next(step, results)
+    end
+  end
+
   # Find the start step for this workflow
   # @return [Hash, nil] The start step hash or nil
   def start_step

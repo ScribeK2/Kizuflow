@@ -358,6 +358,12 @@ class Simulation < ApplicationRecord
     # Save current position for resumption
     self.resume_node_uuid = step['id']
 
+    # Stop any stale active children from previous sub-flow attempts (e.g. back navigation)
+    # to prevent active_child_simulation from finding the wrong child later.
+    child_simulations.where(status: %w[active awaiting_subflow]).find_each do |stale_child|
+      stale_child.update!(status: 'stopped')
+    end
+
     # Create child simulation with inherited variables
     child_results = self.results.dup || {}
 
@@ -395,9 +401,11 @@ class Simulation < ApplicationRecord
     true
   end
 
+  public
+
   # Process completion of a sub-flow
   def process_subflow_completion
-    child = active_child_simulation
+    child = active_child_simulation || child_simulations.where(status: 'completed').order(updated_at: :desc).first
 
     # If child is still running, wait
     return false if child && !child.complete?
@@ -410,13 +418,22 @@ class Simulation < ApplicationRecord
       resume_step = workflow.find_step_by_id(resume_node_uuid)
       variable_mapping = resume_step&.dig('variable_mapping') || {}
 
-      # Merge all child results, applying reverse mapping if defined
+      # Merge child results back to parent.
+      # Explicitly mapped variables always overwrite (that's the intent of the mapping).
+      # Non-mapped child results are only added if the key doesn't already exist in the
+      # parent — this prevents child step titles / variable names from overwriting parent
+      # values that may be used in routing conditions.
+      reverse_mapping = variable_mapping.invert
       child.results.each do |key, value|
         next if key.start_with?('_') # Skip internal keys
 
-        # Check if there's a reverse mapping
-        mapped_key = variable_mapping.invert[key] || key
-        self.results[mapped_key] = value
+        if reverse_mapping.key?(key)
+          # Explicitly mapped: always overwrite parent value
+          self.results[reverse_mapping[key]] = value
+        else
+          # Non-mapped: only add if parent doesn't already have this key
+          self.results[key] = value unless self.results.key?(key)
+        end
       end
     end
 
@@ -426,11 +443,12 @@ class Simulation < ApplicationRecord
     if graph_mode?
       resolver = StepResolver.new(workflow)
       resume_step = workflow.find_step_by_id(resume_node_uuid)
-      next_uuid = resolver.resolve_next(resume_step, self.results) if resume_step
+      next_uuid = resolver.resolve_next_after_subflow(resume_step, self.results) if resume_step
 
-      # Skip the sub-flow marker and get actual next step
-      if next_uuid.is_a?(StepResolver::SubflowMarker)
-        # This shouldn't happen, but handle it
+      # Guard against self-loop: if the resolved next step is the same sub_flow step
+      # we just completed, treat it as end-of-workflow rather than looping infinitely.
+      if next_uuid == resume_node_uuid
+        Rails.logger.warn "[Simulation ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
         advance_to_step_uuid(nil)
       else
         advance_to_step_uuid(next_uuid)
@@ -450,6 +468,8 @@ class Simulation < ApplicationRecord
 
     true
   end
+
+  private
 
   # Advance to the next step based on mode
   def advance_to_next_step(step)

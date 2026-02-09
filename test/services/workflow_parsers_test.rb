@@ -491,4 +491,274 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     assert incomplete_step['_import_incomplete'], "Question without question text should be incomplete"
     assert_not complete_step['_import_incomplete'], "Action with instructions should be complete"
   end
+
+  # ============================================================================
+  # Sub-flow Title Resolution Tests
+  # ============================================================================
+
+  # Helper to create a published workflow for title resolution tests
+  def create_published_workflow(title:, user: nil)
+    user ||= User.create!(email: "subflow-test-#{SecureRandom.hex(4)}@example.com",
+                           password: 'password123', role: 'user')
+    Workflow.create!(
+      title: title,
+      user: user,
+      status: 'published',
+      steps: [{ 'id' => SecureRandom.uuid, 'type' => 'action', 'title' => 'Step 1', 'instructions' => 'Do it' }]
+    )
+  end
+
+  test "resolve_subflow_titles resolves exact title match" do
+    target = create_published_workflow(title: "Billing Sub-Flow")
+
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Billing", target_workflow_title: "Billing Sub-Flow" },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+    assert_nil subflow_step['target_workflow_title'], "target_workflow_title should be removed after resolution"
+    assert_not subflow_step['_import_incomplete'], "Step should not be marked incomplete"
+  end
+
+  test "resolve_subflow_titles matches case-insensitively" do
+    target = create_published_workflow(title: "Billing Sub-Flow")
+
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Billing", target_workflow_title: "billing sub-flow" },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+  end
+
+  test "resolve_subflow_titles marks step incomplete when no match found" do
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Missing", target_workflow_title: "Nonexistent Workflow" },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert subflow_step['_import_incomplete'], "Step should be marked incomplete when no match"
+    assert subflow_step['_import_errors'].any? { |e| e.include?("not found") },
+           "Should have error about not found"
+  end
+
+  test "resolve_subflow_titles marks step incomplete when multiple matches found" do
+    user = User.create!(email: "multi-match-test@example.com", password: 'password123', role: 'user')
+    create_published_workflow(title: "Duplicate Title", user: user)
+    create_published_workflow(title: "Duplicate Title", user: user)
+
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Ambiguous", target_workflow_title: "Duplicate Title" },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert subflow_step['_import_incomplete'], "Step should be marked incomplete for ambiguous match"
+    assert subflow_step['_import_errors'].any? { |e| e.include?("Multiple published workflows") },
+           "Should have error about multiple matches"
+  end
+
+  test "resolve_subflow_titles skips resolution when target_workflow_id is already set" do
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Sub", target_workflow_id: 999, target_workflow_title: "Some Title" },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal 999, subflow_step['target_workflow_id'], "Existing ID should be preserved"
+    assert_nil subflow_step['target_workflow_title'], "Title should be cleaned up"
+  end
+
+  test "resolve_subflow_titles excludes draft workflows from matching" do
+    user = User.create!(email: "draft-test@example.com", password: 'password123', role: 'user')
+    Workflow.create!(
+      title: "Draft Only Workflow",
+      user: user,
+      status: 'draft',
+      steps: [{ 'id' => SecureRandom.uuid, 'type' => 'action', 'title' => 'Step 1', 'instructions' => 'Do it' }]
+    )
+
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Draft", target_workflow_title: "Draft Only Workflow" },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert subflow_step['_import_incomplete'], "Draft workflows should not match"
+  end
+
+  test "resolve_subflow_titles strips whitespace from title before matching" do
+    target = create_published_workflow(title: "Trimmed Workflow")
+
+    content = {
+      title: "Main Workflow",
+      steps: [
+        { type: "sub_flow", title: "Run Trimmed", target_workflow_title: "  Trimmed Workflow  " },
+        { type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    }.to_json
+
+    parser = WorkflowParsers::JsonParser.new(content)
+    result = parser.parse
+
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+  end
+
+  # ============================================================================
+  # Format-specific sub_flow title tests
+  # ============================================================================
+
+  test "csv parser reads target_workflow_title column for sub_flow" do
+    target = create_published_workflow(title: "CSV Target Flow")
+
+    content = <<~CSV
+      id,type,title,target_workflow_title,transitions,resolution_type
+      step-1,sub_flow,Run Sub,CSV Target Flow,step-2,
+      step-2,resolve,Done,,,success
+    CSV
+
+    parser = WorkflowParsers::CsvParser.new(content)
+    result = parser.parse
+
+    assert result.present?, "CSV parse should succeed. Errors: #{parser.errors.inspect}"
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+  end
+
+  test "yaml parser passes target_workflow_title through to resolution" do
+    target = create_published_workflow(title: "YAML Target Flow")
+
+    content = <<~YAML
+      title: "YAML Workflow"
+      steps:
+        - id: "step-1"
+          type: sub_flow
+          title: "Run Sub"
+          target_workflow_title: "YAML Target Flow"
+          transitions:
+            - target_uuid: "step-2"
+        - id: "step-2"
+          type: resolve
+          title: "Done"
+          resolution_type: success
+    YAML
+
+    parser = WorkflowParsers::YamlParser.new(content)
+    result = parser.parse
+
+    assert result.present?, "YAML parse should succeed. Errors: #{parser.errors.inspect}"
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+  end
+
+  test "markdown parser parses sub_flow with Target Workflow field" do
+    target = create_published_workflow(title: "MD Target Flow")
+
+    content = <<~MD
+      # Markdown Sub-Flow Test
+
+      ## Step 1: Run Sub
+      Type: sub_flow
+      Target Workflow: MD Target Flow
+      Transitions: Step 2
+
+      ## Step 2: Done
+      Type: resolve
+      Resolution Type: success
+    MD
+
+    parser = WorkflowParsers::MarkdownParser.new(content)
+    result = parser.parse
+
+    assert result.present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+  end
+
+  test "markdown parser parses sub_flow with Target Workflow ID field" do
+    content = <<~MD
+      # Markdown Sub-Flow ID Test
+
+      ## Step 1: Run Sub
+      Type: sub_flow
+      Target Workflow ID: 42
+      Transitions: Step 2
+
+      ## Step 2: Done
+      Type: resolve
+      Resolution Type: success
+    MD
+
+    parser = WorkflowParsers::MarkdownParser.new(content)
+    result = parser.parse
+
+    assert result.present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal "42", subflow_step['target_workflow_id']
+  end
+
+  test "markdown parser parses sub_flow with bold Target Workflow field" do
+    target = create_published_workflow(title: "Bold MD Target")
+
+    content = <<~MD
+      # Bold Target Test
+
+      ## Step 1: Run Sub
+      **Type**: sub_flow
+      **Target Workflow**: Bold MD Target
+      Transitions: Step 2
+
+      ## Step 2: Done
+      Type: resolve
+      Resolution Type: success
+    MD
+
+    parser = WorkflowParsers::MarkdownParser.new(content)
+    result = parser.parse
+
+    assert result.present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
+    subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+    assert_equal target.id, subflow_step['target_workflow_id']
+  end
 end

@@ -71,7 +71,7 @@
           <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
             <li>All imports use Graph Mode with explicit step transitions</li>
             <li>Each step requires a unique ID and defines its outgoing transitions</li>
-            <li>Supported step types: <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">question</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">action</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">message</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">escalate</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code></li>
+            <li>Supported step types: <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">question</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">action</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">message</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">escalate</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">sub_flow</code>, <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code></li>
             <li>Use <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">resolve</code> steps to end workflows (success, transfer, ticket, manager_escalation)</li>
           </ul>
         </div>
@@ -390,7 +390,15 @@ Resolution Notes: Customer inquiry handled</code></pre>
             Optional: <code>target_id</code>, <code>priority</code> (low, medium, high, critical), <code>reason</code>
           </p>
         </div>
-        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 md:col-span-2">
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+          <h4 class="font-medium text-slate-800 dark:text-slate-200">sub_flow</h4>
+          <p class="text-slate-600 dark:text-slate-400 text-xs">Execute another published workflow as a sub-flow.</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
+            Required: <code>target_workflow_id</code> or <code>target_workflow_title</code><br>
+            Optional: <code>variable_mapping</code>
+          </p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
           <h4 class="font-medium text-slate-800 dark:text-slate-200">resolve</h4>
           <p class="text-slate-600 dark:text-slate-400 text-xs">End the workflow with a resolution status. This is a terminal step with no outgoing transitions.</p>
           <p class="text-slate-500 dark:text-slate-500 text-xs mt-1">
@@ -406,6 +414,17 @@ Resolution Notes: Customer inquiry handled</code></pre>
           Each step (except <code>resolve</code>) must define <code>transitions</code> to specify which step(s) come next.
           Use conditional transitions to route based on variables: <code>"condition": "variable_name == 'value'"</code>.
           Steps without conditions are followed by default when no other condition matches.
+        </p>
+      </div>
+
+      <div class="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+        <h4 class="text-sm font-medium text-green-800 dark:text-green-200">Sub-flow Title Resolution</h4>
+        <p class="text-xs text-green-700 dark:text-green-300 mt-1">
+          Sub-flow steps can reference a target workflow by title using <code>target_workflow_title</code> instead of <code>target_workflow_id</code>.
+          The title is matched case-insensitively against published workflows only.
+          If the title matches exactly one published workflow, the ID is resolved automatically.
+          If no match is found or multiple workflows share the same title, the step is marked incomplete for manual resolution.
+          When both <code>target_workflow_id</code> and <code>target_workflow_title</code> are provided, the ID takes precedence.
         </p>
       </div>
     </div>

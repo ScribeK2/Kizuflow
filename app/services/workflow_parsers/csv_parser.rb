@@ -132,6 +132,7 @@ module WorkflowParsers
 
       when 'sub_flow'
         step[:target_workflow_id] = row[:target_workflow_id] || row[:workflow_id]
+        step[:target_workflow_title] = row[:target_workflow_title] || row[:workflow_title]
 
         if row[:transitions]
           step[:transitions] = parse_transitions(row[:transitions])

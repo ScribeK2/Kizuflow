@@ -682,6 +682,7 @@ class Workflow < ApplicationRecord
 
     subflow_steps.each_with_index do |step, _|
       step_index = steps.index(step) + 1
+      next if step['_import_incomplete'] == true
 
       target_id = step['target_workflow_id']
 

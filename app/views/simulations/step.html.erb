@@ -11,6 +11,17 @@
     <% end %>
   </div>
 
+  <% if @simulation.parent_simulation.present? %>
+    <div class="mb-6 px-4 py-3 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200/30 dark:border-indigo-800/30 flex items-center animate-fade-in">
+      <svg class="w-5 h-5 text-indigo-500 dark:text-indigo-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      <p class="text-sm text-indigo-700 dark:text-indigo-300">
+        Sub-workflow of <strong class="font-semibold text-indigo-900 dark:text-indigo-200"><%= @simulation.parent_simulation.workflow.title %></strong> — completing will return you to the main workflow.
+      </p>
+    </div>
+  <% end %>
+
   <% if @simulation.execution_path.present? && @simulation.execution_path.any? %>
     <div class="solid-card overflow-hidden mb-6 animate-fade-in-up">
       <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
@@ -64,9 +75,15 @@
   <% if @simulation.complete? %>
     <div class="solid-card overflow-hidden text-center animate-fade-in-up">
       <div class="p-8">
-        <h2 class="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">Simulation Complete!</h2>
-        <p class="text-green-700 dark:text-green-300 mb-4">All steps have been completed.</p>
-        <%= link_to "View Results", simulation_path(@simulation), class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <% if @simulation.parent_simulation.present? %>
+          <h2 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">Sub-Flow Complete!</h2>
+          <p class="text-indigo-700 dark:text-indigo-300 mb-4">Returning to <strong><%= @simulation.parent_simulation.workflow.title %></strong>.</p>
+          <%= link_to "Return to Main Workflow", step_simulation_path(@simulation.parent_simulation), class: "bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <% else %>
+          <h2 class="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">Simulation Complete!</h2>
+          <p class="text-green-700 dark:text-green-300 mb-4">All steps have been completed.</p>
+          <%= link_to "View Results", simulation_path(@simulation), class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+        <% end %>
       </div>
     </div>
   <% else %>
@@ -358,7 +375,37 @@
                 </div>
                 <div class="flex items-center space-x-3">
                   <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, simulation_step_target: "cancel" } %>
-                  <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
+                  <% if @simulation.parent_simulation.present? %>
+                    <%= form.submit "Finish & Return", class: "bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
+                  <% else %>
+                    <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+          <% when 'sub_flow' %>
+            <%# Sub-flow steps are auto-processed and should not normally be displayed %>
+            <%# This fallback case prevents a dead-end if auto-advance didn't trigger %>
+            <div class="backdrop-blur-sm bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200/30 dark:border-indigo-800/30 rounded-lg p-4 mb-4">
+              <div class="flex items-start">
+                <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-2">Processing Sub-Flow...</h3>
+                  <p class="text-sm text-indigo-800 dark:text-indigo-300">This step launches a sub-workflow. If you see this message, please click Continue or refresh the page.</p>
+                </div>
+              </div>
+            </div>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+              <%= form.hidden_field :answer, value: "" %>
+              <div class="flex items-center justify-between pt-4">
+                <div>
+                  <%= simulation_back_button(@simulation) %>
+                </div>
+                <div class="flex items-center">
+                  <%= form.submit "Continue", class: "bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { simulation_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>

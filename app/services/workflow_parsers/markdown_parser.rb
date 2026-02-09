@@ -195,7 +195,11 @@ module WorkflowParsers
         priority: 'normal',
         reason: '',
         resolution_type: '',
-        resolution_notes: ''
+        resolution_notes: '',
+        # Sub-flow fields
+        target_workflow_title: '',
+        target_workflow_id: '',
+        variable_mapping: {}
       }
     end
 
@@ -321,8 +325,20 @@ module WorkflowParsers
         return
       end
 
+      # Extract target workflow title (for sub_flow steps)
+      if match = stripped.match(/^\*\*Target\s+Workflow\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+Workflow:\s*(.+)$/i)
+        current_step[:target_workflow_title] = (match ? match[1] : $1).strip
+        return
+      end
+
+      # Extract target workflow ID (for sub_flow steps)
+      if match = stripped.match(/^\*\*Target\s+Workflow\s+ID\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+Workflow\s+ID:\s*(.+)$/i)
+        current_step[:target_workflow_id] = (match ? match[1] : $1).strip
+        return
+      end
+
       # Extract description (everything else that's not a recognized field)
-      unless stripped.match(/^\*\*|Type:|Question:|Answer|Variable:|Options:|Instructions:|Action\s+Type:|Condition:|If\s+(true|false):|Transitions?:|Content:|Target\s+(Type|ID):|Priority:|Reason:|Resolution/i) ||
+      unless stripped.match(/^\*\*|Type:|Question:|Answer|Variable:|Options:|Instructions:|Action\s+Type:|Condition:|If\s+(true|false):|Transitions?:|Content:|Target\s+(Type|ID|Workflow|Workflow\s+ID):|Priority:|Reason:|Resolution/i) ||
              stripped.match(/^##|^###|^\d+\./) ||
              stripped.empty?
         current_step[:description] += " #{stripped}" unless current_step[:description].include?(stripped)
@@ -394,6 +410,10 @@ module WorkflowParsers
         normalized[:action_type] = step[:action_type] || '' if step[:action_type].present?
       when 'checkpoint'
         normalized[:checkpoint_message] = step[:checkpoint_message] || ''
+      when 'sub_flow'
+        normalized[:target_workflow_id] = step[:target_workflow_id] if step[:target_workflow_id].present?
+        normalized[:target_workflow_title] = step[:target_workflow_title] if step[:target_workflow_title].present?
+        normalized[:variable_mapping] = step[:variable_mapping] || {}
       when 'message'
         normalized[:content] = step[:content] || ''
       when 'escalate'
