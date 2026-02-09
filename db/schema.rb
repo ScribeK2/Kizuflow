@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_31_182950) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_09_000000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -149,6 +149,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_31_182950) do
     t.index ["is_public"], name: "index_workflows_on_is_public"
     t.index ["status", "user_id"], name: "index_workflows_on_status_and_user_id"
     t.index ["status"], name: "index_workflows_on_status"
+    t.index ["steps"], name: "index_workflows_on_steps"
     t.index ["user_id"], name: "index_workflows_on_user_id"
   end
 
