@@ -4,7 +4,7 @@
     <p class="mt-2 text-gray-600 dark:text-gray-400">Step 2 of 3: Build your workflow by adding steps.</p>
   </div>
 
-  <%= render partial: "wizard_progress", locals: { current_step: 2 } %>
+  <%= render partial: "wizard_progress", locals: { current_step: 2, workflow: @workflow } %>
 
   <%= form_with model: @workflow, url: update_step2_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false, controller: "error-highlight" }, class: "animate-fade-in-up" do |form| %>
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "mb-6", data_controller_target: "error-highlight-target" } %>
@@ -17,7 +17,7 @@
           <%= render partial: "step_outline", locals: { workflow: @workflow } %>
         </div>
       <% end %>
-      
+
       <%# Main Content %>
       <div class="flex-1 min-w-0">
         <div class="solid-card overflow-hidden p-6 space-y-6">
@@ -26,9 +26,9 @@
                data-workflow-builder-graph-mode-value="<%= @workflow.graph_mode? %>"
                data-variable-autocomplete-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
-            
+
             <%# Header with Add Step Buttons %>
-            <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-4" data-floating-step-adder-target="sentinel">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Workflow Steps
                 <% if @workflow.steps.present? %>
@@ -109,7 +109,7 @@
                 <% end %>
               </div>
             </div>
-            
+
             <%# Expand/Collapse All Controls (Sprint 2) %>
             <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
               <div class="flex justify-end gap-2 mb-3" data-controller="step-controls">
@@ -126,21 +126,21 @@
                 </button>
               </div>
             <% end %>
-            
+
             <%# Steps Container %>
             <div data-workflow-builder-target="container" class="space-y-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
               <% if @workflow.steps.present? %>
                 <%# Inline step creator at the beginning %>
                 <%= render partial: "inline_step_creator", locals: { after_index: -1 } %>
-                
+
                 <% @workflow.steps.each_with_index do |step, index| %>
-                  <%= render partial: "step_item", locals: { 
-                    step: step, 
-                    index: index, 
+                  <%= render partial: "step_item", locals: {
+                    step: step,
+                    index: index,
                     workflow: @workflow,
                     expanded: @workflow.steps.length <= 5 || index == @workflow.steps.length - 1
                   } %>
-                  
+
                   <%# Inline step creator after each step %>
                   <%= render partial: "inline_step_creator", locals: { after_index: index } %>
                 <% end %>
@@ -154,7 +154,7 @@
                   <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Get started by adding your first step using the buttons above.
                   </p>
-                  
+
                   <%# Quick start buttons in empty state %>
                   <div class="flex flex-wrap justify-center gap-3">
                     <button type="button"
@@ -208,6 +208,86 @@
       </div>
     </div>
   <% end %>
+
+  <%# Floating Action Button for Quick Step Adding %>
+  <div data-controller="floating-step-adder" class="hidden" data-floating-step-adder-target="fab">
+    <div class="fixed bottom-6 right-6 z-30">
+      <%# FAB Toggle Button %>
+      <button type="button"
+              data-action="click->floating-step-adder#toggle"
+              data-floating-step-adder-target="toggleButton"
+              class="w-14 h-14 rounded-full bg-slate-600 hover:bg-slate-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center">
+        <svg class="w-7 h-7 transition-transform duration-200" data-floating-step-adder-target="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+      </button>
+
+      <%# Popover with step type buttons %>
+      <div class="hidden absolute bottom-16 right-0 mb-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 min-w-[180px]"
+           data-floating-step-adder-target="popover">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-1">Add Step</p>
+        <div class="flex flex-col gap-1.5">
+          <button type="button"
+                  data-action="click->floating-step-adder#addStep"
+                  data-step-type="question"
+                  class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-slate-600 hover:bg-slate-700">
+            Question
+          </button>
+          <% if @workflow.graph_mode? %>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="message"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-cyan-500 hover:bg-cyan-600">
+              Message
+            </button>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="action"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
+              Action
+            </button>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="escalate"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-orange-500 hover:bg-orange-600">
+              Escalate
+            </button>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="resolve"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-green-500 hover:bg-green-600">
+              Resolve
+            </button>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="sub_flow"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
+              Sub-flow
+            </button>
+          <% else %>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="decision"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-slate-600 hover:bg-slate-700">
+              Decision
+            </button>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="action"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-emerald-500 hover:bg-emerald-600">
+              Action
+            </button>
+            <button type="button"
+                    data-action="click->floating-step-adder#addStep"
+                    data-step-type="checkpoint"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-amber-500 hover:bg-amber-600">
+              Checkpoint
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <%# Graph Mode: Transition Editor Modal %>

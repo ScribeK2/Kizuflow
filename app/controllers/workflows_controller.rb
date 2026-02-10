@@ -565,6 +565,13 @@ class WorkflowsController < ApplicationController
   end
 
   def create_from_draft
+    # Save as Draft: skip publish logic, redirect with confirmation
+    if params[:save_draft].present?
+      flash[:notice] = "Draft saved."
+      redirect_to step3_workflow_path(@workflow)
+      return
+    end
+
     # Validate draft before converting to published
     unless @workflow.valid?
       render :step3, status: :unprocessable_entity
@@ -814,19 +821,35 @@ class WorkflowsController < ApplicationController
     end
 
     {
-      type: step_params[:type] || "",
-      title: step_params[:title] || "",
-      description: step_params[:description] || "",
-      question: step_params[:question] || "",
-      answer_type: step_params[:answer_type] || "",
-      variable_name: step_params[:variable_name] || "",
-      options: options || [],
-      condition: step_params[:condition] || "",
-      true_path: step_params[:true_path] || "",
-      false_path: step_params[:false_path] || "",
-      action_type: step_params[:action_type] || "",
-      instructions: step_params[:instructions] || "",
-      attachments: attachments || []
+      "type" => step_params[:type] || "",
+      "title" => step_params[:title] || "",
+      "description" => step_params[:description] || "",
+      # Question fields
+      "question" => step_params[:question] || "",
+      "answer_type" => step_params[:answer_type] || "",
+      "variable_name" => step_params[:variable_name] || "",
+      "options" => options || [],
+      # Decision fields
+      "condition" => step_params[:condition] || "",
+      "true_path" => step_params[:true_path] || "",
+      "false_path" => step_params[:false_path] || "",
+      # Action fields
+      "action_type" => step_params[:action_type] || "",
+      "instructions" => step_params[:instructions] || "",
+      "attachments" => attachments || [],
+      # Message fields
+      "content" => step_params[:content] || "",
+      # Escalate fields
+      "target_type" => step_params[:target_type] || "",
+      "target_value" => step_params[:target_value] || "",
+      "priority" => step_params[:priority] || "",
+      "reason_required" => step_params[:reason_required] || "",
+      "notes" => step_params[:notes] || "",
+      # Resolve fields
+      "resolution_type" => step_params[:resolution_type] || "",
+      "resolution_code" => step_params[:resolution_code] || "",
+      "notes_required" => step_params[:notes_required] || "",
+      "survey_trigger" => step_params[:survey_trigger] || ""
     }
   end
 

@@ -175,14 +175,47 @@ export default class extends Controller {
     } else if (stepData.type === "decision") {
       const conditionInput = stepContainer.querySelector("input[name*='[condition]']")
       stepData.condition = conditionInput ? conditionInput.value : ""
-      
+
       const truePathSelect = stepContainer.querySelector("select[name*='[true_path]']")
       stepData.true_path = truePathSelect ? truePathSelect.value : ""
-      
+
       const falsePathSelect = stepContainer.querySelector("select[name*='[false_path]']")
       stepData.false_path = falsePathSelect ? falsePathSelect.value : ""
+
+    } else if (stepData.type === "message") {
+      const contentInput = stepContainer.querySelector("textarea[name*='[content]']")
+      stepData.content = contentInput ? contentInput.value : ""
+
+    } else if (stepData.type === "escalate") {
+      const targetTypeInput = stepContainer.querySelector("input[name*='[target_type]']")
+      stepData.target_type = targetTypeInput ? targetTypeInput.value : ""
+
+      const targetValueInput = stepContainer.querySelector("input[name*='[target_value]']")
+      stepData.target_value = targetValueInput ? targetValueInput.value : ""
+
+      const prioritySelect = stepContainer.querySelector("select[name*='[priority]']")
+      stepData.priority = prioritySelect ? prioritySelect.value : ""
+
+      const reasonRequiredInput = stepContainer.querySelector("input[name*='[reason_required]'][type='checkbox']")
+      stepData.reason_required = reasonRequiredInput ? reasonRequiredInput.checked.toString() : "false"
+
+      const notesInput = stepContainer.querySelector("textarea[name*='[notes]']")
+      stepData.notes = notesInput ? notesInput.value : ""
+
+    } else if (stepData.type === "resolve") {
+      const resolutionTypeInput = stepContainer.querySelector("input[name*='[resolution_type]']")
+      stepData.resolution_type = resolutionTypeInput ? resolutionTypeInput.value : ""
+
+      const resolutionCodeInput = stepContainer.querySelector("input[name*='[resolution_code]']")
+      stepData.resolution_code = resolutionCodeInput ? resolutionCodeInput.value : ""
+
+      const notesRequiredInput = stepContainer.querySelector("input[name*='[notes_required]'][type='checkbox']")
+      stepData.notes_required = notesRequiredInput ? notesRequiredInput.checked.toString() : "false"
+
+      const surveyTriggerInput = stepContainer.querySelector("input[name*='[survey_trigger]'][type='checkbox']")
+      stepData.survey_trigger = surveyTriggerInput ? surveyTriggerInput.checked.toString() : "false"
     }
-    
+
     return stepData
   }
 }

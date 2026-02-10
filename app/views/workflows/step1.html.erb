@@ -4,7 +4,7 @@
     <p class="mt-2 text-gray-600 dark:text-gray-400">Step 1 of 3: Name your workflow and assign it to a group.</p>
   </div>
 
-  <%= render partial: "wizard_progress", locals: { current_step: 1 } %>
+  <%= render partial: "wizard_progress", locals: { current_step: 1, workflow: @workflow } %>
 
   <% if @workflow.draft? && @workflow.created_at.present? && @workflow.created_at < 5.days.ago %>
     <div class="mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-500 p-4">
@@ -25,18 +25,22 @@
     </div>
   <% end %>
 
-  <%= form_with model: @workflow, url: update_step1_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false }, html: { class: "solid-card animate-fade-in-up", style: "overflow: visible;" } do |form| %>
+  <%= form_with model: @workflow, url: update_step1_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false, controller: "wizard-step1-validation" }, html: { class: "solid-card animate-fade-in-up", style: "overflow: visible;" } do |form| %>
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "mx-6 mt-6" } %>
 
     <div class="p-6 space-y-6">
       <div>
         <%= form.label :title, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "Enter workflow title", required: true %>
+        <%= form.text_field :title, maxlength: 100, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 transition-colors", placeholder: "Enter workflow title", required: true, data: { wizard_step1_validation_target: "titleInput", action: "input->wizard-step1-validation#validate" } %>
+        <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400" data-wizard-step1-validation-target="counter">0/100 characters</span>
       </div>
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
         <%= form.rich_text_area :description, id: "workflow_description", class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400", placeholder: "Describe what this workflow does..." %>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <%= ui_svg_icon('lightbulb', css_classes: "w-4 h-4 inline-block align-text-bottom") %> Tip: Include CSR notes, expected time, or common pitfalls.
+        </p>
       </div>
 
       <% if @accessible_groups&.any? %>
@@ -72,11 +76,13 @@
         <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
       <% end %>
 
-      <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
-        <%= form.submit "Next: Add Steps", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" %>
+      <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-3">
+          <%= link_to "Cancel", workflows_path, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105" %>
+          <%= link_to "Browse Templates", templates_path, class: "text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors duration-200" %>
+        </div>
+        <%= form.submit "Next: Add Steps", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100", data: { wizard_step1_validation_target: "submitButton" } %>
       </div>
     </div>
   <% end %>
 </div>
-

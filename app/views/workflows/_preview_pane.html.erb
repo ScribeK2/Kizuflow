@@ -254,6 +254,12 @@
             <% if step["reason_required"] == true || step["reason_required"] == "true" %>
               <p class="text-xs text-orange-600 mt-2">Reason required from CSR</p>
             <% end %>
+
+            <% if step["notes"].present? %>
+              <div class="mt-2 p-2 bg-white border border-orange-100 rounded text-sm text-gray-700">
+                <%= render_step_markdown(VariableInterpolator.interpolate(step["notes"], sample_variables)) %>
+              </div>
+            <% end %>
           </div>
         </div>
       </div>
