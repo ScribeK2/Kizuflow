@@ -1,6 +1,6 @@
 class Admin::GroupsController < ApplicationController
   before_action :ensure_admin!
-  before_action :set_group, only: [:show, :edit, :update, :destroy]
+  before_action :set_group, only: %i[show edit update destroy]
 
   def index
     @groups = Group.roots.includes(:children, :workflows).order(:position, :name)
@@ -16,18 +16,18 @@ class Admin::GroupsController < ApplicationController
     @available_parents = Group.all.order(:name)
   end
 
+  def edit
+    @available_parents = Group.where.not(id: @group.id).order(:name)
+  end
+
   def create
     @group = Group.new(group_params)
     if @group.save
       redirect_to admin_groups_path, notice: "Group created successfully."
     else
       @available_parents = Group.all.order(:name)
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    @available_parents = Group.where.not(id: @group.id).order(:name)
   end
 
   def update
@@ -35,7 +35,7 @@ class Admin::GroupsController < ApplicationController
       redirect_to admin_groups_path, notice: "Group updated successfully."
     else
       @available_parents = Group.where.not(id: @group.id).order(:name)
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

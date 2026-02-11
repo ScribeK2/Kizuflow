@@ -21,13 +21,11 @@ class Users::RegistrationsController < Devise::RegistrationsController
       else
         render :edit
       end
-    else
+    elsif update_resource(resource, account_update_params)
       # Use Devise's default update behavior (requires current_password for email/password changes)
-      if update_resource(resource, account_update_params)
-        redirect_to after_update_path_for(resource), notice: "Account updated successfully."
-      else
-        render :edit
-      end
+      redirect_to after_update_path_for(resource), notice: "Account updated successfully."
+    else
+      render :edit
     end
   end
 

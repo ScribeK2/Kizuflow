@@ -1,5 +1,11 @@
 class SimulationsController < ApplicationController
-  before_action :set_workflow, only: [:new, :create]
+  before_action :set_workflow, only: %i[new create]
+
+  def show
+    @simulation = Simulation.find(params[:id])
+    @workflow = @simulation.workflow
+    ensure_can_view_workflow!(@workflow)
+  end
 
   def new
     @simulation = Simulation.new
@@ -23,14 +29,8 @@ class SimulationsController < ApplicationController
       # Redirect to step view instead of executing immediately
       redirect_to step_simulation_path(@simulation), notice: "Simulation started."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
-  end
-
-  def show
-    @simulation = Simulation.find(params[:id])
-    @workflow = @simulation.workflow
-    ensure_can_view_workflow!(@workflow)
   end
 
   def step
@@ -93,22 +93,22 @@ class SimulationsController < ApplicationController
           @simulation.results = {}
           @simulation.inputs = {}
           @simulation.execution_path.each do |path_entry|
-            if path_entry['answer'].present?
-              if @simulation.graph_mode? && path_entry['step_uuid'].present?
-                step = @workflow.find_step_by_id(path_entry['step_uuid'])
-              elsif path_entry['step_index'].present?
-                idx = path_entry['step_index'].to_i
-                step = @workflow.steps[idx] if idx >= 0 && idx < @workflow.steps.length
-              end
+            next unless path_entry['answer'].present?
 
-              if step && step['type'] == 'question'
-                input_key = step['variable_name'].present? ? step['variable_name'] : (path_entry['step_index'] || 0).to_s
-                @simulation.inputs[input_key] = path_entry['answer']
-                @simulation.inputs[step['title']] = path_entry['answer']
-                @simulation.results[step['title']] = path_entry['answer']
-                @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
-              end
+            if @simulation.graph_mode? && path_entry['step_uuid'].present?
+              step = @workflow.find_step_by_id(path_entry['step_uuid'])
+            elsif path_entry['step_index'].present?
+              idx = path_entry['step_index'].to_i
+              step = @workflow.steps[idx] if idx >= 0 && idx < @workflow.steps.length
             end
+
+            next unless step && step['type'] == 'question'
+
+            input_key = step['variable_name'].presence || (path_entry['step_index'] || 0).to_s
+            @simulation.inputs[input_key] = path_entry['answer']
+            @simulation.inputs[step['title']] = path_entry['answer']
+            @simulation.results[step['title']] = path_entry['answer']
+            @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
           end
 
           # Set current position to the popped interactive step so the user re-sees it
@@ -142,20 +142,20 @@ class SimulationsController < ApplicationController
           @simulation.results = {}
           @simulation.inputs = {}
           @simulation.execution_path.each do |path_entry|
-            if path_entry['answer'].present?
-              # Find the step to get variable_name - add bounds checking
-              step_index = path_entry['step_index'].to_i
-              if step_index >= 0 && step_index < @workflow.steps.length
-                step = @workflow.steps[step_index]
-                if step && step['type'] == 'question'
-                  input_key = step['variable_name'].present? ? step['variable_name'] : step_index.to_s
-                  @simulation.inputs[input_key] = path_entry['answer']
-                  @simulation.inputs[step['title']] = path_entry['answer']
-                  @simulation.results[step['title']] = path_entry['answer']
-                  @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
-                end
-              end
-            end
+            next unless path_entry['answer'].present?
+
+            # Find the step to get variable_name - add bounds checking
+            step_index = path_entry['step_index'].to_i
+            next unless step_index >= 0 && step_index < @workflow.steps.length
+
+            step = @workflow.steps[step_index]
+            next unless step && step['type'] == 'question'
+
+            input_key = step['variable_name'].presence || step_index.to_s
+            @simulation.inputs[input_key] = path_entry['answer']
+            @simulation.inputs[step['title']] = path_entry['answer']
+            @simulation.results[step['title']] = path_entry['answer']
+            @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
           end
 
           # Set current_step_index to the next step after the selected one
@@ -204,7 +204,7 @@ class SimulationsController < ApplicationController
       nil
     end
 
-    # Note: escalate and resolve steps show UI first, then process on Continue click
+    # NOTE: escalate and resolve steps show UI first, then process on Continue click
     # They are NOT auto-advanced here - they need user acknowledgment
   end
 
@@ -236,7 +236,7 @@ class SimulationsController < ApplicationController
     end
 
     # Get resolution parameters
-    resolved = params[:resolved] == 'true' || params[:resolved] == true
+    resolved = ['true', true].include?(params[:resolved])
     notes = params[:notes]
 
     # Resolve the checkpoint

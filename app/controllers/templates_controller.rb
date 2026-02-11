@@ -71,16 +71,16 @@ class TemplatesController < ApplicationController
       end
 
       # Normalize legacy branch paths (linear mode templates)
-      if step['type'] == 'decision' && step['branches'].present?
-        step['branches'].each do |branch|
-          if branch['condition'].present? && branch['path'].blank?
-            branch['path'] ||= ''
-          end
-        end
+      next unless step['type'] == 'decision' && step['branches'].present?
 
-        step['branches'] = step['branches'].select do |branch|
-          branch.is_a?(Hash) && (branch['condition'].present? || branch['path'].present?)
+      step['branches'].each do |branch|
+        if branch['condition'].present? && branch['path'].blank?
+          branch['path'] ||= ''
         end
+      end
+
+      step['branches'] = step['branches'].select do |branch|
+        branch.is_a?(Hash) && (branch['condition'].present? || branch['path'].present?)
       end
     end
 

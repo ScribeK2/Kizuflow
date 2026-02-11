@@ -9,18 +9,18 @@ class Admin::TemplatesController < ApplicationController
     @template = Template.new
   end
 
+  def edit
+    @template = Template.find(params[:id])
+  end
+
   def create
     @template = Template.new(template_params)
     parse_workflow_data(@template)
     if @template.save
       redirect_to admin_templates_path, notice: "Template '#{@template.name}' was successfully created."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    @template = Template.find(params[:id])
   end
 
   def update
@@ -30,7 +30,7 @@ class Admin::TemplatesController < ApplicationController
     if @template.save
       redirect_to admin_templates_path, notice: "Template '#{@template.name}' was successfully updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
