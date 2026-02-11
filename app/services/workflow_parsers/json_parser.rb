@@ -10,13 +10,13 @@ module WorkflowParsers
 
         # Handle both direct workflow objects and wrapped formats
         workflow_data = if data['workflow']
-          data['workflow']
-        elsif data['title'] || data['steps']
-          data
-        else
-          add_error("Invalid JSON structure: expected workflow object with 'title' and 'steps'")
-          return nil
-        end
+                          data['workflow']
+                        elsif data['title'] || data['steps']
+                          data
+                        else
+                          add_error("Invalid JSON structure: expected workflow object with 'title' and 'steps'")
+                          return nil
+                        end
 
         # Extract core fields
         title = workflow_data['title'] || workflow_data[:title]

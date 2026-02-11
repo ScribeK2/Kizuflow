@@ -190,7 +190,7 @@ class StepResolver
         jump_condition == 'completed' || evaluate_condition(jump_condition, results)
       else
         evaluate_condition(jump_condition, results)
-      end
+                         end
 
       return jump_next_step_id if condition_result
     end

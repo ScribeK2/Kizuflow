@@ -153,7 +153,7 @@ module WorkflowsHelper
         when '<' then 'is less than'
         when '<=' then 'is at most'
         else operator
-      end
+                      end
 
       "#{variable} #{operator_text} \"#{value}\""
     else

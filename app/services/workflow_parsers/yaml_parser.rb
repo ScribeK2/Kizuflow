@@ -10,13 +10,13 @@ module WorkflowParsers
 
         # Handle both direct workflow objects and wrapped formats
         workflow_data = if data['workflow'] || data[:workflow]
-          data['workflow'] || data[:workflow]
-        elsif data['title'] || data[:title] || data['steps'] || data[:steps]
-          data
-        else
-          add_error("Invalid YAML structure: expected workflow object with 'title' and 'steps'")
-          return nil
-        end
+                          data['workflow'] || data[:workflow]
+                        elsif data['title'] || data[:title] || data['steps'] || data[:steps]
+                          data
+                        else
+                          add_error("Invalid YAML structure: expected workflow object with 'title' and 'steps'")
+                          return nil
+                        end
 
         # Convert symbol keys to string keys for consistency
         workflow_data = normalize_keys(workflow_data) if workflow_data.is_a?(Hash)
@@ -66,12 +66,12 @@ module WorkflowParsers
       hash.each_with_object({}) do |(key, value), normalized|
         normalized_key = key.is_a?(Symbol) ? key.to_s : key
         normalized_value = if value.is_a?(Hash)
-          normalize_keys(value)
-        elsif value.is_a?(Array)
-          value.map { |item| item.is_a?(Hash) ? normalize_keys(item) : item }
-        else
-          value
-        end
+                             normalize_keys(value)
+                           elsif value.is_a?(Array)
+                             value.map { |item| item.is_a?(Hash) ? normalize_keys(item) : item }
+                           else
+                             value
+                           end
         normalized[normalized_key] = normalized_value
       end
     end

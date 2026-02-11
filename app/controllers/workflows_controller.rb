@@ -660,7 +660,7 @@ class WorkflowsController < ApplicationController
         else
           # Default text value - use step title or generic name
           step['title'].present? ? step['title'].split(' ').first : 'sample_value'
-        end
+                                end
       end
 
       # Get variables from action step output_fields

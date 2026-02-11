@@ -212,10 +212,10 @@ class Group < ApplicationRecord
     # Allow up to 5 levels deep (configurable)
     max_depth = 5
     current_depth = if parent_id && parent.persisted?
-      parent.depth + 1
-    else
-      parent_id ? 1 : 0
-    end
+                      parent.depth + 1
+                    else
+                      parent_id ? 1 : 0
+                    end
 
     return unless current_depth >= max_depth
 

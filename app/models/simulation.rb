@@ -555,7 +555,7 @@ class Simulation < ApplicationRecord
         else
           # Default to condition evaluation
           evaluate_condition_string(jump_condition, results)
-        end
+                           end
 
         if condition_result
           next_step = find_step_by_id(jump_next_step_id)

@@ -67,12 +67,12 @@ module SimulationsHelper
     # Duration
     duration_seconds = (simulation.updated_at - simulation.created_at).to_i
     duration_text = if duration_seconds < 60
-      "#{duration_seconds}s"
-    elsif duration_seconds < 3600
-      "#{duration_seconds / 60}m #{duration_seconds % 60}s"
-    else
-      "#{duration_seconds / 3600}h #{(duration_seconds % 3600) / 60}m"
-    end
+                      "#{duration_seconds}s"
+                    elsif duration_seconds < 3600
+                      "#{duration_seconds / 60}m #{duration_seconds % 60}s"
+                    else
+                      "#{duration_seconds / 3600}h #{(duration_seconds % 3600) / 60}m"
+                    end
 
     parts << "Completed #{step_count} #{'step'.pluralize(step_count)} in #{duration_text}"
 

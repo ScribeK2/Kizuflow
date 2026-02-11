@@ -4,10 +4,10 @@ class TemplatesController < ApplicationController
   def index
     base_scope = current_user&.admin? ? Template.all : Template.public_templates
     @templates = if params[:search].present?
-      base_scope.search(params[:search])
-    else
-      base_scope
-    end
+                   base_scope.search(params[:search])
+                 else
+                   base_scope
+                 end
     @templates = @templates.order(:name)
   end
 

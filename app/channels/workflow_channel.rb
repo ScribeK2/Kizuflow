@@ -309,12 +309,12 @@ class WorkflowChannel < ApplicationCable::Channel
     presence_key = presence_redis_key(workflow)
 
     user_ids = if redis_available?
-      redis_connection.smembers(presence_key).map(&:to_i)
-    else
-      presence_mutex.synchronize do
-        (memory_presence_store[presence_key] || Set.new).to_a
-      end
-    end
+                 redis_connection.smembers(presence_key).map(&:to_i)
+               else
+                 presence_mutex.synchronize do
+                   (memory_presence_store[presence_key] || Set.new).to_a
+                 end
+               end
 
     return [] if user_ids.empty?
 

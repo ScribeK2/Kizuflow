@@ -255,7 +255,7 @@ class Workflow < ApplicationRecord
         step['instructions'].present?
       else
         true
-      end
+                    end
 
       # Remove import flags if step is complete
       if is_complete && step['_import_incomplete']
