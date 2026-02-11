@@ -24,12 +24,14 @@ module WorkflowAuthorization
     if user.editor?
       return true if user == self.user
       return true if is_public?
+
       # Check if workflow is in user's assigned groups (optimized single query)
       if user.groups.any?
         accessible_group_ids = Group.accessible_group_ids_for(user)
         return true if groups.where(id: accessible_group_ids).any?
       end
       return true if groups.empty? # Workflows without groups (backward compatibility)
+
       return false
     end
 

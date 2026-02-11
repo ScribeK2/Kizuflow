@@ -1,5 +1,3 @@
-require 'set'
-
 class WorkflowChannel < ApplicationCable::Channel
   def subscribed
     # Subscribe to updates for a specific workflow
@@ -38,12 +36,12 @@ class WorkflowChannel < ApplicationCable::Channel
     Rails.logger.info "WorkflowChannel: Broadcasting workflow_metadata_update - field: #{data['field']}, value length: #{data['value'].to_s.length}"
 
     ActionCable.server.broadcast("workflow:#{workflow.id}", {
-      type: "workflow_metadata_update",
-      field: data["field"], # "title" or "description"
-      value: data["value"],
-      user: user_info,
-      timestamp: Time.current.iso8601
-    })
+                                   type: "workflow_metadata_update",
+                                   field: data["field"], # "title" or "description"
+                                   value: data["value"],
+                                   user: user_info,
+                                   timestamp: Time.current.iso8601
+                                 })
   end
 
   # Handle step updates from other users
@@ -55,12 +53,12 @@ class WorkflowChannel < ApplicationCable::Channel
 
     # Don't broadcast back to the sender
     ActionCable.server.broadcast("workflow:#{workflow.id}", {
-      type: "step_update",
-      step_index: data["step_index"],
-      step_data: data["step_data"],
-      user: user_info,
-      timestamp: Time.current.iso8601
-    })
+                                   type: "step_update",
+                                   step_index: data["step_index"],
+                                   step_data: data["step_data"],
+                                   user: user_info,
+                                   timestamp: Time.current.iso8601
+                                 })
   end
 
   # Handle auto-save requests from the client
@@ -93,19 +91,19 @@ class WorkflowChannel < ApplicationCable::Channel
 
           # Broadcast conflict to the client that sent this request
           broadcast_to_workflow(workflow, {
-            status: "conflict",
-            lock_version: workflow.lock_version,
-            server_title: workflow.title,
-            server_steps: workflow.steps,
-            conflict_user: user_info,
-            message: "Another user has modified this workflow. Please review the changes.",
-            timestamp: Time.current.iso8601
-          })
+                                  status: "conflict",
+                                  lock_version: workflow.lock_version,
+                                  server_title: workflow.title,
+                                  server_steps: workflow.steps,
+                                  conflict_user: user_info,
+                                  message: "Another user has modified this workflow. Please review the changes.",
+                                  timestamp: Time.current.iso8601
+                                })
           return
         end
 
         # Apply updates
-        workflow.title = title unless title.blank?
+        workflow.title = title if title.present?
 
         # Merge autosaved steps with existing steps to preserve fields
         # the client may not have extracted (e.g., options, output_fields).
@@ -136,21 +134,21 @@ class WorkflowChannel < ApplicationCable::Channel
 
         # Broadcast success with new lock_version to ALL subscribers
         broadcast_to_workflow(workflow, {
-          status: "saved",
-          lock_version: workflow.lock_version,
-          saved_by: user_info,
-          timestamp: Time.current.iso8601
-        })
+                                status: "saved",
+                                lock_version: workflow.lock_version,
+                                saved_by: user_info,
+                                timestamp: Time.current.iso8601
+                              })
 
         # Also broadcast to the main channel so other users can update their UI
         ActionCable.server.broadcast("workflow:#{workflow.id}", {
-          type: "workflow_saved",
-          lock_version: workflow.lock_version,
-          title: workflow.title,
-          steps: workflow.steps,
-          saved_by: user_info,
-          timestamp: Time.current.iso8601
-        })
+                                       type: "workflow_saved",
+                                       lock_version: workflow.lock_version,
+                                       title: workflow.title,
+                                       steps: workflow.steps,
+                                       saved_by: user_info,
+                                       timestamp: Time.current.iso8601
+                                     })
 
         Rails.logger.info "Autosave: Successfully saved workflow #{workflow.id}, new version: #{workflow.lock_version}"
       end
@@ -160,22 +158,22 @@ class WorkflowChannel < ApplicationCable::Channel
       Rails.logger.warn "Autosave: Stale object error for workflow #{workflow.id}: #{e.message}"
 
       broadcast_to_workflow(workflow, {
-        status: "conflict",
-        lock_version: workflow.lock_version,
-        server_title: workflow.title,
-        server_steps: workflow.steps,
-        message: "Your changes could not be saved due to a conflict. Please refresh and try again.",
-        timestamp: Time.current.iso8601
-      })
-    rescue => e
+                              status: "conflict",
+                              lock_version: workflow.lock_version,
+                              server_title: workflow.title,
+                              server_steps: workflow.steps,
+                              message: "Your changes could not be saved due to a conflict. Please refresh and try again.",
+                              timestamp: Time.current.iso8601
+                            })
+    rescue StandardError => e
       Rails.logger.error "Autosave: Failed to save workflow #{workflow.id}: #{e.message}"
       Rails.logger.error e.backtrace.first(10).join("\n")
 
       broadcast_to_workflow(workflow, {
-        status: "error",
-        errors: [e.message],
-        timestamp: Time.current.iso8601
-      })
+                              status: "error",
+                              errors: [e.message],
+                              timestamp: Time.current.iso8601
+                            })
     end
   end
 
@@ -195,29 +193,29 @@ class WorkflowChannel < ApplicationCable::Channel
         when "attachments"
           formatted_step[key_str] = value.is_a?(Array) ? value : []
         when "options"
-          if value.is_a?(Array)
-            formatted_step[key_str] = value.map do |opt|
-              opt.is_a?(Hash) ? opt.transform_keys(&:to_s) : opt
-            end
-          else
-            formatted_step[key_str] = []
-          end
+          formatted_step[key_str] = if value.is_a?(Array)
+                                      value.map do |opt|
+                                        opt.is_a?(Hash) ? opt.transform_keys(&:to_s) : opt
+                                      end
+                                    else
+                                      []
+                                    end
         when "branches"
-          if value.is_a?(Array)
-            formatted_step[key_str] = value.map do |branch|
-              branch.is_a?(Hash) ? branch.transform_keys(&:to_s) : branch
-            end
-          else
-            formatted_step[key_str] = []
-          end
+          formatted_step[key_str] = if value.is_a?(Array)
+                                      value.map do |branch|
+                                        branch.is_a?(Hash) ? branch.transform_keys(&:to_s) : branch
+                                      end
+                                    else
+                                      []
+                                    end
         when "jumps"
-          if value.is_a?(Array)
-            formatted_step[key_str] = value.map do |jump|
-              jump.is_a?(Hash) ? jump.transform_keys(&:to_s) : jump
-            end
-          else
-            formatted_step[key_str] = []
-          end
+          formatted_step[key_str] = if value.is_a?(Array)
+                                      value.map do |jump|
+                                        jump.is_a?(Hash) ? jump.transform_keys(&:to_s) : jump
+                                      end
+                                    else
+                                      []
+                                    end
         when "transitions_json"
           # Parse transitions_json (from Graph Mode UI) into transitions array
           begin
@@ -300,7 +298,7 @@ class WorkflowChannel < ApplicationCable::Channel
     else
       presence_mutex.synchronize do
         memory_presence_store[presence_key]&.delete(current_user.id)
-        memory_presence_store.delete(presence_key) if memory_presence_store[presence_key]&.empty?
+        memory_presence_store.delete(presence_key) if memory_presence_store[presence_key] && memory_presence_store[presence_key].empty?
       end
     end
   end
@@ -333,7 +331,7 @@ class WorkflowChannel < ApplicationCable::Channel
         pubsub.send(:redis_connection_for_subscriptions)
       elsif defined?(Redis) && ENV['REDIS_URL'].present?
         # Direct Redis connection (production)
-        Redis.new(url: ENV['REDIS_URL'])
+        Redis.new(url: ENV.fetch('REDIS_URL', nil))
       else
         nil
       end
@@ -342,8 +340,9 @@ class WorkflowChannel < ApplicationCable::Channel
 
   def redis_available?
     return false unless Rails.env.production? || ENV['REDIS_URL'].present?
+
     redis_connection.present?
-  rescue => e
+  rescue StandardError => e
     Rails.logger.warn "Redis not available for presence tracking: #{e.message}"
     false
   end
@@ -363,9 +362,9 @@ class WorkflowChannel < ApplicationCable::Channel
 
   def broadcast_presence_update(workflow, message)
     ActionCable.server.broadcast("workflow:#{workflow.id}:presence", {
-      **message,
-      active_users: get_active_users(workflow),
-      timestamp: Time.current.iso8601
-    })
+                                   **message,
+                                   active_users: get_active_users(workflow),
+                                   timestamp: Time.current.iso8601
+                                 })
   end
 end

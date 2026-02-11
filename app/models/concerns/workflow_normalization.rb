@@ -19,6 +19,7 @@ module WorkflowNormalization
 
     steps.each do |step|
       next unless step.is_a?(Hash)
+
       step['id'] ||= SecureRandom.uuid
     end
   end
@@ -30,8 +31,8 @@ module WorkflowNormalization
 
     # Collect existing variable names to avoid conflicts
     existing_names = steps
-      .select { |s| s.is_a?(Hash) && s['variable_name'].present? }
-      .map { |s| s['variable_name'] }
+                     .select { |s| s.is_a?(Hash) && s['variable_name'].present? }
+                     .map { |s| s['variable_name'] }
 
     steps.each do |step|
       next unless step.is_a?(Hash)
@@ -65,10 +66,9 @@ module WorkflowNormalization
     title
       .to_s
       .strip
-      .gsub(/[?!.,;:'"(){}\[\]]/, '')  # Remove punctuation
-      .parameterize(separator: '_')     # Convert to snake_case
-      .gsub(/-/, '_')                   # Replace any remaining dashes
-      .gsub(/_+/, '_')                  # Collapse multiple underscores
+      .gsub(/[?!.,;:'"(){}\[\]]/, '') # Remove punctuation
+      .parameterize(separator: '_') # Convert to snake_case
+      .tr('-', '_').squeeze('_') # Collapse multiple underscores
       .gsub(/^_|_$/, '')                # Remove leading/trailing underscores
       .first(30)                        # Limit length
       .gsub(/_$/, '')                   # Remove trailing underscore from truncation
@@ -88,7 +88,7 @@ module WorkflowNormalization
 
     # Filter out completely empty steps (no type, no title, no data)
     # But preserve steps that have data even if type is missing (they're still being filled out)
-    self.steps = steps.select { |step|
+    self.steps = steps.select do |step|
       step.is_a?(Hash) && (
         step['type'].present? ||
         step['title'].present? ||
@@ -97,7 +97,7 @@ module WorkflowNormalization
         step['action_type'].present? ||
         step['condition'].present?
       )
-    }
+    end
 
     return unless steps.present?
 
@@ -106,8 +106,8 @@ module WorkflowNormalization
 
       # Check if this step uses legacy format (has condition + true_path/false_path but no branches)
       has_legacy_format = step['condition'].present? &&
-                         (step['true_path'].present? || step['false_path'].present?) &&
-                         (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
+                          (step['true_path'].present? || step['false_path'].present?) &&
+                          (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
 
       if has_legacy_format
         # Convert to new multi-branch format
@@ -126,25 +126,25 @@ module WorkflowNormalization
           step['else_path'] = step['false_path']
         end
 
-        # Note: We keep the legacy fields (condition, true_path, false_path) for now
+        # NOTE: We keep the legacy fields (condition, true_path, false_path) for now
         # to ensure backward compatibility. They can be removed in a future migration.
       end
 
       # Normalize branches to ensure they have string keys (not symbols) and preserve paths
-      if step['branches'].present? && step['branches'].is_a?(Array)
-        step['branches'] = step['branches'].map do |branch|
-          next nil unless branch.is_a?(Hash)
+      next unless step['branches'].present? && step['branches'].is_a?(Array)
 
-          # Convert symbol keys to string keys and ensure both condition and path are preserved
-          normalized_branch = {
-            'condition' => (branch['condition'] || branch[:condition] || '').to_s.strip,
-            'path' => (branch['path'] || branch[:path] || '').to_s.strip
-          }
+      step['branches'] = step['branches'].map do |branch|
+        next nil unless branch.is_a?(Hash)
 
-          # Only include branch if it has at least one field set
-          (normalized_branch['condition'].present? || normalized_branch['path'].present?) ? normalized_branch : nil
-        end.compact
-      end
+        # Convert symbol keys to string keys and ensure both condition and path are preserved
+        normalized_branch = {
+          'condition' => (branch['condition'] || branch[:condition] || '').to_s.strip,
+          'path' => (branch['path'] || branch[:path] || '').to_s.strip
+        }
+
+        # Only include branch if it has at least one field set
+        normalized_branch['condition'].present? || normalized_branch['path'].present? ? normalized_branch : nil
+      end.compact
     end
   end
 
@@ -158,8 +158,8 @@ module WorkflowNormalization
 
       # Check if needs normalization
       has_legacy_format = step['condition'].present? &&
-                         (step['true_path'].present? || step['false_path'].present?) &&
-                         (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
+                          (step['true_path'].present? || step['false_path'].present?) &&
+                          (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
 
       if has_legacy_format
         # Create a copy to avoid modifying the original
@@ -194,15 +194,15 @@ module WorkflowNormalization
 
     # Get variables from question steps
     steps.select { |step| step['type'] == 'question' && step['variable_name'].present? }
-        .each { |step| variable_names << step['variable_name'] }
+         .each { |step| variable_names << step['variable_name'] }
 
     # Get variables from action step output_fields
     steps.select { |step| step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array) }
-        .each do |step|
-          step['output_fields'].each do |output_field|
-            variable_names << output_field['name'] if output_field.is_a?(Hash) && output_field['name'].present?
-          end
-        end
+         .each do |step|
+           step['output_fields'].each do |output_field|
+             variable_names << output_field['name'] if output_field.is_a?(Hash) && output_field['name'].present?
+           end
+         end
 
     variable_names.compact.uniq
   end
@@ -217,7 +217,7 @@ module WorkflowNormalization
   def normalize_graph_steps
     return unless steps.present?
 
-    step_ids = steps.map { |s| s['id'] }.compact
+    steps.map { |s| s['id'] }.compact
 
     steps.each do |step|
       next unless step.is_a?(Hash)
@@ -250,15 +250,15 @@ module WorkflowNormalization
       end
 
       # For sub_flow steps, normalize target_workflow_id
-      if step['type'] == 'sub_flow'
-        target_id = step['target_workflow_id'] || step[:target_workflow_id]
-        step['target_workflow_id'] = target_id.to_i if target_id.present?
-        step.delete(:target_workflow_id)
+      next unless step['type'] == 'sub_flow'
 
-        # Normalize variable_mapping for sub-flows
-        if step['variable_mapping'].present? && step['variable_mapping'].is_a?(Hash)
-          step['variable_mapping'] = step['variable_mapping'].transform_keys(&:to_s)
-        end
+      target_id = step['target_workflow_id'] || step[:target_workflow_id]
+      step['target_workflow_id'] = target_id.to_i if target_id.present?
+      step.delete(:target_workflow_id)
+
+      # Normalize variable_mapping for sub-flows
+      if step['variable_mapping'].present? && step['variable_mapping'].is_a?(Hash)
+        step['variable_mapping'] = step['variable_mapping'].transform_keys(&:to_s)
       end
     end
   end
