@@ -16,7 +16,7 @@ class ConditionEvaluator
     /^\w+\s*>\s*\d+/,              # variable > 10
     /^\w+\s*<\s*\d+/,              # variable < 10
     /^\w+\s*>=\s*\d+/,             # variable >= 10
-    /^\w+\s*<=\s*\d+/,             # variable <= 10
+    /^\w+\s*<=\s*\d+/ # variable <= 10
   ].freeze
 
   OPERATORS = %w[>= <= != == > <].freeze
@@ -30,6 +30,7 @@ class ConditionEvaluator
   # Check if condition syntax is valid
   def valid?
     return false if condition.blank?
+
     VALID_PATTERNS.any? { |pattern| pattern.match?(condition) }
   end
 
@@ -62,20 +63,20 @@ class ConditionEvaluator
 
     # Try each operator in order (longer operators first to avoid partial matches)
     OPERATORS.each do |op|
-      if condition.include?(op)
-        parts = condition.split(op, 2).map(&:strip)
-        next if parts.length != 2
+      next unless condition.include?(op)
 
-        variable = parts[0].gsub(/['"]/, '').strip
-        value = parts[1].gsub(/['"]/, '').strip
+      parts = condition.split(op, 2).map(&:strip)
+      next if parts.length != 2
 
-        return {
-          variable: variable,
-          operator: op,
-          value: value,
-          is_numeric: value.match?(/^\d+$/)
-        }
-      end
+      variable = parts[0].gsub(/['"]/, '').strip
+      value = parts[1].gsub(/['"]/, '').strip
+
+      return {
+        variable: variable,
+        operator: op,
+        value: value,
+        is_numeric: value.match?(/^\d+$/)
+      }
     end
 
     nil

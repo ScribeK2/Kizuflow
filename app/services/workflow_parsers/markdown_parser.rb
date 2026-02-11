@@ -3,44 +3,42 @@
 module WorkflowParsers
   class MarkdownParser < BaseParser
     def parse
-      
-        # Parse markdown content
-        lines = @file_content.split("\n")
+      # Parse markdown content
+      lines = @file_content.split("\n")
 
-        # Extract title (first H1 or frontmatter)
-        title = extract_title(lines)
-        description = extract_description(lines)
-        steps = extract_steps(lines)
+      # Extract title (first H1 or frontmatter)
+      title = extract_title(lines)
+      description = extract_description(lines)
+      steps = extract_steps(lines)
 
-        if title.blank?
-          add_warning("No title found, using default")
-          title = "Imported Workflow"
-        end
+      if title.blank?
+        add_warning("No title found, using default")
+        title = "Imported Workflow"
+      end
 
-        if steps.empty?
-          add_error("No steps found in markdown file")
-          return nil
-        end
+      if steps.empty?
+        add_error("No steps found in markdown file")
+        return nil
+      end
 
-        parsed_data = {
-          title: title,
-          description: description,
-          steps: steps
-        }
+      parsed_data = {
+        title: title,
+        description: description,
+        steps: steps
+      }
 
-        # Parse and normalize steps
-        workflow_data = to_workflow_data(parsed_data)
+      # Parse and normalize steps
+      workflow_data = to_workflow_data(parsed_data)
 
-        # Explicitly resolve step references for markdown
-        if workflow_data[:steps].present?
-          workflow_data[:steps] = resolve_step_references(workflow_data[:steps])
-        end
+      # Explicitly resolve step references for markdown
+      if workflow_data[:steps].present?
+        workflow_data[:steps] = resolve_step_references(workflow_data[:steps])
+      end
 
-        workflow_data
-      rescue => e
-        add_error("Error parsing Markdown: #{e.message}")
-        nil
-      
+      workflow_data
+    rescue StandardError => e
+      add_error("Error parsing Markdown: #{e.message}")
+      nil
     end
 
     private
@@ -54,16 +52,16 @@ module WorkflowParsers
         lines.each_with_index do |line, index|
           next if index == 0
           break if line.strip == "---"
-          if line.match(/^title:\s*(.+)$/i)
-            return $1.strip.gsub(/^["']|["']$/, '')
+          if line =~ /^title:\s*(.+)$/i
+            return ::Regexp.last_match(1).strip.gsub(/^["']|["']$/, '')
           end
         end
       end
 
       # Check for H1 title
       lines.each do |line|
-        if line.match(/^#\s+(.+)$/)
-          return $1.strip
+        if line =~ /^#\s+(.+)$/
+          return ::Regexp.last_match(1).strip
         end
       end
 
@@ -86,22 +84,22 @@ module WorkflowParsers
         end
 
         if in_frontmatter
-          if stripped.match(/^description:\s*(.+)$/i)
-            desc = $1.strip.gsub(/^["']|["']$/, '')
+          if stripped =~ /^description:\s*(.+)$/i
+            desc = ::Regexp.last_match(1).strip.gsub(/^["']|["']$/, '')
             return desc unless desc.empty?
           end
           next
         end
 
         # Skip H1 title
-        if stripped.match(/^#\s+/)
+        if /^#\s+/.match?(stripped)
           found_title = true
           next
         end
 
         # Collect description after title and before first step
         if found_title && !stripped.match(/^##\s+Step|^##\s+Steps|^###\s+Step|^\d+\./)
-          if stripped.match(/^##\s+(.+)$/)
+          if /^##\s+(.+)$/.match?(stripped)
             break
           elsif !stripped.empty?
             description_lines << stripped
@@ -126,7 +124,7 @@ module WorkflowParsers
 
         # Skip frontmatter
         next if stripped == "---"
-        next if stripped.match(/^title:|^description:/i)
+        next if /^title:|^description:/i.match?(stripped)
 
         # Detect step headers (## Step X, ### Step X, or numbered list)
         if match = stripped.match(/^##\s+Step\s+(\d+)[:.]?\s*(.+)$/i)
@@ -154,7 +152,7 @@ module WorkflowParsers
             step_index += 1
           end
 
-          title = $1.strip
+          title = ::Regexp.last_match(1).strip
           current_step = create_new_step(title)
           in_step = true
           next
@@ -206,53 +204,53 @@ module WorkflowParsers
     def parse_step_line(current_step, stripped)
       # Extract type
       if match = stripped.match(/^\*\*Type\*\*:\s*(.+)$/i) || stripped.match(/^Type:\s*(.+)$/i)
-        step_type = (match ? match[1] : $1).strip.downcase
+        step_type = (match ? match[1] : ::Regexp.last_match(1)).strip.downcase
         current_step[:type] = VALID_MD_TYPES.include?(step_type) ? step_type : 'action'
         return
       end
 
       # Extract question
       if match = stripped.match(/^\*\*Question\*\*:\s*(.+)$/i) || stripped.match(/^Question:\s*(.+)$/i)
-        current_step[:question] = (match ? match[1] : $1).strip
+        current_step[:question] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract answer type
       if match = stripped.match(/^\*\*Answer\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Answer\s+Type:\s*(.+)$/i)
-        current_step[:answer_type] = (match ? match[1] : $1).strip.downcase
+        current_step[:answer_type] = (match ? match[1] : ::Regexp.last_match(1)).strip.downcase
         return
       end
 
       # Extract variable name
       if match = stripped.match(/^\*\*Variable\*\*:\s*(.+)$/i) || stripped.match(/^Variable:\s*(.+)$/i)
-        current_step[:variable_name] = (match ? match[1] : $1).strip
+        current_step[:variable_name] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract options (for multiple choice questions)
       # Format: "Options: Yes, No" or "Options: Billing:billing, Technical:technical"
       if match = stripped.match(/^\*\*Options\*\*:\s*(.+)$/i) || stripped.match(/^Options:\s*(.+)$/i)
-        options_str = (match ? match[1] : $1).strip
+        options_str = (match ? match[1] : ::Regexp.last_match(1)).strip
         current_step[:options] = parse_markdown_options(options_str)
         return
       end
 
       # Extract instructions
       if match = stripped.match(/^\*\*Instructions\*\*:\s*(.+)$/i) || stripped.match(/^Instructions:\s*(.+)$/i)
-        current_step[:instructions] = (match ? match[1] : $1).strip
+        current_step[:instructions] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract action type (for action steps)
       if match = stripped.match(/^\*\*Action\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Action\s+Type:\s*(.+)$/i)
-        current_step[:action_type] = (match ? match[1] : $1).strip
+        current_step[:action_type] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract condition (for decision steps)
       if match = stripped.match(/^\*\*Condition\*\*:\s*(.+)$/i) || stripped.match(/^Condition:\s*(.+)$/i)
         current_step[:branches] = [{
-          condition: (match ? match[1] : $1).strip,
+          condition: (match ? match[1] : ::Regexp.last_match(1)).strip,
           path: ''
         }]
         return
@@ -260,7 +258,7 @@ module WorkflowParsers
 
       # Extract If true path
       if match = stripped.match(/^\*\*If\s+true\*\*:\s*(.+)$/i) || stripped.match(/^If\s+true:\s*(.+)$/i)
-        path = (match ? match[1] : $1).strip
+        path = (match ? match[1] : ::Regexp.last_match(1)).strip
         if current_step[:branches].empty?
           current_step[:branches] = [{ condition: '', path: path }]
         else
@@ -271,77 +269,77 @@ module WorkflowParsers
 
       # Extract If false path (becomes else_path)
       if match = stripped.match(/^\*\*If\s+false\*\*:\s*(.+)$/i) || stripped.match(/^If\s+false:\s*(.+)$/i)
-        current_step[:else_path] = (match ? match[1] : $1).strip
+        current_step[:else_path] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract transitions (Graph Mode)
       # Format: "Transitions: Step 2, Step 3" or "Transitions: uuid1, uuid2"
       if match = stripped.match(/^\*\*Transitions?\*\*:\s*(.+)$/i) || stripped.match(/^Transitions?:\s*(.+)$/i)
-        transitions_str = (match ? match[1] : $1).strip
+        transitions_str = (match ? match[1] : ::Regexp.last_match(1)).strip
         current_step[:transitions] = parse_markdown_transitions(transitions_str)
         return
       end
 
       # Extract content (for message steps)
       if match = stripped.match(/^\*\*Content\*\*:\s*(.+)$/i) || stripped.match(/^Content:\s*(.+)$/i)
-        current_step[:content] = (match ? match[1] : $1).strip
+        current_step[:content] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract target type (for escalate steps)
       if match = stripped.match(/^\*\*Target\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+Type:\s*(.+)$/i)
-        current_step[:target_type] = (match ? match[1] : $1).strip.downcase
+        current_step[:target_type] = (match ? match[1] : ::Regexp.last_match(1)).strip.downcase
         return
       end
 
       # Extract target ID (for escalate steps)
       if match = stripped.match(/^\*\*Target\s+ID\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+ID:\s*(.+)$/i)
-        current_step[:target_id] = (match ? match[1] : $1).strip
+        current_step[:target_id] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract priority (for escalate steps)
       if match = stripped.match(/^\*\*Priority\*\*:\s*(.+)$/i) || stripped.match(/^Priority:\s*(.+)$/i)
-        current_step[:priority] = (match ? match[1] : $1).strip.downcase
+        current_step[:priority] = (match ? match[1] : ::Regexp.last_match(1)).strip.downcase
         return
       end
 
       # Extract reason (for escalate steps)
       if match = stripped.match(/^\*\*Reason\*\*:\s*(.+)$/i) || stripped.match(/^Reason:\s*(.+)$/i)
-        current_step[:reason] = (match ? match[1] : $1).strip
+        current_step[:reason] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract resolution type (for resolve steps)
       if match = stripped.match(/^\*\*Resolution\s+Type\*\*:\s*(.+)$/i) || stripped.match(/^Resolution\s+Type:\s*(.+)$/i)
-        current_step[:resolution_type] = (match ? match[1] : $1).strip.downcase
+        current_step[:resolution_type] = (match ? match[1] : ::Regexp.last_match(1)).strip.downcase
         return
       end
 
       # Extract resolution notes (for resolve steps)
       if match = stripped.match(/^\*\*Resolution\s+Notes\*\*:\s*(.+)$/i) || stripped.match(/^Resolution\s+Notes:\s*(.+)$/i)
-        current_step[:resolution_notes] = (match ? match[1] : $1).strip
+        current_step[:resolution_notes] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract target workflow title (for sub_flow steps)
       if match = stripped.match(/^\*\*Target\s+Workflow\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+Workflow:\s*(.+)$/i)
-        current_step[:target_workflow_title] = (match ? match[1] : $1).strip
+        current_step[:target_workflow_title] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract target workflow ID (for sub_flow steps)
       if match = stripped.match(/^\*\*Target\s+Workflow\s+ID\*\*:\s*(.+)$/i) || stripped.match(/^Target\s+Workflow\s+ID:\s*(.+)$/i)
-        current_step[:target_workflow_id] = (match ? match[1] : $1).strip
+        current_step[:target_workflow_id] = (match ? match[1] : ::Regexp.last_match(1)).strip
         return
       end
 
       # Extract description (everything else that's not a recognized field)
-      unless stripped.match(/^\*\*|Type:|Question:|Answer|Variable:|Options:|Instructions:|Action\s+Type:|Condition:|If\s+(true|false):|Transitions?:|Content:|Target\s+(Type|ID|Workflow|Workflow\s+ID):|Priority:|Reason:|Resolution/i) ||
+      if !(stripped.match(/^\*\*|Type:|Question:|Answer|Variable:|Options:|Instructions:|Action\s+Type:|Condition:|If\s+(true|false):|Transitions?:|Content:|Target\s+(Type|ID|Workflow|Workflow\s+ID):|Priority:|Reason:|Resolution/i) ||
              stripped.match(/^##|^###|^\d+\./) ||
-             stripped.empty?
-        current_step[:description] += " #{stripped}" unless current_step[:description].include?(stripped)
+             stripped.empty?) && !current_step[:description].include?(stripped)
+        current_step[:description] += " #{stripped}"
       end
     end
 

@@ -32,7 +32,7 @@ class VariableInterpolator
 
     # Replace all {{variable_name}} patterns
     text.to_s.gsub(VARIABLE_PATTERN) do |match|
-      variable_name = $1 # Capture the variable name (without {{}})
+      variable_name = ::Regexp.last_match(1) # Capture the variable name (without {{}})
 
       # Check if variable exists in hash (even if value is nil)
       if normalized_vars.key?(variable_name)
@@ -68,8 +68,6 @@ class VariableInterpolator
 
     text.to_s.match?(VARIABLE_PATTERN)
   end
-
-  private
 
   # Normalize variables hash to use string keys
   # Converts symbol keys to strings for consistent lookup

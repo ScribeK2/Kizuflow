@@ -5,60 +5,58 @@ require 'csv'
 module WorkflowParsers
   class CsvParser < BaseParser
     def parse
-      
-        csv = CSV.parse(@file_content, headers: true, header_converters: :symbol)
+      csv = CSV.parse(@file_content, headers: true, header_converters: :symbol)
 
-        if csv.headers.nil? || csv.headers.empty?
-          add_error("CSV file must have a header row")
-          return nil
-        end
+      if csv.headers.nil? || csv.headers.empty?
+        add_error("CSV file must have a header row")
+        return nil
+      end
 
-        # Required columns
-        required_columns = [:type, :title]
-        missing_columns = required_columns - csv.headers
-        if missing_columns.any?
-          add_error("Missing required columns: #{missing_columns.join(', ')}")
-          return nil
-        end
+      # Required columns
+      required_columns = %i[type title]
+      missing_columns = required_columns - csv.headers
+      if missing_columns.any?
+        add_error("Missing required columns: #{missing_columns.join(', ')}")
+        return nil
+      end
 
-        # Extract workflow metadata from first row or use defaults
-        title = csv.headers.include?(:workflow_title) ? csv.first[:workflow_title] : nil
-        title ||= csv.headers.include?(:title) ? csv.first[:title] : nil
-        title ||= "Imported Workflow"
+      # Extract workflow metadata from first row or use defaults
+      title = csv.headers.include?(:workflow_title) ? csv.first[:workflow_title] : nil
+      title ||= csv.headers.include?(:title) ? csv.first[:title] : nil
+      title ||= "Imported Workflow"
 
-        description = csv.headers.include?(:workflow_description) ? csv.first[:workflow_description] : nil
-        description ||= csv.headers.include?(:description) ? csv.first[:description] : nil
-        description ||= ""
+      description = csv.headers.include?(:workflow_description) ? csv.first[:workflow_description] : nil
+      description ||= csv.headers.include?(:description) ? csv.first[:description] : nil
+      description ||= ""
 
-        # Parse steps from rows
-        steps = []
-        csv.each_with_index do |row, index|
-          # Skip empty rows
-          next if row[:type].blank? && row[:title].blank?
+      # Parse steps from rows
+      steps = []
+      csv.each_with_index do |row, index|
+        # Skip empty rows
+        next if row[:type].blank? && row[:title].blank?
 
-          step = parse_csv_row(row, index + 1)
-          steps << step if step
-        end
+        step = parse_csv_row(row, index + 1)
+        steps << step if step
+      end
 
-        if steps.empty?
-          add_error("No valid steps found in CSV file")
-          return nil
-        end
+      if steps.empty?
+        add_error("No valid steps found in CSV file")
+        return nil
+      end
 
-        parsed_data = {
-          title: title,
-          description: description,
-          steps: steps
-        }
+      parsed_data = {
+        title: title,
+        description: description,
+        steps: steps
+      }
 
-        to_workflow_data(parsed_data)
-      rescue CSV::MalformedCSVError => e
-        add_error("Invalid CSV format: #{e.message}")
-        nil
-      rescue => e
-        add_error("Error parsing CSV: #{e.message}")
-        nil
-      
+      to_workflow_data(parsed_data)
+    rescue CSV::MalformedCSVError => e
+      add_error("Invalid CSV format: #{e.message}")
+      nil
+    rescue StandardError => e
+      add_error("Error parsing CSV: #{e.message}")
+      nil
     end
 
     private
@@ -75,7 +73,7 @@ module WorkflowParsers
       end
 
       step = {
-        id: row[:id] || row[:step_id],  # Allow explicit ID in CSV
+        id: row[:id] || row[:step_id], # Allow explicit ID in CSV
         type: step_type,
         title: row[:title] || row[:step_title] || "Step #{row_number}",
         description: row[:description] || row[:step_description] || ''

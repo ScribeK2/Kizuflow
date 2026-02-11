@@ -136,10 +136,8 @@ class StepResolver
         branch_condition = branch['condition'] || branch[:condition]
         branch_path = branch['path'] || branch[:path]
 
-        if branch_condition.present? && branch_path.present?
-          if evaluate_condition(branch_condition, results)
-            return resolve_path_reference(branch_path)
-          end
+        if branch_condition.present? && branch_path.present? && evaluate_condition(branch_condition, results)
+          return resolve_path_reference(branch_path)
         end
       end
 
@@ -165,8 +163,6 @@ class StepResolver
     next_index = current_index + 1
     if next_index < @workflow.steps.length
       @workflow.steps[next_index]['id']
-    else
-      nil
     end
   end
 
@@ -181,15 +177,15 @@ class StepResolver
       next unless jump_condition.present? && jump_next_step_id.present?
 
       condition_result = case step['type']
-      when 'question'
-        # For questions, check if the answer matches the condition
-        current_answer = results[step['title']] || results[step['variable_name']]
-        current_answer.to_s == jump_condition.to_s
-      when 'action'
-        # For actions, check if action completed or custom condition
-        jump_condition == 'completed' || evaluate_condition(jump_condition, results)
-      else
-        evaluate_condition(jump_condition, results)
+                         when 'question'
+                           # For questions, check if the answer matches the condition
+                           current_answer = results[step['title']] || results[step['variable_name']]
+                           current_answer.to_s == jump_condition.to_s
+                         when 'action'
+                           # For actions, check if action completed or custom condition
+                           jump_condition == 'completed' || evaluate_condition(jump_condition, results)
+                         else
+                           evaluate_condition(jump_condition, results)
                          end
 
       return jump_next_step_id if condition_result
@@ -201,6 +197,7 @@ class StepResolver
   # Evaluate a condition string against results
   def evaluate_condition(condition, results)
     return false if condition.blank?
+
     ConditionEvaluator.evaluate(condition, results)
   end
 
@@ -209,8 +206,8 @@ class StepResolver
     return nil if reference.blank?
 
     # First try as UUID
-    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-      return reference if @workflow.find_step_by_id(reference)
+    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && @workflow.find_step_by_id(reference)
+      return reference
     end
 
     # Try as title
@@ -221,6 +218,7 @@ class StepResolver
   # Get step ID at a given index
   def step_id_at_index(index)
     return nil unless @workflow.steps && index < @workflow.steps.length
+
     @workflow.steps[index]['id']
   end
 end

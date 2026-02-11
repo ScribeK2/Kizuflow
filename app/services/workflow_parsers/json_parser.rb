@@ -5,57 +5,55 @@ require 'json'
 module WorkflowParsers
   class JsonParser < BaseParser
     def parse
-      
-        data = JSON.parse(@file_content)
+      data = JSON.parse(@file_content)
 
-        # Handle both direct workflow objects and wrapped formats
-        workflow_data = if data['workflow']
-                          data['workflow']
-                        elsif data['title'] || data['steps']
-                          data
-                        else
-                          add_error("Invalid JSON structure: expected workflow object with 'title' and 'steps'")
-                          return nil
-                        end
+      # Handle both direct workflow objects and wrapped formats
+      workflow_data = if data['workflow']
+                        data['workflow']
+                      elsif data['title'] || data['steps']
+                        data
+                      else
+                        add_error("Invalid JSON structure: expected workflow object with 'title' and 'steps'")
+                        return nil
+                      end
 
-        # Extract core fields
-        title = workflow_data['title'] || workflow_data[:title]
-        description = workflow_data['description'] || workflow_data[:description] || ''
-        steps = workflow_data['steps'] || workflow_data[:steps] || []
+      # Extract core fields
+      title = workflow_data['title'] || workflow_data[:title]
+      description = workflow_data['description'] || workflow_data[:description] || ''
+      steps = workflow_data['steps'] || workflow_data[:steps] || []
 
-        # Extract Graph Mode fields (new in version 2.0)
-        graph_mode = workflow_data['graph_mode']
-        start_node_uuid = workflow_data['start_node_uuid']
+      # Extract Graph Mode fields (new in version 2.0)
+      graph_mode = workflow_data['graph_mode']
+      start_node_uuid = workflow_data['start_node_uuid']
 
-        if title.blank?
-          add_error("Workflow title is required")
-          return nil
-        end
+      if title.blank?
+        add_error("Workflow title is required")
+        return nil
+      end
 
-        unless steps.is_a?(Array)
-          add_error("Steps must be an array")
-          return nil
-        end
+      unless steps.is_a?(Array)
+        add_error("Steps must be an array")
+        return nil
+      end
 
-        # Normalize step keys and preserve graph-specific fields
-        normalized_steps = normalize_json_steps(steps)
+      # Normalize step keys and preserve graph-specific fields
+      normalized_steps = normalize_json_steps(steps)
 
-        parsed_data = {
-          title: title,
-          description: description,
-          graph_mode: graph_mode,
-          start_node_uuid: start_node_uuid,
-          steps: normalized_steps
-        }
+      parsed_data = {
+        title: title,
+        description: description,
+        graph_mode: graph_mode,
+        start_node_uuid: start_node_uuid,
+        steps: normalized_steps
+      }
 
-        to_workflow_data(parsed_data)
-      rescue JSON::ParserError => e
-        add_error("Invalid JSON format: #{e.message}")
-        nil
-      rescue => e
-        add_error("Error parsing JSON: #{e.message}")
-        nil
-      
+      to_workflow_data(parsed_data)
+    rescue JSON::ParserError => e
+      add_error("Invalid JSON format: #{e.message}")
+      nil
+    rescue StandardError => e
+      add_error("Error parsing JSON: #{e.message}")
+      nil
     end
 
     private

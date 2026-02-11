@@ -54,14 +54,14 @@ class GraphValidator
     path = []
 
     @steps.each_key do |uuid|
-      if colors[uuid] == :white
-        cycle = detect_cycle_dfs(uuid, colors, path)
-        if cycle
-          cycle_path = cycle.map { |id| step_title(id) }.join(' -> ')
-          @errors << "Cycle detected: #{cycle_path}"
-          return # Stop at first cycle found
-        end
-      end
+      next unless colors[uuid] == :white
+
+      cycle = detect_cycle_dfs(uuid, colors, path)
+      next unless cycle
+
+      cycle_path = cycle.map { |id| step_title(id) }.join(' -> ')
+      @errors << "Cycle detected: #{cycle_path}"
+      return # Stop at first cycle found
     end
   end
 

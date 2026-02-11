@@ -37,7 +37,7 @@ module WorkflowParsers
 
       # Detect if input is already in graph format or needs conversion
       is_graph_format = detect_graph_format(steps)
-      graph_mode = parsed_data[:graph_mode] == true || is_graph_format
+      parsed_data[:graph_mode] == true || is_graph_format
 
       # Ensure all steps have UUIDs
       ensure_step_uuids(steps)
@@ -86,6 +86,7 @@ module WorkflowParsers
 
       steps.each do |step|
         next unless step.is_a?(Hash)
+
         step['id'] ||= SecureRandom.uuid
       end
     end
@@ -204,16 +205,16 @@ module WorkflowParsers
           condition = jump['condition'] || jump[:condition]
           next_step_id = jump['next_step_id'] || jump[:next_step_id]
 
-          if next_step_id.present?
-            target_uuid = resolve_path_to_uuid(next_step_id, title_to_id)
-            if target_uuid
-              transitions << {
-                'target_uuid' => target_uuid,
-                'condition' => condition.presence,
-                'label' => condition.present? ? "Jump: #{condition}" : nil
-              }
-            end
-          end
+          next unless next_step_id.present?
+
+          target_uuid = resolve_path_to_uuid(next_step_id, title_to_id)
+          next unless target_uuid
+
+          transitions << {
+            'target_uuid' => target_uuid,
+            'condition' => condition.presence,
+            'label' => condition.present? ? "Jump: #{condition}" : nil
+          }
         end
       end
 
@@ -238,8 +239,8 @@ module WorkflowParsers
       return nil if path.blank?
 
       # Already a UUID?
-      if path.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-        return path if title_to_id.values.include?(path)
+      if path.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && title_to_id.values.include?(path)
+        return path
       end
 
       # Direct title match
@@ -423,6 +424,7 @@ module WorkflowParsers
 
       transitions.map do |t|
         next nil unless t.is_a?(Hash)
+
         {
           'target_uuid' => t['target_uuid'] || t[:target_uuid],
           'condition' => t['condition'] || t[:condition],
@@ -433,6 +435,7 @@ module WorkflowParsers
 
     def normalize_options(options)
       return [] unless options.is_a?(Array)
+
       options.map do |opt|
         if opt.is_a?(Hash)
           {
@@ -447,6 +450,7 @@ module WorkflowParsers
 
     def normalize_branches(branches)
       return [] unless branches.is_a?(Array)
+
       branches.map do |branch|
         {
           'condition' => branch[:condition] || branch['condition'] || '',
@@ -511,20 +515,20 @@ module WorkflowParsers
       step_titles = normalized_steps.map { |s| s['title'] }.compact
 
       normalized_steps.each do |step|
-        if step['type'] == 'decision' && step['branches'].present?
-          step['branches'].each do |branch|
-            if branch['path'].present? && !step_titles.include?(branch['path'])
-              step['_import_incomplete'] = true
-              step['_import_errors'] ||= []
-              step['_import_errors'] << "Branch references non-existent step: #{branch['path']}"
-            end
-          end
-          if step['else_path'].present? && !step_titles.include?(step['else_path'])
-            step['_import_incomplete'] = true
-            step['_import_errors'] ||= []
-            step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
-          end
+        next unless step['type'] == 'decision' && step['branches'].present?
+
+        step['branches'].each do |branch|
+          next unless branch['path'].present? && !step_titles.include?(branch['path'])
+
+          step['_import_incomplete'] = true
+          step['_import_errors'] ||= []
+          step['_import_errors'] << "Branch references non-existent step: #{branch['path']}"
         end
+        next unless step['else_path'].present? && !step_titles.include?(step['else_path'])
+
+        step['_import_incomplete'] = true
+        step['_import_errors'] ||= []
+        step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
       end
     end
 
@@ -562,13 +566,13 @@ module WorkflowParsers
         end
 
         # Also map if title starts with "Step X"
-        if step_title.match(/^Step\s+(\d+)/i)
-          step_num_from_title = $1.to_i
-          step_title_map["Step #{step_num_from_title}"] = step_title
-          step_title_map["step #{step_num_from_title}"] = step_title
-          step_id_map["Step #{step_num_from_title}"] = step_id if step_id
-          step_id_map["step #{step_num_from_title}"] = step_id if step_id
-        end
+        next unless step_title =~ /^Step\s+(\d+)/i
+
+        step_num_from_title = ::Regexp.last_match(1).to_i
+        step_title_map["Step #{step_num_from_title}"] = step_title
+        step_title_map["step #{step_num_from_title}"] = step_title
+        step_id_map["Step #{step_num_from_title}"] = step_id if step_id
+        step_id_map["step #{step_num_from_title}"] = step_id if step_id
       end
 
       # Resolve references in each step
@@ -630,8 +634,8 @@ module WorkflowParsers
       return title_to_id[ref.strip] if title_to_id.key?(ref.strip)
 
       # Extract step number from "Go to Step X" patterns
-      if ref.match(/step\s+(\d+)/i)
-        step_num = $1.to_i
+      if ref =~ /step\s+(\d+)/i
+        step_num = ::Regexp.last_match(1).to_i
         if step_num > 0 && step_num <= normalized_steps.length
           return step_id_map["Step #{step_num}"]
         end
@@ -660,8 +664,8 @@ module WorkflowParsers
       return step_title_map[path.strip] if step_title_map.key?(path.strip)
 
       # Extract step number from "Go to Step X" patterns
-      if path.match(/step\s+(\d+)/i)
-        step_num = $1.to_i
+      if path =~ /step\s+(\d+)/i
+        step_num = ::Regexp.last_match(1).to_i
         if step_num > 0 && step_num <= normalized_steps.length
           return step_title_map["Step #{step_num}"]
         end

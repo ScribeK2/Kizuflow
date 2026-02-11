@@ -50,8 +50,6 @@ class WorkflowGraphConverter
     # Validate the converted graph
     if validate_converted_graph(steps)
       steps
-    else
-      nil
     end
   end
 
@@ -220,13 +218,13 @@ class WorkflowGraphConverter
         condition = jump['condition'] || jump[:condition]
         next_step_id = jump['next_step_id'] || jump[:next_step_id]
 
-        if next_step_id.present?
-          step['transitions'] << {
-            'target_uuid' => next_step_id,
-            'condition' => condition,
-            'label' => "Jump: #{condition}"
-          }
-        end
+        next unless next_step_id.present?
+
+        step['transitions'] << {
+          'target_uuid' => next_step_id,
+          'condition' => condition,
+          'label' => "Jump: #{condition}"
+        }
       end
     end
 
@@ -252,8 +250,8 @@ class WorkflowGraphConverter
     return nil if path.blank?
 
     # Check if it's already a UUID
-    if path.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-      return path if step_id_to_index.key?(path)
+    if path.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && step_id_to_index.key?(path)
+      return path
     end
 
     # Search by title
