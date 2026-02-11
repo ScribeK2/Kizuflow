@@ -15,7 +15,7 @@ class Group < ApplicationRecord
   # Scopes
   scope :roots, -> { where(parent_id: nil) }
   scope :children_of, ->(parent) { where(parent_id: parent.id) }
-  scope :visible_to, ->(user) {
+  scope :visible_to, lambda { |user|
     return all if user&.admin?
     return Group.none unless user
 
@@ -48,6 +48,7 @@ class Group < ApplicationRecord
   # Uses recursive traversal up the tree to count levels
   def depth
     return 0 if root?
+
     parent.depth + 1
   end
 
@@ -56,6 +57,7 @@ class Group < ApplicationRecord
   # Example: If hierarchy is Root > Parent > Child, Child.ancestors returns [Parent, Root]
   def ancestors
     return [] if root?
+
     [parent] + parent.ancestors
   end
 
@@ -83,7 +85,11 @@ class Group < ApplicationRecord
     return [] if parent_ids.blank?
 
     # Sanitize parent_ids to ensure they're all integers and valid
-    sanitized_parent_ids = parent_ids.map { |id| Integer(id) rescue nil }.compact.uniq
+    sanitized_parent_ids = parent_ids.map do |id|
+      Integer(id)
+    rescue StandardError
+      nil
+    end.compact.uniq
     return [] if sanitized_parent_ids.blank?
 
     if connection.adapter_name.downcase.include?('postgresql')
@@ -111,6 +117,7 @@ class Group < ApplicationRecord
       10.times do
         child_ids = Group.where(parent_id: current_level_ids).pluck(:id)
         break if child_ids.empty?
+
         all_descendant_ids.concat(child_ids)
         current_level_ids = child_ids
       end
@@ -159,6 +166,7 @@ class Group < ApplicationRecord
   def can_be_viewed_by?(user)
     return true if user&.admin?
     return false unless user
+
     user.groups.include?(self) || ancestors.any? { |ancestor| user.groups.include?(ancestor) }
   end
 
