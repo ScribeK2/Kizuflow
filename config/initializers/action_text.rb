@@ -7,4 +7,3 @@
 #   self.attachment_path = "attachments/"
 #   self.attachment_image_tag = "image.jpg"
 # end
-

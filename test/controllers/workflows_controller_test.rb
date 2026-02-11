@@ -148,7 +148,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /Workflows/
     # Verify editor sees their workflow
     assert_match @workflow.title, response.body
-    
+
     # User should see only public workflows
     sign_in @user
     get workflows_path
@@ -317,21 +317,21 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     group = Group.create!(name: "Test Group")
     workflow_in_group = Workflow.create!(title: "In Group", user: @editor)
     workflow_outside = Workflow.create!(title: "Outside Exclusive", user: @editor)
-    
+
     # Remove Uncategorized assignments and assign to specific groups
     workflow_in_group.group_workflows.destroy_all
     workflow_outside.group_workflows.destroy_all
-    
+
     # Assign one to the test group
     GroupWorkflow.create!(group: group, workflow: workflow_in_group, is_primary: true)
-    
+
     # Assign the other to Uncategorized explicitly (simulating manual assignment)
     uncategorized = Group.uncategorized
     GroupWorkflow.create!(group: uncategorized, workflow: workflow_outside, is_primary: true)
-    
+
     # Give user access to the test group
     UserGroup.create!(user: @editor, group: group)
-    
+
     sign_in @editor
     get workflows_path, params: { group_id: group.id }
     assert_response :success
@@ -344,7 +344,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     group = Group.create!(name: "Test Group")
     workflow1 = Workflow.create!(title: "Workflow 1", user: @editor)
     workflow2 = Workflow.create!(title: "Workflow 2", user: @editor)
-    
+
     sign_in @editor
     get workflows_path
     assert_response :success
@@ -354,7 +354,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create workflow with group assignment" do
     group = Group.create!(name: "Test Group")
-    
+
     sign_in @editor
     assert_difference("Workflow.count", 1) do
       # GroupWorkflow count increases by 1 for explicit group + possibly Uncategorized auto-assignment
@@ -372,7 +372,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    
+
     workflow = Workflow.last
     assert_includes workflow.groups.map(&:id), group.id
     assert workflow.group_workflows.find_by(group: group).is_primary?
@@ -381,11 +381,11 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should update workflow with group assignment" do
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
-    
+
     # Remove Uncategorized assignment
     @workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: group1, workflow: @workflow, is_primary: true)
-    
+
     sign_in @editor
     patch workflow_path(@workflow), params: {
       workflow: {
@@ -393,7 +393,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
         group_ids: [group2.id]
       }
     }
-    
+
     @workflow.reload
     assert_not_includes @workflow.groups.map(&:id), group1.id
     assert_includes @workflow.groups.map(&:id), group2.id
@@ -407,19 +407,19 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     )
     accessible_group = Group.create!(name: "Accessible")
     inaccessible_group = Group.create!(name: "Inaccessible")
-    
+
     workflow1 = Workflow.create!(title: "Accessible Workflow", user: @editor, is_public: false)
     workflow2 = Workflow.create!(title: "Inaccessible Workflow", user: @editor, is_public: false)
-    
+
     # Remove Uncategorized assignments
     workflow1.group_workflows.destroy_all
     workflow2.group_workflows.destroy_all
-    
+
     GroupWorkflow.create!(group: accessible_group, workflow: workflow1, is_primary: true)
     GroupWorkflow.create!(group: inaccessible_group, workflow: workflow2, is_primary: true)
-    
+
     UserGroup.create!(group: accessible_group, user: user)
-    
+
     sign_in user
     get workflows_path
     assert_response :success
@@ -430,9 +430,9 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should show accessible groups in sidebar" do
     accessible_group = Group.create!(name: "Accessible")
     inaccessible_group = Group.create!(name: "Inaccessible")
-    
+
     UserGroup.create!(group: accessible_group, user: @editor)
-    
+
     sign_in @editor
     get workflows_path
     assert_response :success
@@ -443,7 +443,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should see all groups in sidebar" do
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
-    
+
     sign_in @admin
     get workflows_path
     assert_response :success
@@ -451,4 +451,3 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Group 2", response.body
   end
 end
-

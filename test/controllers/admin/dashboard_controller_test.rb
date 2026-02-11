@@ -53,4 +53,3 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /Admin Dashboard/
   end
 end
-

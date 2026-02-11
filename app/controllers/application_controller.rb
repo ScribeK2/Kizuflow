@@ -6,22 +6,22 @@ class ApplicationController < ActionController::Base
   before_action :set_sentry_context
 
   layout :resolve_layout
-  
+
   # Devise redirect methods
   def after_sign_in_path_for(resource)
     root_path
   end
-  
+
   def after_sign_up_path_for(resource)
     root_path
   end
-  
+
   def after_sign_out_path_for(resource_or_scope)
     new_user_session_path
   end
 
   # Authorization methods
-  
+
   # Ensure user is an admin
   def ensure_admin!
     unless current_user&.admin?
@@ -91,4 +91,3 @@ class ApplicationController < ActionController::Base
     )
   end
 end
-

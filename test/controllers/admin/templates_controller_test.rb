@@ -60,4 +60,3 @@ class Admin::TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_templates_path
   end
 end
-

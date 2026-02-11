@@ -16,4 +16,3 @@
 # If you're including raw json in an HTML page, then you should
 # #json_escape it or the raw entity might cause XSS issues.
 # ActiveSupport.escape_html_entities_in_json = false
-

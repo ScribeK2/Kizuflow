@@ -87,4 +87,3 @@ class TemplatesController < ApplicationController
     steps
   end
 end
-

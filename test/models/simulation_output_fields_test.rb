@@ -39,7 +39,7 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
 
     simulation.process_step
     simulation.save!
-    
+
     assert_equal "completed", simulation.results["status"]
     assert_equal "high", simulation.results["priority"]
   end
@@ -80,11 +80,11 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
     # Answer question first
     simulation.process_step("alice")
     simulation.save!
-    
+
     # Process action step
     simulation.process_step
     simulation.save!
-    
+
     # Check interpolated output field
     assert_equal "alice@example.com", simulation.results["email"]
   end
@@ -126,10 +126,10 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
 
     simulation.process_step("Bob")
     simulation.save!
-    
+
     simulation.process_step
     simulation.save!
-    
+
     assert_equal "static_value", simulation.results["static_var"]
     assert_equal "Hello Bob", simulation.results["interpolated_var"]
     assert_equal "Bob_123", simulation.results["mixed_var"]
@@ -163,7 +163,7 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
 
     simulation.process_step
     simulation.save!
-    
+
     # Missing variable should be left as-is
     assert_equal "{{missing_var}}", simulation.results["result"]
   end
@@ -195,7 +195,7 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
       simulation.process_step
       simulation.save!
     end
-    
+
     # Should still mark action as executed
     assert_equal "Action executed", simulation.results["Simple Action"]
   end
@@ -261,11 +261,11 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
     # Process first action
     simulation.process_step
     simulation.save!
-    
+
     # Process second action (should interpolate from first)
     simulation.process_step
     simulation.save!
-    
+
     assert_equal "first_value", simulation.results["first_var"]
     assert_equal "first_value_second", simulation.results["second_var"]
   end

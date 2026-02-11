@@ -53,7 +53,7 @@ class SimulationTest < ActiveSupport::TestCase
       user: @user,
       inputs: { "Question 1" => "John Doe" }
     )
-    
+
     assert simulation.execute
     assert simulation.execution_path.present?
     assert simulation.results.present?
@@ -66,7 +66,7 @@ class SimulationTest < ActiveSupport::TestCase
       user: @user,
       inputs: { "Question 1" => "John Doe" }
     )
-    
+
     simulation.execute
     assert simulation.execution_path.is_a?(Array)
     assert simulation.execution_path.first["step_title"].present?
@@ -78,9 +78,8 @@ class SimulationTest < ActiveSupport::TestCase
       user: @user,
       inputs: { "Question 1" => "John Doe" }
     )
-    
+
     simulation.execute
     assert simulation.results.is_a?(Hash)
   end
 end
-

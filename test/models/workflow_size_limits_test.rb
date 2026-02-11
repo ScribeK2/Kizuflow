@@ -37,7 +37,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
 
   test "step with title exceeding MAX_STEP_TITLE_LENGTH is rejected" do
     long_title = "A" * (Workflow::MAX_STEP_TITLE_LENGTH + 1)
-    
+
     workflow = Workflow.new(
       title: "Long Title Step",
       user: @user,
@@ -51,7 +51,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
   test "step with content exceeding MAX_STEP_CONTENT_LENGTH is rejected" do
     # Create content larger than 50KB
     large_content = "A" * (Workflow::MAX_STEP_CONTENT_LENGTH + 1)
-    
+
     workflow = Workflow.new(
       title: "Large Content Step",
       user: @user,
@@ -64,7 +64,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
 
   test "step with too many options is rejected" do
     many_options = 101.times.map { |i| { "label" => "Option #{i}", "value" => "opt_#{i}" } }
-    
+
     workflow = Workflow.new(
       title: "Too Many Options",
       user: @user,
@@ -83,7 +83,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
 
   test "step with too many branches is rejected" do
     many_branches = 51.times.map { |i| { "condition" => "var == '#{i}'", "path" => "Step #{i}" } }
-    
+
     workflow = Workflow.new(
       title: "Too Many Branches",
       user: @user,
@@ -100,7 +100,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
 
   test "workflow title exceeding 255 characters is rejected" do
     long_title = "A" * 256
-    
+
     workflow = Workflow.new(
       title: long_title,
       user: @user,
@@ -145,7 +145,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
   test "constants are accessible and reasonable" do
     assert Workflow::MAX_STEPS >= 100, "MAX_STEPS should allow at least 100 steps"
     assert Workflow::MAX_STEPS <= 500, "MAX_STEPS should not exceed 500"
-    
+
     assert Workflow::MAX_STEP_TITLE_LENGTH >= 200, "Title limit should allow reasonable titles"
     assert Workflow::MAX_STEP_CONTENT_LENGTH >= 10_000, "Content limit should allow detailed instructions"
     assert Workflow::MAX_TOTAL_STEPS_SIZE >= 1_000_000, "Total size should allow at least 1MB"

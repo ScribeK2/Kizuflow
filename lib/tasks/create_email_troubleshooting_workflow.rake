@@ -8,10 +8,10 @@ namespace :workflows do
     # Covers: Apple Mail, Gmail, Microsoft Outlook
     # Platforms: Android, iOS, Windows, macOS, Web Browsers
     # Protocols: IMAP, POP, Exchange
-    # 
+    #
     # IMPORTANT: Steps are ordered so each branch's steps are CONTIGUOUS.
     # This ensures proper flow after decision steps route to different paths.
-    # 
+    #
     # Research Sources (as of January 2026):
     # - Apple Support: support.apple.com/kb/ht5361
     # - Gmail: Gmail discontinued POP "Check mail from other accounts" (Jan 2026)
@@ -21,14 +21,14 @@ namespace :workflows do
 
     user_email = ENV['USER_EMAIL'] || nil
     user = user_email ? User.find_by(email: user_email) : User.first
-    
+
     if user.nil?
       puts "❌ Error: No user found."
       puts "   Set USER_EMAIL environment variable: USER_EMAIL=your@email.com rails workflows:create_email_troubleshooting"
       puts "   Or ensure at least one user exists in the database."
       exit 1
     end
-    
+
     puts "🚀 Creating Ultimate External Email Client Troubleshooting Workflow"
     puts "   User: #{user.email}"
     puts ""
@@ -40,14 +40,14 @@ namespace :workflows do
     workflow.description = <<~DESC
       <h2>📧 Ultimate External Email Client Troubleshooting Guide</h2>
       <p><strong>A comprehensive workflow for setting up and troubleshooting external email accounts across all major clients and devices.</strong></p>
-      
+
       <h3>Supported Email Clients:</h3>
       <ul>
         <li>🍎 <strong>Apple Mail</strong> (iOS, macOS)</li>
         <li>📱 <strong>Gmail App & Web</strong> (Android, iOS, Chrome, Safari)</li>
         <li>💼 <strong>Microsoft Outlook</strong> (Windows, macOS, iOS, Android, Web)</li>
       </ul>
-      
+
       <h3>Protocol Support:</h3>
       <ul>
         <li>IMAP (Port 993 SSL/TLS) - Recommended</li>
@@ -55,14 +55,14 @@ namespace :workflows do
         <li>Exchange (ActiveSync/EWS)</li>
         <li>SMTP (Port 465 SSL or 587 STARTTLS)</li>
       </ul>
-      
+
       <h3>Key 2026 Updates:</h3>
       <ul>
         <li>⚠️ Gmail discontinued POP "Check mail from other accounts" feature</li>
         <li>⚠️ Microsoft deprecated Basic Authentication - OAuth 2.0 required</li>
         <li>⚠️ Two-factor authentication may require app-specific passwords</li>
       </ul>
-      
+
       <p><em>This workflow demonstrates Kizuflow's ability to handle complex, multi-branching troubleshooting scenarios with 55+ detailed steps.</em></p>
     DESC
 
@@ -80,24 +80,24 @@ namespace :workflows do
           # Welcome to the Ultimate Email Troubleshooting Guide! 📧
 
           This workflow will guide you through:
-          
+
           1. **Basic Setup** - Adding your external email account to your preferred client
           2. **Server Configuration** - IMAP/POP/SMTP settings with correct ports
           3. **Authentication** - Password, OAuth, and 2FA setup
           4. **Troubleshooting** - Common issues and their solutions
-          
+
           ## Before We Begin
-          
+
           Please have the following information ready:
           - Your email address
           - Your email password
           - Your email provider's server addresses (if known)
-          
+
           ## Important 2026 Updates
-          
+
           ⚠️ **Gmail Users**: Gmail no longer supports fetching from external accounts via POP in the web interface.
           ⚠️ **Microsoft/Outlook Users**: Basic Authentication is deprecated. OAuth 2.0 is now required.
-          
+
           Click **Next** when you're ready to begin.
         INST
       },
@@ -174,24 +174,24 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up Apple Mail on iOS (iPhone/iPad) 📱
-          
+
           ## Step 1: Open Settings
           1. Tap the **Settings** app on your home screen
           2. Scroll down and tap **Mail**
           3. Tap **Accounts**
           4. Tap **Add Account**
-          
+
           ## Step 2: Select Account Type
           1. If your provider is listed (Google, Yahoo, etc.), select it
           2. For custom domains or IMAP/POP, tap **Other**
           3. Tap **Add Mail Account**
-          
+
           ## Step 3: Enter Basic Information
           - **Name**: Your display name (e.g., John Smith)
           - **Email**: Your email address
           - **Password**: Your email password
           - **Description**: A label for this account (e.g., "Work Email")
-          
+
           Tap **Next** to continue to server configuration.
         INST
       },
@@ -204,23 +204,23 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # IMAP Configuration for iOS Mail 📥
-          
+
           ## Incoming Mail Server (IMAP)
           Enter these settings under **INCOMING MAIL SERVER**:
-          
+
           | Setting | Value |
           |---------|-------|
           | **Host Name** | imap.yourdomain.com (or mail.yourdomain.com) |
           | **User Name** | Your full email address |
           | **Password** | Your email password |
-          
+
           ## Advanced Settings (tap "Advanced")
           | Setting | Value |
           |---------|-------|
           | **Use SSL** | ✅ ON |
           | **Authentication** | Password |
           | **Server Port** | **993** |
-          
+
           ⚠️ **2026 Note**: If you see an authentication error, your provider may require OAuth. Check if your email provider supports "Sign in with Google/Microsoft" options.
         INST
       },
@@ -233,28 +233,28 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # SMTP Configuration for iOS Mail 📤
-          
+
           ## Outgoing Mail Server (SMTP)
           Enter these settings under **OUTGOING MAIL SERVER**:
-          
+
           | Setting | Value |
           |---------|-------|
           | **Host Name** | smtp.yourdomain.com |
           | **User Name** | Your full email address |
           | **Password** | Your email password |
-          
+
           ## Advanced SMTP Settings
           | Setting | Value |
           |---------|-------|
           | **Use SSL** | ✅ ON |
           | **Authentication** | Password |
           | **Server Port** | **465** (SSL) or **587** (STARTTLS) |
-          
+
           ## Verify Settings
           1. Tap **Next** to verify settings
           2. Wait for connection test to complete
           3. If successful, tap **Save**
-          
+
           💡 **Tip**: If port 465 doesn't work, try port 587 with STARTTLS enabled.
         INST
       },
@@ -280,27 +280,27 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up Apple Mail on macOS 💻
-          
+
           ## Step 1: Open Mail Application
           1. Open **Mail** from your Applications folder or Dock
           2. If Mail isn't set up, you'll see the account setup wizard
           3. If Mail is already running: **Mail** menu → **Add Account...**
-          
+
           ## Step 2: Select Account Type
           1. Choose **Other Mail Account...** for custom domains
           2. Or select your provider if listed (Google, Microsoft, Yahoo)
-          
+
           ## Step 3: Enter Account Details
           - **Name**: Your display name
           - **Email Address**: Your full email address
           - **Password**: Your email password
-          
+
           Click **Sign In** and wait for automatic configuration.
-          
+
           ## Step 4: If Automatic Setup Fails
           macOS will prompt for manual settings if automatic detection fails.
           Continue to the next step for manual IMAP configuration.
-          
+
           ⚠️ **2026 Update**: Apple Mail has known issues with Outlook/Microsoft 365 accounts after recent updates. If authentication fails repeatedly, try removing and re-adding the account.
         INST
       },
@@ -313,7 +313,7 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Manual Server Configuration for macOS Mail ⚙️
-          
+
           ## Incoming Mail Server (IMAP)
           | Setting | Value |
           |---------|-------|
@@ -323,7 +323,7 @@ namespace :workflows do
           | **Port** | **993** |
           | **TLS/SSL** | ✅ Enabled |
           | **Authentication** | Password |
-          
+
           ## Outgoing Mail Server (SMTP)
           | Setting | Value |
           |---------|-------|
@@ -333,7 +333,7 @@ namespace :workflows do
           | **Port** | **465** (SSL) or **587** (STARTTLS) |
           | **TLS/SSL** | ✅ Enabled |
           | **Authentication** | Password |
-          
+
           ## Troubleshooting Tips for macOS
           1. **Certificate errors**: System Preferences → Date & Time → Ensure correct date/time
           2. **Keychain issues**: Open Keychain Access, search for your email, delete old entries
@@ -397,27 +397,27 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up External Email in Gmail App (Android) 🤖
-          
+
           ## Step 1: Open Gmail App
           1. Open the **Gmail** app on your Android device
           2. Tap your **profile picture** or initial in the top right
           3. Tap **Add another account**
-          
+
           ## Step 2: Choose Account Type
           1. Select **Other** for external IMAP/POP accounts
           2. For Microsoft accounts, you can try **Outlook, Hotmail, and Live**
-          
+
           ## Step 3: Enter Email Address
           1. Enter your email address
           2. Tap **Next**
           3. Select **Personal (IMAP)** when prompted for account type
-          
+
           ## Android Permissions Required
           ⚠️ Gmail may request the following permissions:
           - **Contacts**: To suggest recipients
           - **Storage**: For attachment handling
           - **Notifications**: For new mail alerts
-          
+
           Grant these permissions for full functionality.
         INST
       },
@@ -430,7 +430,7 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # IMAP Configuration for Gmail Android 📱
-          
+
           ## Incoming Server Settings
           | Setting | Value |
           |---------|-------|
@@ -439,7 +439,7 @@ namespace :workflows do
           | **Server** | imap.yourdomain.com |
           | **Port** | **993** |
           | **Security Type** | **SSL/TLS** |
-          
+
           ## Outgoing Server Settings (SMTP)
           | Setting | Value |
           |---------|-------|
@@ -449,12 +449,12 @@ namespace :workflows do
           | **Require sign-in** | ✅ Yes |
           | **Username** | Your full email address |
           | **Password** | Your email password |
-          
+
           ## Account Options
           - **Sync frequency**: Every 15 minutes (recommended)
           - **Notify me when email arrives**: ✅ Enabled
           - **Sync email from this account**: ✅ Enabled
-          
+
           ⚠️ **2026 Note**: Gmail no longer supports POP "Check mail from other accounts" in web interface. Use the Gmail app for external account access.
         INST
       },
@@ -480,23 +480,23 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up External Email in Gmail App (iOS) 📱
-          
+
           ## Step 1: Install/Open Gmail
           1. Download **Gmail** from the App Store if not installed
           2. Open the Gmail app
           3. Tap your profile picture in the top right
           4. Tap **Add another account**
-          
+
           ## Step 2: Select Account Type
           1. Tap **Other (IMAP)** for external accounts
           2. Note: Gmail iOS supports adding external IMAP accounts
-          
+
           ## Step 3: Enter Credentials
           1. Email: Your full email address
           2. Tap **Next**
           3. Enter your password
           4. Select **IMAP** as the account type
-          
+
           ## iOS Privacy Settings
           ⚠️ Check these iOS settings if you have issues:
           - **Settings** → **Privacy & Security** → **Local Network** → Gmail: ✅ ON
@@ -513,7 +513,7 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Server Configuration for Gmail iOS 📧
-          
+
           ## IMAP (Incoming) Settings
           | Setting | Value |
           |---------|-------|
@@ -521,7 +521,7 @@ namespace :workflows do
           | **Port** | **993** |
           | **Security** | **SSL** |
           | **Username** | Your full email address |
-          
+
           ## SMTP (Outgoing) Settings
           | Setting | Value |
           |---------|-------|
@@ -530,7 +530,7 @@ namespace :workflows do
           | **Security** | **SSL/TLS** |
           | **Username** | Your full email address |
           | **Authentication** | ✅ Required |
-          
+
           ## Finishing Setup
           1. Tap **Next** to verify settings
           2. Choose what to sync (Mail, Contacts, Calendars, Notes)
@@ -559,19 +559,19 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Gmail Web Interface - External Email Setup 🌐
-          
+
           ## ⚠️ Important 2026 Update
           **Gmail has discontinued the "Check mail from other accounts (using POP3)" feature as of January 2026.**
-          
+
           ## Alternative Options:
-          
+
           ### Option 1: Email Forwarding (Recommended)
           Set up forwarding from your external email to Gmail:
           1. Log into your external email provider's web interface
           2. Find **Forwarding** or **Mail forwarding** settings
           3. Add your Gmail address as a forwarding destination
           4. Verify the forwarding address
-          
+
           ### Option 2: Send Mail As
           You can still send email as your external address from Gmail:
           1. Go to Gmail → **Settings** ⚙️ → **See all settings**
@@ -584,7 +584,7 @@ namespace :workflows do
              - **Port**: **587** (with TLS) or **465** (with SSL)
              - **Username**: Your full email address
              - **Password**: Your email password
-          
+
           ### Option 3: Use Gmail Mobile App
           The Gmail mobile app (Android/iOS) still supports adding external IMAP accounts directly.
         INST
@@ -650,23 +650,23 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up External Email in Outlook for Windows 🖥️
-          
+
           ## Step 1: Open Account Settings
           1. Open **Microsoft Outlook**
           2. Click **File** in the top menu
           3. Click **Add Account**
-          
+
           ## Step 2: Enter Email Address
           1. Enter your email address
           2. Click **Advanced options**
           3. ✅ Check **Let me set up my account manually**
           4. Click **Connect**
-          
+
           ## Step 3: Choose Account Type
           Select **IMAP** or **POP** based on your preference:
           - **IMAP**: Syncs emails across all devices (recommended)
           - **POP**: Downloads emails to this device only
-          
+
           ## ⚠️ 2026 Authentication Update
           Microsoft has deprecated Basic Authentication. If you see authentication errors:
           1. Your email provider may need to support **OAuth 2.0**
@@ -683,7 +683,7 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # IMAP Configuration for Outlook Windows ⚙️
-          
+
           ## Incoming Mail Settings
           | Setting | Value |
           |---------|-------|
@@ -691,7 +691,7 @@ namespace :workflows do
           | **Port** | **993** |
           | **Encryption method** | **SSL/TLS** |
           | **Require logon using SPA** | ❌ Unchecked (unless required) |
-          
+
           ## Outgoing Mail Settings
           | Setting | Value |
           |---------|-------|
@@ -700,13 +700,13 @@ namespace :workflows do
           | **Encryption method** | **SSL/TLS** (465) or **STARTTLS** (587) |
           | **Outgoing server requires authentication** | ✅ Checked |
           | **Use same settings as incoming** | ✅ Checked |
-          
+
           ## Click Connect
           1. Outlook will attempt to verify settings
           2. Enter your password when prompted
           3. If OAuth is supported, a browser window may open for authentication
           4. Click **Done** when setup completes
-          
+
           ## Sync Settings
           After setup, right-click the account → **Account Settings** to adjust:
           - Offline email duration (1 month, 3 months, 1 year, All)
@@ -735,23 +735,23 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up External Email in Outlook for Mac 💻
-          
+
           ## Step 1: Open Outlook
           1. Open **Microsoft Outlook** from Applications
           2. Go to **Outlook** menu → **Preferences**
           3. Click **Accounts**
           4. Click the **+** button → **New Account**
-          
+
           ## Step 2: Enter Email
           1. Enter your email address
           2. Click **Continue**
-          
+
           ## Step 3: Choose Provider/Type
           If automatic setup fails:
           1. Click **Not Exchange?**
           2. Select **IMAP/POP**
           3. Click **Continue**
-          
+
           ## Enter Server Information
           | Field | Value |
           |-------|-------|
@@ -765,7 +765,7 @@ namespace :workflows do
           | **SMTP Server** | smtp.yourdomain.com |
           | **Use SSL to connect** | ✅ Checked |
           | **SMTP Port** | **465** or **587** |
-          
+
           Click **Add Account** to complete.
         INST
       },
@@ -791,21 +791,21 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up External Email in Outlook for iOS 📱
-          
+
           ## Step 1: Install/Open Outlook
           1. Download **Microsoft Outlook** from the App Store
           2. Open the app
           3. Tap **Add Account** (or gear icon → **Add Account**)
-          
+
           ## Step 2: Add External Account
           1. Enter your email address
           2. Tap **Add Account**
           3. If automatic detection fails, tap **Setup Account Manually**
-          
+
           ## Step 3: Select IMAP
           1. Choose **IMAP** as the account type
           2. Enter the following settings:
-          
+
           | Field | Value |
           |-------|-------|
           | **IMAP Host Name** | imap.yourdomain.com |
@@ -815,7 +815,7 @@ namespace :workflows do
           | **SMTP Host Name** | smtp.yourdomain.com |
           | **SMTP Port** | **465** or **587** |
           | **SMTP Security** | **SSL/TLS** or **STARTTLS** |
-          
+
           ## iOS Permissions
           Allow Outlook to:
           - Send notifications
@@ -845,20 +845,20 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Setting Up External Email in Outlook for Android 🤖
-          
+
           ## Step 1: Install/Open Outlook
           1. Download **Microsoft Outlook** from Google Play Store
           2. Open the app
           3. Tap **Add Account** or the hamburger menu → gear icon → **Add Account**
-          
+
           ## Step 2: Enter Email Address
           1. Type your email address
           2. Tap **Continue**
           3. If auto-detection fails, tap **Setup account manually**
-          
+
           ## Step 3: Configure IMAP
           Select **IMAP** and enter:
-          
+
           | Setting | Value |
           |---------|-------|
           | **Display Name** | Your name |
@@ -869,7 +869,7 @@ namespace :workflows do
           | **SMTP Host Name** | smtp.yourdomain.com |
           | **SMTP Username** | Your full email address |
           | **SMTP Password** | Your password |
-          
+
           ## Android Permissions
           Grant these permissions:
           - **Contacts**: For recipient suggestions
@@ -900,30 +900,30 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Outlook.com Web Interface 🌐
-          
+
           ## ⚠️ Important Limitation
           **Outlook.com (web interface) does not support adding external IMAP/POP email accounts directly.**
-          
+
           Outlook.com is designed for Microsoft accounts (outlook.com, hotmail.com, live.com).
-          
+
           ## Alternative Solutions:
-          
+
           ### Option 1: Use Outlook Desktop/Mobile App
           Download Outlook for Windows, Mac, iOS, or Android to add external IMAP accounts.
-          
+
           ### Option 2: Email Forwarding
           Set up forwarding from your external email to your Outlook.com address:
           1. Log into your external email provider
           2. Configure forwarding to your @outlook.com address
           3. In Outlook.com: Settings → **Mail** → **Sync email**
           4. Add your external address as a "Send from" address
-          
+
           ### Option 3: Connected Accounts (Limited)
           Some providers can be connected via:
           1. Outlook.com **Settings** ⚙️
           2. **Sync email**
           3. **Manage or choose a primary alias**
-          
+
           Note: This feature has limited provider support and may not work with all IMAP servers.
         INST
       },
@@ -951,24 +951,24 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Testing Your Email Setup 🧪
-          
+
           ## Test 1: Receiving Email
           1. Send a test email TO your configured address from another account
           2. Wait 1-2 minutes for sync
           3. Check if the email appears in your inbox
           4. If using IMAP, verify it syncs across devices
-          
+
           ## Test 2: Sending Email
           1. Compose a new email FROM your configured account
           2. Send to a different email address you have access to
           3. Verify the email is received
           4. Check the "Sent" folder to confirm it was saved
-          
+
           ## Test 3: Reply/Forward
           1. Reply to a received email
           2. Verify the reply thread is maintained
           3. Test forwarding an email with an attachment
-          
+
           ## Test 4: Folders/Labels
           1. Check that default folders appear (Inbox, Sent, Drafts, Trash)
           2. Create a test folder/label
@@ -1001,7 +1001,7 @@ namespace :workflows do
       # ============================================================================
       # SECTION: TROUBLESHOOTING PATHS
       # ============================================================================
-      
+
       {
         "id" => SecureRandom.uuid,
         "type" => "question",
@@ -1048,35 +1048,35 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting Authentication Errors 🔐
-          
+
           ## Common Causes:
           1. Incorrect password
           2. Wrong username format
           3. Account locked
           4. 2FA enabled without app password
           5. OAuth required (2026 update)
-          
+
           ## Solution Steps:
-          
+
           ### Step 1: Verify Password
           1. Try logging into your email provider's webmail
           2. If webmail works, the password is correct
           3. If webmail fails, reset your password
-          
+
           ### Step 2: Check Username Format
           - Use your **full email address** as username
           - Example: user@company.com (not just "user")
-          
+
           ### Step 3: Check Account Status
           - Log into your email provider's admin panel
           - Ensure the account is active and not locked
           - Check for any security alerts
-          
+
           ### Step 4: 2FA / App Passwords
           If Two-Factor Authentication is enabled:
           1. Generate an **App Password** from your provider's security settings
           2. Use the app password instead of your regular password
-          
+
           ### Step 5: OAuth / Modern Authentication (2026)
           If you see "OAuth required" or "Modern auth" errors:
           - Your provider may have disabled basic password auth
@@ -1106,23 +1106,23 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting Connection Timeout ⏱️
-          
+
           ## Common Causes:
           1. Incorrect server address
           2. Wrong port number
           3. Firewall blocking connection
           4. Network issues
           5. Server down
-          
+
           ## Solution Steps:
-          
+
           ### Step 1: Verify Server Address
           Common patterns:
           - IMAP: `imap.domain.com` or `mail.domain.com`
           - SMTP: `smtp.domain.com` or `mail.domain.com`
-          
+
           Contact your email provider for exact addresses.
-          
+
           ### Step 2: Verify Ports
           | Protocol | Port | Security |
           |----------|------|----------|
@@ -1130,17 +1130,17 @@ namespace :workflows do
           | POP3 | **995** | SSL/TLS |
           | SMTP | **465** | SSL |
           | SMTP | **587** | STARTTLS |
-          
+
           ### Step 3: Check Network Connection
           1. Ensure you have internet connectivity
           2. Try a different network (WiFi vs cellular)
           3. Disable VPN temporarily
-          
+
           ### Step 4: Firewall Check
           - Corporate firewalls may block email ports
           - Try connecting from a different network
           - Contact IT if on corporate network
-          
+
           ### Step 5: Server Status
           - Check if your email provider has a status page
           - Look for service outage announcements
@@ -1169,32 +1169,32 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting Certificate Errors 📜
-          
+
           ## Common Causes:
           1. Expired SSL certificate on server
           2. Self-signed certificate
           3. Certificate hostname mismatch
           4. Incorrect date/time on device
-          
+
           ## Solution Steps:
-          
+
           ### Step 1: Check Device Date/Time
           Incorrect date/time causes certificate validation failures:
           - **iOS**: Settings → General → Date & Time → Set Automatically
           - **Android**: Settings → System → Date & time → Automatic
           - **Windows**: Settings → Time & language → Set time automatically
           - **macOS**: System Preferences → Date & Time → Set automatically
-          
+
           ### Step 2: Try Different Server Address
           Some providers have multiple server addresses:
           - `mail.domain.com` vs `imap.domain.com`
           - `secure.domain.com` vs standard address
-          
+
           ### Step 3: Check Security Settings
           Ensure you're using the correct security type:
           - Port 993 requires **SSL/TLS** (not STARTTLS)
           - Port 587 requires **STARTTLS** (not SSL)
-          
+
           ### Step 4: Report to Provider
           If the certificate is genuinely expired:
           - Contact your email provider immediately
@@ -1223,31 +1223,31 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting Sync Problems 🔄
-          
+
           ## Common Causes:
           1. POP3 vs IMAP confusion
           2. Sync settings too restrictive
           3. Storage quota exceeded
           4. Corrupted local cache
-          
+
           ## Solution Steps:
-          
+
           ### Step 1: Verify Protocol (IMAP vs POP)
           - **IMAP**: Syncs across all devices (recommended)
           - **POP**: Downloads to one device, may delete from server
-          
+
           If using POP, emails won't appear on other devices.
-          
+
           ### Step 2: Check Sync Settings
           - **iOS**: Settings → Mail → Accounts → [Account] → Mail Days to Sync
           - **Android Gmail**: Settings → [Account] → Days of mail to sync
           - **Outlook**: Account Settings → Download email for: "All" or specific period
-          
+
           ### Step 3: Check Storage Quota
           1. Log into webmail
           2. Check your storage usage
           3. If over quota, delete old emails or upgrade storage
-          
+
           ### Step 4: Clear Local Cache
           - **iOS**: Remove and re-add account
           - **Android**: Settings → Apps → Gmail → Clear Cache
@@ -1276,7 +1276,7 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting Large Attachment Issues 📎
-          
+
           ## Common Attachment Limits:
           | Provider | Max Size |
           |----------|----------|
@@ -1284,24 +1284,24 @@ namespace :workflows do
           | Outlook.com | 20 MB |
           | Apple iCloud | 20 MB |
           | Most IMAP servers | 10-25 MB |
-          
+
           ## Solution Steps:
-          
+
           ### Step 1: Check Attachment Size
           - Ensure attachment is under the limit
           - Multiple attachments add up cumulatively
-          
+
           ### Step 2: Compress Files
           - **Windows**: Right-click → Send to → Compressed folder
           - **Mac**: Right-click → Compress
           - **Mobile**: Use a file manager app to zip files
-          
+
           ### Step 3: Use Cloud Sharing
           Instead of attaching large files:
           - **Google Drive**: Upload and share link
           - **OneDrive**: Upload and share link
           - **Dropbox**: Upload and share link
-          
+
           ### Step 4: Split Large Files
           For files larger than any limit:
           - Use file splitting software (7-Zip, WinRAR)
@@ -1330,21 +1330,21 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting OAuth / Modern Authentication 🔑
-          
+
           ## What is OAuth 2.0?
           OAuth is a secure authentication method that doesn't expose your password to the email client.
-          
+
           ## 2026 Authentication Changes:
           - **Microsoft**: Basic authentication disabled for IMAP/POP/SMTP
           - **Google**: Less secure app access removed; OAuth or App Passwords required
-          
+
           ## Solution Steps:
-          
+
           ### For Microsoft 365 / Outlook.com:
           1. Use the built-in "Microsoft" or "Outlook" account type in your email client
           2. This automatically uses OAuth
           3. A browser window will open for authentication
-          
+
           ### For Google / Gmail:
           1. Use the "Google" account type if available
           2. Or enable **2-Step Verification** and create an **App Password**:
@@ -1352,7 +1352,7 @@ namespace :workflows do
              - 2-Step Verification → App passwords
              - Generate a password for "Mail"
              - Use this 16-character password in your email client
-          
+
           ### For Other Providers:
           1. Check if your provider supports OAuth
           2. If not, use traditional password authentication
@@ -1381,12 +1381,12 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Troubleshooting 2FA & App Passwords 🔢
-          
+
           ## Why App Passwords?
           When 2FA is enabled, some email clients can't prompt for the second factor. App Passwords provide a workaround.
-          
+
           ## Creating App Passwords by Provider:
-          
+
           ### Google/Gmail:
           1. Go to **myaccount.google.com**
           2. **Security** → **2-Step Verification** (must be ON)
@@ -1394,19 +1394,19 @@ namespace :workflows do
           4. Select app: **Mail**, device: Your device type
           5. Click **Generate**
           6. Use the 16-character password in your email client
-          
+
           ### Microsoft/Outlook.com:
           1. Go to **account.microsoft.com**
           2. **Security** → **Advanced security options**
           3. **App passwords** → **Create a new app password**
           4. Copy and use the generated password
-          
+
           ### Apple iCloud:
           1. Go to **appleid.apple.com**
           2. **Sign-In and Security** → **App-Specific Passwords**
           3. Click **+** to generate
           4. Name it and copy the password
-          
+
           ## Important Notes:
           - App passwords are usually 16 characters, no spaces
           - Each app should have its own app password
@@ -1462,31 +1462,31 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Escalating to Technical Support 📞
-          
+
           ## When to Escalate:
           - Multiple troubleshooting attempts have failed
           - Error message indicates server-side issue
           - Account appears to be locked or suspended
           - Provider requires special configuration
-          
+
           ## Information to Collect Before Escalating:
           1. **Email client**: {client}
           2. **Device/Platform**: {device}
           3. **Exact error message** (screenshot if possible)
           4. **Steps already tried**
-          
+
           ## Support Contact Information:
-          
+
           ### For Email Provider Issues:
           - Contact your email provider's technical support
           - Check their status page for outages
           - Review their knowledge base
-          
+
           ### For Client Application Issues:
           - **Apple Mail**: support.apple.com
           - **Gmail**: support.google.com/mail
           - **Outlook**: support.microsoft.com
-          
+
           ### Internal IT Support:
           - Contact your organization's IT helpdesk
           - Provide all collected information above
@@ -1509,7 +1509,7 @@ namespace :workflows do
       # ============================================================================
       # SECTION: SUCCESS & WRAP-UP
       # ============================================================================
-      
+
       {
         "id" => SecureRandom.uuid,
         "type" => "action",
@@ -1518,28 +1518,28 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # 🎉 Email Setup Complete!
-          
+
           ## Congratulations!
           Your email account has been successfully configured.
-          
+
           ## What You've Accomplished:
           ✅ Email client configured: **{client}**
           ✅ Device/Platform: **{device}**
           ✅ Send and receive verified
-          
+
           ## Quick Tips for Ongoing Use:
-          
+
           ### Sync Settings
           - IMAP keeps emails synchronized across all devices
           - Changes made on one device appear on all others
           - Deleted emails move to trash (recoverable for 30 days typically)
-          
+
           ### Best Practices
           1. **Regular cleanup**: Archive or delete old emails periodically
           2. **Folder organization**: Create folders/labels for important topics
           3. **Signature**: Set up an email signature in your client settings
           4. **Notifications**: Configure notification settings to avoid overload
-          
+
           ### Security Reminders
           - Never share your password or app passwords
           - Enable 2FA on your email account if not already enabled
@@ -1556,43 +1556,43 @@ namespace :workflows do
         "action_type" => "instructions",
         "instructions" => <<~INST
           # Documentation & Wrap-up 📝
-          
+
           ## Session Summary
-          
+
           This workflow has guided you through:
           1. Selecting your email client and device
           2. Configuring server settings (IMAP/SMTP)
           3. Testing email functionality
           4. Troubleshooting any issues encountered
-          
+
           ## Common Server Settings Reference
-          
+
           | Protocol | Port | Security |
           |----------|------|----------|
           | IMAP | **993** | SSL/TLS |
           | POP3 | **995** | SSL/TLS |
           | SMTP | **465** | SSL |
           | SMTP | **587** | STARTTLS |
-          
+
           ## Need Help in the Future?
-          
+
           If you encounter issues later:
           1. Re-run this workflow
           2. Check your provider's status page
           3. Review the troubleshooting sections
           4. Contact technical support with the information above
-          
+
           ## Thank You!
-          
+
           Thank you for using the Ultimate External Email Client Troubleshooting workflow.
-          
+
           This workflow was designed to demonstrate Kizuflow's powerful features:
           - ✅ Multi-branch conditional logic
           - ✅ Variable-based personalization
           - ✅ 55+ detailed atomic steps
           - ✅ Comprehensive troubleshooting paths
           - ✅ User-friendly instructions
-          
+
           ---
           *Workflow created: January 2026*
           *Research sources: Apple Support, Google Support, Microsoft Learn, official documentation*

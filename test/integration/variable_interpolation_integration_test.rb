@@ -9,7 +9,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
       role: "editor"
     )
     sign_in @user
-    
+
     # Create workflow with variables for interpolation testing
     @workflow = Workflow.create!(
       title: "Interpolation Test Workflow",
@@ -66,15 +66,15 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     get step_simulation_path(simulation)
     assert_response :success
     assert_select "label", text: /What is your name\?/
-    
+
     # Answer first question
     simulation.process_step("John Doe")
     simulation.save!
-    
+
     # Now check second question with interpolation
     get step_simulation_path(simulation)
     assert_response :success
-    
+
     # Should show interpolated question text
     assert_select "label", text: /Hello John Doe, what is your issue\?/
   end
@@ -106,7 +106,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     get step_simulation_path(simulation)
     assert_response :success
-    
+
     # Check title is interpolated
     assert_select "h2", text: /Question for Alice/
     # Check description is interpolated
@@ -126,7 +126,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     get step_simulation_path(simulation)
     assert_response :success
-    
+
     # Should show interpolated instructions
     assert_select ".text-blue-800", text: /Send email to Bob about password reset/
   end
@@ -157,7 +157,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     get step_simulation_path(simulation)
     assert_response :success
-    
+
     # Check title and description are interpolated
     assert_select "h2", text: /Action for Charlie/
     assert_select "p", text: /Processing billing/
@@ -177,7 +177,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     # Process the action step
     simulation.process_step
     simulation.save!
-    
+
     # Check that output fields were stored
     assert_equal "resolved", simulation.results["status"]
     # Check that interpolated output field value was processed
@@ -213,7 +213,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     simulation.process_step
     simulation.save!
-    
+
     assert_equal "open", simulation.results["ticket_status"]
     assert_equal "high", simulation.results["priority"]
   end
@@ -254,11 +254,11 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     # Answer question first
     simulation.process_step("alice")
     simulation.save!
-    
+
     # Process action step
     simulation.process_step
     simulation.save!
-    
+
     # Check interpolated output field
     assert_equal "alice@example.com", simulation.results["email"]
   end
@@ -300,10 +300,10 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     simulation.process_step("Bob")
     simulation.save!
-    
+
     simulation.process_step
     simulation.save!
-    
+
     assert_equal "static_value", simulation.results["static_var"]
     assert_equal "Hello Bob", simulation.results["interpolated_var"]
     assert_equal "Bob_123", simulation.results["mixed_var"]
@@ -337,18 +337,18 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     simulation.process_step
     simulation.save!
-    
+
     # Missing variable should be left as-is (VariableInterpolator behavior for missing keys)
     assert_equal "{{missing_var}}", simulation.results["result"]
   end
 
   test "workflow variables method includes output_fields" do
     variables = @workflow.variables
-    
+
     # Should include question variable_name
     assert_includes variables, "customer_name"
     assert_includes variables, "issue"
-    
+
     # Should include action output_fields
     assert_includes variables, "status"
     assert_includes variables, "assigned_to"

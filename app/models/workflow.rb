@@ -42,7 +42,7 @@ class Workflow < ApplicationRecord
   MAX_STEP_TITLE_LENGTH = 500
   MAX_STEP_CONTENT_LENGTH = 50_000  # 50KB per step field
   MAX_TOTAL_STEPS_SIZE = 5_000_000  # 5MB total for steps JSON
-  
+
   # Clean up import flags when steps are completed
   before_save :cleanup_import_flags
   # Assign to Uncategorized group if no groups assigned (only for published workflows)
@@ -50,34 +50,34 @@ class Workflow < ApplicationRecord
 
   scope :recent, -> { order(created_at: :desc) }
   scope :public_workflows, -> { where(is_public: true) }
-  
+
   # Draft workflow scopes
   scope :drafts, -> { where(status: 'draft') }
   scope :published, -> { where(status: 'published') }
   scope :expired_drafts, -> { drafts.where('draft_expires_at < ?', Time.current) }
-  
+
   # Set draft expiration before save (7 days from creation or update)
   before_save :set_draft_expiration, if: -> { status == 'draft' }
-  
+
   # Get workflows visible to a specific user
   # Admins see all, Editors see own + public, Users see only public
   # Also respects group membership: users see workflows in their assigned groups
   # Handles workflows without groups gracefully (they're accessible to everyone)
-  # 
+  #
   # Access Control Rules:
   # - Admins: See all workflows regardless of group assignment
   # - Editors: See their own workflows + all public workflows + workflows in assigned groups
   # - Users: See public workflows + workflows in assigned groups
   # - Workflows without groups: Accessible to all users (backward compatibility)
   # - Drafts: Excluded from main workflow list (only accessible via wizard routes)
-  # 
+  #
   # Group Access:
   # - Users assigned to a parent group can see workflows in child groups
   # - Workflows are visible if user is assigned to any group containing the workflow
   scope :visible_to, ->(user) {
     # Exclude drafts from main workflow list
     base_scope = published
-    
+
     if user&.admin?
       # Admins see all workflows
       base_scope
@@ -121,12 +121,12 @@ class Workflow < ApplicationRecord
 
   # Filter workflows by group (includes workflows in descendant groups)
   # If group is nil, returns workflows without groups (for backward compatibility)
-  # 
-  # Example: If "Customer Support" has child "Phone Support", 
+  #
+  # Example: If "Customer Support" has child "Phone Support",
   # in_group(Customer Support) returns workflows in both groups
   scope :in_group, ->(group) {
     return where.not(id: joins(:groups).select(:id)) if group.nil?
-    
+
     # Get group and all its descendants using optimized method
     # This avoids N+1 queries by using a single efficient query
     descendant_ids = group.descendant_ids
@@ -137,33 +137,33 @@ class Workflow < ApplicationRecord
     distinct_ids = joins(:groups).where(groups: { id: group_ids }).unscope(:order).distinct.pluck(:id)
     where(id: distinct_ids)
   }
-  
+
   # Search workflows by title and description (fuzzy matching)
   # Searches both title and description fields with case-insensitive queries
   # Uses ILIKE for PostgreSQL, LIKE for SQLite (which is case-insensitive by default)
   scope :search_by, ->(query) {
     return all if query.blank?
-    
+
     search_term = "%#{query.strip}%"
-    
+
     # Search in title
     title_matches = case_insensitive_like('title', search_term)
-    
+
     # Search in description (plain text column)
     desc_matches = case_insensitive_like('description', search_term)
-    
+
     # Also search in ActionText rich text content
     # Join with action_text_rich_texts to search rich text body
     like_op = connection.adapter_name.downcase.include?('postgresql') ? 'ILIKE' : 'LIKE'
     rich_text_matches = joins("LEFT JOIN action_text_rich_texts ON action_text_rich_texts.record_type = 'Workflow' AND action_text_rich_texts.record_id = workflows.id AND action_text_rich_texts.name = 'description'")
                        .where("action_text_rich_texts.body #{like_op} ?", search_term)
-    
+
     # Combine all matches using OR - no need for distinct since we're selecting IDs
     where(id: title_matches.select(:id))
       .or(where(id: desc_matches.select(:id)))
       .or(where(id: rich_text_matches.select(:id)))
   }
-  
+
   # Helper method to safely get description text (handles migration from text column to rich text)
   # This avoids triggering Active Storage initialization errors
   def description_text
@@ -181,7 +181,7 @@ class Workflow < ApplicationRecord
       read_attribute(:description) || nil
     end
   end
-  
+
   # Helper method to check if description exists (works with both text and rich text)
   def has_description?
     begin
@@ -195,7 +195,7 @@ class Workflow < ApplicationRecord
   # Assign workflow to Uncategorized group if no groups are assigned
   def assign_to_uncategorized_if_needed
     return if groups.any?
-    
+
     uncategorized_group = Group.uncategorized
     GroupWorkflow.find_or_create_by!(
       workflow: self,
@@ -203,7 +203,7 @@ class Workflow < ApplicationRecord
       is_primary: true
     )
   end
-  
+
   # Set draft expiration timestamp (7 days from now)
   def set_draft_expiration
     self.draft_expires_at = 7.days.from_now if status == 'draft'
@@ -231,7 +231,7 @@ class Workflow < ApplicationRecord
   def validate_graph_now!
     @validate_graph_now = true
   end
-  
+
   # Class method to cleanup expired drafts
   # Can be called from a scheduled job
   def self.cleanup_expired_drafts
@@ -240,10 +240,10 @@ class Workflow < ApplicationRecord
 
   def cleanup_import_flags
     return unless steps.present?
-    
+
     self.steps = steps.map do |step|
       next step unless step.is_a?(Hash)
-      
+
       # Check if step is now complete
       is_complete = case step['type']
       when 'question'
@@ -256,13 +256,13 @@ class Workflow < ApplicationRecord
       else
         true
       end
-      
+
       # Remove import flags if step is complete
       if is_complete && step['_import_incomplete']
         step.delete('_import_incomplete')
         step.delete('_import_errors')
       end
-      
+
       step
     end
   end
@@ -307,10 +307,10 @@ class Workflow < ApplicationRecord
   # Returns an array of hashes with id, title, type, and index
   def step_options_for_select
     return [] unless steps.present?
-    
+
     steps.map.with_index do |step, index|
       next nil unless step.is_a?(Hash) && step['title'].present?
-      
+
       {
         id: step['id'],
         title: step['title'],
@@ -326,7 +326,7 @@ class Workflow < ApplicationRecord
   # Returns an array of hashes with variable info
   def variables_with_metadata
     return [] unless steps.present?
-    
+
     steps.select { |step| step['type'] == 'question' && step['variable_name'].present? }
          .map do |step|
            {
@@ -343,13 +343,13 @@ class Workflow < ApplicationRecord
   # Used for migrating from title-based to ID-based references
   def resolve_step_reference_to_id(reference)
     return nil if reference.blank?
-    
+
     # If it looks like a UUID, assume it's already an ID
     if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       # Verify the ID exists
       return reference if find_step_by_id(reference)
     end
-    
+
     # Otherwise, treat it as a title and find the corresponding ID
     step = find_step_by_title(reference)
     step&.dig('id')
@@ -359,13 +359,13 @@ class Workflow < ApplicationRecord
   # Used for displaying step references in the UI
   def resolve_step_reference_to_title(reference)
     return nil if reference.blank?
-    
+
     # If it looks like a UUID, find the step and return its title
     if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       step = find_step_by_id(reference)
       return step['title'] if step
     end
-    
+
     # Otherwise, it might already be a title (backward compatibility)
     # Verify the title exists
     step = find_step_by_title(reference)
@@ -376,12 +376,12 @@ class Workflow < ApplicationRecord
   # This is idempotent - safe to run multiple times
   def migrate_step_references_to_ids!
     return false unless steps.present?
-    
+
     changed = false
-    
+
     steps.each do |step|
       next unless step.is_a?(Hash) && step['type'] == 'decision'
-      
+
       # Migrate branch paths
       if step['branches'].present? && step['branches'].is_a?(Array)
         step['branches'].each do |branch|
@@ -395,7 +395,7 @@ class Workflow < ApplicationRecord
           end
         end
       end
-      
+
       # Migrate else_path
       if step['else_path'].present?
         new_id = resolve_step_reference_to_id(step['else_path'])
@@ -404,7 +404,7 @@ class Workflow < ApplicationRecord
           changed = true
         end
       end
-      
+
       # Migrate legacy paths
       %w[true_path false_path].each do |path_key|
         if step[path_key].present?
@@ -416,7 +416,7 @@ class Workflow < ApplicationRecord
         end
       end
     end
-    
+
     save if changed
     changed
   end
@@ -592,13 +592,13 @@ class Workflow < ApplicationRecord
   # Validate step references (e.g., decision steps reference valid step titles)
   def validate_step_references
     return true unless steps.present?
-    
+
     step_titles = steps.map { |step| step['title'] }.compact
-    
+
     steps.each_with_index do |step, index|
       # Skip validation for imported incomplete steps
       next if step['_import_incomplete'] == true
-      
+
       if step['type'] == 'decision'
         # Handle multi-branch format (new)
         if step['branches'].present? && step['branches'].is_a?(Array)
@@ -637,13 +637,13 @@ class Workflow < ApplicationRecord
         if step['true_path'].present? && !step_titles.include?(step['true_path'])
           errors.add(:steps, "Step #{index + 1}: 'If true' references non-existent step: #{step['true_path']}")
         end
-        
+
         if step['false_path'].present? && !step_titles.include?(step['false_path'])
           errors.add(:steps, "Step #{index + 1}: 'If false' references non-existent step: #{step['false_path']}")
         end
       end
     end
-    
+
     errors.empty?
   end
 
@@ -728,34 +728,34 @@ class Workflow < ApplicationRecord
 
   def validate_steps
     return unless steps.present?
-    
+
     # Filter out steps with empty type (they're incomplete and shouldn't be validated)
     # This prevents errors when users are still filling out forms
     valid_steps = steps.select { |step| step.is_a?(Hash) && step['type'].present? && step['type'].strip.present? }
-    
+
     valid_steps.each_with_index do |step, index|
       step_num = index + 1
-      
+
       # Skip validation for imported incomplete steps (they'll be fixed by the user)
       next if step['_import_incomplete'] == true
-      
+
       # Validate step has required fields
       unless step.is_a?(Hash)
         errors.add(:steps, "Step #{step_num}: Invalid step format")
         next
       end
-      
+
       # Validate step type
       unless VALID_STEP_TYPES.include?(step['type'])
         errors.add(:steps, "Step #{step_num}: Invalid step type '#{step['type']}'")
         next
       end
-      
+
       # Validate title (required for all steps)
       if step['title'].blank?
         errors.add(:steps, "Step #{step_num}: Title is required")
       end
-      
+
       # Type-specific validation
       case step['type']
       when 'question'
@@ -769,7 +769,7 @@ class Workflow < ApplicationRecord
       when 'action'
         # Validate jumps if present
         validate_jumps(step, step_num)
-        
+
         # Validate output_fields if present
         if step['output_fields'].present?
           unless step['output_fields'].is_a?(Array)
@@ -791,12 +791,12 @@ class Workflow < ApplicationRecord
       when 'decision'
         # Check if using multi-branch format or legacy format
         has_branches = step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
-        
+
         if has_branches
           # Multi-branch format: validate branches
           # Filter out completely empty branches first
           step['branches'].reject! { |b| (b['condition'] || b[:condition]).blank? && (b['path'] || b[:path]).blank? }
-          
+
           # If after filtering we have no branches, allow it (user removed all branches)
           if step['branches'].empty?
             # Allow empty branches - user can add them later
@@ -805,15 +805,15 @@ class Workflow < ApplicationRecord
             step['branches'].each_with_index do |branch, branch_index|
               branch_condition = branch['condition'] || branch[:condition]
               branch_path = branch['path'] || branch[:path]
-              
+
               # Normalize branch hash keys (convert symbols to strings)
               branch['condition'] = branch_condition if branch_condition.present?
               branch['path'] = branch_path if branch_path.present?
-              
+
               # Remove symbol keys to avoid confusion
               branch.delete(:condition)
               branch.delete(:path)
-              
+
               # Allow completely empty branches (user is still filling them out)
               # Only validate if at least one field is set (meaning user is trying to use this branch)
               if branch_condition.present? || branch_path.present?
@@ -821,11 +821,11 @@ class Workflow < ApplicationRecord
                 if branch_condition.blank?
                   errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Condition is required when a path is selected")
                 end
-                
+
                 if branch_path.blank?
                   errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Path is required when a condition is set")
                 end
-                
+
                 # Validate condition syntax only if condition is provided
                 if branch_condition.present? && !valid_condition_format?(branch_condition)
                   errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Invalid condition format")
@@ -1021,6 +1021,4 @@ class Workflow < ApplicationRecord
       end
     end
   end
-
 end
-

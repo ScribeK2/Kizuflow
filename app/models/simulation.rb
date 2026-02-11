@@ -21,16 +21,16 @@ class Simulation < ApplicationRecord
   class SimulationIterationLimit < StandardError; end
 
   # JSON columns - automatically serialized/deserialized
-  
+
   # Initialize execution_path and results as empty arrays/hashes if needed
   before_save :initialize_execution_data
-  
+
   # Validate status
   validates :status, inclusion: { in: STATUSES }, allow_nil: false
-  
+
   # Track iteration count for step-by-step processing
   attr_accessor :iteration_count
-  
+
   def initialize_execution_data
     self.execution_path ||= []
     self.results ||= {}
@@ -71,12 +71,12 @@ class Simulation < ApplicationRecord
   def active_child_simulation
     child_simulations.find_by(status: %w[active awaiting_subflow])
   end
-  
+
   # Check if simulation is stopped
   def stopped?
     status == 'stopped'
   end
-  
+
   # Check if simulation is complete
   def complete?
     return true if status == 'completed'
@@ -91,7 +91,7 @@ class Simulation < ApplicationRecord
       current_step_index >= workflow.steps.length
     end
   end
-  
+
   # Stop the workflow execution
   def stop!(step_index = nil)
     update!(
@@ -99,17 +99,17 @@ class Simulation < ApplicationRecord
       stopped_at_step_index: step_index || current_step_index
     )
   end
-  
+
   # Resolve a checkpoint step
   def resolve_checkpoint!(resolved: true, notes: nil)
     step = current_step
     return false unless step&.dig('type') == 'checkpoint'
     return false if stopped?
     return false if complete?
-    
+
     # Initialize execution_path if needed
     initialize_execution_data
-    
+
     # Add checkpoint to execution path
     path_entry = {
       step_index: current_step_index,
@@ -119,9 +119,9 @@ class Simulation < ApplicationRecord
       resolved_at: Time.current.iso8601
     }
     path_entry[:notes] = notes if notes.present?
-    
+
     self.execution_path << path_entry
-    
+
     if resolved
       # Mark workflow as completed
       self.status = 'completed'
@@ -134,10 +134,10 @@ class Simulation < ApplicationRecord
       self.results ||= {}
       self.results[step['title']] = "Issue not resolved - continuing workflow"
     end
-    
+
     save
   end
-  
+
   # Process a single step and advance
   # Returns false if step can't be processed, true otherwise
   # Raises SimulationIterationLimit if max iterations exceeded
@@ -523,7 +523,7 @@ class Simulation < ApplicationRecord
   end
 
   public
-  
+
   # Check for universal jumps on any step type
   def check_jumps(step, results)
     return nil unless step['jumps'].present? && step['jumps'].is_a?(Array)
@@ -692,7 +692,7 @@ class Simulation < ApplicationRecord
     while current_step_index < workflow.steps.length
       step = workflow.steps[current_step_index]
       break unless step
-      
+
       # Prevent infinite loops with iteration counter
       iteration_count += 1
       if iteration_count > MAX_ITERATIONS
@@ -722,7 +722,7 @@ class Simulation < ApplicationRecord
         if answer.blank?
           answer = inputs[step['title']]
         end
-        
+
         results[step['title']] = answer if answer.present?
         results[step['variable_name']] = answer if step['variable_name'].present? && answer.present?
         path.last[:answer] = answer
@@ -733,12 +733,12 @@ class Simulation < ApplicationRecord
         # simple_decision is a variant used for yes/no routing in workflow builder
         if step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
           matched_branch = nil
-          
+
           # Evaluate branches in order, take first match
           step['branches'].each do |branch|
             branch_condition = branch['condition'] || branch[:condition]
             branch_path = branch['path'] || branch[:path]
-            
+
             if branch_condition.present? && branch_path.present?
               condition_result = evaluate_condition_string(branch_condition, results)
               if condition_result
@@ -749,7 +749,7 @@ class Simulation < ApplicationRecord
               end
             end
           end
-          
+
           # If a branch matched, use its path
           if matched_branch
             branch_path = matched_branch['path'] || matched_branch[:path]
@@ -781,7 +781,7 @@ class Simulation < ApplicationRecord
           # Legacy format (true_path/false_path)
           condition_result = evaluate_condition(step, results)
           path.last[:condition_result] = condition_result
-          
+
           if condition_result && step['true_path'].present?
             # Use ID-based resolution (supports both IDs and titles for backward compatibility)
             next_step = resolve_step_reference(step['true_path'])
@@ -835,7 +835,7 @@ class Simulation < ApplicationRecord
   def evaluate_condition(step, results)
     condition = step['condition']
     return false unless condition.present?
-    
+
     evaluate_condition_string(condition, results)
   end
 
@@ -881,4 +881,3 @@ class Simulation < ApplicationRecord
     step
   end
 end
-

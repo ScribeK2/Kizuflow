@@ -51,7 +51,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to create a subgroup" do
     sign_in @admin
     parent = Group.create!(name: "Parent Group")
-    
+
     assert_difference("Group.count", 1) do
       post admin_groups_path, params: {
         group: {
@@ -62,7 +62,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    
+
     child = Group.last
     assert_equal parent.id, child.parent_id
     # Controller redirects to index after successful creation
@@ -72,14 +72,14 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to update a group" do
     sign_in @admin
     group = Group.create!(name: "Original Name", description: "Original description")
-    
+
     patch admin_group_path(group), params: {
       group: {
         name: "Updated Name",
         description: "Updated description"
       }
     }
-    
+
     # Controller redirects to index after successful update
     assert_redirected_to admin_groups_path
     group.reload
@@ -90,11 +90,11 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to delete a group without children or workflows" do
     sign_in @admin
     group = Group.create!(name: "To Delete")
-    
+
     assert_difference("Group.count", -1) do
       delete admin_group_path(group)
     end
-    
+
     assert_redirected_to admin_groups_path
   end
 
@@ -102,11 +102,11 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     parent = Group.create!(name: "Parent")
     child = Group.create!(name: "Child", parent: parent)
-    
+
     assert_no_difference("Group.count") do
       delete admin_group_path(parent)
     end
-    
+
     assert_redirected_to admin_groups_path
     # Controller uses full message with group name
     assert_match /Cannot delete group/, flash[:alert]
@@ -123,11 +123,11 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     group = Group.create!(name: "Group With Workflows")
     workflow = Workflow.create!(title: "Test Workflow", user: user)
     GroupWorkflow.create!(group: group, workflow: workflow, is_primary: true)
-    
+
     assert_no_difference("Group.count") do
       delete admin_group_path(group)
     end
-    
+
     assert_redirected_to admin_groups_path
     # Controller uses full message with group name
     assert_match /Cannot delete group/, flash[:alert]
@@ -137,7 +137,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to view a group" do
     sign_in @admin
     group = Group.create!(name: "Test Group", description: "Test description")
-    
+
     get admin_group_path(group)
     assert_response :success
     assert_match "Test Group", response.body
@@ -147,17 +147,16 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     parent = Group.create!(name: "Parent")
     child = Group.create!(name: "Child", parent: parent)
-    
+
     patch admin_group_path(parent), params: {
       group: {
         parent_id: child.id
       }
     }
-    
+
     # The update should fail, rendering the edit form (unprocessable_entity)
     assert_response :unprocessable_entity
     # Parent should still have no parent_id (update failed)
     assert_nil parent.reload.parent_id
   end
 end
-

@@ -4,4 +4,3 @@ class GroupWorkflow < ApplicationRecord
 
   validates :group_id, uniqueness: { scope: :workflow_id }
 end
-

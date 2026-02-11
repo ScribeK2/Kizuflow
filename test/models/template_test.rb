@@ -41,7 +41,7 @@ class TemplateTest < ActiveSupport::TestCase
       category: "test",
       workflow_data: workflow_data
     )
-    
+
     # JSON stores keys as strings, not symbols
     assert_equal 2, template.workflow_data.length
     assert_equal "question", template.workflow_data.first["type"]
@@ -51,10 +51,10 @@ class TemplateTest < ActiveSupport::TestCase
   test "search should find templates by name" do
     # Clear existing templates to avoid fixture interference
     Template.destroy_all
-    
+
     Template.create!(name: "Post-Onboarding Checklist", category: "post-onboarding", workflow_data: [])
     Template.create!(name: "Troubleshooting Guide", category: "troubleshooting", workflow_data: [])
-    
+
     results = Template.search("Post-Onboarding")
     assert_equal 1, results.count
     assert_equal "Post-Onboarding Checklist", results.first.name
@@ -63,10 +63,10 @@ class TemplateTest < ActiveSupport::TestCase
   test "search should find templates by category" do
     # Clear existing templates to avoid fixture interference
     Template.destroy_all
-    
+
     Template.create!(name: "Template 1", category: "post-onboarding", workflow_data: [])
     Template.create!(name: "Template 2", category: "troubleshooting", workflow_data: [])
-    
+
     results = Template.search("troubleshooting")
     assert_equal 1, results.count
     assert_equal "Template 2", results.first.name
@@ -75,10 +75,10 @@ class TemplateTest < ActiveSupport::TestCase
   test "public_templates scope should return only public templates" do
     # Clear existing templates to avoid fixture interference
     Template.destroy_all
-    
+
     Template.create!(name: "Public Template", category: "test", is_public: true, workflow_data: [])
     Template.create!(name: "Private Template", category: "test", is_public: false, workflow_data: [])
-    
+
     public_templates = Template.public_templates
     assert_equal 1, public_templates.count
     assert_equal "Public Template", public_templates.first.name
@@ -87,14 +87,13 @@ class TemplateTest < ActiveSupport::TestCase
   test "by_category scope should filter by category" do
     # Clear existing templates to avoid fixture interference
     Template.destroy_all
-    
+
     Template.create!(name: "Template 1", category: "post-onboarding", workflow_data: [])
     Template.create!(name: "Template 2", category: "troubleshooting", workflow_data: [])
     Template.create!(name: "Template 3", category: "post-onboarding", workflow_data: [])
-    
+
     results = Template.by_category("post-onboarding")
     assert_equal 2, results.count
     assert results.all? { |t| t.category == "post-onboarding" }
   end
 end
-

@@ -6,12 +6,12 @@ class Users::RegistrationsController < Devise::RegistrationsController
     # Check if only display_name is being updated (no password or email changes)
     update_params = account_update_params
     user_params = params[:user] || {}
-    
+
     # If only display_name is present and no sensitive fields are being changed
-    only_display_name = user_params.key?(:display_name) && 
-                        !user_params.key?(:email) && 
-                        !user_params.key?(:password) && 
-                        !user_params.key?(:password_confirmation) && 
+    only_display_name = user_params.key?(:display_name) &&
+                        !user_params.key?(:email) &&
+                        !user_params.key?(:password) &&
+                        !user_params.key?(:password_confirmation) &&
                         !user_params.key?(:current_password)
 
     if only_display_name
@@ -53,9 +53,8 @@ class Users::RegistrationsController < Devise::RegistrationsController
   def after_sign_up_path_for(resource)
     root_path
   end
-  
+
   def after_inactive_sign_up_path_for(resource)
     root_path
   end
 end
-

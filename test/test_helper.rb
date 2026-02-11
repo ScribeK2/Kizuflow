@@ -29,4 +29,3 @@ ActionDispatch::IntegrationTest.class_eval do
     login_as(resource, scope: scope)
   end
 end
-

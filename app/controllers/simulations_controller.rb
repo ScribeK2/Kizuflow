@@ -10,7 +10,7 @@ class SimulationsController < ApplicationController
   def create
     @workflow = Workflow.find(params[:workflow_id])
     ensure_can_view_workflow!(@workflow)
-    
+
     @simulation = Simulation.new(simulation_params)
     @simulation.workflow = @workflow
     @simulation.user = current_user
@@ -18,7 +18,6 @@ class SimulationsController < ApplicationController
     @simulation.execution_path = []
     @simulation.results = {}
     @simulation.inputs = {}
-    
 
     if @simulation.save
       # Redirect to step view instead of executing immediately
@@ -33,18 +32,18 @@ class SimulationsController < ApplicationController
     @workflow = @simulation.workflow
     ensure_can_view_workflow!(@workflow)
   end
-  
+
   def step
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
     ensure_can_view_workflow!(@workflow)
-    
+
     # If simulation is stopped, redirect to show page
     if @simulation.stopped?
       redirect_to simulation_path(@simulation), notice: "This workflow has been stopped."
       return
     end
-    
+
     # If simulation is complete, redirect appropriately
     if @simulation.complete?
       if @simulation.parent_simulation.present?
@@ -72,7 +71,7 @@ class SimulationsController < ApplicationController
         return
       end
     end
-    
+
     # Handle going back to the previous interactive step
     if params[:back].present?
       if @simulation.execution_path.present? && @simulation.execution_path.length > 0
@@ -173,7 +172,7 @@ class SimulationsController < ApplicationController
         end
       end
     end
-    
+
     # Auto-advance decision, simple_decision, and sub_flow steps immediately without user interaction
     # Note: checkpoint steps don't auto-advance - they require user resolution
     current_step = @simulation.current_step
@@ -208,18 +207,18 @@ class SimulationsController < ApplicationController
     # Note: escalate and resolve steps show UI first, then process on Continue click
     # They are NOT auto-advanced here - they need user acknowledgment
   end
-  
+
   def stop
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
     ensure_can_view_workflow!(@workflow)
-    
+
     # Ensure user owns this simulation
     unless @simulation.user == current_user
       redirect_to simulation_path(@simulation), alert: "You don't have permission to stop this workflow."
       return
     end
-    
+
     # Stop the workflow
     @simulation.stop!(@simulation.current_step_index)
     redirect_to simulation_path(@simulation), notice: "Workflow stopped."
@@ -229,17 +228,17 @@ class SimulationsController < ApplicationController
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
     ensure_can_view_workflow!(@workflow)
-    
+
     # Ensure user owns this simulation
     unless @simulation.user == current_user
       redirect_to simulation_path(@simulation), alert: "You don't have permission to resolve this checkpoint."
       return
     end
-    
+
     # Get resolution parameters
     resolved = params[:resolved] == 'true' || params[:resolved] == true
     notes = params[:notes]
-    
+
     # Resolve the checkpoint
     if @simulation.resolve_checkpoint!(resolved: resolved, notes: notes)
       if resolved
@@ -256,16 +255,16 @@ class SimulationsController < ApplicationController
     @simulation = Simulation.find(params[:id])
     @workflow = @simulation.workflow
     ensure_can_view_workflow!(@workflow)
-    
+
     # Prevent processing if stopped
     if @simulation.stopped?
       redirect_to simulation_path(@simulation), alert: "This workflow has been stopped and cannot be continued."
       return
     end
-    
+
     # Get answer from params
     answer = params[:answer]
-    
+
     # Process the current step
     # Note: checkpoint steps won't process here - they use resolve_checkpoint instead
     if @simulation.process_step(answer)
@@ -335,4 +334,3 @@ class SimulationsController < ApplicationController
     params.require(:simulation).permit(:workflow_id, inputs: {})
   end
 end
-

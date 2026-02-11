@@ -9,4 +9,3 @@ class Admin::WorkflowsController < ApplicationController
     @workflow = Workflow.find(params[:id])
   end
 end
-

@@ -11,8 +11,7 @@ class Template < ApplicationRecord
     # Uses ILIKE for PostgreSQL, LIKE for SQLite
     search_term = "%#{query}%"
     like_op = connection.adapter_name.downcase.include?('postgresql') ? 'ILIKE' : 'LIKE'
-    where("name #{like_op} ? OR description #{like_op} ? OR category #{like_op} ?", 
+    where("name #{like_op} ? OR description #{like_op} ? OR category #{like_op} ?",
           search_term, search_term, search_term)
   end
 end
-

@@ -36,7 +36,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123"
     )
     workflow = Workflow.create!(title: "Test", user: user)
-    
+
     assert_difference("Workflow.count", -1) do
       user.destroy
     end
@@ -152,7 +152,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "user"
     )
-    
+
     assert admin.can_manage_templates?
     assert_not editor.can_manage_templates?
     assert_not user.can_manage_templates?
@@ -171,7 +171,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "editor"
     )
-    
+
     assert admin.can_access_admin?
     assert_not editor.can_access_admin?
   end
@@ -195,7 +195,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "editor"
     )
-    
+
     admins = User.admins
     assert_includes admins.map(&:id), admin1.id
     assert_includes admins.map(&:id), admin2.id
@@ -221,7 +221,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "user"
     )
-    
+
     editors = User.editors
     assert_includes editors.map(&:id), editor1.id
     assert_includes editors.map(&:id), editor2.id
@@ -237,10 +237,10 @@ class UserTest < ActiveSupport::TestCase
     )
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
-    
+
     UserGroup.create!(group: group1, user: user)
     UserGroup.create!(group: group2, user: user)
-    
+
     assert_equal 2, user.groups.count
     assert_includes user.groups.map(&:id), group1.id
     assert_includes user.groups.map(&:id), group2.id
@@ -255,7 +255,7 @@ class UserTest < ActiveSupport::TestCase
     )
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
-    
+
     accessible = admin.accessible_groups
     assert_includes accessible.map(&:id), group1.id
     assert_includes accessible.map(&:id), group2.id
@@ -269,9 +269,9 @@ class UserTest < ActiveSupport::TestCase
     )
     assigned_group = Group.create!(name: "Assigned Group")
     other_group = Group.create!(name: "Other Group")
-    
+
     UserGroup.create!(group: assigned_group, user: user)
-    
+
     accessible = user.accessible_groups
     assert_includes accessible.map(&:id), assigned_group.id
     assert_not_includes accessible.map(&:id), other_group.id
@@ -285,7 +285,7 @@ class UserTest < ActiveSupport::TestCase
     )
     group = Group.create!(name: "Test Group")
     UserGroup.create!(group: group, user: user)
-    
+
     assert_difference("UserGroup.count", -1) do
       user.destroy
     end
@@ -299,10 +299,9 @@ class UserTest < ActiveSupport::TestCase
     )
     group = Group.create!(name: "Test Group")
     UserGroup.create!(group: group, user: user)
-    
+
     assert_difference("UserGroup.count", -1) do
       group.destroy
     end
   end
 end
-

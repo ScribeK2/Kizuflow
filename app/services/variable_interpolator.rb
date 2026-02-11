@@ -13,7 +13,7 @@ class VariableInterpolator
   VARIABLE_PATTERN = /\{\{(\w+)\}\}/
 
   # Interpolate variables in a text string
-  # 
+  #
   # @param text [String, nil] The text containing {{variable_name}} patterns
   # @param variables [Hash] Hash of variable names to values (keys can be strings or symbols)
   # @return [String] The text with variables replaced, or original text if nil/blank
@@ -33,7 +33,7 @@ class VariableInterpolator
     # Replace all {{variable_name}} patterns
     text.to_s.gsub(VARIABLE_PATTERN) do |match|
       variable_name = $1 # Capture the variable name (without {{}})
-      
+
       # Check if variable exists in hash (even if value is nil)
       if normalized_vars.key?(variable_name)
         # Variable exists - convert value to string (handles nil, boolean, numbers, etc.)
@@ -46,7 +46,7 @@ class VariableInterpolator
   end
 
   # Extract all variable names from a text string
-  # 
+  #
   # @param text [String] The text containing {{variable_name}} patterns
   # @return [Array<String>] Array of unique variable names found in the text
   #
@@ -55,7 +55,7 @@ class VariableInterpolator
   #   # => ["name", "status"]
   def self.extract_variables(text)
     return [] if text.blank?
-    
+
     text.to_s.scan(VARIABLE_PATTERN).flatten.uniq
   end
 
@@ -65,7 +65,7 @@ class VariableInterpolator
   # @return [Boolean] True if text contains {{variable}} patterns
   def self.contains_variables?(text)
     return false if text.blank?
-    
+
     text.to_s.match?(VARIABLE_PATTERN)
   end
 
@@ -85,7 +85,7 @@ class VariableInterpolator
       string_key = key.is_a?(Symbol) ? key.to_s : key.to_s
       normalized[string_key] = value
     end
-    
+
     normalized
   end
 end

@@ -69,7 +69,7 @@ class WorkflowsController < ApplicationController
                                .roots
                                .includes(:children)
                                .order(:position, :name)
-    
+
     # Fallback: if no groups exist at all, don't filter by groups
     if @accessible_groups.empty? && !current_user&.admin?
       # For non-admins with no groups, show all workflows they have access to
@@ -119,7 +119,7 @@ class WorkflowsController < ApplicationController
 
   def create
     @workflow = current_user.workflows.build(workflow_params)
-    
+
     if @workflow.save
       # Assign groups if provided
       if params[:workflow][:group_ids].present?
@@ -131,7 +131,7 @@ class WorkflowsController < ApplicationController
           )
         end
       end
-      
+
       redirect_to @workflow, notice: "Workflow was successfully created."
     else
       # Eager load groups to prevent N+1 queries
@@ -149,7 +149,7 @@ class WorkflowsController < ApplicationController
   def update
     # Get client's lock_version for optimistic locking
     client_lock_version = params[:workflow][:lock_version].to_i if params[:workflow][:lock_version].present?
-    
+
     begin
       Workflow.transaction do
         # Check for version conflict if client sent a lock_version
@@ -159,7 +159,7 @@ class WorkflowsController < ApplicationController
             raise ActiveRecord::StaleObjectError.new(@workflow, "update")
           end
         end
-        
+
         if @workflow.update(workflow_params)
           # Update group assignments
           if params[:workflow][:group_ids].present?
@@ -175,7 +175,7 @@ class WorkflowsController < ApplicationController
             # Explicitly clear groups if group_ids is present but empty
             @workflow.group_workflows.destroy_all
           end
-          
+
           redirect_to @workflow, notice: "Workflow was successfully updated."
         else
           raise ActiveRecord::Rollback
@@ -190,7 +190,7 @@ class WorkflowsController < ApplicationController
       render :edit, status: :conflict
       return
     end
-    
+
     # Handle validation errors (when update returns false)
     unless performed?
       @accessible_groups = Group.visible_to(current_user).order(:name)
@@ -287,13 +287,13 @@ class WorkflowsController < ApplicationController
     # Parse step data from params
     step_data = parse_step_from_params
     step_index = params[:step_index].to_i
-    
+
     # Generate sample variables for interpolation preview
     # This allows users to see what variables will look like when interpolated
     sample_variables = generate_sample_variables(@workflow)
-    
+
     # Render preview partial within Turbo Frame
-    render partial: "workflows/preview_pane", 
+    render partial: "workflows/preview_pane",
            locals: { step: step_data, index: step_index, sample_variables: sample_variables },
            formats: [:html]
   end
@@ -301,7 +301,7 @@ class WorkflowsController < ApplicationController
   def variables
     # Return available variables from workflow
     variables = @workflow.variables
-    
+
     render json: { variables: variables }
   end
 
@@ -354,7 +354,7 @@ class WorkflowsController < ApplicationController
       step['target_workflow_id'] = step_data[:target_workflow_id] || ''
       step['variable_mapping'] = step_data[:variable_mapping] || {}
     end
-    
+
     # Render the step_item partial
     begin
       render partial: 'workflows/step_item',
@@ -374,16 +374,16 @@ class WorkflowsController < ApplicationController
 
   def save_as_template
     template_params = params.require(:template).permit(:name, :category, :description, :is_public)
-    
+
     template_data = @workflow.convert_to_template(
       name: template_params[:name],
       category: template_params[:category],
       description: template_params[:description],
       is_public: template_params[:is_public] == "true"
     )
-    
+
     @template = Template.new(template_data)
-    
+
     if @template.save
       redirect_to templates_path, notice: "Template '#{@template.name}' was successfully created."
     else
@@ -527,7 +527,7 @@ class WorkflowsController < ApplicationController
         # Explicitly clear groups if group_ids is present but empty
         @workflow.group_workflows.destroy_all
       end
-      
+
       redirect_to step2_workflow_path(@workflow), notice: "Step 1 completed. Now let's add some steps."
     else
       @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
@@ -577,49 +577,49 @@ class WorkflowsController < ApplicationController
       render :step3, status: :unprocessable_entity
       return
     end
-    
+
     # Validate that workflow has at least one step
     if @workflow.steps.blank? || @workflow.steps.empty?
       @workflow.errors.add(:base, "Workflow must have at least one step")
       render :step3, status: :unprocessable_entity
       return
     end
-    
+
     # Validate all steps have required fields
     @workflow.steps.each_with_index do |step, index|
       unless step.is_a?(Hash)
         @workflow.errors.add(:steps, "Step #{index + 1}: Invalid step format")
         next
       end
-      
+
       unless step['type'].present?
         @workflow.errors.add(:steps, "Step #{index + 1}: Step type is required")
       end
-      
+
       unless step['title'].present? || step['title'].to_s.strip.present?
         @workflow.errors.add(:steps, "Step #{index + 1}: Step title is required")
       end
-      
+
       # Type-specific validation
       if step['type'] == 'question' && !step['question'].present?
         @workflow.errors.add(:steps, "Step #{index + 1}: Question text is required for question steps")
       end
     end
-    
+
     if @workflow.errors.any?
       render :step3, status: :unprocessable_entity
       return
     end
-    
+
     # Convert draft to published workflow
     @workflow.status = 'published'
     @workflow.draft_expires_at = nil
-    
+
     # Assign to Uncategorized group if no groups assigned (triggered by status change)
     if @workflow.save
       # Ensure groups are assigned (after_create callback handles this for published workflows)
       @workflow.assign_to_uncategorized_if_needed if @workflow.groups.empty?
-      
+
       redirect_to @workflow, notice: "Workflow was successfully created!"
     else
       render :step3, status: :unprocessable_entity
@@ -632,12 +632,12 @@ class WorkflowsController < ApplicationController
   # This creates realistic sample data so users can see what interpolated text looks like
   def generate_sample_variables(workflow)
     return {} unless workflow&.steps.present?
-    
+
     sample_vars = {}
-    
+
     workflow.steps.each do |step|
       next unless step.is_a?(Hash)
-      
+
       # Get variables from question steps
       if step['type'] == 'question' && step['variable_name'].present?
         var_name = step['variable_name']
@@ -662,12 +662,12 @@ class WorkflowsController < ApplicationController
           step['title'].present? ? step['title'].split(' ').first : 'sample_value'
         end
       end
-      
+
       # Get variables from action step output_fields
       if step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array)
         step['output_fields'].each do |output_field|
           next unless output_field.is_a?(Hash) && output_field['name'].present?
-          
+
           var_name = output_field['name']
           # Use the defined value if static, or generate sample if it contains interpolation
           if output_field['value'].present?
@@ -685,7 +685,7 @@ class WorkflowsController < ApplicationController
         end
       end
     end
-    
+
     sample_vars
   end
 
@@ -779,7 +779,7 @@ class WorkflowsController < ApplicationController
 
   def parse_step_from_params
     step_params = params[:step] || {}
-    
+
     # Parse options if provided as JSON string or array
     options = step_params[:options]
     if options.is_a?(String)
@@ -855,7 +855,7 @@ class WorkflowsController < ApplicationController
 
   def detect_file_format(filename, content_type)
     extension = File.extname(filename).downcase
-    
+
     case extension
     when '.json'
       :json

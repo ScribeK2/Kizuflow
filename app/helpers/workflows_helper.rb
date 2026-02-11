@@ -91,7 +91,7 @@ module WorkflowsHelper
   # Get CSS classes for a step type badge
   def step_type_badge_classes(type)
     base = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-    
+
     case type
     when 'question'
       "#{base} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
@@ -140,11 +140,11 @@ module WorkflowsHelper
   # Converts "variable == 'value'" to "variable is value"
   def format_condition_for_display(condition)
     return 'Not set' if condition.blank?
-    
+
     # Parse the condition
     if match = condition.match(/^(\w+)\s*(==|!=|>|>=|<|<=)\s*['"]?([^'"]*?)['"]?$/)
       variable, operator, value = match.captures
-      
+
       operator_text = case operator
         when '==' then 'is'
         when '!=' then 'is not'
@@ -154,7 +154,7 @@ module WorkflowsHelper
         when '<=' then 'is at most'
         else operator
       end
-      
+
       "#{variable} #{operator_text} \"#{value}\""
     else
       condition
@@ -177,7 +177,7 @@ module WorkflowsHelper
   # Resolve a step reference (ID or title) to a display name
   def resolve_step_reference(workflow, reference)
     return nil if reference.blank? || workflow.nil?
-    
+
     title = workflow.resolve_step_reference_to_title(reference)
     title || reference
   end
@@ -186,11 +186,11 @@ module WorkflowsHelper
   # Returns an array of [display_name, value] pairs
   def step_options_for_select(workflow, exclude_step_id: nil)
     return [] unless workflow&.steps.present?
-    
+
     workflow.steps.map.with_index do |step, index|
       next nil unless step.is_a?(Hash) && step['title'].present?
       next nil if exclude_step_id && step['id'] == exclude_step_id
-      
+
       [
         "#{step_type_icon(step['type'])} #{index + 1}. #{step['title']}",
         step['title'] # Use title for now, can switch to ID after migration
@@ -206,7 +206,7 @@ module WorkflowsHelper
   # Returns an array of [display_name, value] pairs
   def variable_options_for_select(workflow)
     return [] unless workflow&.respond_to?(:variables_with_metadata)
-    
+
     workflow.variables_with_metadata.map do |var|
       [var[:display_name], var[:name]]
     end
@@ -215,7 +215,7 @@ module WorkflowsHelper
   # Get the answer type for a variable
   def variable_answer_type(workflow, variable_name)
     return nil unless workflow&.respond_to?(:variables_with_metadata)
-    
+
     var = workflow.variables_with_metadata.find { |v| v[:name] == variable_name }
     var&.dig(:answer_type)
   end
@@ -227,7 +227,7 @@ module WorkflowsHelper
   # Get CSS classes for a branch card
   def branch_card_classes(index)
     base = "branch-item border rounded-lg p-4 bg-white dark:bg-gray-800/50"
-    
+
     case index % 4
     when 0 then "#{base} border-blue-200 dark:border-blue-800/50"
     when 1 then "#{base} border-green-200 dark:border-green-800/50"
@@ -239,7 +239,7 @@ module WorkflowsHelper
   # Get CSS classes for a branch number badge
   def branch_number_badge_classes(index)
     base = "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold"
-    
+
     case index % 4
     when 0 then "#{base} bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
     when 1 then "#{base} bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
@@ -256,12 +256,12 @@ module WorkflowsHelper
   def decision_follows_yes_no?(workflow, step, step_index)
     return false unless step['type'] == 'decision'
     return false unless workflow&.steps.present?
-    
+
     # Look at preceding steps to find Yes/No questions
     preceding_steps = workflow.steps[0...step_index]
-    
+
     preceding_steps.any? do |prev_step|
-      prev_step['type'] == 'question' && 
+      prev_step['type'] == 'question' &&
       prev_step['answer_type'] == 'yes_no' &&
       prev_step['variable_name'].present?
     end
@@ -270,11 +270,11 @@ module WorkflowsHelper
   # Get the most recent Yes/No question before a decision step
   def most_recent_yes_no_question(workflow, step_index)
     return nil unless workflow&.steps.present?
-    
+
     preceding_steps = workflow.steps[0...step_index].reverse
-    
+
     preceding_steps.find do |step|
-      step['type'] == 'question' && 
+      step['type'] == 'question' &&
       step['answer_type'] == 'yes_no' &&
       step['variable_name'].present?
     end
@@ -368,4 +368,3 @@ module WorkflowsHelper
     safe_join(dots)
   end
 end
-

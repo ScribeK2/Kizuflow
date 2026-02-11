@@ -13,7 +13,7 @@ module ApplicationHelper
       "No description"
     end
   end
-  
+
   # Render rich text content safely
   def render_rich_text(content)
     if content.present?
@@ -98,4 +98,3 @@ module ApplicationHelper
     end
   end
 end
-

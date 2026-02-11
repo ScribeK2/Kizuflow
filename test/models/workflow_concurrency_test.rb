@@ -36,10 +36,10 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
 
     # First update succeeds
     workflow1.update!(title: "Update from instance 1")
-    
+
     # Second update should fail because lock_version changed
     workflow2.title = "Update from instance 2"
-    
+
     assert_raises(ActiveRecord::StaleObjectError) do
       workflow2.save!
     end
@@ -86,7 +86,7 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
     # After reload, second user can save
     workflow2.reload
     assert_equal workflow1.lock_version, workflow2.lock_version
-    
+
     workflow2.title = "Second update after reload"
     assert workflow2.save
     assert_equal "Second update after reload", workflow2.title
@@ -94,11 +94,11 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
 
   test "save without validation still increments lock_version" do
     initial_version = @workflow.lock_version
-    
+
     # This simulates what autosave does
     @workflow.title = "Autosaved title"
     @workflow.save(validate: false)
-    
+
     assert_equal initial_version + 1, @workflow.lock_version
   end
 
@@ -106,14 +106,14 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
     10.times do |i|
       @workflow.update!(title: "Update #{i}")
     end
-    
+
     assert_equal 10, @workflow.lock_version
   end
 
   test "transaction with lock prevents concurrent modifications" do
     # This tests the pattern used in WorkflowChannel#autosave
     workflow1 = Workflow.find(@workflow.id)
-    
+
     # Simulate first user locking and updating
     Workflow.transaction do
       workflow1.lock!

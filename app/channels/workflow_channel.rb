@@ -4,16 +4,16 @@ class WorkflowChannel < ApplicationCable::Channel
   def subscribed
     # Subscribe to updates for a specific workflow
     workflow = Workflow.find(params[:workflow_id])
-    
+
     # Allow authorized users (editors/admins) to subscribe, not just owners
     if workflow.can_be_edited_by?(current_user)
       stream_from "workflow:#{workflow.id}"
       stream_from "workflow:#{workflow.id}:autosave"
       stream_from "workflow:#{workflow.id}:presence"
-      
+
       # Track presence
       add_presence(workflow)
-      
+
       # Notify other users that this user joined
       broadcast_presence_update(workflow, { type: "user_joined", user: user_info })
     else
@@ -34,9 +34,9 @@ class WorkflowChannel < ApplicationCable::Channel
   def workflow_metadata_update(data)
     workflow = Workflow.find(params[:workflow_id])
     return unless workflow.can_be_edited_by?(current_user)
-    
+
     Rails.logger.info "WorkflowChannel: Broadcasting workflow_metadata_update - field: #{data['field']}, value length: #{data['value'].to_s.length}"
-    
+
     ActionCable.server.broadcast("workflow:#{workflow.id}", {
       type: "workflow_metadata_update",
       field: data["field"], # "title" or "description"
@@ -50,9 +50,9 @@ class WorkflowChannel < ApplicationCable::Channel
   def step_update(data)
     workflow = Workflow.find(params[:workflow_id])
     return unless workflow.can_be_edited_by?(current_user)
-    
+
     Rails.logger.info "WorkflowChannel: Broadcasting step_update - step_index: #{data['step_index']}"
-    
+
     # Don't broadcast back to the sender
     ActionCable.server.broadcast("workflow:#{workflow.id}", {
       type: "step_update",
@@ -67,30 +67,30 @@ class WorkflowChannel < ApplicationCable::Channel
   # Uses optimistic locking to prevent race conditions when multiple users edit
   def autosave(data)
     workflow = Workflow.find(params[:workflow_id])
-    
+
     # Ensure the user can edit the workflow (not just own it)
     return unless workflow.can_be_edited_by?(current_user)
-    
+
     # Get client's lock_version for optimistic locking
     client_lock_version = (data["lock_version"] || data[:lock_version]).to_i
-    
+
     # Convert data to Rails-friendly format
     title = data["title"] || data[:title] || workflow.title
     steps_data = data["steps"] || data[:steps] || []
     formatted_steps = format_steps_data(steps_data)
-    
+
     Rails.logger.info "Autosave: Workflow #{workflow.id}, client version: #{client_lock_version}, server version: #{workflow.lock_version}"
-    
+
     begin
       # Use transaction with row-level locking for safe concurrent updates
       Workflow.transaction do
         # Reload with lock to get the latest version and prevent concurrent modifications
         workflow.lock!
-        
+
         # Check for version conflict (optimistic locking)
         if client_lock_version > 0 && workflow.lock_version != client_lock_version
           Rails.logger.warn "Autosave: Version conflict for workflow #{workflow.id}. Client: #{client_lock_version}, Server: #{workflow.lock_version}"
-          
+
           # Broadcast conflict to the client that sent this request
           broadcast_to_workflow(workflow, {
             status: "conflict",
@@ -103,7 +103,7 @@ class WorkflowChannel < ApplicationCable::Channel
           })
           return
         end
-        
+
         # Apply updates
         workflow.title = title unless title.blank?
 
@@ -129,11 +129,11 @@ class WorkflowChannel < ApplicationCable::Channel
         else
           workflow.steps = formatted_steps
         end
-        
+
         # Save without validation (allow incomplete forms)
         # lock_version is automatically incremented by Rails
         workflow.save!(validate: false)
-        
+
         # Broadcast success with new lock_version to ALL subscribers
         broadcast_to_workflow(workflow, {
           status: "saved",
@@ -141,7 +141,7 @@ class WorkflowChannel < ApplicationCable::Channel
           saved_by: user_info,
           timestamp: Time.current.iso8601
         })
-        
+
         # Also broadcast to the main channel so other users can update their UI
         ActionCable.server.broadcast("workflow:#{workflow.id}", {
           type: "workflow_saved",
@@ -151,14 +151,14 @@ class WorkflowChannel < ApplicationCable::Channel
           saved_by: user_info,
           timestamp: Time.current.iso8601
         })
-        
+
         Rails.logger.info "Autosave: Successfully saved workflow #{workflow.id}, new version: #{workflow.lock_version}"
       end
     rescue ActiveRecord::StaleObjectError => e
       # This catches race conditions at the database level
       workflow.reload
       Rails.logger.warn "Autosave: Stale object error for workflow #{workflow.id}: #{e.message}"
-      
+
       broadcast_to_workflow(workflow, {
         status: "conflict",
         lock_version: workflow.lock_version,
@@ -170,7 +170,7 @@ class WorkflowChannel < ApplicationCable::Channel
     rescue => e
       Rails.logger.error "Autosave: Failed to save workflow #{workflow.id}: #{e.message}"
       Rails.logger.error e.backtrace.first(10).join("\n")
-      
+
       broadcast_to_workflow(workflow, {
         status: "error",
         errors: [e.message],
@@ -178,19 +178,19 @@ class WorkflowChannel < ApplicationCable::Channel
       })
     end
   end
-  
+
   # Format steps data for proper storage (extracted for reuse)
   def format_steps_data(steps_data)
     return [] unless steps_data.is_a?(Array)
-    
+
     steps_data.map do |step|
       next unless step.is_a?(Hash)
-      
+
       formatted_step = {}
-      
+
       step.each do |key, value|
         key_str = key.to_s
-        
+
         case key_str
         when "attachments"
           formatted_step[key_str] = value.is_a?(Array) ? value : []
@@ -252,7 +252,7 @@ class WorkflowChannel < ApplicationCable::Channel
           formatted_step[key_str] = value
         end
       end
-      
+
       formatted_step
     end.compact
   end
@@ -276,10 +276,10 @@ class WorkflowChannel < ApplicationCable::Channel
   # ==========================================================================
   # Uses Redis in production (via ActionCable's pubsub) for multi-worker support
   # Falls back to in-memory store for development/test (single worker)
-  
+
   def add_presence(workflow)
     presence_key = presence_redis_key(workflow)
-    
+
     if redis_available?
       redis_connection.sadd(presence_key, current_user.id.to_s)
       redis_connection.expire(presence_key, 3600) # 1 hour TTL
@@ -294,7 +294,7 @@ class WorkflowChannel < ApplicationCable::Channel
 
   def remove_presence(workflow)
     presence_key = presence_redis_key(workflow)
-    
+
     if redis_available?
       redis_connection.srem(presence_key, current_user.id.to_s)
     else
@@ -307,7 +307,7 @@ class WorkflowChannel < ApplicationCable::Channel
 
   def get_active_users(workflow)
     presence_key = presence_redis_key(workflow)
-    
+
     user_ids = if redis_available?
       redis_connection.smembers(presence_key).map(&:to_i)
     else
@@ -315,9 +315,9 @@ class WorkflowChannel < ApplicationCable::Channel
         (memory_presence_store[presence_key] || Set.new).to_a
       end
     end
-    
+
     return [] if user_ids.empty?
-    
+
     User.where(id: user_ids).map do |user|
       { id: user.id, email: user.email, name: user.email.split("@").first.titleize }
     end
@@ -369,4 +369,3 @@ class WorkflowChannel < ApplicationCable::Channel
     })
   end
 end
-

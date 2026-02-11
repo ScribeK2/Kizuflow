@@ -18,14 +18,14 @@ class Group < ApplicationRecord
   scope :visible_to, ->(user) {
     return all if user&.admin?
     return Group.none unless user
-    
+
     # Users see groups they're assigned to
     user_assigned_group_ids = joins(:user_groups).where(user_groups: { user_id: user.id }).pluck(:id)
-    
+
     # Also include Uncategorized group for backward compatibility (workflows without groups)
     # This ensures users can always see workflows in the Uncategorized group
     uncategorized_group_id = Group.find_by(name: "Uncategorized")&.id
-    
+
     # Combine both: user's assigned groups OR Uncategorized
     group_ids = [user_assigned_group_ids, uncategorized_group_id].flatten.compact.uniq
     where(id: group_ids)
@@ -33,7 +33,7 @@ class Group < ApplicationRecord
 
   # Tree traversal methods
   # These methods use recursive algorithms to traverse the hierarchical tree structure
-  
+
   # Check if this group is a root (has no parent)
   def root?
     parent_id.nil?
@@ -61,7 +61,7 @@ class Group < ApplicationRecord
 
   # Get all descendant groups (children, grandchildren, etc.) recursively
   # Returns a flat array of all groups below this one in the hierarchy
-  # Example: If Root has Child1 and Child2, and Child1 has Grandchild, 
+  # Example: If Root has Child1 and Child2, and Child1 has Grandchild,
   # Root.descendants returns [Child1, Child2, Grandchild]
   # WARNING: This method causes N+1 queries. For ID lookups, use descendant_ids instead.
   def descendants
@@ -106,7 +106,7 @@ class Group < ApplicationRecord
       # SQLite/other: Breadth-first iteration (efficient for reasonable depths)
       all_descendant_ids = []
       current_level_ids = parent_ids.map(&:to_i)
-      
+
       # Safety limit to prevent infinite loops (max 10 levels deep)
       10.times do
         child_ids = Group.where(parent_id: current_level_ids).pluck(:id)
@@ -114,7 +114,7 @@ class Group < ApplicationRecord
         all_descendant_ids.concat(child_ids)
         current_level_ids = child_ids
       end
-      
+
       all_descendant_ids.uniq
     end
   end
@@ -125,7 +125,7 @@ class Group < ApplicationRecord
   # @return [Array<Integer>] Array of all accessible group IDs
   def self.accessible_group_ids_for(user)
     return [] unless user&.groups&.any?
-    
+
     user_group_ids = user.groups.pluck(:id)
     descendant_ids = descendant_ids_for(user_group_ids)
     (user_group_ids + descendant_ids).uniq
@@ -180,11 +180,11 @@ class Group < ApplicationRecord
   def no_circular_reference
     return unless parent_id
     return unless parent_id_changed? || new_record?
-    
+
     # Get the parent group
     parent_group = parent_id.present? ? Group.find_by(id: parent_id) : nil
     return unless parent_group
-    
+
     # Check if this group (or any of its descendants) would be an ancestor of the parent
     # This prevents: A -> B -> A (direct circular)
     # And also: A -> B -> C -> A (indirect circular)
@@ -192,13 +192,13 @@ class Group < ApplicationRecord
       errors.add(:parent_id, "cannot be set to itself")
       return
     end
-    
+
     # Check if this group is an ancestor of the parent (would create a cycle)
     if parent_group.ancestors.any? { |ancestor| ancestor.id == id }
       errors.add(:parent_id, "cannot create circular reference")
       return
     end
-    
+
     # Also check if any descendant of this group is the parent (would create a cycle)
     if descendants.any? { |descendant| descendant.id == parent_group.id }
       errors.add(:parent_id, "cannot create circular reference: parent is a descendant")
@@ -216,10 +216,9 @@ class Group < ApplicationRecord
     else
       parent_id ? 1 : 0
     end
-    
+
     return unless current_depth >= max_depth
-    
+
     errors.add(:parent_id, "maximum depth of #{max_depth} levels exceeded")
   end
 end
-

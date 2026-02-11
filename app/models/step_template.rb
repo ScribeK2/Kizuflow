@@ -42,4 +42,3 @@ class StepTemplate
     template ? { key: key.to_s, **template } : nil
   end
 end
-

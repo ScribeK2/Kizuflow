@@ -12,4 +12,3 @@
 # and raise an ActionController::UnpermittedParameters exception.
 # This behavior can be changed by setting:
 # config.action_controller.action_on_unpermitted_parameters = :log
-

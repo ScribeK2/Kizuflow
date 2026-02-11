@@ -65,4 +65,3 @@ class Admin::GroupsController < ApplicationController
     params.require(:group).permit(:name, :description, :parent_id, :position)
   end
 end
-

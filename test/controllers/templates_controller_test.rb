@@ -143,4 +143,3 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "You don't have permission to perform this action.", flash[:alert]
   end
 end
-

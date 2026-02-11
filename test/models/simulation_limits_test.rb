@@ -13,10 +13,10 @@ class SimulationLimitsTest < ActiveSupport::TestCase
   test "simulation constants are defined and reasonable" do
     assert Simulation::MAX_ITERATIONS >= 100, "MAX_ITERATIONS should allow reasonable workflow size"
     assert Simulation::MAX_ITERATIONS <= 10000, "MAX_ITERATIONS should prevent DoS"
-    
+
     assert Simulation::MAX_EXECUTION_TIME >= 10, "MAX_EXECUTION_TIME should allow reasonable workflows"
     assert Simulation::MAX_EXECUTION_TIME <= 120, "MAX_EXECUTION_TIME should prevent resource hogging"
-    
+
     assert Simulation::MAX_CONDITION_DEPTH >= 10, "MAX_CONDITION_DEPTH should allow nested conditions"
   end
 
@@ -94,7 +94,7 @@ class SimulationLimitsTest < ActiveSupport::TestCase
     # Should complete normally
     result = simulation.execute
     assert result, "Normal workflow should complete successfully"
-    
+
     simulation.reload
     assert_equal 2, simulation.execution_path.length
     assert simulation.results['name'].present?
@@ -120,11 +120,11 @@ class SimulationLimitsTest < ActiveSupport::TestCase
     # Process first step
     simulation.process_step("answer1")
     assert_equal 1, simulation.current_step_index
-    
+
     # Process second step
     simulation.process_step("answer2")
     assert_equal 2, simulation.current_step_index
-    
+
     # Should be complete
     assert simulation.complete?
   end
