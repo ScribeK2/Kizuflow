@@ -3,19 +3,19 @@ source "https://rubygems.org"
 
 ruby "3.3.0"
 
-gem "rails", "~> 8.0.0"
-gem "sprockets-rails"
-gem "sqlite3", ">= 2.1", group: [:development, :test]
+gem "bootsnap", ">= 1.4.4", require: false
+gem "image_processing", "~> 1.2"
+gem "importmap-rails"
 gem "pg", "~> 1.1", group: [:production]
 gem "puma", ">= 5.0"
-gem "turbo-rails"
-gem "stimulus-rails"
-gem "importmap-rails"
-gem "tailwindcss-rails"
+gem "rails", "~> 8.0.0"
 gem "redis", "~> 5.0"
-gem "image_processing", "~> 1.2"
-gem "bootsnap", ">= 1.4.4", require: false
-gem "tzinfo-data", platforms: [:mingw, :mswin, :x64_mingw, :jruby]
+gem "sprockets-rails"
+gem "sqlite3", ">= 2.1", group: %i[development test]
+gem "stimulus-rails"
+gem "tailwindcss-rails"
+gem "turbo-rails"
+gem "tzinfo-data", platforms: %i[mingw mswin x64_mingw jruby]
 
 # Authentication
 gem "devise"
@@ -27,28 +27,28 @@ gem "prawn"
 gem "redcarpet"
 
 # Rich text editing with Trix
-gem "trix-rails"
 gem "actiontext"
+gem "trix-rails"
 
 # Error tracking and performance monitoring (production)
-gem "sentry-ruby"
 gem "sentry-rails"
+gem "sentry-ruby"
 
 group :development, :test do
-  gem "debug", platforms: [:mri, :mingw, :x64_mingw]
-  gem "rspec-rails"
   gem "capybara"
-  gem "selenium-webdriver"
+  gem "debug", platforms: %i[mri mingw x64_mingw]
   gem "factory_bot_rails"
+  gem "rspec-rails"
+  gem "selenium-webdriver"
 
   # N+1 query detection - helps catch performance issues during development
   gem "bullet"
 
   # Code linting and style enforcement
   gem "rubocop", require: false
-  gem "rubocop-rails", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-performance", require: false
+  gem "rubocop-rails", require: false
 end
 
 group :development do

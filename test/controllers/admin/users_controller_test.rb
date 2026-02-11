@@ -29,12 +29,14 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
   test 'admin should be able to access user management' do
     sign_in @admin
     get admin_users_path
+
     assert_response :success
   end
 
   test 'non-admin should not be able to access user management' do
     sign_in @editor
     get admin_users_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
@@ -42,8 +44,10 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
   test 'admin should be able to update user role' do
     sign_in @admin
     patch update_role_admin_user_path(@user), params: { role: 'editor' }
+
     assert_redirected_to admin_users_path
     @user.reload
+
     assert_equal 'editor', @user.role
   end
 
@@ -51,8 +55,10 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     original_role = @user.role
     patch update_role_admin_user_path(@user), params: { role: 'invalid_role' }
+
     assert_redirected_to admin_users_path
     @user.reload
+
     assert_equal original_role, @user.role
   end
 
@@ -70,6 +76,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_users_path
     @user.reload
+
     assert_includes @user.groups.map(&:id), group1.id
     assert_includes @user.groups.map(&:id), group2.id
   end
@@ -90,6 +97,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     }
 
     @user.reload
+
     assert_not_includes @user.groups.map(&:id), group1.id
     assert_includes @user.groups.map(&:id), group2.id
     assert_includes @user.groups.map(&:id), group3.id
@@ -119,6 +127,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_users_path
     user1.reload
     user2.reload
+
     assert_includes user1.groups.map(&:id), group.id
     assert_includes user2.groups.map(&:id), group.id
   end
@@ -143,6 +152,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     }
 
     user.reload
+
     assert_not_includes user.groups.map(&:id), group1.id
     assert_includes user.groups.map(&:id), group2.id
   end
@@ -156,9 +166,10 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     post reset_password_admin_user_path(@user)
 
     assert_redirected_to admin_users_path
-    assert_match /Temporary password generated for #{@user.email}/, flash[:notice]
+    assert_match(/Temporary password generated for #{@user.email}/, flash[:notice])
 
     @user.reload
+
     assert_not_equal original_password, @user.encrypted_password
   end
 
@@ -210,11 +221,12 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     temp_password = @user.generate_temporary_password
 
     @user.reload
+
     assert_not_equal original_password, @user.encrypted_password
     assert_not_nil temp_password
-    assert temp_password.length >= 8, "Password should be at least 8 characters"
+    assert_operator temp_password.length, :>=, 8, "Password should be at least 8 characters"
     # Password contains only alphanumeric chars from the character set
-    assert temp_password.match(/^[a-zA-Z0-9]+$/), "Password should only contain alphanumeric characters"
+    assert_match(/^[a-zA-Z0-9]+$/, temp_password, "Password should only contain alphanumeric characters")
   end
 
   test 'temporary password generation returns JSON response' do
@@ -225,6 +237,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     json_response = JSON.parse(response.body)
+
     assert json_response['success']
     assert_not_nil json_response['password']
     assert_equal @user.email, json_response['email']

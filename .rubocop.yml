@@ -1,3 +1,5 @@
+inherit_from: .rubocop_todo.yml
+
 require:
   - rubocop-rails
   - rubocop-minitest
@@ -6,6 +8,7 @@ require:
 AllCops:
   TargetRubyVersion: 3.3
   NewCops: enable
+  SuggestExtensions: false
   Exclude:
     - "db/migrate/**/*"
     - "db/schema.rb"
@@ -20,34 +23,6 @@ AllCops:
     - "node_modules/**/*"
     - "tmp/**/*"
 
-# --- Metrics: Disabled (large files are intentional) ---
-Metrics/ClassLength:
-  Enabled: false
-
-Metrics/MethodLength:
-  Enabled: false
-
-Metrics/ModuleLength:
-  Enabled: false
-
-Metrics/AbcSize:
-  Enabled: false
-
-Metrics/CyclomaticComplexity:
-  Enabled: false
-
-Metrics/PerceivedComplexity:
-  Enabled: false
-
-Metrics/BlockLength:
-  Enabled: false
-
-Metrics/ParameterLists:
-  Enabled: false
-
-Metrics/BlockNesting:
-  Enabled: false
-
 # --- Layout ---
 Layout/LineLength:
   Max: 200
@@ -59,13 +34,7 @@ Lint/UnusedMethodArgument:
 Lint/UnusedBlockArgument:
   Enabled: false
 
-# --- Style: Disabled (noise or unsafe to bulk-change) ---
-Style/StringLiterals:
-  Enabled: false
-
-Style/FrozenStringLiteralComment:
-  Enabled: false
-
+# --- Style: Disabled (noise or readability preference) ---
 Style/Documentation:
   Enabled: false
 

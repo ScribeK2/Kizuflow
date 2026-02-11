@@ -30,12 +30,14 @@ class Admin::WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to access workflow management" do
     sign_in @admin
     get admin_workflows_path
+
     assert_response :success
   end
 
   test "non-admin should not be able to access workflow management" do
     sign_in @editor
     get admin_workflows_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
@@ -43,6 +45,7 @@ class Admin::WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to view any workflow" do
     sign_in @admin
     get admin_workflow_path(@workflow)
+
     assert_response :success
   end
 end

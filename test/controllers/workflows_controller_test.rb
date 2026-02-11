@@ -44,11 +44,13 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     get workflows_path
+
     assert_response :success
   end
 
   test "should get show" do
     get workflow_path(@workflow)
+
     assert_response :success
   end
 
@@ -78,6 +80,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get edit" do
     get edit_workflow_path(@workflow)
+
     assert_response :success
   end
 
@@ -91,6 +94,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to workflow_path(@workflow)
     @workflow.reload
+
     assert_equal "Updated Title", @workflow.title
     # Description is ActionText::RichText, check body content
     assert_equal "Updated description", @workflow.description.to_plain_text
@@ -109,6 +113,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to workflow_path(@workflow)
     @workflow.reload
+
     assert_equal 2, @workflow.steps.length
   end
 
@@ -122,7 +127,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to workflow_path(@workflow)
     @workflow.reload
-    assert @workflow.is_public?
+
+    assert_predicate @workflow, :is_public?
   end
 
   test "should destroy workflow" do
@@ -136,6 +142,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should require authentication" do
     sign_out @editor
     get workflows_path
+
     assert_redirected_to new_user_session_path
   end
 
@@ -144,6 +151,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     # Editor should see own workflows + public workflows
     sign_in @editor
     get workflows_path
+
     assert_response :success
     assert_select "h1", text: /Workflows/
     # Verify editor sees their workflow
@@ -152,6 +160,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     # User should see only public workflows
     sign_in @user
     get workflows_path
+
     assert_response :success
     assert_select "h1", text: /Workflows/
     # Verify user sees public workflow
@@ -161,30 +170,35 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to view any workflow" do
     sign_in @admin
     get workflow_path(@workflow)
+
     assert_response :success
   end
 
   test "editor should be able to view own workflow" do
     sign_in @editor
     get workflow_path(@workflow)
+
     assert_response :success
   end
 
   test "editor should be able to view public workflow" do
     sign_in @editor
     get workflow_path(@public_workflow)
+
     assert_response :success
   end
 
   test "user should be able to view public workflow" do
     sign_in @user
     get workflow_path(@public_workflow)
+
     assert_response :success
   end
 
   test "user should not be able to view private workflow" do
     sign_in @user
     get workflow_path(@workflow)
+
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to view this workflow.", flash[:alert]
   end
@@ -194,7 +208,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     get new_workflow_path
     # Redirects to wizard step1 after creating draft
     assert_response :redirect
-    assert Workflow.drafts.where(user: @admin).exists?
+    assert_predicate Workflow.drafts.where(user: @admin), :exists?
   end
 
   test "editor should be able to create workflows" do
@@ -202,12 +216,13 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     get new_workflow_path
     # Redirects to wizard step1 after creating draft
     assert_response :redirect
-    assert Workflow.drafts.where(user: @editor).exists?
+    assert_predicate Workflow.drafts.where(user: @editor), :exists?
   end
 
   test "user should not be able to create workflows" do
     sign_in @user
     get new_workflow_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to perform this action.", flash[:alert]
   end
@@ -215,12 +230,14 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to edit any workflow" do
     sign_in @admin
     get edit_workflow_path(@workflow)
+
     assert_response :success
   end
 
   test "editor should be able to edit own workflow" do
     sign_in @editor
     get edit_workflow_path(@workflow)
+
     assert_response :success
   end
 
@@ -232,6 +249,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     )
     sign_in @editor
     get edit_workflow_path(other_workflow)
+
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to edit this workflow.", flash[:alert]
   end
@@ -239,6 +257,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "user should not be able to edit workflows" do
     sign_in @user
     get edit_workflow_path(@public_workflow)
+
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to edit this workflow.", flash[:alert]
   end
@@ -288,19 +307,22 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to export any workflow" do
     sign_in @admin
     get export_workflow_path(@workflow)
+
     assert_response :success
-    assert_match(/application\/json/, response.content_type)
+    assert_match(%r{application/json}, response.content_type)
   end
 
   test "user should be able to export public workflow" do
     sign_in @user
     get export_workflow_path(@public_workflow)
+
     assert_response :success
   end
 
   test "user should not be able to export private workflow" do
     sign_in @user
     get export_workflow_path(@workflow)
+
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to view this workflow.", flash[:alert]
   end
@@ -308,8 +330,9 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should export workflow as PDF" do
     sign_in @editor
     get export_pdf_workflow_path(@workflow)
+
     assert_response :success
-    assert_match(/application\/pdf/, response.content_type)
+    assert_match(%r{application/pdf}, response.content_type)
   end
 
   # Group-related tests
@@ -334,6 +357,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor
     get workflows_path, params: { group_id: group.id }
+
     assert_response :success
     assert_match "In Group", response.body
     # Should not show workflow from different group when filtering
@@ -341,12 +365,13 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show all workflows when no group selected" do
-    group = Group.create!(name: "Test Group")
-    workflow1 = Workflow.create!(title: "Workflow 1", user: @editor)
-    workflow2 = Workflow.create!(title: "Workflow 2", user: @editor)
+    Group.create!(name: "Test Group")
+    Workflow.create!(title: "Workflow 1", user: @editor)
+    Workflow.create!(title: "Workflow 2", user: @editor)
 
     sign_in @editor
     get workflows_path
+
     assert_response :success
     assert_match "Workflow 1", response.body
     assert_match "Workflow 2", response.body
@@ -374,8 +399,9 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     end
 
     workflow = Workflow.last
+
     assert_includes workflow.groups.map(&:id), group.id
-    assert workflow.group_workflows.find_by(group: group).is_primary?
+    assert_predicate workflow.group_workflows.find_by(group: group), :is_primary?
   end
 
   test "should update workflow with group assignment" do
@@ -395,6 +421,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     }
 
     @workflow.reload
+
     assert_not_includes @workflow.groups.map(&:id), group1.id
     assert_includes @workflow.groups.map(&:id), group2.id
   end
@@ -422,6 +449,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in user
     get workflows_path
+
     assert_response :success
     assert_match "Accessible Workflow", response.body
     assert_no_match "Inaccessible Workflow", response.body
@@ -429,23 +457,25 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "should show accessible groups in sidebar" do
     accessible_group = Group.create!(name: "Accessible")
-    inaccessible_group = Group.create!(name: "Inaccessible")
+    Group.create!(name: "Inaccessible")
 
     UserGroup.create!(group: accessible_group, user: @editor)
 
     sign_in @editor
     get workflows_path
+
     assert_response :success
     assert_match "Accessible", response.body
     assert_no_match "Inaccessible", response.body
   end
 
   test "admin should see all groups in sidebar" do
-    group1 = Group.create!(name: "Group 1")
-    group2 = Group.create!(name: "Group 2")
+    Group.create!(name: "Group 1")
+    Group.create!(name: "Group 2")
 
     sign_in @admin
     get workflows_path
+
     assert_response :success
     assert_match "Group 1", response.body
     assert_match "Group 2", response.body

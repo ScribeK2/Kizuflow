@@ -30,7 +30,7 @@ namespace :workflows do
           else
             skipped += 1
           end
-        rescue => e
+        rescue StandardError => e
           errors += 1
           puts " ✗ Error: #{e.message}"
         end
@@ -55,7 +55,7 @@ namespace :workflows do
       puts ""
 
       workflows = Workflow.all
-      total = workflows.count
+      workflows.count
       fixed = 0
       issues = []
 
@@ -105,9 +105,9 @@ namespace :workflows do
       Workflow.find_each do |workflow|
         next unless workflow.steps.present?
 
-        yes_no_questions = workflow.steps.select { |s|
+        yes_no_questions = workflow.steps.select do |s|
           s['type'] == 'question' && s['answer_type'] == 'yes_no'
-        }
+        end
 
         decision_steps = workflow.steps.select { |s| s['type'] == 'decision' }
 

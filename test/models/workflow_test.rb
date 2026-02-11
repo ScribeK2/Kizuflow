@@ -16,7 +16,8 @@ class WorkflowTest < ActiveSupport::TestCase
       user: @user,
       steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
     )
-    assert workflow.valid?
+
+    assert_predicate workflow, :valid?
     assert workflow.save
   end
 
@@ -25,6 +26,7 @@ class WorkflowTest < ActiveSupport::TestCase
       description: "A test workflow",
       user: @user
     )
+
     assert_not workflow.valid?
     assert_includes workflow.errors[:title], "can't be blank"
   end
@@ -34,6 +36,7 @@ class WorkflowTest < ActiveSupport::TestCase
       title: "Test Workflow",
       description: "A test workflow"
     )
+
     assert_not workflow.valid?
     assert_includes workflow.errors[:user_id], "can't be blank"
   end
@@ -43,6 +46,7 @@ class WorkflowTest < ActiveSupport::TestCase
       title: "Test Workflow",
       user: @user
     )
+
     assert_equal @user, workflow.user
   end
 
@@ -68,10 +72,11 @@ class WorkflowTest < ActiveSupport::TestCase
     Workflow.where(user: @user).destroy_all
 
     first = Workflow.create!(title: "First", user: @user, created_at: 2.days.ago)
-    second = Workflow.create!(title: "Second", user: @user, created_at: 1.day.ago)
+    Workflow.create!(title: "Second", user: @user, created_at: 1.day.ago)
     third = Workflow.create!(title: "Third", user: @user, created_at: Time.current)
 
     recent = Workflow.where(user: @user).recent.limit(3)
+
     assert_equal third.id, recent.first.id
     assert_equal first.id, recent.last.id
   end
@@ -277,6 +282,7 @@ class WorkflowTest < ActiveSupport::TestCase
     workflow2 = Workflow.create!(title: "Public", user: @user, is_public: true)
 
     visible = Workflow.visible_to(admin)
+
     assert_includes visible.map(&:id), workflow1.id
     assert_includes visible.map(&:id), workflow2.id
   end
@@ -294,6 +300,7 @@ class WorkflowTest < ActiveSupport::TestCase
     other_public = Workflow.create!(title: "Other Public", user: @user, is_public: true)
 
     visible = Workflow.visible_to(editor)
+
     assert_includes visible.map(&:id), own_private.id
     assert_includes visible.map(&:id), own_public.id
     assert_includes visible.map(&:id), other_public.id
@@ -311,6 +318,7 @@ class WorkflowTest < ActiveSupport::TestCase
     public_workflow = Workflow.create!(title: "Public", user: @user, is_public: true)
 
     visible = Workflow.visible_to(regular_user)
+
     assert_not_includes visible.map(&:id), private_workflow.id
     assert_includes visible.map(&:id), public_workflow.id
   end
@@ -321,6 +329,7 @@ class WorkflowTest < ActiveSupport::TestCase
     private_workflow = Workflow.create!(title: "Private", user: @user, is_public: false)
 
     public_workflows = Workflow.public_workflows
+
     assert_includes public_workflows.map(&:id), public1.id
     assert_includes public_workflows.map(&:id), public2.id
     assert_not_includes public_workflows.map(&:id), private_workflow.id
@@ -346,7 +355,7 @@ class WorkflowTest < ActiveSupport::TestCase
   test "should assign to Uncategorized group when created without groups" do
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
 
-    assert workflow.groups.any?
+    assert_predicate workflow.groups, :any?
     assert_equal "Uncategorized", workflow.groups.first.name
   end
 
@@ -390,6 +399,7 @@ class WorkflowTest < ActiveSupport::TestCase
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
 
     all_groups = workflow.all_groups
+
     assert_equal 2, all_groups.count
     assert_includes all_groups.map(&:id), group1.id
     assert_includes all_groups.map(&:id), group2.id
@@ -409,6 +419,7 @@ class WorkflowTest < ActiveSupport::TestCase
     GroupWorkflow.create!(group: group2, workflow: workflow2, is_primary: true)
 
     group1_workflows = Workflow.in_group(group1)
+
     assert_includes group1_workflows.map(&:id), workflow1.id
     assert_not_includes group1_workflows.map(&:id), workflow2.id
   end
@@ -427,6 +438,7 @@ class WorkflowTest < ActiveSupport::TestCase
     GroupWorkflow.create!(group: child, workflow: workflow2, is_primary: true)
 
     parent_workflows = Workflow.in_group(parent)
+
     assert_includes parent_workflows.map(&:id), workflow1.id
     assert_includes parent_workflows.map(&:id), workflow2.id
   end
@@ -446,6 +458,7 @@ class WorkflowTest < ActiveSupport::TestCase
     UserGroup.create!(group: group, user: user)
 
     visible = Workflow.visible_to(user)
+
     assert_includes visible.map(&:id), workflow.id
   end
 
@@ -461,6 +474,7 @@ class WorkflowTest < ActiveSupport::TestCase
     workflow.group_workflows.destroy_all
 
     visible = Workflow.visible_to(user)
+
     assert_includes visible.map(&:id), workflow.id
   end
 
@@ -478,6 +492,7 @@ class WorkflowTest < ActiveSupport::TestCase
     GroupWorkflow.create!(group: group, workflow: public_workflow, is_primary: true)
 
     visible = Workflow.visible_to(user)
+
     assert_includes visible.map(&:id), public_workflow.id
   end
 end

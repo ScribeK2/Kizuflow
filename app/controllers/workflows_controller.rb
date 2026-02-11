@@ -1,11 +1,12 @@
 class WorkflowsController < ApplicationController
-  before_action :set_workflow, only: [:show, :edit, :update, :destroy, :export, :export_pdf, :preview, :variables, :save_as_template, :start, :begin_execution, :step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft, :render_step]
-  before_action :ensure_draft_workflow!, only: [:step1, :update_step1, :step2, :update_step2, :step3, :create_from_draft]
-  before_action :ensure_editor_or_admin!, only: [:new, :create, :import, :import_file]
-  before_action :ensure_can_view_workflow!, only: [:show, :export, :export_pdf, :start, :begin_execution]
-  before_action :ensure_can_edit_workflow!, only: [:edit, :update, :save_as_template]
+  before_action :set_workflow,
+                only: %i[show edit update destroy export export_pdf preview variables save_as_template start begin_execution step1 update_step1 step2 update_step2 step3 create_from_draft render_step]
+  before_action :ensure_draft_workflow!, only: %i[step1 update_step1 step2 update_step2 step3 create_from_draft]
+  before_action :ensure_editor_or_admin!, only: %i[new create import import_file]
+  before_action :ensure_can_view_workflow!, only: %i[show export export_pdf start begin_execution]
+  before_action :ensure_can_edit_workflow!, only: %i[edit update save_as_template]
   before_action :ensure_can_delete_workflow!, only: [:destroy]
-  before_action :parse_transitions_json, only: [:create, :update, :update_step2]
+  before_action :parse_transitions_json, only: %i[create update update_step2]
 
   def index
     @status_filter = params[:status].presence || 'all'
@@ -31,15 +32,15 @@ class WorkflowsController < ApplicationController
                            .search_by(params[:search])
 
     # Apply sort order
-    case @sort_by
-    when 'alphabetical'
-      @workflows = @workflows.order(Arel.sql('LOWER(title) ASC'))
-    when 'most_steps'
-      @workflows = @workflows.order(Arel.sql("COALESCE(json_array_length(steps), 0) DESC"))
-    else
-      # 'recent' — order by updated_at
-      @workflows = @workflows.order(updated_at: :desc)
-    end
+    @workflows = case @sort_by
+                 when 'alphabetical'
+                   @workflows.order(Arel.sql('LOWER(title) ASC'))
+                 when 'most_steps'
+                   @workflows.order(Arel.sql("COALESCE(json_array_length(steps), 0) DESC"))
+                 else
+                   # 'recent' — order by updated_at
+                   @workflows.order(updated_at: :desc)
+                 end
 
     # Filter by group if selected
     if params[:group_id].present?
@@ -55,7 +56,7 @@ class WorkflowsController < ApplicationController
           @selected_group = nil
           flash.now[:alert] = "You don't have permission to view this group."
         end
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error "Error loading group #{params[:group_id]}: #{e.message}\n#{e.backtrace.join("\n")}"
         @selected_group = nil
         flash.now[:alert] = "An error occurred while loading the group."
@@ -66,9 +67,9 @@ class WorkflowsController < ApplicationController
     # If no groups exist, show all workflows (backward compatibility)
     # Eager load children to prevent N+1 queries when rendering the tree
     @accessible_groups = Group.visible_to(current_user)
-                               .roots
-                               .includes(:children)
-                               .order(:position, :name)
+                              .roots
+                              .includes(:children)
+                              .order(:position, :name)
 
     # Fallback: if no groups exist at all, don't filter by groups
     if @accessible_groups.empty? && !current_user&.admin?
@@ -97,8 +98,7 @@ class WorkflowsController < ApplicationController
     end
   end
 
-  def show
-  end
+  def show; end
 
   def new
     # Create a draft workflow and redirect to wizard step 1
@@ -113,8 +113,14 @@ class WorkflowsController < ApplicationController
     else
       # Fallback: if draft creation fails, show traditional form
       @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
+  end
+
+  def edit
+    # Eager load groups to prevent N+1 queries
+    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+    @selected_group_ids = @workflow.group_ids
   end
 
   def create
@@ -127,7 +133,7 @@ class WorkflowsController < ApplicationController
         group_ids.each_with_index do |group_id, index|
           @workflow.group_workflows.create!(
             group_id: group_id,
-            is_primary: index == 0  # First group is primary
+            is_primary: index == 0 # First group is primary
           )
         end
       end
@@ -136,14 +142,8 @@ class WorkflowsController < ApplicationController
     else
       # Eager load groups to prevent N+1 queries
       @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    # Eager load groups to prevent N+1 queries
-    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
-    @selected_group_ids = @workflow.group_ids
   end
 
   def update
@@ -153,11 +153,9 @@ class WorkflowsController < ApplicationController
     begin
       Workflow.transaction do
         # Check for version conflict if client sent a lock_version
-        if client_lock_version.present? && client_lock_version > 0
-          if @workflow.lock_version != client_lock_version
-            @workflow.errors.add(:base, "This workflow was modified by another user. Please refresh and try again.")
-            raise ActiveRecord::StaleObjectError.new(@workflow, "update")
-          end
+        if client_lock_version.present? && client_lock_version > 0 && (@workflow.lock_version != client_lock_version)
+          @workflow.errors.add(:base, "This workflow was modified by another user. Please refresh and try again.")
+          raise ActiveRecord::StaleObjectError.new(@workflow, "update")
         end
 
         if @workflow.update(workflow_params)
@@ -195,7 +193,7 @@ class WorkflowsController < ApplicationController
     unless performed?
       @accessible_groups = Group.visible_to(current_user).order(:name)
       @selected_group_ids = @workflow.group_ids
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -309,7 +307,7 @@ class WorkflowsController < ApplicationController
   # This allows the JavaScript to request server-rendered HTML for new steps,
   # ensuring all the new Sprint 2/3 features are included
   def render_step
-    Rails.logger.debug "[render_step] Params: #{params.inspect}"
+    Rails.logger.debug { "[render_step] Params: #{params.inspect}" }
 
     step_type = params[:step_type]
     step_index = params[:step_index].to_i
@@ -324,7 +322,7 @@ class WorkflowsController < ApplicationController
                   {}.with_indifferent_access
                 end
 
-    Rails.logger.debug "[render_step] step_type=#{step_type}, step_index=#{step_index}, step_data=#{step_data.inspect}"
+    Rails.logger.debug { "[render_step] step_type=#{step_type}, step_index=#{step_index}, step_data=#{step_data.inspect}" }
 
     # Build a step hash from the parameters
     step = {
@@ -365,7 +363,7 @@ class WorkflowsController < ApplicationController
                expanded: true
              },
              formats: [:html]
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "[render_step] Error rendering step: #{e.message}"
       Rails.logger.error e.backtrace.first(10).join("\n")
       render plain: "Error rendering step: #{e.message}", status: :internal_server_error
@@ -532,7 +530,7 @@ class WorkflowsController < ApplicationController
     else
       @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
       @selected_group_ids = @workflow.group_ids
-      render :step1, status: :unprocessable_entity
+      render :step1, status: :unprocessable_content
     end
   end
 
@@ -555,7 +553,7 @@ class WorkflowsController < ApplicationController
     if @workflow.update(permitted_params)
       redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
     else
-      render :step2, status: :unprocessable_entity
+      render :step2, status: :unprocessable_content
     end
   end
 
@@ -574,14 +572,14 @@ class WorkflowsController < ApplicationController
 
     # Validate draft before converting to published
     unless @workflow.valid?
-      render :step3, status: :unprocessable_entity
+      render :step3, status: :unprocessable_content
       return
     end
 
     # Validate that workflow has at least one step
     if @workflow.steps.blank? || @workflow.steps.empty?
       @workflow.errors.add(:base, "Workflow must have at least one step")
-      render :step3, status: :unprocessable_entity
+      render :step3, status: :unprocessable_content
       return
     end
 
@@ -607,7 +605,7 @@ class WorkflowsController < ApplicationController
     end
 
     if @workflow.errors.any?
-      render :step3, status: :unprocessable_entity
+      render :step3, status: :unprocessable_content
       return
     end
 
@@ -622,7 +620,7 @@ class WorkflowsController < ApplicationController
 
       redirect_to @workflow, notice: "Workflow was successfully created!"
     else
-      render :step3, status: :unprocessable_entity
+      render :step3, status: :unprocessable_content
     end
   end
 
@@ -643,46 +641,46 @@ class WorkflowsController < ApplicationController
         var_name = step['variable_name']
         # Generate sample value based on answer type
         sample_vars[var_name] = case step['answer_type']
-        when 'yes_no'
-          'yes'
-        when 'number'
-          '42'
-        when 'date'
-          Date.today.strftime('%Y-%m-%d')
-        when 'multiple_choice', 'dropdown'
-          # Use first option if available, otherwise default
-          if step['options'].present? && step['options'].is_a?(Array) && step['options'].first
-            opt = step['options'].first
-            opt.is_a?(Hash) ? (opt['value'] || opt['label'] || 'option1') : opt.to_s
-          else
-            'option1'
-          end
-        else
-          # Default text value - use step title or generic name
-          step['title'].present? ? step['title'].split(' ').first : 'sample_value'
+                                when 'yes_no'
+                                  'yes'
+                                when 'number'
+                                  '42'
+                                when 'date'
+                                  Date.today.strftime('%Y-%m-%d')
+                                when 'multiple_choice', 'dropdown'
+                                  # Use first option if available, otherwise default
+                                  if step['options'].present? && step['options'].is_a?(Array) && step['options'].first
+                                    opt = step['options'].first
+                                    opt.is_a?(Hash) ? (opt['value'] || opt['label'] || 'option1') : opt.to_s
+                                  else
+                                    'option1'
+                                  end
+                                else
+                                  # Default text value - use step title or generic name
+                                  step['title'].present? ? step['title'].split(' ').first : 'sample_value'
                                 end
       end
 
       # Get variables from action step output_fields
-      if step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array)
-        step['output_fields'].each do |output_field|
-          next unless output_field.is_a?(Hash) && output_field['name'].present?
+      next unless step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array)
 
-          var_name = output_field['name']
-          # Use the defined value if static, or generate sample if it contains interpolation
-          if output_field['value'].present?
-            # If value contains {{, it's interpolated - use a placeholder
-            if output_field['value'].include?('{{')
-              sample_vars[var_name] = '[interpolated]'
-            else
-              # Static value
-              sample_vars[var_name] = output_field['value']
-            end
-          else
-            # No value defined - use generic sample
-            sample_vars[var_name] = 'completed'
-          end
-        end
+      step['output_fields'].each do |output_field|
+        next unless output_field.is_a?(Hash) && output_field['name'].present?
+
+        var_name = output_field['name']
+        # Use the defined value if static, or generate sample if it contains interpolation
+        sample_vars[var_name] = if output_field['value'].present?
+                                  # If value contains {{, it's interpolated - use a placeholder
+                                  if output_field['value'].include?('{{')
+                                    '[interpolated]'
+                                  else
+                                    # Static value
+                                    output_field['value']
+                                  end
+                                else
+                                  # No value defined - use generic sample
+                                  'completed'
+                                end
       end
     end
 
@@ -732,23 +730,22 @@ class WorkflowsController < ApplicationController
     # Permit nested steps hash structure
     # lock_version is used for optimistic locking to prevent race conditions
     # graph_mode and start_node_uuid are for DAG-based workflows
-    permitted = params.require(:workflow).permit(:title, :description, :is_public, :lock_version,
-      :graph_mode, :start_node_uuid,
-      steps: [
-      :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
-      :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
-      :checkpoint_message, :target_workflow_id,
-      :content,
-      :target_type, :target_value, :priority, :reason_required, :notes,
-      :resolution_type, :resolution_code, :notes_required, :survey_trigger,
-      options: [:label, :value],
-      branches: [:condition, :path],
-      jumps: [:condition, :next_step_id],
-      transitions: [:target_uuid, :condition, :label],
-      attachments: [],
-      output_fields: [:name, :value]
-    ])
-    permitted
+    params.require(:workflow).permit(:title, :description, :is_public, :lock_version,
+                                     :graph_mode, :start_node_uuid,
+                                     steps: [
+                                       :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
+                                       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
+                                       :checkpoint_message, :target_workflow_id,
+                                       :content,
+                                       :target_type, :target_value, :priority, :reason_required, :notes,
+                                       :resolution_type, :resolution_code, :notes_required, :survey_trigger,
+                                       { options: %i[label value],
+                                         branches: %i[condition path],
+                                         jumps: %i[condition next_step_id],
+                                         transitions: %i[target_uuid condition label],
+                                         attachments: [],
+                                         output_fields: %i[name value] }
+                                     ])
   end
 
   def workflow_step1_params
@@ -762,19 +759,19 @@ class WorkflowsController < ApplicationController
     # Missing fields identified in Phase 1 diagnosis: :id, :checkpoint_message, :jumps, output_fields
     # Added: target_workflow_id for sub-flow steps, transitions for graph mode
     params.require(:workflow).permit(steps: [
-      :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
-      :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
-      :checkpoint_message, :target_workflow_id,
-      :content,
-      :target_type, :target_value, :priority, :reason_required, :notes,
-      :resolution_type, :resolution_code, :notes_required, :survey_trigger,
-      options: [:label, :value],
-      branches: [:condition, :path],
-      jumps: [:condition, :next_step_id],
-      transitions: [:target_uuid, :condition, :label],
-      attachments: [],
-      output_fields: [:name, :value]
-    ])
+                                       :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
+                                       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
+                                       :checkpoint_message, :target_workflow_id,
+                                       :content,
+                                       :target_type, :target_value, :priority, :reason_required, :notes,
+                                       :resolution_type, :resolution_code, :notes_required, :survey_trigger,
+                                       { options: %i[label value],
+                                         branches: %i[condition path],
+                                         jumps: %i[condition next_step_id],
+                                         transitions: %i[target_uuid condition label],
+                                         attachments: [],
+                                         output_fields: %i[name value] }
+                                     ])
   end
 
   def parse_step_from_params
@@ -876,8 +873,6 @@ class WorkflowsController < ApplicationController
         :yaml
       when 'text/markdown', 'text/x-markdown'
         :markdown
-      else
-        nil
       end
     end
   end
@@ -900,11 +895,11 @@ class WorkflowsController < ApplicationController
   rescue NameError => e
     # If autoloading fails, try explicit require
     Rails.logger.warn("Failed to autoload WorkflowParsers: #{e.message}")
-    require Rails.root.join('app', 'services', 'workflow_parsers', 'base_parser')
-    require Rails.root.join('app', 'services', 'workflow_parsers', 'json_parser')
-    require Rails.root.join('app', 'services', 'workflow_parsers', 'csv_parser')
-    require Rails.root.join('app', 'services', 'workflow_parsers', 'yaml_parser')
-    require Rails.root.join('app', 'services', 'workflow_parsers', 'markdown_parser')
+    require Rails.root.join("app/services/workflow_parsers/base_parser")
+    require Rails.root.join("app/services/workflow_parsers/json_parser")
+    require Rails.root.join("app/services/workflow_parsers/csv_parser")
+    require Rails.root.join("app/services/workflow_parsers/yaml_parser")
+    require Rails.root.join("app/services/workflow_parsers/markdown_parser")
     retry
   end
 
@@ -984,13 +979,13 @@ class WorkflowsController < ApplicationController
       end
 
       # Parse output_fields if it's a JSON string
-      if step[:output_fields].is_a?(String)
-        begin
-          parsed = JSON.parse(step[:output_fields])
-          step[:output_fields] = parsed if parsed.is_a?(Array)
-        rescue JSON::ParserError
-          step[:output_fields] = []
-        end
+      next unless step[:output_fields].is_a?(String)
+
+      begin
+        parsed = JSON.parse(step[:output_fields])
+        step[:output_fields] = parsed if parsed.is_a?(Array)
+      rescue JSON::ParserError
+        step[:output_fields] = []
       end
     end
   end

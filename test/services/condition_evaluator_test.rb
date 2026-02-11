@@ -26,8 +26,8 @@ class ConditionEvaluatorTest < ActiveSupport::TestCase
   test "rejects invalid condition formats" do
     assert_not ConditionEvaluator.valid?("")
     assert_not ConditionEvaluator.valid?(nil)
-    assert_not ConditionEvaluator.valid?("x === 'yes'")  # triple equals
-    assert_not ConditionEvaluator.valid?("x = 'yes'")   # single equals
+    assert_not ConditionEvaluator.valid?("x === 'yes'") # triple equals
+    assert_not ConditionEvaluator.valid?("x = 'yes'") # single equals
     assert_not ConditionEvaluator.valid?("invalid")
   end
 
@@ -156,6 +156,7 @@ class ConditionEvaluatorTest < ActiveSupport::TestCase
 
   test "parse returns nil for invalid condition" do
     evaluator = ConditionEvaluator.new("invalid")
+
     assert_nil evaluator.parse
   end
 

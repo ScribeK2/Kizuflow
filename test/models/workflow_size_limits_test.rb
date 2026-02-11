@@ -16,7 +16,8 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
       user: @user,
       steps: 10.times.map { |i| { "type" => "question", "title" => "Step #{i}", "question" => "Q?" } }
     )
-    assert workflow.valid?, "Workflow should be valid: #{workflow.errors.full_messages.join(', ')}"
+
+    assert_predicate workflow, :valid?, "Workflow should be valid: #{workflow.errors.full_messages.join(', ')}"
   end
 
   test "workflow exceeding MAX_STEPS is rejected" do
@@ -32,7 +33,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("cannot exceed") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("cannot exceed") })
   end
 
   test "step with title exceeding MAX_STEP_TITLE_LENGTH is rejected" do
@@ -45,7 +46,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Title is too long") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Title is too long") })
   end
 
   test "step with content exceeding MAX_STEP_CONTENT_LENGTH is rejected" do
@@ -59,7 +60,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("too large") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("too large") })
   end
 
   test "step with too many options is rejected" do
@@ -78,7 +79,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Too many options") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Too many options") })
   end
 
   test "step with too many branches is rejected" do
@@ -95,7 +96,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Too many branches") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Too many branches") })
   end
 
   test "workflow title exceeding 255 characters is rejected" do
@@ -108,7 +109,7 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:title].any?
+    assert_predicate workflow.errors[:title], :any?
   end
 
   test "valid workflow with moderate content passes all limits" do
@@ -139,15 +140,15 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
       ]
     )
 
-    assert workflow.valid?, "Workflow should be valid: #{workflow.errors.full_messages.join(', ')}"
+    assert_predicate workflow, :valid?, "Workflow should be valid: #{workflow.errors.full_messages.join(', ')}"
   end
 
   test "constants are accessible and reasonable" do
-    assert Workflow::MAX_STEPS >= 100, "MAX_STEPS should allow at least 100 steps"
-    assert Workflow::MAX_STEPS <= 500, "MAX_STEPS should not exceed 500"
+    assert_operator Workflow::MAX_STEPS, :>=, 100, "MAX_STEPS should allow at least 100 steps"
+    assert_operator Workflow::MAX_STEPS, :<=, 500, "MAX_STEPS should not exceed 500"
 
-    assert Workflow::MAX_STEP_TITLE_LENGTH >= 200, "Title limit should allow reasonable titles"
-    assert Workflow::MAX_STEP_CONTENT_LENGTH >= 10_000, "Content limit should allow detailed instructions"
-    assert Workflow::MAX_TOTAL_STEPS_SIZE >= 1_000_000, "Total size should allow at least 1MB"
+    assert_operator Workflow::MAX_STEP_TITLE_LENGTH, :>=, 200, "Title limit should allow reasonable titles"
+    assert_operator Workflow::MAX_STEP_CONTENT_LENGTH, :>=, 10_000, "Content limit should allow detailed instructions"
+    assert_operator Workflow::MAX_TOTAL_STEPS_SIZE, :>=, 1_000_000, "Total size should allow at least 1MB"
   end
 end

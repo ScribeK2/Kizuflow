@@ -45,11 +45,13 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     get templates_path
+
     assert_response :success
   end
 
   test "should get show" do
     get template_path(@template)
+
     assert_response :success
   end
 
@@ -68,6 +70,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     )
 
     get templates_path, params: { search: "Post-Onboarding" }
+
     assert_response :success
     assert_select "h3", text: /Post-Onboarding/
   end
@@ -78,12 +81,14 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     end
 
     workflow = Workflow.last
+
     assert_redirected_to edit_workflow_path(workflow)
-    assert workflow.title.include?(@template.name)
+    assert_includes workflow.title, @template.name
     # Steps may have auto-generated IDs and variable_names, so compare without them
     auto_generated_fields = %w[id variable_name]
     workflow_steps = workflow.steps.map { |s| s.except(*auto_generated_fields) }
     template_steps = @template.workflow_data.map { |s| s.is_a?(Hash) ? s.stringify_keys.except(*auto_generated_fields) : s }
+
     assert_equal template_steps, workflow_steps
   end
 
@@ -91,6 +96,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
   test "admin should see all templates in index" do
     sign_in @admin
     get templates_path
+
     assert_response :success
     # Admin should see both public and private templates
     assert_select "h3", text: /Test Template/
@@ -99,6 +105,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
   test "non-admin should see only public templates in index" do
     sign_in @user
     get templates_path
+
     assert_response :success
     assert_select "h3", text: /Test Template/
     # Should not see private template
@@ -108,12 +115,14 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to view private template" do
     sign_in @admin
     get template_path(@private_template)
+
     assert_response :success
   end
 
   test "non-admin should not be able to view private template" do
     sign_in @user
     get template_path(@private_template)
+
     assert_redirected_to templates_path
     assert_equal "You don't have permission to view this template.", flash[:alert]
   end

@@ -220,7 +220,7 @@ class SimulationOutputFieldsTest < ActiveSupport::TestCase
 
     # Should fail validation due to empty name
     assert_not workflow.valid?
-    assert workflow.errors.full_messages.any? { |msg| msg.include?("Output Field 1: name is required") }
+    assert(workflow.errors.full_messages.any? { |msg| msg.include?("Output Field 1: name is required") })
   end
 
   test "output_fields can reference variables from previous action steps" do

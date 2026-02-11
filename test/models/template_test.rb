@@ -9,7 +9,8 @@ class TemplateTest < ActiveSupport::TestCase
       is_public: true,
       workflow_data: [{ type: "question", title: "Question 1" }]
     )
-    assert template.valid?
+
+    assert_predicate template, :valid?
     assert template.save
   end
 
@@ -18,6 +19,7 @@ class TemplateTest < ActiveSupport::TestCase
       description: "A test template",
       category: "post-onboarding"
     )
+
     assert_not template.valid?
     assert_includes template.errors[:name], "can't be blank"
   end
@@ -27,6 +29,7 @@ class TemplateTest < ActiveSupport::TestCase
       name: "Test Template",
       description: "A test template"
     )
+
     assert_not template.valid?
     assert_includes template.errors[:category], "can't be blank"
   end
@@ -56,6 +59,7 @@ class TemplateTest < ActiveSupport::TestCase
     Template.create!(name: "Troubleshooting Guide", category: "troubleshooting", workflow_data: [])
 
     results = Template.search("Post-Onboarding")
+
     assert_equal 1, results.count
     assert_equal "Post-Onboarding Checklist", results.first.name
   end
@@ -68,6 +72,7 @@ class TemplateTest < ActiveSupport::TestCase
     Template.create!(name: "Template 2", category: "troubleshooting", workflow_data: [])
 
     results = Template.search("troubleshooting")
+
     assert_equal 1, results.count
     assert_equal "Template 2", results.first.name
   end
@@ -80,6 +85,7 @@ class TemplateTest < ActiveSupport::TestCase
     Template.create!(name: "Private Template", category: "test", is_public: false, workflow_data: [])
 
     public_templates = Template.public_templates
+
     assert_equal 1, public_templates.count
     assert_equal "Public Template", public_templates.first.name
   end
@@ -93,7 +99,8 @@ class TemplateTest < ActiveSupport::TestCase
     Template.create!(name: "Template 3", category: "post-onboarding", workflow_data: [])
 
     results = Template.by_category("post-onboarding")
+
     assert_equal 2, results.count
-    assert results.all? { |t| t.category == "post-onboarding" }
+    assert(results.all? { |t| t.category == "post-onboarding" })
   end
 end

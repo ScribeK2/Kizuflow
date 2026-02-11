@@ -215,6 +215,7 @@ class SimulationCheckpointTest < ActiveSupport::TestCase
 
     # Check that notes are recorded in execution path
     checkpoint_entry = simulation.execution_path.find { |e| e["step_type"] == "checkpoint" }
+
     assert_not_nil checkpoint_entry
     assert_equal "Customer was on hold for 5 minutes", checkpoint_entry["notes"]
   end
@@ -357,7 +358,7 @@ class SimulationCheckpointTest < ActiveSupport::TestCase
     assert_equal "Review Checkpoint", entry["step_title"]
     assert_equal "checkpoint", entry["step_type"]
     assert_equal false, entry["resolved"]
-    assert entry["resolved_at"].present?
+    assert_predicate entry["resolved_at"], :present?
   end
 
   test "checkpoint resolved entry shows resolved true" do
@@ -387,6 +388,7 @@ class SimulationCheckpointTest < ActiveSupport::TestCase
     simulation.resolve_checkpoint!(resolved: true)
 
     entry = simulation.execution_path.first
+
     assert_equal true, entry["resolved"]
     assert_equal "completed", simulation.status
   end
@@ -439,20 +441,24 @@ class SimulationCheckpointTest < ActiveSupport::TestCase
 
     # Process question
     simulation.process_step("John")
+
     assert_equal 1, simulation.current_step_index
 
     # Process action
     simulation.process_step
+
     assert_equal 2, simulation.current_step_index
 
     # At checkpoint - process_step should return false
     result = simulation.process_step
+
     assert_equal false, result
     assert_equal 2, simulation.current_step_index
     assert_equal "checkpoint", simulation.current_step["type"]
 
     # Resolve checkpoint to continue
     simulation.resolve_checkpoint!(resolved: false)
+
     assert_equal 3, simulation.current_step_index
     assert_equal "Process Request", simulation.current_step["title"]
   end

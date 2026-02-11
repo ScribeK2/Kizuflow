@@ -12,12 +12,14 @@ class GroupTest < ActiveSupport::TestCase
   # Validations
   test "should create group with valid attributes" do
     group = Group.new(name: "Test Group", description: "A test group")
-    assert group.valid?
+
+    assert_predicate group, :valid?
     assert group.save
   end
 
   test "should not create group without name" do
     group = Group.new(description: "A test group")
+
     assert_not group.valid?
     assert_includes group.errors[:name], "can't be blank"
   end
@@ -28,8 +30,8 @@ class GroupTest < ActiveSupport::TestCase
     child1 = Group.create!(name: "Child", parent: parent1)
     child2 = Group.create!(name: "Child", parent: parent2)
 
-    assert child1.valid?
-    assert child2.valid?
+    assert_predicate child1, :valid?
+    assert_predicate child2, :valid?
   end
 
   test "should not allow duplicate names with same parent" do
@@ -92,6 +94,7 @@ class GroupTest < ActiveSupport::TestCase
     child = Group.create!(name: "Child", parent: root1)
 
     roots = Group.roots
+
     assert_includes roots.map(&:id), root1.id
     assert_includes roots.map(&:id), root2.id
     assert_not_includes roots.map(&:id), child.id
@@ -104,6 +107,7 @@ class GroupTest < ActiveSupport::TestCase
     other = Group.create!(name: "Other")
 
     children = Group.children_of(parent)
+
     assert_equal 2, children.count
     assert_includes children.map(&:id), child1.id
     assert_includes children.map(&:id), child2.id
@@ -121,6 +125,7 @@ class GroupTest < ActiveSupport::TestCase
     group2 = Group.create!(name: "Group 2")
 
     visible = Group.visible_to(admin)
+
     assert_includes visible.map(&:id), group1.id
     assert_includes visible.map(&:id), group2.id
   end
@@ -138,6 +143,7 @@ class GroupTest < ActiveSupport::TestCase
     UserGroup.create!(group: assigned_group, user: user)
 
     visible = Group.visible_to(user)
+
     assert_includes visible.map(&:id), assigned_group.id
     assert_includes visible.map(&:id), uncategorized.id
     assert_not_includes visible.map(&:id), other_group.id
@@ -148,7 +154,7 @@ class GroupTest < ActiveSupport::TestCase
     root = Group.create!(name: "Root")
     child = Group.create!(name: "Child", parent: root)
 
-    assert root.root?
+    assert_predicate root, :root?
     assert_not child.root?
   end
 
@@ -157,7 +163,7 @@ class GroupTest < ActiveSupport::TestCase
     child = Group.create!(name: "Child", parent: parent)
 
     assert_not parent.leaf?
-    assert child.leaf?
+    assert_predicate child, :leaf?
   end
 
   test "depth should calculate depth correctly" do
@@ -176,6 +182,7 @@ class GroupTest < ActiveSupport::TestCase
     grandchild = Group.create!(name: "Grandchild", parent: child)
 
     ancestors = grandchild.ancestors
+
     assert_equal 2, ancestors.length
     assert_includes ancestors.map(&:id), root.id
     assert_includes ancestors.map(&:id), child.id
@@ -188,6 +195,7 @@ class GroupTest < ActiveSupport::TestCase
     grandchild = Group.create!(name: "Grandchild", parent: child1)
 
     descendants = root.descendants
+
     assert_equal 3, descendants.length
     assert_includes descendants.map(&:id), child1.id
     assert_includes descendants.map(&:id), child2.id
@@ -240,6 +248,7 @@ class GroupTest < ActiveSupport::TestCase
     child = Group.create!(name: "Child", parent: parent)
 
     parent.parent_id = child.id
+
     assert_not parent.valid?
     assert_includes parent.errors[:parent_id], "cannot create circular reference"
   end
@@ -250,6 +259,7 @@ class GroupTest < ActiveSupport::TestCase
     grandchild = Group.create!(name: "Grandchild", parent: child)
 
     root.parent_id = grandchild.id
+
     assert_not root.valid?
     assert_includes root.errors[:parent_id], "cannot create circular reference"
   end
@@ -259,6 +269,7 @@ class GroupTest < ActiveSupport::TestCase
     child = Group.create!(name: "Child", parent: root)
 
     root.parent_id = child.id
+
     assert_not root.valid?
     assert_includes root.errors[:parent_id], "cannot create circular reference"
   end
@@ -271,7 +282,7 @@ class GroupTest < ActiveSupport::TestCase
     level4 = Group.create!(name: "Level 4", parent: level3)
     level5 = Group.create!(name: "Level 5", parent: level4)
 
-    assert level5.valid?
+    assert_predicate level5, :valid?
   end
 
   test "should not allow more than 5 levels deep" do

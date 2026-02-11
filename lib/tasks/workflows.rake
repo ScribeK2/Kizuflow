@@ -7,34 +7,32 @@ namespace :workflows do
     error_count = 0
 
     Workflow.find_each do |workflow|
-      
-        # Check if workflow needs step IDs
-        needs_ids = false
+      # Check if workflow needs step IDs
+      needs_ids = false
 
-        if workflow.steps.present?
-          workflow.steps.each do |step|
-            if step.is_a?(Hash) && step['id'].blank?
-              needs_ids = true
-              break
-            end
+      if workflow.steps.present?
+        workflow.steps.each do |step|
+          if step.is_a?(Hash) && step['id'].blank?
+            needs_ids = true
+            break
           end
         end
+      end
 
-        if needs_ids
-          puts "Adding step IDs to workflow #{workflow.id}: #{workflow.title}"
+      if needs_ids
+        puts "Adding step IDs to workflow #{workflow.id}: #{workflow.title}"
 
-          # Generate IDs for steps that don't have them
-          workflow.ensure_step_ids
+        # Generate IDs for steps that don't have them
+        workflow.ensure_step_ids
 
-          # Save the workflow
-          workflow.save(validate: false)
+        # Save the workflow
+        workflow.save(validate: false)
 
-          migrated_count += 1
-        end
-      rescue => e
-        puts "Error generating step IDs for workflow #{workflow.id}: #{e.message}"
-        error_count += 1
-      
+        migrated_count += 1
+      end
+    rescue StandardError => e
+      puts "Error generating step IDs for workflow #{workflow.id}: #{e.message}"
+      error_count += 1
     end
 
     puts "\nStep ID generation complete!"
@@ -50,40 +48,38 @@ namespace :workflows do
     error_count = 0
 
     Workflow.find_each do |workflow|
-      
-        # Check if workflow needs migration
-        needs_migration = false
+      # Check if workflow needs migration
+      needs_migration = false
 
-        if workflow.steps.present?
-          workflow.steps.each do |step|
-            if step.is_a?(Hash) && step['type'] == 'decision'
-              has_legacy_format = step['condition'].present? &&
-                                 (step['true_path'].present? || step['false_path'].present?) &&
-                                 (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
+      if workflow.steps.present?
+        workflow.steps.each do |step|
+          next unless step.is_a?(Hash) && step['type'] == 'decision'
 
-              if has_legacy_format
-                needs_migration = true
-                break
-              end
-            end
+          has_legacy_format = step['condition'].present? &&
+                              (step['true_path'].present? || step['false_path'].present?) &&
+                              (step['branches'].blank? || (step['branches'].is_a?(Array) && step['branches'].empty?))
+
+          if has_legacy_format
+            needs_migration = true
+            break
           end
         end
+      end
 
-        if needs_migration
-          puts "Migrating workflow #{workflow.id}: #{workflow.title}"
+      if needs_migration
+        puts "Migrating workflow #{workflow.id}: #{workflow.title}"
 
-          # Use normalize_steps_on_save to convert format
-          workflow.normalize_steps_on_save
+        # Use normalize_steps_on_save to convert format
+        workflow.normalize_steps_on_save
 
-          # Save without validation (since normalization might create temporary invalid state)
-          workflow.save(validate: false)
+        # Save without validation (since normalization might create temporary invalid state)
+        workflow.save(validate: false)
 
-          migrated_count += 1
-        end
-      rescue => e
-        puts "Error migrating workflow #{workflow.id}: #{e.message}"
-        error_count += 1
-      
+        migrated_count += 1
+      end
+    rescue StandardError => e
+      puts "Error migrating workflow #{workflow.id}: #{e.message}"
+      error_count += 1
     end
 
     puts "\nMigration complete!"
@@ -102,55 +98,53 @@ namespace :workflows do
     error_details = []
 
     Workflow.find_each do |workflow|
-      
-        # Skip if already in graph mode
-        if workflow.graph_mode?
-          puts "  [SKIP] Workflow #{workflow.id}: Already in graph mode"
-          skipped_count += 1
-          next
-        end
+      # Skip if already in graph mode
+      if workflow.graph_mode?
+        puts "  [SKIP] Workflow #{workflow.id}: Already in graph mode"
+        skipped_count += 1
+        next
+      end
 
-        # Skip if no steps
-        unless workflow.steps.present?
-          puts "  [SKIP] Workflow #{workflow.id}: No steps"
-          skipped_count += 1
-          next
-        end
+      # Skip if no steps
+      unless workflow.steps.present?
+        puts "  [SKIP] Workflow #{workflow.id}: No steps"
+        skipped_count += 1
+        next
+      end
 
-        puts "  [CONVERTING] Workflow #{workflow.id}: #{workflow.title}"
+      puts "  [CONVERTING] Workflow #{workflow.id}: #{workflow.title}"
 
-        converter = WorkflowGraphConverter.new(workflow)
-        converted_steps = converter.convert
+      converter = WorkflowGraphConverter.new(workflow)
+      converted_steps = converter.convert
 
-        if converted_steps
-          workflow.steps = converted_steps
-          workflow.graph_mode = true
-          workflow.start_node_uuid = converted_steps.first&.dig('id')
+      if converted_steps
+        workflow.steps = converted_steps
+        workflow.graph_mode = true
+        workflow.start_node_uuid = converted_steps.first&.dig('id')
 
-          if workflow.save
-            puts "    ✓ Converted successfully"
-            converted_count += 1
-          else
-            error_msg = "Validation failed: #{workflow.errors.full_messages.join(', ')}"
-            puts "    ✗ #{error_msg}"
-            error_details << { id: workflow.id, title: workflow.title, error: error_msg }
-            error_count += 1
-          end
+        if workflow.save
+          puts "    ✓ Converted successfully"
+          converted_count += 1
         else
-          error_msg = "Conversion failed: #{converter.errors.join(', ')}"
+          error_msg = "Validation failed: #{workflow.errors.full_messages.join(', ')}"
           puts "    ✗ #{error_msg}"
           error_details << { id: workflow.id, title: workflow.title, error: error_msg }
           error_count += 1
         end
-      rescue => e
-        error_msg = "Exception: #{e.message}"
+      else
+        error_msg = "Conversion failed: #{converter.errors.join(', ')}"
         puts "    ✗ #{error_msg}"
         error_details << { id: workflow.id, title: workflow.title, error: error_msg }
         error_count += 1
-      
+      end
+    rescue StandardError => e
+      error_msg = "Exception: #{e.message}"
+      puts "    ✗ #{error_msg}"
+      error_details << { id: workflow.id, title: workflow.title, error: error_msg }
+      error_count += 1
     end
 
-    puts "\n" + "=" * 60
+    puts "\n" + ("=" * 60)
     puts "Graph conversion complete!"
     puts "  Converted: #{converted_count} workflows"
     puts "  Skipped:   #{skipped_count} workflows"
@@ -245,15 +239,15 @@ namespace :workflows do
     end
 
     # In production or CI, auto-confirm; otherwise prompt
-    unless ENV['RAILS_ENV'] == 'production' || ENV['CI'] || ENV['AUTO_CONFIRM']
+    if ENV['RAILS_ENV'] == 'production' || ENV['CI'] || ENV['AUTO_CONFIRM']
+      puts "Auto-confirmed (production/CI environment)"
+    else
       print "Proceed with migration? (yes/no): "
       response = STDIN.gets&.chomp&.downcase
       unless response == 'yes'
         puts "Migration cancelled."
         exit 0
       end
-    else
-      puts "Auto-confirmed (production/CI environment)"
     end
 
     puts "\nStarting migration..."

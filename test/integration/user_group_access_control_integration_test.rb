@@ -44,6 +44,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_users_path
     @user1.reload
+
     assert_includes @user1.groups.map(&:id), @group1.id
   end
 
@@ -54,6 +55,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @user1
 
     get workflows_path
+
     assert_response :success
     assert_match "Workflow 1", response.body
     assert_no_match "Workflow 2", response.body
@@ -64,6 +66,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @user1
 
     get workflows_path
+
     assert_response :success
     assert_match "Group 1", response.body
     assert_no_match "Group 2", response.body
@@ -80,6 +83,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_users_path
     @user1.reload
     @user2.reload
+
     assert_includes @user1.groups.map(&:id), @group1.id
     assert_includes @user2.groups.map(&:id), @group1.id
   end
@@ -96,6 +100,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @user1
 
     get workflows_path
+
     assert_response :success
     assert_match "Child Workflow", response.body
   end
@@ -106,8 +111,9 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     public_workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: @group2, workflow: public_workflow, is_primary: true)
 
-    sign_in @user1  # User1 not assigned to group2
+    sign_in @user1 # User1 not assigned to group2
     get workflows_path
+
     assert_response :success
     assert_match "Public Workflow", response.body
   end

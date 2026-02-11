@@ -45,6 +45,8 @@ class Workflow < ApplicationRecord
 
   # Clean up import flags when steps are completed
   before_save :cleanup_import_flags
+  # Set draft expiration before save (7 days from creation or update)
+  before_save :set_draft_expiration, if: -> { status == 'draft' }
   # Assign to Uncategorized group if no groups assigned (only for published workflows)
   after_create :assign_to_uncategorized_if_needed, if: -> { status == 'published' || status.nil? }
 
@@ -55,9 +57,6 @@ class Workflow < ApplicationRecord
   scope :drafts, -> { where(status: 'draft') }
   scope :published, -> { where(status: 'published') }
   scope :expired_drafts, -> { drafts.where('draft_expires_at < ?', Time.current) }
-
-  # Set draft expiration before save (7 days from creation or update)
-  before_save :set_draft_expiration, if: -> { status == 'draft' }
 
   # Get workflows visible to a specific user
   # Admins see all, Editors see own + public, Users see only public
@@ -74,7 +73,7 @@ class Workflow < ApplicationRecord
   # Group Access:
   # - Users assigned to a parent group can see workflows in child groups
   # - Workflows are visible if user is assigned to any group containing the workflow
-  scope :visible_to, ->(user) {
+  scope :visible_to, lambda { |user|
     # Exclude drafts from main workflow list
     base_scope = published
 
@@ -88,34 +87,32 @@ class Workflow < ApplicationRecord
         accessible_group_ids = Group.accessible_group_ids_for(user)
         # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
         distinct_ids = base_scope.left_joins(:groups)
-                                  .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
-                                         user.id, true, accessible_group_ids)
-                                  .select("DISTINCT workflows.id")
+                                 .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
+                                        user.id, true, accessible_group_ids)
+                                 .select("DISTINCT workflows.id")
         base_scope.where(id: distinct_ids)
       else
         # No group assignments: own workflows + public workflows
         base_scope.where(user: user).or(base_scope.where(is_public: true))
       end
-    else
+    elsif user&.groups&.any?
       # Users: See public workflows + workflows in assigned groups + workflows without groups
-      if user&.groups&.any?
-        # Use optimized single-query method to get all accessible group IDs
-        accessible_group_ids = Group.accessible_group_ids_for(user)
-        # Public workflows OR workflows in user's groups OR workflows without groups
-        public_workflows = base_scope.where(is_public: true)
-        group_workflows = base_scope.joins(:groups).where(groups: { id: accessible_group_ids })
-        workflows_without_groups = base_scope.left_joins(:groups).where(groups: { id: nil })
-        base_scope.where(id: public_workflows.select(:id))
-                   .or(base_scope.where(id: group_workflows.select(:id)))
-                   .or(base_scope.where(id: workflows_without_groups.select(:id)))
-      else
-        # No group assignments: only public workflows + workflows without groups (backward compatibility)
-        # Note: Workflows in Uncategorized group are NOT included for users without group assignments
-        public_workflows = base_scope.where(is_public: true)
-        workflows_without_groups = base_scope.left_joins(:groups).where(groups: { id: nil })
-        base_scope.where(id: public_workflows.select(:id))
-                   .or(base_scope.where(id: workflows_without_groups.select(:id)))
-      end
+      accessible_group_ids = Group.accessible_group_ids_for(user)
+      # Public workflows OR workflows in user's groups OR workflows without groups
+      public_workflows = base_scope.where(is_public: true)
+      group_workflows = base_scope.joins(:groups).where(groups: { id: accessible_group_ids })
+      workflows_without_groups = base_scope.where.missing(:groups)
+      base_scope.where(id: public_workflows.select(:id))
+                .or(base_scope.where(id: group_workflows.select(:id)))
+                .or(base_scope.where(id: workflows_without_groups.select(:id)))
+    # Use optimized single-query method to get all accessible group IDs
+    else
+      # No group assignments: only public workflows + workflows without groups (backward compatibility)
+      # Note: Workflows in Uncategorized group are NOT included for users without group assignments
+      public_workflows = base_scope.where(is_public: true)
+      workflows_without_groups = base_scope.where.missing(:groups)
+      base_scope.where(id: public_workflows.select(:id))
+                .or(base_scope.where(id: workflows_without_groups.select(:id)))
     end
   }
 
@@ -124,7 +121,7 @@ class Workflow < ApplicationRecord
   #
   # Example: If "Customer Support" has child "Phone Support",
   # in_group(Customer Support) returns workflows in both groups
-  scope :in_group, ->(group) {
+  scope :in_group, lambda { |group|
     return where.not(id: joins(:groups).select(:id)) if group.nil?
 
     # Get group and all its descendants using optimized method
@@ -141,7 +138,7 @@ class Workflow < ApplicationRecord
   # Search workflows by title and description (fuzzy matching)
   # Searches both title and description fields with case-insensitive queries
   # Uses ILIKE for PostgreSQL, LIKE for SQLite (which is case-insensitive by default)
-  scope :search_by, ->(query) {
+  scope :search_by, lambda { |query|
     return all if query.blank?
 
     search_term = "%#{query.strip}%"
@@ -156,7 +153,7 @@ class Workflow < ApplicationRecord
     # Join with action_text_rich_texts to search rich text body
     like_op = connection.adapter_name.downcase.include?('postgresql') ? 'ILIKE' : 'LIKE'
     rich_text_matches = joins("LEFT JOIN action_text_rich_texts ON action_text_rich_texts.record_type = 'Workflow' AND action_text_rich_texts.record_id = workflows.id AND action_text_rich_texts.name = 'description'")
-                       .where("action_text_rich_texts.body #{like_op} ?", search_term)
+                        .where("action_text_rich_texts.body #{like_op} ?", search_term)
 
     # Combine all matches using OR - no need for distinct since we're selecting IDs
     where(id: title_matches.select(:id))
@@ -167,28 +164,22 @@ class Workflow < ApplicationRecord
   # Helper method to safely get description text (handles migration from text column to rich text)
   # This avoids triggering Active Storage initialization errors
   def description_text
-    
-      if description.present?
-        description.to_plain_text
-      elsif read_attribute(:description).present?
-        read_attribute(:description)
-      else
-        nil
-      end
-    rescue => e
-      # Fallback if Active Storage isn't configured or there's an error
-      Rails.logger.warn("Error accessing description: #{e.message}")
-      read_attribute(:description) || nil
-    
+    if description.present?
+      description.to_plain_text
+    elsif self[:description].present?
+      self[:description]
+    end
+  rescue StandardError => e
+    # Fallback if Active Storage isn't configured or there's an error
+    Rails.logger.warn("Error accessing description: #{e.message}")
+    self[:description] || nil
   end
 
   # Helper method to check if description exists (works with both text and rich text)
   def has_description?
-    
-      description.present? || read_attribute(:description).present?
-    rescue
-      read_attribute(:description).present?
-    
+    description.present? || self[:description].present?
+  rescue StandardError
+    self[:description].present?
   end
 
   # Clean up import flags when steps are completed
@@ -246,15 +237,15 @@ class Workflow < ApplicationRecord
 
       # Check if step is now complete
       is_complete = case step['type']
-      when 'question'
-        step['question'].present?
-      when 'decision'
-        branches = step['branches'] || []
-        branches.any? { |b| b['condition'].present? && b['path'].present? }
-      when 'action'
-        step['instructions'].present?
-      else
-        true
+                    when 'question'
+                      step['question'].present?
+                    when 'decision'
+                      branches = step['branches'] || []
+                      branches.any? { |b| b['condition'].present? && b['path'].present? }
+                    when 'action'
+                      step['instructions'].present?
+                    else
+                      true
                     end
 
       # Remove import flags if step is complete
@@ -286,6 +277,7 @@ class Workflow < ApplicationRecord
   # Returns the step hash or nil if not found
   def find_step_by_id(step_id)
     return nil unless steps.present? && step_id.present?
+
     steps.find { |step| step['id'] == step_id }
   end
 
@@ -345,9 +337,9 @@ class Workflow < ApplicationRecord
     return nil if reference.blank?
 
     # If it looks like a UUID, assume it's already an ID
-    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && find_step_by_id(reference)
       # Verify the ID exists
-      return reference if find_step_by_id(reference)
+      return reference
     end
 
     # Otherwise, treat it as a title and find the corresponding ID
@@ -386,12 +378,12 @@ class Workflow < ApplicationRecord
       if step['branches'].present? && step['branches'].is_a?(Array)
         step['branches'].each do |branch|
           path = branch['path'] || branch[:path]
-          if path.present?
-            new_id = resolve_step_reference_to_id(path)
-            if new_id && new_id != path
-              branch['path'] = new_id
-              changed = true
-            end
+          next unless path.present?
+
+          new_id = resolve_step_reference_to_id(path)
+          if new_id && new_id != path
+            branch['path'] = new_id
+            changed = true
           end
         end
       end
@@ -407,12 +399,12 @@ class Workflow < ApplicationRecord
 
       # Migrate legacy paths
       %w[true_path false_path].each do |path_key|
-        if step[path_key].present?
-          new_id = resolve_step_reference_to_id(step[path_key])
-          if new_id && new_id != step[path_key]
-            step[path_key] = new_id
-            changed = true
-          end
+        next unless step[path_key].present?
+
+        new_id = resolve_step_reference_to_id(step[path_key])
+        if new_id && new_id != step[path_key]
+          step[path_key] = new_id
+          changed = true
         end
       end
     end
@@ -459,6 +451,7 @@ class Workflow < ApplicationRecord
 
     steps.each_with_object({}) do |step, hash|
       next unless step.is_a?(Hash) && step['id'].present?
+
       hash[step['id']] = step
     end
   end
@@ -599,48 +592,48 @@ class Workflow < ApplicationRecord
       # Skip validation for imported incomplete steps
       next if step['_import_incomplete'] == true
 
-      if step['type'] == 'decision'
-        # Handle multi-branch format (new)
-        if step['branches'].present? && step['branches'].is_a?(Array)
-          step['branches'].each_with_index do |branch, branch_index|
-            branch_path = branch['path'] || branch[:path]
-            branch_condition = branch['condition'] || branch[:condition]
+      next unless step['type'] == 'decision'
 
-            if branch_path.present? && !step_titles.include?(branch_path)
-              # For imports, mark as incomplete instead of error
-              if step['_import_incomplete']
-                step['_import_errors'] ||= []
-                step['_import_errors'] << "Branch #{branch_index + 1}: References non-existent step: #{branch_path}"
-              else
-                errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: References non-existent step: #{branch_path}")
-              end
-            end
+      # Handle multi-branch format (new)
+      if step['branches'].present? && step['branches'].is_a?(Array)
+        step['branches'].each_with_index do |branch, branch_index|
+          branch_path = branch['path'] || branch[:path]
+          branch_condition = branch['condition'] || branch[:condition]
 
-            if branch_condition.present? && !valid_condition_format?(branch_condition)
-              errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: Invalid condition format")
+          if branch_path.present? && !step_titles.include?(branch_path)
+            # For imports, mark as incomplete instead of error
+            if step['_import_incomplete']
+              step['_import_errors'] ||= []
+              step['_import_errors'] << "Branch #{branch_index + 1}: References non-existent step: #{branch_path}"
+            else
+              errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: References non-existent step: #{branch_path}")
             end
           end
-        end
 
-        # Validate else_path (regardless of whether branches is present)
-        if step['else_path'].present? && !step_titles.include?(step['else_path'])
-          # For imports, mark as incomplete instead of error
-          if step['_import_incomplete']
-            step['_import_errors'] ||= []
-            step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
-          else
-            errors.add(:steps, "Step #{index + 1}: 'Else' path references non-existent step: #{step['else_path']}")
+          if branch_condition.present? && !valid_condition_format?(branch_condition)
+            errors.add(:steps, "Step #{index + 1}, Branch #{branch_index + 1}: Invalid condition format")
           end
         end
+      end
 
-        # Handle legacy format (true_path/false_path)
-        if step['true_path'].present? && !step_titles.include?(step['true_path'])
-          errors.add(:steps, "Step #{index + 1}: 'If true' references non-existent step: #{step['true_path']}")
+      # Validate else_path (regardless of whether branches is present)
+      if step['else_path'].present? && !step_titles.include?(step['else_path'])
+        # For imports, mark as incomplete instead of error
+        if step['_import_incomplete']
+          step['_import_errors'] ||= []
+          step['_import_errors'] << "'Else' path references non-existent step: #{step['else_path']}"
+        else
+          errors.add(:steps, "Step #{index + 1}: 'Else' path references non-existent step: #{step['else_path']}")
         end
+      end
 
-        if step['false_path'].present? && !step_titles.include?(step['false_path'])
-          errors.add(:steps, "Step #{index + 1}: 'If false' references non-existent step: #{step['false_path']}")
-        end
+      # Handle legacy format (true_path/false_path)
+      if step['true_path'].present? && !step_titles.include?(step['true_path'])
+        errors.add(:steps, "Step #{index + 1}: 'If true' references non-existent step: #{step['true_path']}")
+      end
+
+      if step['false_path'].present? && !step_titles.include?(step['false_path'])
+        errors.add(:steps, "Step #{index + 1}: 'If false' references non-existent step: #{step['false_path']}")
       end
     end
 
@@ -772,19 +765,19 @@ class Workflow < ApplicationRecord
 
         # Validate output_fields if present
         if step['output_fields'].present?
-          unless step['output_fields'].is_a?(Array)
-            errors.add(:steps, "Step #{step_num}: output_fields must be an array")
-          else
+          if step['output_fields'].is_a?(Array)
             step['output_fields'].each_with_index do |field, field_index|
-              unless field.is_a?(Hash)
-                errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: must be a hash")
-              else
+              if field.is_a?(Hash)
                 if field['name'].blank?
                   errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: name is required")
                 end
                 # Value is optional - can be empty or contain {{variable}} interpolation
+              else
+                errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: must be a hash")
               end
             end
+          else
+            errors.add(:steps, "Step #{step_num}: output_fields must be an array")
           end
         end
 
@@ -816,29 +809,27 @@ class Workflow < ApplicationRecord
 
               # Allow completely empty branches (user is still filling them out)
               # Only validate if at least one field is set (meaning user is trying to use this branch)
-              if branch_condition.present? || branch_path.present?
-                # If either is set, both must be set
-                if branch_condition.blank?
-                  errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Condition is required when a path is selected")
-                end
+              next unless branch_condition.present? || branch_path.present?
 
-                if branch_path.blank?
-                  errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Path is required when a condition is set")
-                end
+              # If either is set, both must be set
+              if branch_condition.blank?
+                errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Condition is required when a path is selected")
+              end
 
-                # Validate condition syntax only if condition is provided
-                if branch_condition.present? && !valid_condition_format?(branch_condition)
-                  errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Invalid condition format")
-                end
+              if branch_path.blank?
+                errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Path is required when a condition is set")
+              end
+
+              # Validate condition syntax only if condition is provided
+              if branch_condition.present? && !valid_condition_format?(branch_condition)
+                errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Invalid condition format")
               end
             end
           end
-        else
+        elsif step['condition'].present? && !valid_condition_format?(step['condition'])
           # Legacy format: only validate if condition is present (don't require it)
           # Allow decision steps without conditions/branches (user can add them later)
-          if step['condition'].present? && !valid_condition_format?(step['condition'])
-            errors.add(:steps, "Step #{step_num}: Invalid condition format. Use: variable == 'value' or variable != 'value'")
-          end
+          errors.add(:steps, "Step #{step_num}: Invalid condition format. Use: variable == 'value' or variable != 'value'")
         end
 
         # Validate jumps if present (decision steps can use jumps instead of branches)
@@ -860,24 +851,18 @@ class Workflow < ApplicationRecord
 
       when 'escalate'
         # Validate escalation target type if present
-        if step['target_type'].present?
-          unless %w[team queue supervisor channel department ticket].include?(step['target_type'])
-            errors.add(:steps, "Step #{step_num}: Invalid escalation target type '#{step['target_type']}'")
-          end
+        if step['target_type'].present? && !%w[team queue supervisor channel department ticket].include?(step['target_type'])
+          errors.add(:steps, "Step #{step_num}: Invalid escalation target type '#{step['target_type']}'")
         end
         # Validate priority if present
-        if step['priority'].present?
-          unless %w[low medium normal high urgent critical].include?(step['priority'])
-            errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
-          end
+        if step['priority'].present? && !%w[low medium normal high urgent critical].include?(step['priority'])
+          errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
         end
 
       when 'resolve'
         # Validate resolution type if present
-        if step['resolution_type'].present?
-          unless %w[success failure cancelled escalated transferred other transfer ticket manager_escalation].include?(step['resolution_type'])
-            errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
-          end
+        if step['resolution_type'].present? && !%w[success failure cancelled escalated transferred other transfer ticket manager_escalation].include?(step['resolution_type'])
+          errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
         end
         # Resolve steps cannot have outgoing transitions in graph mode (they're always terminal)
         if graph_mode? && step['transitions'].present? && step['transitions'].any?
@@ -940,23 +925,23 @@ class Workflow < ApplicationRecord
       end
 
       # Allow empty jumps (user is still configuring)
-      if jump['condition'].present? || jump['next_step_id'].present?
-        # If either field is present, both should be present
-        if jump['condition'].blank?
-          errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: condition is required when next_step_id is specified")
-        end
+      next unless jump['condition'].present? || jump['next_step_id'].present?
 
-        if jump['next_step_id'].blank?
-          errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: next_step_id is required when condition is specified")
-        end
+      # If either field is present, both should be present
+      if jump['condition'].blank?
+        errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: condition is required when next_step_id is specified")
+      end
 
-        # Validate that next_step_id references a valid step
-        if jump['next_step_id'].present?
-          referenced_step = steps.find { |s| s['id'] == jump['next_step_id'] }
-          if referenced_step.nil?
-            errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: references non-existent step ID: #{jump['next_step_id']}")
-          end
-        end
+      if jump['next_step_id'].blank?
+        errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: next_step_id is required when condition is specified")
+      end
+
+      # Validate that next_step_id references a valid step
+      next unless jump['next_step_id'].present?
+
+      referenced_step = steps.find { |s| s['id'] == jump['next_step_id'] }
+      if referenced_step.nil?
+        errors.add(:steps, "Step #{step_num}, Jump #{jump_index + 1}: references non-existent step ID: #{jump['next_step_id']}")
       end
     end
   end
@@ -968,7 +953,7 @@ class Workflow < ApplicationRecord
     # Check step count
     if steps.length > MAX_STEPS
       errors.add(:steps, "Workflow cannot exceed #{MAX_STEPS} steps (currently #{steps.length})")
-      return  # Skip other validations if way too many steps
+      return # Skip other validations if way too many steps
     end
 
     # Check total JSON size
@@ -980,7 +965,7 @@ class Workflow < ApplicationRecord
         errors.add(:steps, "Total workflow data is too large (#{size_mb}MB, max #{max_mb}MB)")
         return
       end
-    rescue => e
+    rescue StandardError
       errors.add(:steps, "Invalid step data format")
       return
     end
@@ -988,6 +973,7 @@ class Workflow < ApplicationRecord
     # Check individual step content sizes
     steps.each_with_index do |step, index|
       next unless step.is_a?(Hash)
+
       step_num = index + 1
 
       # Check title length
@@ -998,11 +984,11 @@ class Workflow < ApplicationRecord
       # Check large text fields
       large_fields = %w[description question instructions checkpoint_message]
       large_fields.each do |field|
-        if step[field].present? && step[field].to_s.bytesize > MAX_STEP_CONTENT_LENGTH
-          size_kb = (step[field].to_s.bytesize / 1000.0).round(1)
-          max_kb = (MAX_STEP_CONTENT_LENGTH / 1000.0).round(1)
-          errors.add(:steps, "Step #{step_num}: #{field.humanize} is too large (#{size_kb}KB, max #{max_kb}KB)")
-        end
+        next unless step[field].present? && step[field].to_s.bytesize > MAX_STEP_CONTENT_LENGTH
+
+        size_kb = (step[field].to_s.bytesize / 1000.0).round(1)
+        max_kb = (MAX_STEP_CONTENT_LENGTH / 1000.0).round(1)
+        errors.add(:steps, "Step #{step_num}: #{field.humanize} is too large (#{size_kb}KB, max #{max_kb}KB)")
       end
 
       # Check options array size (for multiple choice questions)

@@ -38,9 +38,10 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @user
 
     get workflows_path, params: { group_id: @parent_group.id }
+
     assert_response :success
     assert_match "Workflow in Parent", response.body
-    assert_match "Workflow in Child", response.body  # Should include descendants
+    assert_match "Workflow in Child", response.body # Should include descendants
   end
 
   test "user can see group hierarchy in sidebar" do
@@ -48,6 +49,7 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @user
 
     get workflows_path
+
     assert_response :success
     assert_match "Parent Group", response.body
     assert_match "Child Group", response.body
@@ -62,6 +64,7 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
 
     sign_in @user
     get workflows_path
+
     assert_response :success
     assert_no_match "Other Workflow", response.body
   end
@@ -70,6 +73,7 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     get workflows_path
+
     assert_response :success
     assert_match "Parent Group", response.body
     assert_match "Child Group", response.body
@@ -84,6 +88,7 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @user
 
     get workflows_path, params: { group_id: @parent_group.id, search: "Parent" }
+
     assert_response :success
     assert_match "Workflow in Parent", response.body
   end

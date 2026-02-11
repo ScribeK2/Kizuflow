@@ -22,11 +22,12 @@ class AdminPasswordResetTest < ActionDispatch::IntegrationTest
     temp_password = @user.generate_temporary_password
 
     @user.reload
+
     assert_not_equal original_password, @user.encrypted_password
     assert_not_nil temp_password
-    assert temp_password.length >= 8, "Password should be at least 8 characters"
-    assert temp_password.match(/[a-zA-Z]/), "Password should contain letters"
-    assert temp_password.match(/[0-9]/), "Password should contain numbers"
+    assert_operator temp_password.length, :>=, 8, "Password should be at least 8 characters"
+    assert_match(/[a-zA-Z]/, temp_password, "Password should contain letters")
+    assert_match(/[0-9]/, temp_password, "Password should contain numbers")
   end
 
   test 'generate_temporary_password allows user to authenticate with new password' do
@@ -47,6 +48,7 @@ class AdminPasswordResetTest < ActionDispatch::IntegrationTest
     assert_match(/Temporary password generated for #{@user.email}/, flash[:notice])
 
     @user.reload
+
     assert_not_equal original_password, @user.encrypted_password
   end
 end

@@ -64,6 +64,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     # First question should not have interpolation
     get step_simulation_path(simulation)
+
     assert_response :success
     assert_select "label", text: /What is your name\?/
 
@@ -73,6 +74,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     # Now check second question with interpolation
     get step_simulation_path(simulation)
+
     assert_response :success
 
     # Should show interpolated question text
@@ -105,6 +107,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     )
 
     get step_simulation_path(simulation)
+
     assert_response :success
 
     # Check title is interpolated
@@ -125,6 +128,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     )
 
     get step_simulation_path(simulation)
+
     assert_response :success
 
     # Should show interpolated instructions
@@ -156,6 +160,7 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     )
 
     get step_simulation_path(simulation)
+
     assert_response :success
 
     # Check title and description are interpolated

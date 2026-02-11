@@ -16,7 +16,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     workflow = Workflow.create!(title: "Existing Workflow", user: @user)
 
     # Should be assigned to Uncategorized via after_create callback
-    assert workflow.groups.any?
+    assert_predicate workflow.groups, :any?
     assert_equal "Uncategorized", workflow.groups.first.name
   end
 
@@ -33,6 +33,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     workflow.group_workflows.destroy_all
 
     visible = Workflow.visible_to(editor)
+
     assert_includes visible.map(&:id), workflow.id
   end
 
@@ -49,6 +50,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     workflow.group_workflows.destroy_all
 
     visible = Workflow.visible_to(admin)
+
     assert_includes visible.map(&:id), workflow.id
   end
 
@@ -67,6 +69,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     )
 
     visible = Workflow.visible_to(user)
+
     assert_includes visible.map(&:id), public_workflow.id
   end
 
@@ -89,7 +92,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
       steps: [{ type: "question", title: "Question", question: "What?" }]
     )
 
-    assert workflow.groups.any?
+    assert_predicate workflow.groups, :any?
     assert_equal "Uncategorized", workflow.primary_group.name
   end
 
@@ -109,6 +112,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     )
 
     workflow.reload
+
     assert_includes workflow.groups.map(&:id), uncategorized_group.id
   end
 
@@ -125,6 +129,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     workflow = Workflow.create!(title: "Workflow", user: editor, is_public: false)
 
     visible = Workflow.visible_to(editor)
+
     assert_includes visible.map(&:id), workflow.id
   end
 
@@ -144,6 +149,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     UserGroup.create!(group: @uncategorized, user: user)
 
     visible = Workflow.visible_to(user)
+
     assert_includes visible.map(&:id), workflow.id
   end
 
@@ -185,6 +191,7 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
 
     # User is NOT assigned to the group
     visible = Workflow.visible_to(user)
+
     assert_not_includes visible.map(&:id), workflow.id
   end
 end

@@ -11,13 +11,13 @@ class SimulationLimitsTest < ActiveSupport::TestCase
   end
 
   test "simulation constants are defined and reasonable" do
-    assert Simulation::MAX_ITERATIONS >= 100, "MAX_ITERATIONS should allow reasonable workflow size"
-    assert Simulation::MAX_ITERATIONS <= 10000, "MAX_ITERATIONS should prevent DoS"
+    assert_operator Simulation::MAX_ITERATIONS, :>=, 100, "MAX_ITERATIONS should allow reasonable workflow size"
+    assert_operator Simulation::MAX_ITERATIONS, :<=, 10_000, "MAX_ITERATIONS should prevent DoS"
 
-    assert Simulation::MAX_EXECUTION_TIME >= 10, "MAX_EXECUTION_TIME should allow reasonable workflows"
-    assert Simulation::MAX_EXECUTION_TIME <= 120, "MAX_EXECUTION_TIME should prevent resource hogging"
+    assert_operator Simulation::MAX_EXECUTION_TIME, :>=, 10, "MAX_EXECUTION_TIME should allow reasonable workflows"
+    assert_operator Simulation::MAX_EXECUTION_TIME, :<=, 120, "MAX_EXECUTION_TIME should prevent resource hogging"
 
-    assert Simulation::MAX_CONDITION_DEPTH >= 10, "MAX_CONDITION_DEPTH should allow nested conditions"
+    assert_operator Simulation::MAX_CONDITION_DEPTH, :>=, 10, "MAX_CONDITION_DEPTH should allow nested conditions"
   end
 
   test "simulation statuses include timeout and error" do
@@ -43,7 +43,7 @@ class SimulationLimitsTest < ActiveSupport::TestCase
           "branches" => [
             { "condition" => "answer == 'loop'", "path" => "Step 1" }
           ],
-          "else_path" => "Step 1"  # Always loops back
+          "else_path" => "Step 1" # Always loops back
         }
       ]
     )
@@ -57,12 +57,14 @@ class SimulationLimitsTest < ActiveSupport::TestCase
 
     # Execute should return false when hitting limits
     result = simulation.execute
+
     assert_not result, "Execute should return false when hitting iteration limit"
 
     simulation.reload
+
     assert_equal 'error', simulation.status
-    assert simulation.results['_error'].present?
-    assert simulation.results['_error'].include?('iterations')
+    assert_predicate simulation.results['_error'], :present?
+    assert_includes simulation.results['_error'], 'iterations'
   end
 
   test "normal workflows complete within limits" do
@@ -93,11 +95,13 @@ class SimulationLimitsTest < ActiveSupport::TestCase
 
     # Should complete normally
     result = simulation.execute
+
     assert result, "Normal workflow should complete successfully"
 
     simulation.reload
+
     assert_equal 2, simulation.execution_path.length
-    assert simulation.results['name'].present?
+    assert_predicate simulation.results['name'], :present?
   end
 
   test "step-by-step processing tracks iterations" do
@@ -119,13 +123,15 @@ class SimulationLimitsTest < ActiveSupport::TestCase
 
     # Process first step
     simulation.process_step("answer1")
+
     assert_equal 1, simulation.current_step_index
 
     # Process second step
     simulation.process_step("answer2")
+
     assert_equal 2, simulation.current_step_index
 
     # Should be complete
-    assert simulation.complete?
+    assert_predicate simulation, :complete?
   end
 end

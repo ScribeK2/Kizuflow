@@ -23,6 +23,7 @@ class StepResolverTest < ActiveSupport::TestCase
     step = workflow.steps[0]
 
     next_uuid = resolver.resolve_next(step, {})
+
     assert_equal 'b', next_uuid
   end
 
@@ -43,6 +44,7 @@ class StepResolverTest < ActiveSupport::TestCase
     step = workflow.steps[0]
 
     next_uuid = resolver.resolve_next(step, {})
+
     assert_equal 'b', next_uuid
   end
 
@@ -69,14 +71,17 @@ class StepResolverTest < ActiveSupport::TestCase
 
     # Test yes path
     next_uuid = resolver.resolve_next(step, { 'answer' => 'yes' })
+
     assert_equal 'b', next_uuid
 
     # Test no path
     next_uuid = resolver.resolve_next(step, { 'answer' => 'no' })
+
     assert_equal 'c', next_uuid
 
     # Test default path
     next_uuid = resolver.resolve_next(step, { 'answer' => 'maybe' })
+
     assert_equal 'd', next_uuid
   end
 
@@ -123,6 +128,7 @@ class StepResolverTest < ActiveSupport::TestCase
     step = workflow.steps[0]
 
     result = resolver.resolve_next(step, {})
+
     assert_instance_of StepResolver::SubflowMarker, result
     assert_equal target_workflow.id, result.target_workflow_id
     assert_equal 'a', result.step_uuid
@@ -169,14 +175,17 @@ class StepResolverTest < ActiveSupport::TestCase
 
     # Test yes branch
     next_uuid = resolver.resolve_next(decision_step, { 'answer' => 'yes' })
+
     assert_equal 'c', next_uuid
 
     # Test no branch
     next_uuid = resolver.resolve_next(decision_step, { 'answer' => 'no' })
+
     assert_equal 'd', next_uuid
 
     # Test else branch
     next_uuid = resolver.resolve_next(decision_step, { 'answer' => 'maybe' })
+
     assert_equal 'e', next_uuid
   end
 end

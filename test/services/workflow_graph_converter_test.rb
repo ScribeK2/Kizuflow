@@ -61,6 +61,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     # Find the decision step
     decision_step = converted_steps.find { |s| s['type'] == 'decision' }
+
     assert_not_nil decision_step
 
     # Should have 3 transitions (2 branches + 1 else)
@@ -68,14 +69,17 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     # Check conditions are preserved
     yes_transition = decision_step['transitions'].find { |t| t['target_uuid'] == 'c' }
+
     assert_not_nil yes_transition
     assert_equal "answer == 'yes'", yes_transition['condition']
 
     no_transition = decision_step['transitions'].find { |t| t['target_uuid'] == 'd' }
+
     assert_not_nil no_transition
     assert_equal "answer == 'no'", no_transition['condition']
 
     else_transition = decision_step['transitions'].find { |t| t['target_uuid'] == 'e' }
+
     assert_not_nil else_transition
     assert_nil else_transition['condition'] # Else has no condition
   end
@@ -99,7 +103,8 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
     assert_not_nil converted_steps
 
     decision_step = converted_steps.find { |s| s['type'] == 'decision' }
-    assert decision_step['transitions'].length >= 2
+
+    assert_operator decision_step['transitions'].length, :>=, 2
   end
 
   test "validates converted graph" do
@@ -115,7 +120,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     converter = WorkflowGraphConverter.new(workflow)
 
-    assert converter.valid_for_conversion?
+    assert_predicate converter, :valid_for_conversion?
     assert_empty converter.errors
   end
 
@@ -158,7 +163,8 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     # First step should have jump transition
     first_step = converted_steps[0]
-    assert first_step['transitions'].any? { |t| t['target_uuid'] == 'c' }
+
+    assert(first_step['transitions'].any? { |t| t['target_uuid'] == 'c' })
   end
 
   test "preserves step data during conversion" do
@@ -177,6 +183,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     # Check question step data preserved
     q_step = converted_steps[0]
+
     assert_equal 'question', q_step['type']
     assert_equal 'What?', q_step['question']
     assert_equal 'text', q_step['answer_type']
@@ -184,6 +191,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     # Check action step data preserved
     a_step = converted_steps[1]
+
     assert_equal 'action', a_step['type']
     assert_equal 'Do it', a_step['instructions']
     assert_equal 'Email', a_step['action_type']

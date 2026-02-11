@@ -38,6 +38,7 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to workflow_path(Workflow.last)
     workflow = Workflow.last
+
     assert_includes workflow.groups.map(&:id), group.id
   end
 
@@ -60,6 +61,7 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
     }
 
     workflow.reload
+
     assert_not_includes workflow.groups.map(&:id), group1.id
     assert_includes workflow.groups.map(&:id), group2.id
   end
@@ -79,6 +81,7 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
     }
 
     workflow = Workflow.last
+
     assert_includes workflow.groups.map(&:id), uncategorized.id
   end
 end

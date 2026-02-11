@@ -34,21 +34,21 @@ class WorkflowParsersTest < ActiveSupport::TestCase
 
     parser.send(:ensure_step_uuids, steps)
 
-    assert steps[0]['id'].present?, "First step should have UUID assigned"
+    assert_predicate steps[0]['id'], :present?, "First step should have UUID assigned"
     assert_equal 'existing-id', steps[1]['id'], "Existing ID should be preserved"
   end
 
   test "base parser converts linear to graph format" do
     parser = WorkflowParsers::JsonParser.new('{}')
     parser.send(:ensure_step_uuids, steps = [
-      { 'type' => 'question', 'title' => 'Q1' },
-      { 'type' => 'action', 'title' => 'A1' }
-    ])
+                  { 'type' => 'question', 'title' => 'Q1' },
+                  { 'type' => 'action', 'title' => 'A1' }
+                ])
 
     converted = parser.send(:convert_to_graph_format, steps)
 
     # First step should have transition to second
-    assert converted[0]['transitions'].present?
+    assert_predicate converted[0]['transitions'], :present?
     assert_equal converted[1]['id'], converted[0]['transitions'][0]['target_uuid']
   end
 
@@ -72,7 +72,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     converted = parser.send(:convert_to_graph_format, steps)
     decision_step = converted[1]
 
-    assert decision_step['transitions'].present?
+    assert_predicate decision_step['transitions'], :present?
     assert decision_step['transitions'].any? { |t| t['target_uuid'] == 'step-3' },
            "Should have transition to Success step"
   end
@@ -87,7 +87,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     converted = parser.send(:convert_to_graph_format, steps)
     resolve_step = converted.find { |s| s['type'] == 'resolve' }
 
-    assert_equal [], resolve_step['transitions'], "Resolve step should have no transitions"
+    assert_empty resolve_step['transitions'], "Resolve step should have no transitions"
   end
 
   # ============================================================================
@@ -119,7 +119,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::JsonParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     assert_equal "Test Workflow", result[:title]
     assert result[:graph_mode]
     assert_equal "step-1", result[:start_node_uuid]
@@ -137,7 +137,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::JsonParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     assert_equal "Wrapped Workflow", result[:title]
   end
 
@@ -146,7 +146,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     assert_nil result
-    assert parser.errors.any? { |e| e.include?("Invalid JSON") }
+    assert(parser.errors.any? { |e| e.include?("Invalid JSON") })
   end
 
   test "json parser rejects missing title" do
@@ -184,7 +184,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::YamlParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     assert_equal "YAML Workflow", result[:title]
     assert result[:graph_mode]
   end
@@ -201,7 +201,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::YamlParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     # Keys should be normalized to strings
     assert_equal "action", result[:steps][0]['type']
   end
@@ -213,7 +213,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     assert_nil result
-    assert parser.errors.any? { |e| e.downcase.include?("yaml") }
+    assert(parser.errors.any? { |e| e.downcase.include?("yaml") })
   end
 
   # ============================================================================
@@ -231,13 +231,14 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::CsvParser.new(content)
     result = parser.parse
 
-    assert result.present?, "Parser should return result. Errors: #{parser.errors.inspect}"
+    assert_predicate result, :present?, "Parser should return result. Errors: #{parser.errors.inspect}"
     assert_equal "Test Workflow", result[:title]
     assert_equal 3, result[:steps].length
 
     # Check transitions were parsed
     first_step = result[:steps].find { |s| s['title'] == 'Get Name' }
-    assert first_step['transitions'].present?, "Question step should have transitions"
+
+    assert_predicate first_step['transitions'], :present?, "Question step should have transitions"
   end
 
   test "csv parser parses conditional transitions" do
@@ -252,10 +253,11 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::CsvParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     decision_step = result[:steps].find { |s| s['type'] == 'decision' }
+
     assert_equal 2, decision_step['transitions'].length
-    assert decision_step['transitions'].any? { |t| t['condition']&.include?("answer == 'yes'") }
+    assert(decision_step['transitions'].any? { |t| t['condition']&.include?("answer == 'yes'") })
   end
 
   test "csv parser requires type and title columns" do
@@ -268,7 +270,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     assert_nil result
-    assert parser.errors.any? { |e| e.include?("Missing required columns") }
+    assert(parser.errors.any? { |e| e.include?("Missing required columns") })
   end
 
   test "csv parser handles JSON transitions in column" do
@@ -281,8 +283,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::CsvParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     first_step = result[:steps].first
+
     assert_equal "step-2", first_step['transitions'].first['target_uuid']
   end
 
@@ -309,7 +312,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     assert_equal "Markdown Workflow", result[:title]
     assert_equal 2, result[:steps].length
     assert_equal "question", result[:steps][0]['type']
@@ -330,7 +333,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     assert_equal "Frontmatter Title", result[:title]
   end
 
@@ -356,9 +359,10 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     first_step = result[:steps].find { |s| s['title'].include?('Question') }
-    assert first_step['transitions'].present?, "Should have transitions from markdown"
+
+    assert_predicate first_step['transitions'], :present?, "Should have transitions from markdown"
   end
 
   test "markdown parser handles decision with if true/false" do
@@ -383,8 +387,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     decision_step = result[:steps].find { |s| s['type'] == 'decision' }
+
     assert decision_step['branches'].present? || decision_step['transitions'].present?,
            "Decision should have branches or transitions"
   end
@@ -412,7 +417,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     assert_equal 3, result[:steps].length
     assert_equal "message", result[:steps][0]['type']
     assert_equal "escalate", result[:steps][1]['type']
@@ -441,14 +446,15 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?
+    assert_predicate result, :present?
     question_step = result[:steps].find { |s| s['type'] == 'question' }
 
-    assert question_step['options'].present?, "Question step should have options"
+    assert_predicate question_step['options'], :present?, "Question step should have options"
     assert_equal 3, question_step['options'].length
 
     billing_opt = question_step['options'].find { |o| o['value'] == 'billing' }
-    assert billing_opt.present?
+
+    assert_predicate billing_opt, :present?
     assert_equal "Billing", billing_opt['label']
   end
 
@@ -469,7 +475,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     result[:steps].each do |step|
-      assert step['id'].present?, "Step '#{step['title']}' should have an ID"
+      assert_predicate step['id'], :present?, "Step '#{step['title']}' should have an ID"
     end
   end
 
@@ -499,7 +505,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
   # Helper to create a published workflow for title resolution tests
   def create_published_workflow(title:, user: nil)
     user ||= User.create!(email: "subflow-test-#{SecureRandom.hex(4)}@example.com",
-                           password: 'password123', role: 'user')
+                          password: 'password123', role: 'user')
     Workflow.create!(
       title: title,
       user: user,
@@ -523,6 +529,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
     assert_nil subflow_step['target_workflow_title'], "target_workflow_title should be removed after resolution"
     assert_not subflow_step['_import_incomplete'], "Step should not be marked incomplete"
@@ -543,6 +550,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
   end
 
@@ -559,6 +567,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert subflow_step['_import_incomplete'], "Step should be marked incomplete when no match"
     assert subflow_step['_import_errors'].any? { |e| e.include?("not found") },
            "Should have error about not found"
@@ -581,6 +590,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert subflow_step['_import_incomplete'], "Step should be marked incomplete for ambiguous match"
     assert subflow_step['_import_errors'].any? { |e| e.include?("Multiple published workflows") },
            "Should have error about multiple matches"
@@ -599,6 +609,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal 999, subflow_step['target_workflow_id'], "Existing ID should be preserved"
     assert_nil subflow_step['target_workflow_title'], "Title should be cleaned up"
   end
@@ -624,6 +635,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert subflow_step['_import_incomplete'], "Draft workflows should not match"
   end
 
@@ -642,6 +654,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     result = parser.parse
 
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
   end
 
@@ -661,8 +674,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::CsvParser.new(content)
     result = parser.parse
 
-    assert result.present?, "CSV parse should succeed. Errors: #{parser.errors.inspect}"
+    assert_predicate result, :present?, "CSV parse should succeed. Errors: #{parser.errors.inspect}"
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
   end
 
@@ -687,8 +701,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::YamlParser.new(content)
     result = parser.parse
 
-    assert result.present?, "YAML parse should succeed. Errors: #{parser.errors.inspect}"
+    assert_predicate result, :present?, "YAML parse should succeed. Errors: #{parser.errors.inspect}"
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
   end
 
@@ -711,8 +726,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
+    assert_predicate result, :present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
   end
 
@@ -733,8 +749,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
+    assert_predicate result, :present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal "42", subflow_step['target_workflow_id']
   end
 
@@ -757,8 +774,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
     parser = WorkflowParsers::MarkdownParser.new(content)
     result = parser.parse
 
-    assert result.present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
+    assert_predicate result, :present?, "Markdown parse should succeed. Errors: #{parser.errors.inspect}"
     subflow_step = result[:steps].find { |s| s['type'] == 'sub_flow' }
+
     assert_equal target.id, subflow_step['target_workflow_id']
   end
 end

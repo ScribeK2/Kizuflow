@@ -63,6 +63,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
   test "export JSON includes graph_mode and start_node_uuid" do
     get export_workflow_path(@graph_workflow)
+
     assert_response :success
 
     exported = JSON.parse(response.body)
@@ -75,6 +76,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
   test "export JSON includes full step structure with transitions" do
     get export_workflow_path(@graph_workflow)
+
     assert_response :success
 
     exported = JSON.parse(response.body)
@@ -89,6 +91,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
   test "export PDF includes graph mode indicator" do
     get export_pdf_workflow_path(@graph_workflow)
+
     assert_response :success
     assert_equal 'application/pdf', response.content_type
   end
@@ -99,13 +102,14 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
   test "import page shows Graph Mode information" do
     get import_workflows_path
+
     assert_response :success
 
-    assert_match /Graph Mode/, response.body
-    assert_match /transitions/, response.body
+    assert_match(/Graph Mode/, response.body)
+    assert_match(/transitions/, response.body)
     # Should show the new step types, not legacy decision/checkpoint
-    assert_match /question.*action.*message.*escalate.*resolve/i, response.body
-    assert_no_match /type.*decision/i, response.body.gsub(/Legacy Format Support.*$/m, '') # Decision only in legacy section
+    assert_match(/question.*action.*message.*escalate.*resolve/i, response.body)
+    assert_no_match(/type.*decision/i, response.body.gsub(/Legacy Format Support.*$/m, '')) # Decision only in legacy section
   end
 
   # ============================================================================
@@ -146,7 +150,8 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    assert imported.graph_mode?
+
+    assert_predicate imported, :graph_mode?
     assert_equal "Imported Graph Workflow", imported.title
     assert_equal 2, imported.steps.length
     assert_equal "imported-step-1", imported.start_node_uuid
@@ -172,16 +177,18 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    assert imported.graph_mode?, "Imported workflow should be in graph mode"
+
+    assert_predicate imported, :graph_mode?, "Imported workflow should be in graph mode"
 
     # Check that steps have IDs
     imported.steps.each do |step|
-      assert step['id'].present?, "Step should have an ID"
+      assert_predicate step['id'], :present?, "Step should have an ID"
     end
 
     # Check that non-terminal steps have transitions
     q1_step = imported.steps.find { |s| s['title'] == 'Q1' }
-    assert q1_step['transitions'].present?, "Question step should have transitions"
+
+    assert_predicate q1_step['transitions'], :present?, "Question step should have transitions"
   end
 
   test "import JSON with legacy branches converts to transitions" do
@@ -220,7 +227,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     imported = Workflow.last
     decision_step = imported.steps.find { |s| s['title'] == 'Check Name' }
 
-    assert decision_step['transitions'].present?, "Decision step should have transitions"
+    assert_predicate decision_step['transitions'], :present?, "Decision step should have transitions"
     assert decision_step['transitions'].any? { |t| t['condition']&.include?("name != ''") },
            "Should have conditional transition"
   end
@@ -257,7 +264,8 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    assert imported.graph_mode?
+
+    assert_predicate imported, :graph_mode?
     assert_equal "YAML Graph Workflow", imported.title
   end
 
@@ -284,7 +292,8 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    assert imported.graph_mode?
+
+    assert_predicate imported, :graph_mode?
     assert_equal "CSV Import Test", imported.title
     assert_equal 3, imported.steps.length
   end
@@ -308,7 +317,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to import_workflows_path
     # Either "title is required" or "failed to parse" is acceptable
-    assert flash[:alert].present?
+    assert_predicate flash[:alert], :present?
   end
 
   test "import rejects oversized file" do
@@ -326,7 +335,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to import_workflows_path
-    assert_match /too large/i, flash[:alert]
+    assert_match(/too large/i, flash[:alert])
   end
 
   test "import handles invalid JSON gracefully" do
@@ -343,7 +352,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to import_workflows_path
-    assert_match /invalid json/i, flash[:alert].downcase
+    assert_match(/invalid json/i, flash[:alert].downcase)
   end
 
   test "import with incomplete steps redirects to edit" do
@@ -368,7 +377,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     imported = Workflow.last
     # Should redirect to edit page when there are incomplete steps
     assert_redirected_to edit_workflow_path(imported)
-    assert_match /incomplete.*step/i, flash[:notice]
+    assert_match(/incomplete.*step/i, flash[:notice])
   end
 
   # ============================================================================
@@ -410,7 +419,8 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    assert imported.graph_mode?, "Should be imported as graph mode"
+
+    assert_predicate imported, :graph_mode?, "Should be imported as graph mode"
     assert imported.steps.all? { |s| s['id'].present? }, "All steps should have IDs"
   end
 end

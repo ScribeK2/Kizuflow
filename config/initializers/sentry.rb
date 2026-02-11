@@ -19,12 +19,12 @@ if ENV["SENTRY_DSN"].present?
 
     # Release tracking - helps identify which version introduced bugs
     # Set SENTRY_RELEASE in your deployment pipeline or use git SHA
-    config.release = ENV.fetch("SENTRY_RELEASE") {
+    config.release = ENV.fetch("SENTRY_RELEASE") do
       `git rev-parse HEAD 2>/dev/null`.strip.presence || "unknown"
-    }
+    end
 
     # Breadcrumbs help trace the events leading up to an error
-    config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+    config.breadcrumbs_logger = %i[active_support_logger http_logger]
 
     # Performance monitoring (traces)
     # Sample rate: 0.0 = none, 1.0 = all, 0.1 = 10%
@@ -40,12 +40,12 @@ if ENV["SENTRY_DSN"].present?
 
     # Exclude common non-actionable exceptions
     config.excluded_exceptions += [
-      "ActionController::RoutingError",      # 404s
-      "ActionController::InvalidAuthenticityToken",  # CSRF issues (usually bots)
+      "ActionController::RoutingError", # 404s
+      "ActionController::InvalidAuthenticityToken", # CSRF issues (usually bots)
       "ActionController::UnknownFormat",     # Format not supported
       "ActiveRecord::RecordNotFound",        # 404 for resources
       "ActionController::BadRequest",        # Malformed requests
-      "Rack::Timeout::RequestTimeoutException"  # Timeouts (handled separately)
+      "Rack::Timeout::RequestTimeoutException" # Timeouts (handled separately)
     ]
 
     # Filter sensitive parameters from error reports

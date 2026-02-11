@@ -27,6 +27,7 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get new simulation" do
     get new_workflow_simulation_path(@workflow)
+
     assert_response :success
   end
 
@@ -49,6 +50,7 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "should require authentication" do
     sign_out @user
     get new_workflow_simulation_path(@workflow)
+
     assert_redirected_to new_user_session_path
   end
 
@@ -69,6 +71,7 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     sign_in admin
 
     get new_workflow_simulation_path(workflow)
+
     assert_response :success
   end
 
@@ -94,9 +97,11 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     sign_in editor
 
     get new_workflow_simulation_path(own_workflow)
+
     assert_response :success
 
     get new_workflow_simulation_path(public_workflow)
+
     assert_response :success
   end
 
@@ -116,6 +121,7 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     sign_in editor
 
     get new_workflow_simulation_path(private_workflow)
+
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to view this workflow.", flash[:alert]
   end
@@ -136,6 +142,7 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     sign_in regular_user
 
     get new_workflow_simulation_path(public_workflow)
+
     assert_response :success
   end
 
@@ -155,6 +162,7 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     sign_in regular_user
 
     get new_workflow_simulation_path(private_workflow)
+
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to view this workflow.", flash[:alert]
   end

@@ -82,7 +82,7 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("150")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # Should match first branch (count >= 100)
     assert_equal 2, simulation.current_step_index
@@ -102,7 +102,7 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("75")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # Should match second branch (count >= 50)
     assert_equal 3, simulation.current_step_index
@@ -122,7 +122,7 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("25")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # Should match third branch (count >= 10)
     assert_equal 4, simulation.current_step_index
@@ -142,7 +142,7 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("5")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # Should use else_path (Low)
     assert_equal 5, simulation.current_step_index
@@ -524,10 +524,10 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
     assert_equal "completed", simulation.status
 
     # Should have processed through decision step
-    assert simulation.execution_path.any? { |e| e["step_title"] == "Priority Router" }
+    assert(simulation.execution_path.any? { |e| e["step_title"] == "Priority Router" })
 
     # Should have routed to High priority based on count = 75 (matches >= 50)
-    assert simulation.execution_path.any? { |e| e["step_title"] == "High" }
+    assert(simulation.execution_path.any? { |e| e["step_title"] == "High" })
 
     # Verify results contain the expected answer
     assert_equal "75", simulation.results["count"]
@@ -547,6 +547,7 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
 
     # Find the decision step in execution path
     decision_entry = simulation.execution_path.find { |e| e["step_title"] == "Priority Router" }
+
     assert_not_nil decision_entry
     assert_match(/count >= 100/, decision_entry["matched_branch"] || decision_entry["condition_result"])
   end

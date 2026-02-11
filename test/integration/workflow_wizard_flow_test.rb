@@ -20,12 +20,14 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     # Use force_linear_mode=1 to test linear workflow creation
     # (graph mode is now the default; this test validates linear mode still works)
     get new_workflow_path(force_linear_mode: 1)
+
     assert_response :redirect
     follow_redirect!
 
     # Should redirect to step1 of a newly created draft
-    assert_match /step1/, request.path
+    assert_match(/step1/, request.path)
     draft_workflow = Workflow.drafts.last
+
     assert_not_nil draft_workflow
     assert_equal "draft", draft_workflow.status
     assert_equal false, draft_workflow.graph_mode, "Should be linear mode with force_linear_mode param"
@@ -35,14 +37,17 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
       workflow: {
         title: "Customer Support Flow",
         description: "Workflow for handling customer inquiries",
-        graph_mode: false  # Preserve linear mode
+        graph_mode: false # Preserve linear mode
       }
     }
+
     assert_response :redirect
     follow_redirect!
-    assert_match /step2/, request.path
+
+    assert_match(/step2/, request.path)
 
     draft_workflow.reload
+
     assert_equal "Customer Support Flow", draft_workflow.title
 
     # Step 3: Complete Step 2 - Add Steps
@@ -67,23 +72,29 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
         ]
       }
     }
+
     assert_response :redirect
     follow_redirect!
-    assert_match /step3/, request.path
+
+    assert_match(/step3/, request.path)
 
     draft_workflow.reload
+
     assert_equal 2, draft_workflow.steps.length
 
     # Verify variable_name is preserved
     question_step = draft_workflow.steps.find { |s| s["type"] == "question" }
+
     assert_equal "customer_name", question_step["variable_name"]
 
     # Step 4: Complete Step 3 - Publish workflow
     patch create_from_draft_workflow_path(draft_workflow)
+
     assert_response :redirect
     follow_redirect!
 
     draft_workflow.reload
+
     assert_equal "published", draft_workflow.status
 
     # Step 5: Run simulation to verify variable interpolation works
@@ -139,7 +150,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
             type: "question",
             title: "Question Updated",
             question: "Enter value updated"
-            # Note: variable_name NOT included in submission (hidden field might be missing)
+            # NOTE: variable_name NOT included in submission (hidden field might be missing)
           }
         ]
       }
@@ -149,6 +160,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
     # variable_name should be preserved even if not in submission
     question_step = draft.steps.find { |s| s["type"] == "question" }
+
     assert_equal "my_variable", question_step["variable_name"], "variable_name should be preserved when not in form submission"
   end
 
@@ -161,9 +173,10 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     draft = Workflow.drafts.last
+
     assert_not_nil draft.draft_expires_at
-    assert draft.draft_expires_at > Time.current
-    assert draft.draft_expires_at < 8.days.from_now
+    assert_operator draft.draft_expires_at, :>, Time.current
+    assert_operator draft.draft_expires_at, :<, 8.days.from_now
   end
 
   test "published workflow has no expiration date" do
@@ -185,6 +198,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     patch create_from_draft_workflow_path(draft)
 
     draft.reload
+
     assert_equal "published", draft.status
     assert_nil draft.draft_expires_at
   end
@@ -202,9 +216,11 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     )
 
     patch create_from_draft_workflow_path(draft)
+
     assert_response :unprocessable_entity
 
     draft.reload
+
     assert_equal "draft", draft.status
   end
 
@@ -226,18 +242,20 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
     # Now manually update to invalid state (bypassing validation)
     draft.update_column(:steps, [
-      {
-        "id" => "step-1",
-        "type" => "question",
-        "title" => "Question Without Text"
-        # Missing required 'question' field
-      }
-    ])
+                          {
+                            "id" => "step-1",
+                            "type" => "question",
+                            "title" => "Question Without Text"
+                            # Missing required 'question' field
+                          }
+                        ])
 
     patch create_from_draft_workflow_path(draft)
+
     assert_response :unprocessable_entity
 
     draft.reload
+
     assert_equal "draft", draft.status
   end
 
@@ -253,6 +271,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     )
 
     get step1_workflow_path(draft)
+
     assert_response :success
     assert_select "input[name='workflow[title]']"
   end
@@ -295,6 +314,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     )
 
     get step2_workflow_path(draft)
+
     assert_response :success
   end
 
@@ -325,6 +345,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     )
 
     get step3_workflow_path(draft)
+
     assert_response :success
   end
 
@@ -372,9 +393,11 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
     # Publish the workflow
     patch create_from_draft_workflow_path(draft)
+
     assert_response :redirect
 
     draft.reload
+
     assert_equal "published", draft.status
 
     # Test simulation with "yes" answer
@@ -388,7 +411,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     )
 
     simulation.process_step("yes")
-    simulation.process_step  # Decision
+    simulation.process_step # Decision
 
     # Should route to Urgent Action
     assert_equal "Urgent Action", simulation.current_step["title"]
@@ -412,9 +435,11 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
         group_ids: [group.id]
       }
     }
+
     assert_response :redirect
 
     draft.reload
+
     assert_includes draft.group_ids, group.id
   end
 
@@ -457,6 +482,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     # Publish
     patch create_from_draft_workflow_path(draft)
     draft.reload
+
     assert_equal "published", draft.status
 
     # Run simulation
@@ -471,14 +497,17 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
     # Answer first question
     simulation.process_step("Alice")
+
     assert_equal "Alice", simulation.results["customer_name"]
 
     # Answer second question (which should show interpolated text when viewed)
     simulation.process_step("Login problem")
+
     assert_equal "Login problem", simulation.results["issue"]
 
     # Process action and complete
     simulation.process_step
+
     assert_equal "completed", simulation.status
 
     # Verify all results are stored

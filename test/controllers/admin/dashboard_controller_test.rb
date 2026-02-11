@@ -29,12 +29,14 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to access admin dashboard" do
     sign_in @admin
     get admin_root_path
+
     assert_response :success
   end
 
   test "editor should not be able to access admin dashboard" do
     sign_in @editor
     get admin_root_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
@@ -42,6 +44,7 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
   test "user should not be able to access admin dashboard" do
     sign_in @user
     get admin_root_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
@@ -49,6 +52,7 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
   test "admin dashboard should show system stats" do
     sign_in @admin
     get admin_root_path
+
     assert_response :success
     assert_select "h1", text: /Admin Dashboard/
   end

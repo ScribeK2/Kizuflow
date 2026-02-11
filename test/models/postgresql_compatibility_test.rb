@@ -167,7 +167,8 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
         password: "password123",
         role: role
       )
-      assert user.valid?, "Role '#{role}' should be valid"
+
+      assert_predicate user, :valid?, "Role '#{role}' should be valid"
     end
 
     # Test all valid simulation statuses
@@ -177,7 +178,8 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
         user: users(:regular_user),
         status: status
       )
-      assert simulation.valid?, "Status '#{status}' should be valid"
+
+      assert_predicate simulation, :valid?, "Status '#{status}' should be valid"
     end
   end
 
@@ -194,7 +196,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
     )
 
     assert_not user.valid?
-    assert user.errors[:display_name].any?
+    assert_predicate user.errors[:display_name], :any?
   end
 
   test "display_name accepts valid length" do
@@ -205,7 +207,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
       display_name: "A" * 50  # Exactly at limit
     )
 
-    assert user.valid?, "Display name at limit should be valid"
+    assert_predicate user, :valid?, "Display name at limit should be valid"
   end
 
   # ===========================================

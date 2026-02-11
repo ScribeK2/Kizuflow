@@ -25,7 +25,8 @@ class SimulationTest < ActiveSupport::TestCase
       user: @user,
       inputs: { "0" => "John Doe" }
     )
-    assert simulation.valid?
+
+    assert_predicate simulation, :valid?
     assert simulation.save
   end
 
@@ -35,6 +36,7 @@ class SimulationTest < ActiveSupport::TestCase
       user: @user,
       inputs: {}
     )
+
     assert_equal @workflow, simulation.workflow
   end
 
@@ -44,6 +46,7 @@ class SimulationTest < ActiveSupport::TestCase
       user: @user,
       inputs: {}
     )
+
     assert_equal @user, simulation.user
   end
 
@@ -55,9 +58,9 @@ class SimulationTest < ActiveSupport::TestCase
     )
 
     assert simulation.execute
-    assert simulation.execution_path.present?
-    assert simulation.results.present?
-    assert simulation.execution_path.any?
+    assert_predicate simulation.execution_path, :present?
+    assert_predicate simulation.results, :present?
+    assert_predicate simulation.execution_path, :any?
   end
 
   test "execute should track execution path" do
@@ -68,8 +71,9 @@ class SimulationTest < ActiveSupport::TestCase
     )
 
     simulation.execute
-    assert simulation.execution_path.is_a?(Array)
-    assert simulation.execution_path.first["step_title"].present?
+
+    assert_kind_of Array, simulation.execution_path
+    assert_predicate simulation.execution_path.first["step_title"], :present?
   end
 
   test "execute should store results" do
@@ -80,6 +84,7 @@ class SimulationTest < ActiveSupport::TestCase
     )
 
     simulation.execute
-    assert simulation.results.is_a?(Hash)
+
+    assert_kind_of Hash, simulation.results
   end
 end

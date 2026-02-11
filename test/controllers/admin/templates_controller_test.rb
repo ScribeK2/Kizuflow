@@ -30,12 +30,14 @@ class Admin::TemplatesControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to access template management" do
     sign_in @admin
     get admin_templates_path
+
     assert_response :success
   end
 
   test "non-admin should not be able to access template management" do
     sign_in @editor
     get admin_templates_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
@@ -43,12 +45,14 @@ class Admin::TemplatesControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to create template" do
     sign_in @admin
     get new_admin_template_path
+
     assert_response :success
   end
 
   test "admin should be able to edit template" do
     sign_in @admin
     get edit_admin_template_path(@template)
+
     assert_response :success
   end
 

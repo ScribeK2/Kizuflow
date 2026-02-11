@@ -5,6 +5,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Hello {{name}}, welcome!"
     variables = { "name" => "John" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Hello John, welcome!", result
   end
 
@@ -12,6 +13,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Hello {{first_name}} {{last_name}}, your status is {{status}}"
     variables = { "first_name" => "John", "last_name" => "Doe", "status" => "active" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Hello John Doe, your status is active", result
   end
 
@@ -19,6 +21,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Status: {{status}}"
     variables = { status: "active" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Status: active", result
   end
 
@@ -26,6 +29,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Hello {{name}}, your {{missing}} variable"
     variables = { "name" => "John" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Hello John, your {{missing}} variable", result
   end
 
@@ -33,6 +37,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Status: {{status}}"
     variables = { "status" => nil }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Status: ", result
   end
 
@@ -44,6 +49,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
   test "interpolate handles empty variables hash" do
     text = "Hello {{name}}"
     result = VariableInterpolator.interpolate(text, {})
+
     assert_equal "Hello {{name}}", result
   end
 
@@ -51,6 +57,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Count: {{count}}, Active: {{active}}"
     variables = { "count" => 42, "active" => true }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Count: 42, Active: true", result
   end
 
@@ -58,19 +65,21 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "{{name}} says hello, {{name}}!"
     variables = { "name" => "Alice" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Alice says hello, Alice!", result
   end
 
   test "extract_variables finds all variables in text" do
     text = "Hello {{name}}, your {{status}} is {{status}}"
     variables = VariableInterpolator.extract_variables(text)
-    assert_equal ["name", "status"], variables.sort
+
+    assert_equal %w[name status], variables.sort
   end
 
   test "extract_variables returns empty array for text without variables" do
-    assert_equal [], VariableInterpolator.extract_variables("No variables here")
-    assert_equal [], VariableInterpolator.extract_variables("")
-    assert_equal [], VariableInterpolator.extract_variables(nil)
+    assert_empty VariableInterpolator.extract_variables("No variables here")
+    assert_empty VariableInterpolator.extract_variables("")
+    assert_empty VariableInterpolator.extract_variables(nil)
   end
 
   test "contains_variables? returns true when variables present" do
@@ -97,6 +106,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "{{greeting}} world {{punctuation}}"
     variables = { "greeting" => "Hello", "punctuation" => "!" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Hello world !", result
   end
 
@@ -104,6 +114,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "{{first}}{{second}}{{third}}"
     variables = { "first" => "1", "second" => "2", "third" => "3" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "123", result
   end
 
@@ -120,6 +131,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Test {{#{long_var}}}"
     variables = { long_var => "replaced" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Test replaced", result
   end
 
@@ -127,6 +139,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Count {{123}}"
     variables = { "123" => "works" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Count works", result
   end
 
@@ -134,19 +147,22 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "Var1: {{var_name}} Var2: {{varName123}}"
     variables = { "var_name" => "test1", "varName123" => "test2" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Var1: test1 Var2: test2", result
   end
 
   test "extract_variables handles complex text with multiple variables" do
     text = "{{start}} middle text {{middle}} and more {{end}}"
     variables = VariableInterpolator.extract_variables(text)
-    assert_equal ["end", "middle", "start"], variables.sort
+
+    assert_equal %w[end middle start], variables.sort
   end
 
   test "interpolate preserves whitespace around variables" do
     text = "Before {{var}} after"
     variables = { "var" => "value" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "Before value after", result
   end
 
@@ -154,6 +170,7 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
     text = "{{user}} and {{user_name}} and {{user_email}}"
     variables = { "user" => "John", "user_name" => "John Doe", "user_email" => "john@example.com" }
     result = VariableInterpolator.interpolate(text, variables)
+
     assert_equal "John and John Doe and john@example.com", result
   end
 end

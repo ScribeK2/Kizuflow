@@ -6,7 +6,7 @@ namespace :templates do
 
     # Load seeds file to execute template seeding
     # Note: This will run the template seeding portion of seeds.rb
-    load Rails.root.join('db', 'seeds.rb')
+    load Rails.root.join("db/seeds.rb")
 
     puts ""
     puts "✅ Template seeding complete!"

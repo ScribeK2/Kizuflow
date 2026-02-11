@@ -10,22 +10,26 @@ class UserTest < ActiveSupport::TestCase
       password: "password123",
       password_confirmation: "password123"
     )
-    assert user.valid?
+
+    assert_predicate user, :valid?
   end
 
   test "should not create user without email" do
     user = User.new(password: "password123")
+
     assert_not user.valid?
     assert_includes user.errors[:email], "can't be blank"
   end
 
   test "should not create user without password" do
     user = User.new(email: "test@example.com")
+
     assert_not user.valid?
   end
 
   test "should have many workflows" do
     user = users(:one)
+
     assert_respond_to user, :workflows
   end
 
@@ -35,7 +39,7 @@ class UserTest < ActiveSupport::TestCase
       password: "password123",
       password_confirmation: "password123"
     )
-    workflow = Workflow.create!(title: "Test", user: user)
+    Workflow.create!(title: "Test", user: user)
 
     assert_difference("Workflow.count", -1) do
       user.destroy
@@ -49,6 +53,7 @@ class UserTest < ActiveSupport::TestCase
       password: "password123",
       password_confirmation: "password123"
     )
+
     assert_equal "user", user.role
   end
 
@@ -59,6 +64,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "invalid_role"
     )
+
     assert_not user.valid?
     assert_includes user.errors[:role], "is not included in the list"
   end
@@ -70,7 +76,8 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "admin"
     )
-    assert admin.admin?
+
+    assert_predicate admin, :admin?
   end
 
   test "admin? should return false for non-admin users" do
@@ -80,6 +87,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "user"
     )
+
     assert_not user.admin?
   end
 
@@ -90,7 +98,8 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "editor"
     )
-    assert editor.editor?
+
+    assert_predicate editor, :editor?
   end
 
   test "user? should return true for regular users" do
@@ -100,7 +109,8 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "user"
     )
-    assert user.user?
+
+    assert_predicate user, :user?
   end
 
   test "can_create_workflows? should return true for admin" do
@@ -110,7 +120,8 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "admin"
     )
-    assert admin.can_create_workflows?
+
+    assert_predicate admin, :can_create_workflows?
   end
 
   test "can_create_workflows? should return true for editor" do
@@ -120,7 +131,8 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "editor"
     )
-    assert editor.can_create_workflows?
+
+    assert_predicate editor, :can_create_workflows?
   end
 
   test "can_create_workflows? should return false for user" do
@@ -130,6 +142,7 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123",
       role: "user"
     )
+
     assert_not user.can_create_workflows?
   end
 
@@ -153,7 +166,7 @@ class UserTest < ActiveSupport::TestCase
       role: "user"
     )
 
-    assert admin.can_manage_templates?
+    assert_predicate admin, :can_manage_templates?
     assert_not editor.can_manage_templates?
     assert_not user.can_manage_templates?
   end
@@ -172,7 +185,7 @@ class UserTest < ActiveSupport::TestCase
       role: "editor"
     )
 
-    assert admin.can_access_admin?
+    assert_predicate admin, :can_access_admin?
     assert_not editor.can_access_admin?
   end
 
@@ -197,6 +210,7 @@ class UserTest < ActiveSupport::TestCase
     )
 
     admins = User.admins
+
     assert_includes admins.map(&:id), admin1.id
     assert_includes admins.map(&:id), admin2.id
     assert_not_includes admins.map(&:id), editor.id
@@ -223,6 +237,7 @@ class UserTest < ActiveSupport::TestCase
     )
 
     editors = User.editors
+
     assert_includes editors.map(&:id), editor1.id
     assert_includes editors.map(&:id), editor2.id
     assert_not_includes editors.map(&:id), user.id
@@ -257,6 +272,7 @@ class UserTest < ActiveSupport::TestCase
     group2 = Group.create!(name: "Group 2")
 
     accessible = admin.accessible_groups
+
     assert_includes accessible.map(&:id), group1.id
     assert_includes accessible.map(&:id), group2.id
   end
@@ -273,6 +289,7 @@ class UserTest < ActiveSupport::TestCase
     UserGroup.create!(group: assigned_group, user: user)
 
     accessible = user.accessible_groups
+
     assert_includes accessible.map(&:id), assigned_group.id
     assert_not_includes accessible.map(&:id), other_group.id
   end

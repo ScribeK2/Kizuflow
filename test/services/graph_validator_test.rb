@@ -9,7 +9,8 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
-    assert validator.valid?, "Expected valid graph, got errors: #{validator.errors.join(', ')}"
+
+    assert_predicate validator, :valid?, "Expected valid graph, got errors: #{validator.errors.join(', ')}"
     assert_empty validator.errors
   end
 
@@ -25,7 +26,8 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
-    assert validator.valid?, "Expected valid graph, got errors: #{validator.errors.join(', ')}"
+
+    assert_predicate validator, :valid?, "Expected valid graph, got errors: #{validator.errors.join(', ')}"
   end
 
   test "detects simple cycle" do
@@ -35,6 +37,7 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
+
     assert_not validator.valid?
     assert validator.errors.any? { |e| e.include?('Cycle') }, "Expected cycle detection error"
   end
@@ -48,8 +51,9 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
+
     assert_not validator.valid?
-    assert validator.errors.any? { |e| e.include?('Cycle') }
+    assert(validator.errors.any? { |e| e.include?('Cycle') })
   end
 
   test "detects invalid transition target" do
@@ -58,8 +62,9 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
+
     assert_not validator.valid?
-    assert validator.errors.any? { |e| e.include?('non-existent') }
+    assert(validator.errors.any? { |e| e.include?('non-existent') })
   end
 
   test "detects unreachable nodes" do
@@ -70,8 +75,9 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
+
     assert_not validator.valid?
-    assert validator.errors.any? { |e| e.include?('not reachable') }
+    assert(validator.errors.any? { |e| e.include?('not reachable') })
   end
 
   test "detects missing terminal nodes" do
@@ -81,14 +87,16 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
+
     assert_not validator.valid?
-    assert validator.errors.any? { |e| e.include?('terminal') || e.include?('Cycle') }
+    assert(validator.errors.any? { |e| e.include?('terminal') || e.include?('Cycle') })
   end
 
   test "validates empty graph returns error" do
     validator = GraphValidator.new({}, 'a')
+
     assert_not validator.valid?
-    assert validator.errors.any? { |e| e.include?('no steps') }
+    assert(validator.errors.any? { |e| e.include?('no steps') })
   end
 
   test "validates missing start node" do
@@ -97,8 +105,9 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'nonexistent')
+
     assert_not validator.valid?
-    assert validator.errors.any? { |e| e.include?('Start node') }
+    assert(validator.errors.any? { |e| e.include?('Start node') })
   end
 
   test "allows multiple terminal nodes" do
@@ -112,7 +121,8 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
-    assert validator.valid?, "Expected valid graph with multiple terminals, got errors: #{validator.errors.join(', ')}"
+
+    assert_predicate validator, :valid?, "Expected valid graph with multiple terminals, got errors: #{validator.errors.join(', ')}"
   end
 
   test "validates conditional transitions" do
@@ -126,6 +136,7 @@ class GraphValidatorTest < ActiveSupport::TestCase
     }
 
     validator = GraphValidator.new(steps, 'a')
-    assert validator.valid?
+
+    assert_predicate validator, :valid?
   end
 end

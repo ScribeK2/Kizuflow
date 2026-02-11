@@ -23,12 +23,14 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to access groups index" do
     sign_in @admin
     get admin_groups_path
+
     assert_response :success
   end
 
   test "non-admin should not be able to access groups index" do
     sign_in @editor
     get admin_groups_path
+
     assert_redirected_to root_path
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
@@ -64,6 +66,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     end
 
     child = Group.last
+
     assert_equal parent.id, child.parent_id
     # Controller redirects to index after successful creation
     assert_redirected_to admin_groups_path
@@ -83,6 +86,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     # Controller redirects to index after successful update
     assert_redirected_to admin_groups_path
     group.reload
+
     assert_equal "Updated Name", group.name
     assert_equal "Updated description", group.description
   end
@@ -101,7 +105,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   test "admin should not be able to delete a group with children" do
     sign_in @admin
     parent = Group.create!(name: "Parent")
-    child = Group.create!(name: "Child", parent: parent)
+    Group.create!(name: "Child", parent: parent)
 
     assert_no_difference("Group.count") do
       delete admin_group_path(parent)
@@ -109,8 +113,8 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_groups_path
     # Controller uses full message with group name
-    assert_match /Cannot delete group/, flash[:alert]
-    assert_match /subgroups/, flash[:alert]
+    assert_match(/Cannot delete group/, flash[:alert])
+    assert_match(/subgroups/, flash[:alert])
   end
 
   test "admin should not be able to delete a group with workflows" do
@@ -130,8 +134,8 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_groups_path
     # Controller uses full message with group name
-    assert_match /Cannot delete group/, flash[:alert]
-    assert_match /workflows/, flash[:alert]
+    assert_match(/Cannot delete group/, flash[:alert])
+    assert_match(/workflows/, flash[:alert])
   end
 
   test "admin should be able to view a group" do
@@ -139,6 +143,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     group = Group.create!(name: "Test Group", description: "Test description")
 
     get admin_group_path(group)
+
     assert_response :success
     assert_match "Test Group", response.body
   end

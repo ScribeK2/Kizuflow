@@ -52,6 +52,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     # Answer first question
     simulation.process_step("first_value")
+
     assert_equal "first_value", simulation.results["shared_var"]
 
     # Answer second question with same variable_name
@@ -72,9 +73,9 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
       steps: []
     )
 
-    assert workflow.valid?
+    assert_predicate workflow, :valid?
     assert workflow.save
-    assert_equal [], workflow.steps
+    assert_empty workflow.steps
   end
 
   test "workflow can be created with nil steps" do
@@ -84,7 +85,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
       steps: nil
     )
 
-    assert workflow.valid?
+    assert_predicate workflow, :valid?
     assert workflow.save
   end
 
@@ -108,7 +109,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
       steps: steps
     )
 
-    assert workflow.valid?, "Expected workflow with 200 steps to be valid, got errors: #{workflow.errors.full_messages}"
+    assert_predicate workflow, :valid?, "Expected workflow with 200 steps to be valid, got errors: #{workflow.errors.full_messages}"
     assert workflow.save
     assert_equal 200, workflow.steps.length
   end
@@ -130,7 +131,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("cannot exceed") || e.include?("200") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("cannot exceed") || e.include?("200") })
   end
 
   # ==========================================================================
@@ -152,7 +153,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Title is required") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Title is required") })
   end
 
   test "step with blank title fails validation" do
@@ -170,7 +171,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Title is required") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Title is required") })
   end
 
   # ==========================================================================
@@ -200,7 +201,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Invalid condition format") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Invalid condition format") })
   end
 
   test "valid condition formats are accepted" do
@@ -235,7 +236,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
         ]
       )
 
-      assert workflow.valid?, "Expected condition '#{condition}' to be valid, got errors: #{workflow.errors.full_messages}"
+      assert_predicate workflow, :valid?, "Expected condition '#{condition}' to be valid, got errors: #{workflow.errors.full_messages}"
     end
   end
 
@@ -266,7 +267,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("non-existent step") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("non-existent step") })
   end
 
   test "else_path referencing non-existent step fails validation with branches" do
@@ -293,7 +294,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("non-existent step") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("non-existent step") })
   end
 
   test "else_path referencing non-existent step fails validation without branches" do
@@ -319,7 +320,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("non-existent step") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("non-existent step") })
   end
 
   # ==========================================================================
@@ -344,7 +345,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
           "branches" => [
             { "condition" => "always == 'yes'", "path" => "Step A" }
           ],
-          "else_path" => "Step A"  # Always loops back
+          "else_path" => "Step A" # Always loops back
         }
       ]
     )
@@ -361,8 +362,8 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     assert_equal false, result
     assert_equal "error", simulation.status
-    assert simulation.results["_error"].present?
-    assert simulation.results["_error"].include?("iterations")
+    assert_predicate simulation.results["_error"], :present?
+    assert_includes simulation.results["_error"], "iterations"
   end
 
   # ==========================================================================
@@ -479,7 +480,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     # All steps should have IDs now
     workflow.steps.each do |step|
-      assert step["id"].present?, "Step #{step['title']} should have an ID"
+      assert_predicate step["id"], :present?, "Step #{step['title']} should have an ID"
       assert_match(/^[0-9a-f-]{36}$/, step["id"], "Step ID should be a UUID format")
     end
   end
@@ -520,7 +521,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Invalid step type") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Invalid step type") })
   end
 
   test "question step requires question text" do
@@ -538,7 +539,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Question text is required") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Question text is required") })
   end
 
   # ==========================================================================
@@ -546,7 +547,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   # ==========================================================================
 
   test "step title exceeding max length fails validation" do
-    long_title = "A" * 501  # Max is 500
+    long_title = "A" * 501 # Max is 500
 
     workflow = Workflow.new(
       title: "Long Title Workflow",
@@ -562,7 +563,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?("Title is too long") }
+    assert(workflow.errors[:steps].any? { |e| e.include?("Title is too long") })
   end
 
   # ==========================================================================
@@ -584,6 +585,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     question_step = workflow.steps.first
+
     assert_equal "customer_name", question_step["variable_name"]
   end
 
@@ -601,6 +603,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     question_step = workflow.steps.first
+
     assert_equal "what_is_your_issue", question_step["variable_name"]
   end
 
@@ -644,6 +647,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     question_step = workflow.steps.first
+
     assert_equal "my_custom_var", question_step["variable_name"]
   end
 
@@ -661,6 +665,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
     )
 
     action_step = workflow.steps.first
+
     assert_nil action_step["variable_name"]
   end
 
@@ -670,7 +675,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     result = workflow.generate_variable_name(long_title)
 
-    assert result.length <= 30
+    assert_operator result.length, :<=, 30
     assert_not result.end_with?("_")
   end
 

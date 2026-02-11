@@ -175,7 +175,7 @@ class SimulationBranchingTest < ActiveSupport::TestCase
 
     # Answer "YES" (uppercase) - should match case-insensitively
     simulation.process_step("YES")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # Should match 'yes' condition and go to Escalate
     assert_equal 2, simulation.current_step_index
@@ -339,6 +339,7 @@ class SimulationBranchingTest < ActiveSupport::TestCase
 
     # Answer question
     simulation.process_step("test")
+
     assert_equal 1, simulation.current_step_index
     assert_equal "decision", simulation.current_step["type"]
 
@@ -450,7 +451,7 @@ class SimulationBranchingTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("active")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # Variable should be stored by variable_name and found in condition
     assert_equal "active", simulation.results["status_var"]
@@ -508,7 +509,7 @@ class SimulationBranchingTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("open")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # "open" != "closed" should be true
     assert_equal 2, simulation.current_step_index
@@ -561,7 +562,7 @@ class SimulationBranchingTest < ActiveSupport::TestCase
     )
 
     simulation.process_step("closed")
-    simulation.process_step  # Process decision
+    simulation.process_step # Process decision
 
     # "closed" != "closed" should be false, use else_path
     assert_equal 3, simulation.current_step_index

@@ -17,12 +17,15 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
 
   test "lock_version increments on save" do
     initial_version = @workflow.lock_version
+
     assert_equal 0, initial_version
 
     @workflow.update!(title: "Updated Title")
+
     assert_equal 1, @workflow.lock_version
 
     @workflow.update!(title: "Updated Again")
+
     assert_equal 2, @workflow.lock_version
   end
 
@@ -55,7 +58,7 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
     workflow1.update!(steps: steps1)
 
     # Second user tries to add a step (based on stale data)
-    steps2 = workflow2.steps.dup  # This is the OLD steps array
+    steps2 = workflow2.steps.dup # This is the OLD steps array
     steps2 << { "type" => "action", "title" => "Step from user 2", "instructions" => "Do thing 2" }
     workflow2.steps = steps2
 
@@ -66,7 +69,8 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
 
     # Reload to verify only the first update succeeded
     @workflow.reload
-    assert_equal 2, @workflow.steps.length  # 1 original + 1 from user 1
+
+    assert_equal 2, @workflow.steps.length # 1 original + 1 from user 1
     assert_equal "Step from user 1", @workflow.steps.last["title"]
   end
 
@@ -85,9 +89,11 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
 
     # After reload, second user can save
     workflow2.reload
+
     assert_equal workflow1.lock_version, workflow2.lock_version
 
     workflow2.title = "Second update after reload"
+
     assert workflow2.save
     assert_equal "Second update after reload", workflow2.title
   end
@@ -123,6 +129,7 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
 
     # Verify the update succeeded
     @workflow.reload
+
     assert_equal "Locked update", @workflow.title
     assert_equal 1, @workflow.lock_version
   end

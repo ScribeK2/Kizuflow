@@ -23,8 +23,8 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     )
 
     assert_not linear_workflow.graph_mode?
-    assert graph_workflow.graph_mode?
-    assert linear_workflow.linear_mode?
+    assert_predicate graph_workflow, :graph_mode?
+    assert_predicate linear_workflow, :linear_mode?
     assert_not graph_workflow.linear_mode?
   end
 
@@ -102,7 +102,7 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     terminals = workflow.terminal_nodes
 
     assert_equal 2, terminals.length
-    assert terminals.all? { |t| t['transitions'].empty? }
+    assert(terminals.all? { |t| t['transitions'].empty? })
   end
 
   test "terminal_nodes returns last step in linear mode" do
@@ -162,6 +162,7 @@ class WorkflowGraphTest < ActiveSupport::TestCase
 
     assert_equal 2, sources.length
     titles = sources.map { |s| s['title'] }
+
     assert_includes titles, 'A'
     assert_includes titles, 'B'
   end
@@ -261,7 +262,7 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     subflows = workflow.subflow_steps
 
     assert_equal 2, subflows.length
-    assert subflows.all? { |s| s['type'] == 'sub_flow' }
+    assert(subflows.all? { |s| s['type'] == 'sub_flow' })
   end
 
   test "referenced_workflow_ids returns unique workflow IDs" do
@@ -298,7 +299,7 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?('non-existent') }
+    assert(workflow.errors[:steps].any? { |e| e.include?('non-existent') })
   end
 
   test "validates subflow references" do
@@ -306,12 +307,12 @@ class WorkflowGraphTest < ActiveSupport::TestCase
       title: "Invalid Subflow",
       user: @user,
       steps: [
-        { 'id' => 'a', 'type' => 'sub_flow', 'title' => 'Bad Sub', 'target_workflow_id' => 999999 }
+        { 'id' => 'a', 'type' => 'sub_flow', 'title' => 'Bad Sub', 'target_workflow_id' => 999_999 }
       ]
     )
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?('does not exist') }
+    assert(workflow.errors[:steps].any? { |e| e.include?('does not exist') })
   end
 
   test "validates self-referencing subflow" do
@@ -327,6 +328,6 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     ]
 
     assert_not workflow.valid?
-    assert workflow.errors[:steps].any? { |e| e.include?('cannot reference itself') }
+    assert(workflow.errors[:steps].any? { |e| e.include?('cannot reference itself') })
   end
 end
