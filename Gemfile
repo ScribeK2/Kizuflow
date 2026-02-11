@@ -40,9 +40,15 @@ group :development, :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "factory_bot_rails"
-  
+
   # N+1 query detection - helps catch performance issues during development
   gem "bullet"
+
+  # Code linting and style enforcement
+  gem "rubocop", require: false
+  gem "rubocop-rails", require: false
+  gem "rubocop-minitest", require: false
+  gem "rubocop-performance", require: false
 end
 
 group :development do
