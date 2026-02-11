@@ -13,8 +13,8 @@ class Simulation < ApplicationRecord
 
   # Simulation limits to prevent infinite loops and DoS
   MAX_ITERATIONS = ENV.fetch("SIMULATION_MAX_ITERATIONS", 1000).to_i
-  MAX_EXECUTION_TIME = ENV.fetch("SIMULATION_MAX_SECONDS", 30).to_i  # seconds
-  MAX_CONDITION_DEPTH = 50  # Max nested condition evaluations per step
+  MAX_EXECUTION_TIME = ENV.fetch("SIMULATION_MAX_SECONDS", 30).to_i # seconds
+  MAX_CONDITION_DEPTH = 50 # Max nested condition evaluations per step
 
   # Custom error classes
   class SimulationTimeout < StandardError; end
@@ -48,8 +48,8 @@ class Simulation < ApplicationRecord
 
     if graph_mode? && current_node_uuid.present?
       workflow.find_step_by_id(current_node_uuid)
-    else
-      workflow.steps[current_step_index] if current_step_index < workflow.steps.length
+    elsif current_step_index < workflow.steps.length
+      workflow.steps[current_step_index]
     end
   end
 
@@ -144,7 +144,7 @@ class Simulation < ApplicationRecord
   def process_step(answer = nil)
     return false if complete?
     return false if stopped?
-    return false if status == 'timeout' || status == 'error'
+    return false if %w[timeout error].include?(status)
 
     # If awaiting sub-flow completion, check child status
     if awaiting_subflow?
@@ -229,7 +229,7 @@ class Simulation < ApplicationRecord
 
   # Process a question step
   def process_question_step(step, answer, path_entry)
-    input_key = step['variable_name'].present? ? step['variable_name'] : current_step_index.to_s
+    input_key = step['variable_name'].presence || current_step_index.to_s
     self.inputs ||= {}
     self.inputs[input_key] = answer if answer.present?
     self.inputs[step['title']] = answer if answer.present?
@@ -491,17 +491,17 @@ class Simulation < ApplicationRecord
 
   # Advance to a specific step UUID (graph mode)
   def advance_to_step_uuid(uuid)
-    if uuid.nil?
-      # Reached end of workflow
-      self.current_node_uuid = nil
-    else
-      self.current_node_uuid = uuid
-    end
+    self.current_node_uuid = if uuid.nil?
+                               # Reached end of workflow
+                               nil
+                             else
+                               uuid
+                             end
   end
 
   # Check if simulation is complete
   def check_completion
-    return if status == 'stopped' || status == 'awaiting_subflow'
+    return if %w[stopped awaiting_subflow].include?(status)
 
     if graph_mode?
       # Complete if no current node or current node is terminal
@@ -515,10 +515,8 @@ class Simulation < ApplicationRecord
           # Terminal node that's not a sub-flow - will complete after processing
         end
       end
-    else
-      if current_step_index >= workflow.steps.length
-        self.status = 'completed'
-      end
+    elsif current_step_index >= workflow.steps.length
+      self.status = 'completed'
     end
   end
 
@@ -532,52 +530,52 @@ class Simulation < ApplicationRecord
       jump_condition = jump['condition'] || jump[:condition]
       jump_next_step_id = jump['next_step_id'] || jump[:next_step_id]
 
-      if jump_condition.present? && jump_next_step_id.present?
-        # For question steps, condition might be the answer value
-        # For action steps, condition might be 'completed' or similar
-        # For decision steps, condition can be complex expressions
+      next unless jump_condition.present? && jump_next_step_id.present?
 
-        condition_result = case step['type']
-        when 'question'
-          # For questions, check if the answer matches the condition
-          current_answer = results[step['title']] || results[step['variable_name']]
-          current_answer.to_s == jump_condition.to_s
-        when 'action'
-          # For actions, check if action completed or custom condition
-          if jump_condition == 'completed'
-            true  # Actions are considered completed when they reach this point
-          else
-            evaluate_condition_string(jump_condition, results)
-          end
-        when 'decision'
-          # For decisions, use full condition evaluation
-          evaluate_condition_string(jump_condition, results)
-        else
-          # Default to condition evaluation
-          evaluate_condition_string(jump_condition, results)
+      # For question steps, condition might be the answer value
+      # For action steps, condition might be 'completed' or similar
+      # For decision steps, condition can be complex expressions
+
+      condition_result = case step['type']
+                         when 'question'
+                           # For questions, check if the answer matches the condition
+                           current_answer = results[step['title']] || results[step['variable_name']]
+                           current_answer.to_s == jump_condition.to_s
+                         when 'action'
+                           # For actions, check if action completed or custom condition
+                           if jump_condition == 'completed'
+                             true # Actions are considered completed when they reach this point
+                           else
+                             evaluate_condition_string(jump_condition, results)
                            end
+                         when 'decision'
+                           # For decisions, use full condition evaluation
+                           evaluate_condition_string(jump_condition, results)
+                         else
+                           # Default to condition evaluation
+                           evaluate_condition_string(jump_condition, results)
+                         end
 
-        if condition_result
-          next_step = find_step_by_id(jump_next_step_id)
-          if next_step
-            return workflow.steps.index(next_step)
-          end
-        end
+      next unless condition_result
+
+      next_step = find_step_by_id(jump_next_step_id)
+      if next_step
+        return workflow.steps.index(next_step)
       end
     end
 
-    nil  # No jump matched
+    nil # No jump matched
   end
 
   # Determine next step index based on decision logic
   def determine_next_step_index(step, results)
-    Rails.logger.debug "[Simulation ##{id}] determine_next_step_index: step='#{step['title']}', type=#{step['type']}"
-    Rails.logger.debug "[Simulation ##{id}] Results: #{results.inspect}"
+    Rails.logger.debug { "[Simulation ##{id}] determine_next_step_index: step='#{step['title']}', type=#{step['type']}" }
+    Rails.logger.debug { "[Simulation ##{id}] Results: #{results.inspect}" }
 
     # First check for universal jumps (works for all step types)
     jump_result = check_jumps(step, results)
     if jump_result
-      Rails.logger.debug "[Simulation ##{id}] Jump matched -> index #{jump_result}"
+      Rails.logger.debug { "[Simulation ##{id}] Jump matched -> index #{jump_result}" }
       return jump_result
     end
 
@@ -588,34 +586,34 @@ class Simulation < ApplicationRecord
         branch_condition = branch['condition'] || branch[:condition]
         branch_path = branch['path'] || branch[:path]
 
-        Rails.logger.debug "[Simulation ##{id}] Branch #{idx + 1}: condition='#{branch_condition}', path='#{branch_path}'"
+        Rails.logger.debug { "[Simulation ##{id}] Branch #{idx + 1}: condition='#{branch_condition}', path='#{branch_path}'" }
 
-        if branch_condition.present? && branch_path.present?
-          condition_result = evaluate_condition_string(branch_condition, results)
-          Rails.logger.debug "[Simulation ##{id}] Branch #{idx + 1} evaluated: #{condition_result}"
+        next unless branch_condition.present? && branch_path.present?
 
-          if condition_result
-            # Use ID-based resolution (supports both IDs and titles for backward compatibility)
-            next_step = resolve_step_reference(branch_path)
-            if next_step
-              next_index = workflow.steps.index(next_step)
-              Rails.logger.debug "[Simulation ##{id}] Branch matched -> '#{next_step['title']}' at index #{next_index}"
-              return next_index unless next_index.nil?
-            else
-              Rails.logger.warn "[Simulation ##{id}] Branch path '#{branch_path}' not found!"
-            end
-          end
+        condition_result = evaluate_condition_string(branch_condition, results)
+        Rails.logger.debug { "[Simulation ##{id}] Branch #{idx + 1} evaluated: #{condition_result}" }
+
+        next unless condition_result
+
+        # Use ID-based resolution (supports both IDs and titles for backward compatibility)
+        next_step = resolve_step_reference(branch_path)
+        if next_step
+          next_index = workflow.steps.index(next_step)
+          Rails.logger.debug { "[Simulation ##{id}] Branch matched -> '#{next_step['title']}' at index #{next_index}" }
+          return next_index unless next_index.nil?
+        else
+          Rails.logger.warn "[Simulation ##{id}] Branch path '#{branch_path}' not found!"
         end
       end
 
       # No branch matched, check else_path
       if step['else_path'].present?
-        Rails.logger.debug "[Simulation ##{id}] No branch matched, trying else_path: '#{step['else_path']}'"
+        Rails.logger.debug { "[Simulation ##{id}] No branch matched, trying else_path: '#{step['else_path']}'" }
         # Use ID-based resolution (supports both IDs and titles for backward compatibility)
         next_step = resolve_step_reference(step['else_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
-          Rails.logger.debug "[Simulation ##{id}] else_path resolved -> index #{next_index}"
+          Rails.logger.debug { "[Simulation ##{id}] else_path resolved -> index #{next_index}" }
           return next_index unless next_index.nil?
         else
           Rails.logger.warn "[Simulation ##{id}] else_path '#{step['else_path']}' not found!"
@@ -624,32 +622,32 @@ class Simulation < ApplicationRecord
 
       # Default: move to next step - check bounds
       next_index = current_step_index + 1
-      Rails.logger.debug "[Simulation ##{id}] Defaulting to next step: #{next_index}"
+      Rails.logger.debug { "[Simulation ##{id}] Defaulting to next step: #{next_index}" }
       next_index < workflow.steps.length ? next_index : workflow.steps.length
     else
       # Legacy format (true_path/false_path)
-      Rails.logger.debug "[Simulation ##{id}] Using legacy format (true_path/false_path)"
+      Rails.logger.debug { "[Simulation ##{id}] Using legacy format (true_path/false_path)" }
       condition_result = evaluate_condition(step, results)
-      Rails.logger.debug "[Simulation ##{id}] Legacy condition evaluated: #{condition_result}"
+      Rails.logger.debug { "[Simulation ##{id}] Legacy condition evaluated: #{condition_result}" }
 
       if condition_result && step['true_path'].present?
-        Rails.logger.debug "[Simulation ##{id}] Following true_path: '#{step['true_path']}'"
+        Rails.logger.debug { "[Simulation ##{id}] Following true_path: '#{step['true_path']}'" }
         # Use ID-based resolution (supports both IDs and titles for backward compatibility)
         next_step = resolve_step_reference(step['true_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
-          Rails.logger.debug "[Simulation ##{id}] true_path resolved -> index #{next_index}"
+          Rails.logger.debug { "[Simulation ##{id}] true_path resolved -> index #{next_index}" }
           return next_index unless next_index.nil?
         else
           Rails.logger.warn "[Simulation ##{id}] true_path '#{step['true_path']}' not found!"
         end
       elsif !condition_result && step['false_path'].present?
-        Rails.logger.debug "[Simulation ##{id}] Following false_path: '#{step['false_path']}'"
+        Rails.logger.debug { "[Simulation ##{id}] Following false_path: '#{step['false_path']}'" }
         # Use ID-based resolution (supports both IDs and titles for backward compatibility)
         next_step = resolve_step_reference(step['false_path'])
         if next_step
           next_index = workflow.steps.index(next_step)
-          Rails.logger.debug "[Simulation ##{id}] false_path resolved -> index #{next_index}"
+          Rails.logger.debug { "[Simulation ##{id}] false_path resolved -> index #{next_index}" }
           return next_index unless next_index.nil?
         else
           Rails.logger.warn "[Simulation ##{id}] false_path '#{step['false_path']}' not found!"
@@ -658,7 +656,7 @@ class Simulation < ApplicationRecord
 
       # Default: move to next step - check bounds
       next_index = current_step_index + 1
-      Rails.logger.debug "[Simulation ##{id}] Legacy defaulting to next step: #{next_index}"
+      Rails.logger.debug { "[Simulation ##{id}] Legacy defaulting to next step: #{next_index}" }
       next_index < workflow.steps.length ? next_index : workflow.steps.length
     end
   end
@@ -670,14 +668,14 @@ class Simulation < ApplicationRecord
     Timeout.timeout(MAX_EXECUTION_TIME, SimulationTimeout) do
       execute_with_limits
     end
-  rescue SimulationTimeout => e
+  rescue SimulationTimeout
     self.status = 'timeout'
     self.results ||= {}
     self.results['_error'] = "Simulation timed out after #{MAX_EXECUTION_TIME} seconds"
     save
     Rails.logger.warn "Simulation #{id} timed out for workflow #{workflow_id}"
     false
-  rescue SimulationIterationLimit => e
+  rescue SimulationIterationLimit
     Rails.logger.warn "Simulation #{id} hit iteration limit for workflow #{workflow_id}"
     false
   end
@@ -739,15 +737,15 @@ class Simulation < ApplicationRecord
             branch_condition = branch['condition'] || branch[:condition]
             branch_path = branch['path'] || branch[:path]
 
-            if branch_condition.present? && branch_path.present?
-              condition_result = evaluate_condition_string(branch_condition, results)
-              if condition_result
-                matched_branch = branch
-                path.last[:condition_result] = "matched: #{branch_condition}"
-                path.last[:matched_branch] = branch_condition
-                break
-              end
-            end
+            next unless branch_condition.present? && branch_path.present?
+
+            condition_result = evaluate_condition_string(branch_condition, results)
+            next unless condition_result
+
+            matched_branch = branch
+            path.last[:condition_result] = "matched: #{branch_condition}"
+            path.last[:matched_branch] = branch_condition
+            break
           end
 
           # If a branch matched, use its path
@@ -820,7 +818,7 @@ class Simulation < ApplicationRecord
     self.execution_path = path
     self.results = results
     save
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "Simulation execution failed: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
     false
@@ -860,19 +858,19 @@ class Simulation < ApplicationRecord
   def resolve_step_reference(reference)
     return nil if reference.blank?
 
-    Rails.logger.debug "[Simulation ##{id}] resolve_step_reference: '#{reference}'"
+    Rails.logger.debug { "[Simulation ##{id}] resolve_step_reference: '#{reference}'" }
 
     # First try to resolve to ID using workflow's helper (handles both IDs and titles)
     step_id = workflow.resolve_step_reference_to_id(reference)
     if step_id.present?
       step = find_step_by_id(step_id)
-      Rails.logger.debug "[Simulation ##{id}] Resolved via ID: #{step ? step['title'] : 'NOT FOUND'}"
+      Rails.logger.debug { "[Simulation ##{id}] Resolved via ID: #{step ? step['title'] : 'NOT FOUND'}" }
       return step if step
     end
 
     # Fallback to title-based lookup for backward compatibility
     step = find_step_by_title(reference)
-    Rails.logger.debug "[Simulation ##{id}] Resolved via title: #{step ? step['title'] : 'NOT FOUND'}"
+    Rails.logger.debug { "[Simulation ##{id}] Resolved via title: #{step ? step['title'] : 'NOT FOUND'}" }
 
     unless step
       Rails.logger.error "[Simulation ##{id}] Could not resolve '#{reference}'. Available: #{workflow.steps.map { |s| s['title'] }}"
