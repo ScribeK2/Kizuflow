@@ -1,0 +1,86 @@
+require:
+  - rubocop-rails
+  - rubocop-minitest
+  - rubocop-performance
+
+AllCops:
+  TargetRubyVersion: 3.3
+  NewCops: enable
+  Exclude:
+    - "db/migrate/**/*"
+    - "db/schema.rb"
+    - "db/seeds.rb"
+    - "vendor/**/*"
+    - "bin/**/*"
+    - "spec/**/*"
+    - "config/puma.rb"
+    - "config/boot.rb"
+    - "config/environments/**/*"
+    - "config/initializers/devise.rb"
+    - "node_modules/**/*"
+    - "tmp/**/*"
+
+# --- Metrics: Disabled (large files are intentional) ---
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false
+
+Metrics/BlockNesting:
+  Enabled: false
+
+# --- Layout ---
+Layout/LineLength:
+  Max: 200
+
+# --- Lint: Disabled (callbacks need signatures) ---
+Lint/UnusedMethodArgument:
+  Enabled: false
+
+Lint/UnusedBlockArgument:
+  Enabled: false
+
+# --- Style: Disabled (noise or unsafe to bulk-change) ---
+Style/StringLiterals:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+# --- Rails: Disabled (intentional usage) ---
+Rails/OutputSafety:
+  Enabled: false
+
+Rails/SkipsModelValidations:
+  Enabled: false
+
+Rails/I18nLocaleTexts:
+  Enabled: false
