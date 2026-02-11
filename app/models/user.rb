@@ -71,6 +71,7 @@ class User < ApplicationRecord
   # where mail is not configured, e.g. Render without SendGrid).
   def send_password_change_notification
     return if skip_password_change_notification
+
     super
   end
 

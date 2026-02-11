@@ -31,7 +31,7 @@ module SimulationsHelper
 
     if is_completed
       checkmark = tag.svg(
-        tag.path(d: "M5 13l4 4L19 7", "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-width": "2"),
+        tag.path(d: "M5 13l4 4L19 7", 'stroke-linecap': "round", 'stroke-linejoin': "round", 'stroke-width': "2"),
         class: "w-3.5 h-3.5 inline mr-0.5 flex-shrink-0",
         fill: "none",
         stroke: "currentColor",

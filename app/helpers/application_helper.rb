@@ -35,26 +35,24 @@ module ApplicationHelper
       link_attributes: { target: "_blank", rel: "noopener noreferrer" }
     )
     markdown = Redcarpet::Markdown.new(renderer,
-      fenced_code_blocks: true,
-      autolink: true,
-      tables: true,
-      strikethrough: true,
-      no_intra_emphasis: true
-    )
+                                       fenced_code_blocks: true,
+                                       autolink: true,
+                                       tables: true,
+                                       strikethrough: true,
+                                       no_intra_emphasis: true)
 
     html = markdown.render(text)
 
     safe_html = sanitize(html,
-      tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del],
-      attributes: %w[href target rel]
-    )
+                         tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del],
+                         attributes: %w[href target rel])
 
     content_tag(:div, safe_html, class: "step-markdown-content")
   end
 
   # Render glassmorphism card with block content
-  def render_card(title: nil, icon: nil, with_3d: false, css_class: nil, controller: nil, content_class: nil, footer: nil, &block)
-    content = capture(&block) if block_given?
+  def render_card(title: nil, icon: nil, with_3d: false, css_class: nil, controller: nil, content_class: nil, footer: nil, &)
+    content = capture(&) if block_given?
     render partial: "shared/card", locals: {
       title: title,
       icon: icon,
@@ -77,12 +75,12 @@ module ApplicationHelper
   def workflow_status_badge(workflow)
     if workflow.draft?
       content_tag(:span, "Draft",
-        class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-        aria: { label: "Draft workflow" })
+                  class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                  aria: { label: "Draft workflow" })
     else
       content_tag(:span, "Published",
-        class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-        aria: { label: "Published workflow" })
+                  class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                  aria: { label: "Published workflow" })
     end
   end
 

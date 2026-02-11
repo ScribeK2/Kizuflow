@@ -24,7 +24,7 @@ class StepTemplate
         description: "Check if age meets threshold",
         condition: "age >= 18"
       }
-    },
+    }
   }.freeze
 
   def self.for_type(type)
