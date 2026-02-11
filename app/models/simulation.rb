@@ -625,7 +625,7 @@ class Simulation < ApplicationRecord
       # Default: move to next step - check bounds
       next_index = current_step_index + 1
       Rails.logger.debug "[Simulation ##{id}] Defaulting to next step: #{next_index}"
-      return next_index < workflow.steps.length ? next_index : workflow.steps.length
+      next_index < workflow.steps.length ? next_index : workflow.steps.length
     else
       # Legacy format (true_path/false_path)
       Rails.logger.debug "[Simulation ##{id}] Using legacy format (true_path/false_path)"
@@ -659,7 +659,7 @@ class Simulation < ApplicationRecord
       # Default: move to next step - check bounds
       next_index = current_step_index + 1
       Rails.logger.debug "[Simulation ##{id}] Legacy defaulting to next step: #{next_index}"
-      return next_index < workflow.steps.length ? next_index : workflow.steps.length
+      next_index < workflow.steps.length ? next_index : workflow.steps.length
     end
   end
 

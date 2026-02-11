@@ -5,7 +5,7 @@ require 'json'
 module WorkflowParsers
   class JsonParser < BaseParser
     def parse
-      begin
+      
         data = JSON.parse(@file_content)
 
         # Handle both direct workflow objects and wrapped formats
@@ -55,7 +55,7 @@ module WorkflowParsers
       rescue => e
         add_error("Error parsing JSON: #{e.message}")
         nil
-      end
+      
     end
 
     private

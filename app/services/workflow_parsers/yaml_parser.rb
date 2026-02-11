@@ -5,7 +5,7 @@ require 'yaml'
 module WorkflowParsers
   class YamlParser < BaseParser
     def parse
-      begin
+      
         data = YAML.safe_load(@file_content, permitted_classes: [Symbol])
 
         # Handle both direct workflow objects and wrapped formats
@@ -55,7 +55,7 @@ module WorkflowParsers
       rescue => e
         add_error("Error parsing YAML: #{e.message}")
         nil
-      end
+      
     end
 
     private

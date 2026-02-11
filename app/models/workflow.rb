@@ -167,7 +167,7 @@ class Workflow < ApplicationRecord
   # Helper method to safely get description text (handles migration from text column to rich text)
   # This avoids triggering Active Storage initialization errors
   def description_text
-    begin
+    
       if description.present?
         description.to_plain_text
       elsif read_attribute(:description).present?
@@ -179,16 +179,16 @@ class Workflow < ApplicationRecord
       # Fallback if Active Storage isn't configured or there's an error
       Rails.logger.warn("Error accessing description: #{e.message}")
       read_attribute(:description) || nil
-    end
+    
   end
 
   # Helper method to check if description exists (works with both text and rich text)
   def has_description?
-    begin
+    
       description.present? || read_attribute(:description).present?
     rescue
       read_attribute(:description).present?
-    end
+    
   end
 
   # Clean up import flags when steps are completed

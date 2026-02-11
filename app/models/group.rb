@@ -202,7 +202,7 @@ class Group < ApplicationRecord
     # Also check if any descendant of this group is the parent (would create a cycle)
     if descendants.any? { |descendant| descendant.id == parent_group.id }
       errors.add(:parent_id, "cannot create circular reference: parent is a descendant")
-      return
+      nil
     end
   end
 

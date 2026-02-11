@@ -5,7 +5,7 @@ require 'csv'
 module WorkflowParsers
   class CsvParser < BaseParser
     def parse
-      begin
+      
         csv = CSV.parse(@file_content, headers: true, header_converters: :symbol)
 
         if csv.headers.nil? || csv.headers.empty?
@@ -58,7 +58,7 @@ module WorkflowParsers
       rescue => e
         add_error("Error parsing CSV: #{e.message}")
         nil
-      end
+      
     end
 
     private

@@ -201,7 +201,7 @@ class SimulationsController < ApplicationController
         # Redirect to next step (don't show decision/sub_flow step)
         redirect_to step_simulation_path(@simulation)
       end
-      return
+      nil
     end
 
     # Note: escalate and resolve steps show UI first, then process on Continue click

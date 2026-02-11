@@ -7,7 +7,7 @@ namespace :workflows do
     error_count = 0
 
     Workflow.find_each do |workflow|
-      begin
+      
         # Check if workflow needs step IDs
         needs_ids = false
 
@@ -34,7 +34,7 @@ namespace :workflows do
       rescue => e
         puts "Error generating step IDs for workflow #{workflow.id}: #{e.message}"
         error_count += 1
-      end
+      
     end
 
     puts "\nStep ID generation complete!"
@@ -50,7 +50,7 @@ namespace :workflows do
     error_count = 0
 
     Workflow.find_each do |workflow|
-      begin
+      
         # Check if workflow needs migration
         needs_migration = false
 
@@ -83,7 +83,7 @@ namespace :workflows do
       rescue => e
         puts "Error migrating workflow #{workflow.id}: #{e.message}"
         error_count += 1
-      end
+      
     end
 
     puts "\nMigration complete!"
@@ -102,7 +102,7 @@ namespace :workflows do
     error_details = []
 
     Workflow.find_each do |workflow|
-      begin
+      
         # Skip if already in graph mode
         if workflow.graph_mode?
           puts "  [SKIP] Workflow #{workflow.id}: Already in graph mode"
@@ -147,7 +147,7 @@ namespace :workflows do
         puts "    ✗ #{error_msg}"
         error_details << { id: workflow.id, title: workflow.title, error: error_msg }
         error_count += 1
-      end
+      
     end
 
     puts "\n" + "=" * 60

@@ -3,7 +3,7 @@
 module WorkflowParsers
   class MarkdownParser < BaseParser
     def parse
-      begin
+      
         # Parse markdown content
         lines = @file_content.split("\n")
 
@@ -40,7 +40,7 @@ module WorkflowParsers
       rescue => e
         add_error("Error parsing Markdown: #{e.message}")
         nil
-      end
+      
     end
 
     private
