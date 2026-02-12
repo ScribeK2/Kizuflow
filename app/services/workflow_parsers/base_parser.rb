@@ -3,6 +3,8 @@
 # Updated for Graph Mode default support
 module WorkflowParsers
   class BaseParser
+    include ConditionNegation
+
     attr_reader :file_content, :errors, :warnings
 
     def initialize(file_content)
@@ -252,19 +254,6 @@ module WorkflowParsers
       end
 
       nil
-    end
-
-    # Negate a condition for false path conversion
-    def negate_condition(condition)
-      return nil if condition.blank?
-
-      if condition.include?('==')
-        condition.gsub('==', '!=')
-      elsif condition.include?('!=')
-        condition.gsub('!=', '==')
-      else
-        "!(#{condition})"
-      end
     end
 
     # Validate graph structure after conversion
@@ -536,7 +525,12 @@ module WorkflowParsers
     def resolve_step_references(normalized_steps)
       return normalized_steps unless normalized_steps.is_a?(Array) && normalized_steps.length > 0
 
-      # Build maps of step number references to titles and IDs
+      step_title_map, step_id_map, title_to_id = build_reference_maps(normalized_steps)
+      resolve_references_in_steps(normalized_steps, step_title_map, step_id_map, title_to_id)
+    end
+
+    # Build lookup maps from step numbers/titles to titles and IDs.
+    def build_reference_maps(normalized_steps)
       step_title_map = {}  # Maps "Step 2" -> "Step 2: Select Issue Type"
       step_id_map = {}     # Maps "Step 2" -> step['id'] (UUID)
       title_to_id = {}     # Maps "Step 2: Select Issue Type" -> step['id']
@@ -546,18 +540,13 @@ module WorkflowParsers
         step_title = step['title'] || "Step #{step_num}"
         step_id = step['id']
 
-        # Map title to ID
         title_to_id[step_title] = step_id if step_id
 
-        # Map variations to both title and ID
         variations = [
-          "Step #{step_num}",
-          "Step #{step_num}:",
-          "step #{step_num}",
-          "step #{step_num}:",
+          "Step #{step_num}", "Step #{step_num}:",
+          "step #{step_num}", "step #{step_num}:",
           step_num.to_s,
-          "Go to Step #{step_num}",
-          "go to step #{step_num}"
+          "Go to Step #{step_num}", "go to step #{step_num}"
         ]
 
         variations.each do |v|
@@ -565,7 +554,6 @@ module WorkflowParsers
           step_id_map[v] = step_id if step_id
         end
 
-        # Also map if title starts with "Step X"
         next unless step_title =~ /^Step\s+(\d+)/i
 
         step_num_from_title = ::Regexp.last_match(1).to_i
@@ -575,44 +563,39 @@ module WorkflowParsers
         step_id_map["step #{step_num_from_title}"] = step_id if step_id
       end
 
-      # Resolve references in each step
+      [step_title_map, step_id_map, title_to_id]
+    end
+
+    # Resolve references in branch paths, else_path, and transition target_uuids.
+    def resolve_references_in_steps(normalized_steps, step_title_map, step_id_map, title_to_id)
       normalized_steps.map do |step|
         resolved_step = step.dup
 
-        # Resolve branch paths
         if resolved_step['branches'].present? && resolved_step['branches'].is_a?(Array)
           resolved_step['branches'] = resolved_step['branches'].map do |branch|
             resolved_branch = branch.dup
             path = resolved_branch['path']
-
             if path.present?
               resolved_path = resolve_step_reference(path, step_title_map, normalized_steps)
               resolved_branch['path'] = resolved_path || path
             end
-
             resolved_branch
           end
         end
 
-        # Resolve else_path
         if resolved_step['else_path'].present?
           resolved_else_path = resolve_step_reference(resolved_step['else_path'], step_title_map, normalized_steps)
           resolved_step['else_path'] = resolved_else_path || resolved_step['else_path']
         end
 
-        # Resolve transition target_uuid references (for Markdown imports)
-        # Transitions should resolve to step IDs (UUIDs), not titles
         if resolved_step['transitions'].present? && resolved_step['transitions'].is_a?(Array)
           resolved_step['transitions'] = resolved_step['transitions'].map do |transition|
             resolved_transition = transition.dup
             target = resolved_transition['target_uuid']
-
             if target.present? && !target.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-              # Not a UUID, try to resolve as step reference to ID
               resolved_id = resolve_step_reference_to_id(target, step_id_map, title_to_id, normalized_steps)
               resolved_transition['target_uuid'] = resolved_id || target
             end
-
             resolved_transition
           end
         end

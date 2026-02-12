@@ -38,171 +38,16 @@ class SimulationsController < ApplicationController
     @workflow = @simulation.workflow
     ensure_can_view_workflow!(@workflow)
 
-    # If simulation is stopped, redirect to show page
-    if @simulation.stopped?
-      redirect_to simulation_path(@simulation), notice: "This workflow has been stopped."
-      return
-    end
+    # Guard clauses for terminal/waiting states
+    return if handle_step_guard_redirects
 
-    # If simulation is complete, redirect appropriately
-    if @simulation.complete?
-      if @simulation.parent_simulation.present?
-        redirect_to step_simulation_path(@simulation.parent_simulation)
-      else
-        redirect_to simulation_path(@simulation), notice: "Simulation completed!"
-      end
-      return
-    end
-
-    # If parent is awaiting sub-flow, redirect to active child or process completion
-    if @simulation.awaiting_subflow?
-      active_child = @simulation.active_child_simulation
-      if active_child && !active_child.complete?
-        redirect_to step_simulation_path(active_child)
-        return
-      else
-        # Child is complete (or no active child found) — process completion and resume parent
-        @simulation.process_subflow_completion
-        if @simulation.complete?
-          redirect_to simulation_path(@simulation), notice: "Simulation completed!"
-        else
-          redirect_to step_simulation_path(@simulation)
-        end
-        return
-      end
-    end
-
-    # Handle going back to the previous interactive step
-    if params[:back].present?
-      if @simulation.execution_path.present? && @simulation.execution_path.length > 0
-        # Pop entries from the end, skipping decision/simple_decision/sub_flow types
-        # (auto-advancing steps users never interact with), until we find an interactive step
-        popped_step = nil
-        while @simulation.execution_path.length > 0
-          candidate = @simulation.execution_path.pop
-          if %w[decision simple_decision sub_flow].include?(candidate['step_type'])
-            next
-          else
-            popped_step = candidate
-            break
-          end
-        end
-
-        if popped_step
-          # Rebuild results and inputs from the remaining execution_path
-          @simulation.results = {}
-          @simulation.inputs = {}
-          @simulation.execution_path.each do |path_entry|
-            next unless path_entry['answer'].present?
-
-            if @simulation.graph_mode? && path_entry['step_uuid'].present?
-              step = @workflow.find_step_by_id(path_entry['step_uuid'])
-            elsif path_entry['step_index'].present?
-              idx = path_entry['step_index'].to_i
-              step = @workflow.steps[idx] if idx >= 0 && idx < @workflow.steps.length
-            end
-
-            next unless step && step['type'] == 'question'
-
-            input_key = step['variable_name'].presence || (path_entry['step_index'] || 0).to_s
-            @simulation.inputs[input_key] = path_entry['answer']
-            @simulation.inputs[step['title']] = path_entry['answer']
-            @simulation.results[step['title']] = path_entry['answer']
-            @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
-          end
-
-          # Set current position to the popped interactive step so the user re-sees it
-          if @simulation.graph_mode? && popped_step['step_uuid'].present?
-            @simulation.current_node_uuid = popped_step['step_uuid']
-          elsif popped_step['step_index'].present?
-            @simulation.current_step_index = popped_step['step_index'].to_i
-          end
-
-          # Reset status to active if it was completed (edge case: back from final step)
-          @simulation.status = 'active' if @simulation.status == 'completed'
-
-          @simulation.save
-        end
-      end
-
-    # Handle jumping to a specific step in execution path
-    elsif params[:step].present?
-      step_index = params[:step].to_i
-      if step_index >= 0 && step_index < @simulation.execution_path.length
-        # Find the step_index from the execution path
-        path_item = @simulation.execution_path[step_index]
-        if path_item && path_item['step_index'].present?
-          # Restore simulation state to this point
-          target_step_index = path_item['step_index']
-
-          # Truncate execution_path to this point
-          @simulation.execution_path = @simulation.execution_path[0..step_index]
-
-          # Rebuild results and inputs from execution path up to this point
-          @simulation.results = {}
-          @simulation.inputs = {}
-          @simulation.execution_path.each do |path_entry|
-            next unless path_entry['answer'].present?
-
-            # Find the step to get variable_name - add bounds checking
-            step_index = path_entry['step_index'].to_i
-            next unless step_index >= 0 && step_index < @workflow.steps.length
-
-            step = @workflow.steps[step_index]
-            next unless step && step['type'] == 'question'
-
-            input_key = step['variable_name'].presence || step_index.to_s
-            @simulation.inputs[input_key] = path_entry['answer']
-            @simulation.inputs[step['title']] = path_entry['answer']
-            @simulation.results[step['title']] = path_entry['answer']
-            @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
-          end
-
-          # Set current_step_index to the next step after the selected one
-          # Validate that target_step_index + 1 doesn't exceed workflow length
-          next_step_index = target_step_index.to_i + 1
-          if next_step_index >= @workflow.steps.length
-            @simulation.status = 'completed'
-            @simulation.current_step_index = @workflow.steps.length
-          else
-            @simulation.current_step_index = next_step_index
-          end
-
-          @simulation.save
-        end
-      end
-    end
+    # Handle navigation (back or jump-to-step)
+    handle_back_navigation if params[:back].present?
+    handle_jump_navigation if params[:step].present?
 
     # Auto-advance decision, simple_decision, and sub_flow steps immediately without user interaction
     # Note: checkpoint steps don't auto-advance - they require user resolution
-    current_step = @simulation.current_step
-    if current_step && %w[decision simple_decision sub_flow].include?(current_step['type'])
-      # Process step immediately and advance
-      @simulation.process_step(nil)
-
-      # After processing a sub_flow step, parent may now be awaiting_subflow
-      if @simulation.awaiting_subflow?
-        active_child = @simulation.active_child_simulation
-        if active_child
-          redirect_to step_simulation_path(active_child)
-        else
-          redirect_to step_simulation_path(@simulation)
-        end
-        return
-      end
-
-      if @simulation.complete?
-        if @simulation.parent_simulation.present?
-          redirect_to step_simulation_path(@simulation.parent_simulation)
-        else
-          redirect_to simulation_path(@simulation), notice: "Simulation completed!"
-        end
-      else
-        # Redirect to next step (don't show decision/sub_flow step)
-        redirect_to step_simulation_path(@simulation)
-      end
-      nil
-    end
+    return if auto_advance_non_interactive_step
 
     # NOTE: escalate and resolve steps show UI first, then process on Continue click
     # They are NOT auto-advanced here - they need user acknowledgment
@@ -324,6 +169,166 @@ class SimulationsController < ApplicationController
   end
 
   private
+
+  # Returns true if a redirect was issued (caller should return), false otherwise.
+  def handle_step_guard_redirects
+    if @simulation.stopped?
+      redirect_to simulation_path(@simulation), notice: "This workflow has been stopped."
+      return true
+    end
+
+    if @simulation.complete?
+      if @simulation.parent_simulation.present?
+        redirect_to step_simulation_path(@simulation.parent_simulation)
+      else
+        redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+      end
+      return true
+    end
+
+    if @simulation.awaiting_subflow?
+      handle_awaiting_subflow_redirect
+      return true
+    end
+
+    false
+  end
+
+  def handle_awaiting_subflow_redirect
+    active_child = @simulation.active_child_simulation
+    if active_child && !active_child.complete?
+      redirect_to step_simulation_path(active_child)
+    else
+      @simulation.process_subflow_completion
+      if @simulation.complete?
+        redirect_to simulation_path(@simulation), notice: "Simulation completed!"
+      else
+        redirect_to step_simulation_path(@simulation)
+      end
+    end
+  end
+
+  def handle_back_navigation
+    return unless @simulation.execution_path.present? && @simulation.execution_path.length > 0
+
+    popped_step = pop_to_interactive_step
+    return unless popped_step
+
+    rebuild_simulation_state_from_path
+    restore_position_from_step(popped_step)
+    @simulation.status = 'active' if @simulation.status == 'completed'
+    @simulation.save
+  end
+
+  def pop_to_interactive_step
+    while @simulation.execution_path.length > 0
+      candidate = @simulation.execution_path.pop
+      next if %w[decision simple_decision sub_flow].include?(candidate['step_type'])
+      return candidate
+    end
+    nil
+  end
+
+  def rebuild_simulation_state_from_path
+    @simulation.results = {}
+    @simulation.inputs = {}
+    @simulation.execution_path.each do |path_entry|
+      next unless path_entry['answer'].present?
+
+      if @simulation.graph_mode? && path_entry['step_uuid'].present?
+        step = @workflow.find_step_by_id(path_entry['step_uuid'])
+      elsif path_entry['step_index'].present?
+        idx = path_entry['step_index'].to_i
+        step = @workflow.steps[idx] if idx >= 0 && idx < @workflow.steps.length
+      end
+
+      next unless step && step['type'] == 'question'
+
+      input_key = step['variable_name'].presence || (path_entry['step_index'] || 0).to_s
+      @simulation.inputs[input_key] = path_entry['answer']
+      @simulation.inputs[step['title']] = path_entry['answer']
+      @simulation.results[step['title']] = path_entry['answer']
+      @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
+    end
+  end
+
+  def restore_position_from_step(popped_step)
+    if @simulation.graph_mode? && popped_step['step_uuid'].present?
+      @simulation.current_node_uuid = popped_step['step_uuid']
+    elsif popped_step['step_index'].present?
+      @simulation.current_step_index = popped_step['step_index'].to_i
+    end
+  end
+
+  def handle_jump_navigation
+    step_index = params[:step].to_i
+    return unless step_index >= 0 && step_index < @simulation.execution_path.length
+
+    path_item = @simulation.execution_path[step_index]
+    return unless path_item && path_item['step_index'].present?
+
+    target_step_index = path_item['step_index']
+    @simulation.execution_path = @simulation.execution_path[0..step_index]
+
+    # Rebuild results and inputs from execution path up to this point
+    @simulation.results = {}
+    @simulation.inputs = {}
+    @simulation.execution_path.each do |path_entry|
+      next unless path_entry['answer'].present?
+
+      entry_step_index = path_entry['step_index'].to_i
+      next unless entry_step_index >= 0 && entry_step_index < @workflow.steps.length
+
+      step = @workflow.steps[entry_step_index]
+      next unless step && step['type'] == 'question'
+
+      input_key = step['variable_name'].presence || entry_step_index.to_s
+      @simulation.inputs[input_key] = path_entry['answer']
+      @simulation.inputs[step['title']] = path_entry['answer']
+      @simulation.results[step['title']] = path_entry['answer']
+      @simulation.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
+    end
+
+    next_step_index = target_step_index.to_i + 1
+    if next_step_index >= @workflow.steps.length
+      @simulation.status = 'completed'
+      @simulation.current_step_index = @workflow.steps.length
+    else
+      @simulation.current_step_index = next_step_index
+    end
+
+    @simulation.save
+  end
+
+  # Returns true if a redirect was issued (caller should return), false otherwise.
+  def auto_advance_non_interactive_step
+    current_step = @simulation.current_step
+    return false unless current_step && %w[decision simple_decision sub_flow].include?(current_step['type'])
+
+    @simulation.process_step(nil)
+
+    if @simulation.awaiting_subflow?
+      active_child = @simulation.active_child_simulation
+      redirect_to step_simulation_path(active_child || @simulation)
+      return true
+    end
+
+    if @simulation.complete?
+      redirect_to_completion(@simulation)
+    else
+      redirect_to step_simulation_path(@simulation)
+    end
+    true
+  end
+
+  # Redirect to the appropriate completion destination for a simulation.
+  def redirect_to_completion(simulation, message: "Simulation completed!")
+    if simulation.parent_simulation.present?
+      redirect_to step_simulation_path(simulation.parent_simulation)
+    else
+      redirect_to simulation_path(simulation), notice: message
+    end
+  end
 
   def set_workflow
     # Handled in actions

@@ -65,14 +65,9 @@ class WorkflowChannel < ApplicationCable::Channel
   # Uses optimistic locking to prevent race conditions when multiple users edit
   def autosave(data)
     workflow = Workflow.find(params[:workflow_id])
-
-    # Ensure the user can edit the workflow (not just own it)
     return unless workflow.can_be_edited_by?(current_user)
 
-    # Get client's lock_version for optimistic locking
     client_lock_version = (data["lock_version"] || data[:lock_version]).to_i
-
-    # Convert data to Rails-friendly format
     title = data["title"] || data[:title] || workflow.title
     steps_data = data["steps"] || data[:steps] || []
     formatted_steps = format_steps_data(steps_data)
@@ -80,100 +75,24 @@ class WorkflowChannel < ApplicationCable::Channel
     Rails.logger.info "Autosave: Workflow #{workflow.id}, client version: #{client_lock_version}, server version: #{workflow.lock_version}"
 
     begin
-      # Use transaction with row-level locking for safe concurrent updates
       Workflow.transaction do
-        # Reload with lock to get the latest version and prevent concurrent modifications
         workflow.lock!
 
-        # Check for version conflict (optimistic locking)
-        if client_lock_version > 0 && workflow.lock_version != client_lock_version
-          Rails.logger.warn "Autosave: Version conflict for workflow #{workflow.id}. Client: #{client_lock_version}, Server: #{workflow.lock_version}"
-
-          # Broadcast conflict to the client that sent this request
-          broadcast_to_workflow(workflow, {
-                                  status: "conflict",
-                                  lock_version: workflow.lock_version,
-                                  server_title: workflow.title,
-                                  server_steps: workflow.steps,
-                                  conflict_user: user_info,
-                                  message: "Another user has modified this workflow. Please review the changes.",
-                                  timestamp: Time.current.iso8601
-                                })
+        if detect_version_conflict?(workflow, client_lock_version)
+          broadcast_conflict(workflow)
           return
         end
 
-        # Apply updates
-        workflow.title = title if title.present?
-
-        # Merge autosaved steps with existing steps to preserve fields
-        # the client may not have extracted (e.g., options, output_fields).
-        # Match steps by ID and overlay submitted fields onto existing data.
-        if workflow.steps.present? && formatted_steps.present?
-          existing_by_id = workflow.steps.each_with_object({}) { |s, h| h[s['id']] = s if s['id'].present? }
-          workflow.steps = formatted_steps.map do |submitted_step|
-            existing = existing_by_id[submitted_step['id']]
-            if existing
-              merged = existing.deep_dup
-              submitted_step.each do |key, value|
-                # Only overwrite if the submitted value is present or if
-                # the key is explicitly being set (not just missing from extraction)
-                merged[key] = value
-              end
-              merged
-            else
-              submitted_step
-            end
-          end
-        else
-          workflow.steps = formatted_steps
-        end
-
-        # Save without validation (allow incomplete forms)
-        # lock_version is automatically incremented by Rails
+        apply_autosave_updates(workflow, title, formatted_steps)
         workflow.save!(validate: false)
-
-        # Broadcast success with new lock_version to ALL subscribers
-        broadcast_to_workflow(workflow, {
-                                status: "saved",
-                                lock_version: workflow.lock_version,
-                                saved_by: user_info,
-                                timestamp: Time.current.iso8601
-                              })
-
-        # Also broadcast to the main channel so other users can update their UI
-        ActionCable.server.broadcast("workflow:#{workflow.id}", {
-                                       type: "workflow_saved",
-                                       lock_version: workflow.lock_version,
-                                       title: workflow.title,
-                                       steps: workflow.steps,
-                                       saved_by: user_info,
-                                       timestamp: Time.current.iso8601
-                                     })
+        broadcast_autosave_success(workflow)
 
         Rails.logger.info "Autosave: Successfully saved workflow #{workflow.id}, new version: #{workflow.lock_version}"
       end
     rescue ActiveRecord::StaleObjectError => e
-      # This catches race conditions at the database level
-      workflow.reload
-      Rails.logger.warn "Autosave: Stale object error for workflow #{workflow.id}: #{e.message}"
-
-      broadcast_to_workflow(workflow, {
-                              status: "conflict",
-                              lock_version: workflow.lock_version,
-                              server_title: workflow.title,
-                              server_steps: workflow.steps,
-                              message: "Your changes could not be saved due to a conflict. Please refresh and try again.",
-                              timestamp: Time.current.iso8601
-                            })
+      handle_stale_object_error(workflow, e)
     rescue StandardError => e
-      Rails.logger.error "Autosave: Failed to save workflow #{workflow.id}: #{e.message}"
-      Rails.logger.error e.backtrace.first(10).join("\n")
-
-      broadcast_to_workflow(workflow, {
-                              status: "error",
-                              errors: [e.message],
-                              timestamp: Time.current.iso8601
-                            })
+      handle_autosave_error(workflow, e)
     end
   end
 
@@ -256,6 +175,92 @@ class WorkflowChannel < ApplicationCable::Channel
   end
 
   private
+
+  def detect_version_conflict?(workflow, client_lock_version)
+    return false unless client_lock_version > 0 && workflow.lock_version != client_lock_version
+
+    Rails.logger.warn "Autosave: Version conflict for workflow #{workflow.id}. Client: #{client_lock_version}, Server: #{workflow.lock_version}"
+    true
+  end
+
+  def broadcast_conflict(workflow)
+    broadcast_to_workflow(workflow, {
+                            status: "conflict",
+                            lock_version: workflow.lock_version,
+                            server_title: workflow.title,
+                            server_steps: workflow.steps,
+                            conflict_user: user_info,
+                            message: "Another user has modified this workflow. Please review the changes.",
+                            timestamp: Time.current.iso8601
+                          })
+  end
+
+  def apply_autosave_updates(workflow, title, formatted_steps)
+    workflow.title = title if title.present?
+    workflow.steps = merge_steps(workflow.steps, formatted_steps)
+  end
+
+  # Merge autosaved steps with existing steps to preserve fields
+  # the client may not have extracted (e.g., options, output_fields).
+  # Match steps by ID and overlay submitted fields onto existing data.
+  def merge_steps(existing_steps, submitted_steps)
+    return submitted_steps unless existing_steps.present? && submitted_steps.present?
+
+    existing_by_id = existing_steps.each_with_object({}) { |s, h| h[s['id']] = s if s['id'].present? }
+    submitted_steps.map do |submitted_step|
+      existing = existing_by_id[submitted_step['id']]
+      if existing
+        merged = existing.deep_dup
+        submitted_step.each { |key, value| merged[key] = value }
+        merged
+      else
+        submitted_step
+      end
+    end
+  end
+
+  def broadcast_autosave_success(workflow)
+    broadcast_to_workflow(workflow, {
+                            status: "saved",
+                            lock_version: workflow.lock_version,
+                            saved_by: user_info,
+                            timestamp: Time.current.iso8601
+                          })
+
+    ActionCable.server.broadcast("workflow:#{workflow.id}", {
+                                   type: "workflow_saved",
+                                   lock_version: workflow.lock_version,
+                                   title: workflow.title,
+                                   steps: workflow.steps,
+                                   saved_by: user_info,
+                                   timestamp: Time.current.iso8601
+                                 })
+  end
+
+  def handle_stale_object_error(workflow, error)
+    workflow.reload
+    Rails.logger.warn "Autosave: Stale object error for workflow #{workflow.id}: #{error.message}"
+
+    broadcast_to_workflow(workflow, {
+                            status: "conflict",
+                            lock_version: workflow.lock_version,
+                            server_title: workflow.title,
+                            server_steps: workflow.steps,
+                            message: "Your changes could not be saved due to a conflict. Please refresh and try again.",
+                            timestamp: Time.current.iso8601
+                          })
+  end
+
+  def handle_autosave_error(workflow, error)
+    Rails.logger.error "Autosave: Failed to save workflow #{workflow.id}: #{error.message}"
+    Rails.logger.error error.backtrace.first(10).join("\n")
+
+    broadcast_to_workflow(workflow, {
+                            status: "error",
+                            errors: [error.message],
+                            timestamp: Time.current.iso8601
+                          })
+  end
 
   def broadcast_to_workflow(workflow, message)
     ActionCable.server.broadcast("workflow:#{workflow.id}:autosave", message)

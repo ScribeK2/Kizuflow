@@ -1,6 +1,7 @@
 class Workflow < ApplicationRecord
   include WorkflowAuthorization
   include WorkflowNormalization
+  include StepTypeIcons
 
   belongs_to :user
   has_rich_text :description
@@ -413,21 +414,6 @@ class Workflow < ApplicationRecord
     changed
   end
 
-  # Get a plain text symbol for a step type (safe for <option> tags)
-  def step_type_icon(type)
-    case type
-    when 'question' then '?'
-    when 'decision' then '/'
-    when 'action' then '!'
-    when 'checkpoint' then 'v'
-    when 'sub_flow' then '~'
-    when 'message' then 'm'
-    when 'escalate' then '^'
-    when 'resolve' then 'r'
-    else '#'
-    end
-  end
-
   # ============================================================================
   # Graph Mode Support (DAG-Based Workflow)
   # These methods support the graph-based workflow structure where steps are
@@ -751,128 +737,122 @@ class Workflow < ApplicationRecord
 
       # Type-specific validation
       case step['type']
-      when 'question'
-        if step['question'].blank?
-          errors.add(:steps, "Step #{step_num}: Question text is required")
-        end
-
-        # Validate jumps if present
-        validate_jumps(step, step_num)
-
-      when 'action'
-        # Validate jumps if present
-        validate_jumps(step, step_num)
-
-        # Validate output_fields if present
-        if step['output_fields'].present?
-          if step['output_fields'].is_a?(Array)
-            step['output_fields'].each_with_index do |field, field_index|
-              if field.is_a?(Hash)
-                if field['name'].blank?
-                  errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: name is required")
-                end
-                # Value is optional - can be empty or contain {{variable}} interpolation
-              else
-                errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: must be a hash")
-              end
-            end
-          else
-            errors.add(:steps, "Step #{step_num}: output_fields must be an array")
-          end
-        end
-
-      when 'decision'
-        # Check if using multi-branch format or legacy format
-        has_branches = step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
-
-        if has_branches
-          # Multi-branch format: validate branches
-          # Filter out completely empty branches first
-          step['branches'].reject! { |b| (b['condition'] || b[:condition]).blank? && (b['path'] || b[:path]).blank? }
-
-          # If after filtering we have no branches, allow it (user removed all branches)
-          if step['branches'].empty?
-            # Allow empty branches - user can add them later
-            # Don't require branches for decision steps - they can be incomplete
-          else
-            step['branches'].each_with_index do |branch, branch_index|
-              branch_condition = branch['condition'] || branch[:condition]
-              branch_path = branch['path'] || branch[:path]
-
-              # Normalize branch hash keys (convert symbols to strings)
-              branch['condition'] = branch_condition if branch_condition.present?
-              branch['path'] = branch_path if branch_path.present?
-
-              # Remove symbol keys to avoid confusion
-              branch.delete(:condition)
-              branch.delete(:path)
-
-              # Allow completely empty branches (user is still filling them out)
-              # Only validate if at least one field is set (meaning user is trying to use this branch)
-              next unless branch_condition.present? || branch_path.present?
-
-              # If either is set, both must be set
-              if branch_condition.blank?
-                errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Condition is required when a path is selected")
-              end
-
-              if branch_path.blank?
-                errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Path is required when a condition is set")
-              end
-
-              # Validate condition syntax only if condition is provided
-              if branch_condition.present? && !valid_condition_format?(branch_condition)
-                errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Invalid condition format")
-              end
-            end
-          end
-        elsif step['condition'].present? && !valid_condition_format?(step['condition'])
-          # Legacy format: only validate if condition is present (don't require it)
-          # Allow decision steps without conditions/branches (user can add them later)
-          errors.add(:steps, "Step #{step_num}: Invalid condition format. Use: variable == 'value' or variable != 'value'")
-        end
-
-        # Validate jumps if present (decision steps can use jumps instead of branches)
-        validate_jumps(step, step_num)
-
-      when 'sub_flow'
-        # Sub-flow validation is handled by validate_subflow_steps
-        # Here we just validate the jumps if present
-        validate_jumps(step, step_num)
-
-        # Validate transitions if in graph mode
-        if graph_mode? && step['transitions'].present?
-          validate_graph_transitions(step, step_num)
-        end
-
-      when 'message'
-        # Message steps are simple - content is optional, just validate jumps if present
-        validate_jumps(step, step_num) if step['jumps'].present?
-
-      when 'escalate'
-        # Validate escalation target type if present
-        if step['target_type'].present? && !%w[team queue supervisor channel department ticket].include?(step['target_type'])
-          errors.add(:steps, "Step #{step_num}: Invalid escalation target type '#{step['target_type']}'")
-        end
-        # Validate priority if present
-        if step['priority'].present? && !%w[low medium normal high urgent critical].include?(step['priority'])
-          errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
-        end
-
-      when 'resolve'
-        # Validate resolution type if present
-        if step['resolution_type'].present? && !%w[success failure cancelled escalated transferred other transfer ticket manager_escalation].include?(step['resolution_type'])
-          errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
-        end
-        # Resolve steps cannot have outgoing transitions in graph mode (they're always terminal)
-        if graph_mode? && step['transitions'].present? && step['transitions'].any?
-          errors.add(:steps, "Step #{step_num}: Resolve steps cannot have outgoing transitions")
-        end
+      when 'question'  then validate_question_step(step, step_num)
+      when 'action'    then validate_action_step(step, step_num)
+      when 'decision'  then validate_decision_step(step, step_num)
+      when 'sub_flow'  then validate_sub_flow_step(step, step_num)
+      when 'message'   then validate_message_step(step, step_num)
+      when 'escalate'  then validate_escalate_step(step, step_num)
+      when 'resolve'   then validate_resolve_step(step, step_num)
       end
     end
 
     # Validate step references
     validate_step_references
+  end
+
+  def validate_question_step(step, step_num)
+    if step['question'].blank?
+      errors.add(:steps, "Step #{step_num}: Question text is required")
+    end
+    validate_jumps(step, step_num)
+  end
+
+  def validate_action_step(step, step_num)
+    validate_jumps(step, step_num)
+
+    if step['output_fields'].present?
+      if step['output_fields'].is_a?(Array)
+        step['output_fields'].each_with_index do |field, field_index|
+          if field.is_a?(Hash)
+            if field['name'].blank?
+              errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: name is required")
+            end
+          else
+            errors.add(:steps, "Step #{step_num}, Output Field #{field_index + 1}: must be a hash")
+          end
+        end
+      else
+        errors.add(:steps, "Step #{step_num}: output_fields must be an array")
+      end
+    end
+  end
+
+  def validate_decision_step(step, step_num)
+    has_branches = step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
+
+    if has_branches
+      validate_decision_branches(step, step_num)
+    elsif step['condition'].present? && !valid_condition_format?(step['condition'])
+      errors.add(:steps, "Step #{step_num}: Invalid condition format. Use: variable == 'value' or variable != 'value'")
+    end
+
+    validate_jumps(step, step_num)
+  end
+
+  def validate_decision_branches(step, step_num)
+    # Filter out completely empty branches first
+    step['branches'].reject! { |b| (b['condition'] || b[:condition]).blank? && (b['path'] || b[:path]).blank? }
+
+    return if step['branches'].empty?
+
+    step['branches'].each_with_index do |branch, branch_index|
+      branch_condition = branch['condition'] || branch[:condition]
+      branch_path = branch['path'] || branch[:path]
+
+      # Normalize branch hash keys (convert symbols to strings)
+      branch['condition'] = branch_condition if branch_condition.present?
+      branch['path'] = branch_path if branch_path.present?
+
+      # Remove symbol keys to avoid confusion
+      branch.delete(:condition)
+      branch.delete(:path)
+
+      # Allow completely empty branches (user is still filling them out)
+      next unless branch_condition.present? || branch_path.present?
+
+      if branch_condition.blank?
+        errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Condition is required when a path is selected")
+      end
+
+      if branch_path.blank?
+        errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Path is required when a condition is set")
+      end
+
+      if branch_condition.present? && !valid_condition_format?(branch_condition)
+        errors.add(:steps, "Step #{step_num}, Branch #{branch_index + 1}: Invalid condition format")
+      end
+    end
+  end
+
+  def validate_sub_flow_step(step, step_num)
+    validate_jumps(step, step_num)
+
+    if graph_mode? && step['transitions'].present?
+      validate_graph_transitions(step, step_num)
+    end
+  end
+
+  def validate_message_step(step, step_num)
+    validate_jumps(step, step_num) if step['jumps'].present?
+  end
+
+  def validate_escalate_step(step, step_num)
+    if step['target_type'].present? && !%w[team queue supervisor channel department ticket].include?(step['target_type'])
+      errors.add(:steps, "Step #{step_num}: Invalid escalation target type '#{step['target_type']}'")
+    end
+    if step['priority'].present? && !%w[low medium normal high urgent critical].include?(step['priority'])
+      errors.add(:steps, "Step #{step_num}: Invalid escalation priority '#{step['priority']}'")
+    end
+  end
+
+  def validate_resolve_step(step, step_num)
+    if step['resolution_type'].present? && !%w[success failure cancelled escalated transferred other transfer ticket manager_escalation].include?(step['resolution_type'])
+      errors.add(:steps, "Step #{step_num}: Invalid resolution type '#{step['resolution_type']}'")
+    end
+    if graph_mode? && step['transitions'].present? && step['transitions'].any?
+      errors.add(:steps, "Step #{step_num}: Resolve steps cannot have outgoing transitions")
+    end
   end
 
   def valid_condition_format?(condition)

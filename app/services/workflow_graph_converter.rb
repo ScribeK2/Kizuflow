@@ -19,6 +19,8 @@
 # - Handles legacy decision format (true_path/false_path)
 # - Validates the resulting graph structure
 class WorkflowGraphConverter
+  include ConditionNegation
+
   attr_reader :workflow, :errors
 
   def initialize(workflow)
@@ -257,21 +259,6 @@ class WorkflowGraphConverter
     # Search by title
     step = steps.find { |s| s['title'] == path }
     step&.dig('id')
-  end
-
-  # Negate a condition for the false path
-  def negate_condition(condition)
-    return nil if condition.blank?
-
-    # Simple negation: swap == and !=
-    if condition.include?('==')
-      condition.gsub('==', '!=')
-    elsif condition.include?('!=')
-      condition.gsub('!=', '==')
-    else
-      # For other operators, wrap with NOT logic (simplified)
-      "!(#{condition})"
-    end
   end
 
   # Validate the converted graph structure

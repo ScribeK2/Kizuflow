@@ -95,29 +95,26 @@ class ConditionEvaluator
   private
 
   def evaluate_equality(results)
-    parts = condition.split('==', 2).map(&:strip)
-    key = parts[0].gsub(/['"]/, '').strip
-    expected_value = parts[1].gsub(/['"]/, '').strip
-
-    result_value = lookup_value(key, results)
-    return false if result_value.nil?
-
-    # Case-insensitive comparison for strings
-    result_value.to_s.downcase == expected_value.to_s.downcase
+    evaluate_comparison('==', results)
   end
 
   def evaluate_inequality(results)
-    parts = condition.split('!=', 2).map(&:strip)
+    evaluate_comparison('!=', results)
+  end
+
+  # Shared logic for == and != comparisons.
+  # For ==, nil means false; for !=, nil means true.
+  def evaluate_comparison(operator, results)
+    parts = condition.split(operator, 2).map(&:strip)
     key = parts[0].gsub(/['"]/, '').strip
     expected_value = parts[1].gsub(/['"]/, '').strip
 
     result_value = lookup_value(key, results)
-
-    # If variable doesn't exist, != comparison is true
-    return true if result_value.nil?
+    return (operator == '!=') if result_value.nil?
 
     # Case-insensitive comparison for strings
-    result_value.to_s.downcase != expected_value.to_s.downcase
+    values_equal = result_value.to_s.downcase == expected_value.to_s.downcase
+    operator == '==' ? values_equal : !values_equal
   end
 
   def evaluate_numeric(operator, results)

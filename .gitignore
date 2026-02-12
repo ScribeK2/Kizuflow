@@ -92,6 +92,10 @@ test-build.js
 # Cursor IDE
 .cursor/
 
+# Desloppify
+.desloppify/
+scorecard.png
+
 # Chunkhound
 .chunkhound/
 .chunkhound.json
