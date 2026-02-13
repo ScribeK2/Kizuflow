@@ -1,3 +1,6 @@
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8 animate-fade-in">
     <% if current_user&.user? %>
@@ -117,7 +120,7 @@
                 </span>
               </div>
             </div>
-            <%= form_with url: stop_simulation_path(@simulation), method: :post, local: true, data: { turbo_confirm: "Are you sure you want to stop this workflow? You can't continue after stopping." } do |form| %>
+            <%= form_with url: stop_simulation_path(@simulation), method: :post, data: { turbo_confirm: "Are you sure you want to stop this workflow? You can't continue after stopping." } do |form| %>
               <%= form.submit "Stop Workflow", class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
             <% end %>
           </div>
@@ -130,7 +133,7 @@
 
           <% case step['type'] %>
           <% when 'question' %>
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, class: "space-y-4", data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, class: "space-y-4", data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <div>
                 <label class="block text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <%= VariableInterpolator.interpolate(step['question'] || step['title'], @simulation.results || {}) %>
@@ -201,7 +204,7 @@
               </div>
             </div>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
@@ -221,7 +224,7 @@
               <p class="text-sm text-purple-800 dark:text-purple-300">Processing routing decision...</p>
               <p class="text-xs text-purple-600 dark:text-purple-400 mt-2">If you see this message, please refresh the page.</p>
             </div>
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
@@ -252,7 +255,7 @@
               </div>
             </div>
 
-            <%= form_with url: resolve_checkpoint_simulation_path(@simulation), method: :post, local: true, class: "space-y-4", data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: resolve_checkpoint_simulation_path(@simulation), method: :post, class: "space-y-4", data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Optional notes:
@@ -292,7 +295,7 @@
               <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @simulation.results || {})) %></div>
             <% end %>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
@@ -334,7 +337,7 @@
               </div>
             </div>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
@@ -367,7 +370,7 @@
               </div>
             </div>
 
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>
@@ -398,7 +401,7 @@
                 </div>
               </div>
             </div>
-            <%= form_with url: next_step_simulation_path(@simulation), method: :post, local: true, data: { simulation_step_target: "form" } do |form| %>
+            <%= form_with url: next_step_simulation_path(@simulation), method: :post, data: { turbo: false, simulation_step_target: "form" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
               <div class="flex items-center justify-between pt-4">
                 <div>

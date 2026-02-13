@@ -156,6 +156,17 @@ class Simulation < ApplicationRecord
     step = current_step
     return false unless step
 
+    # Idempotency guard: prevent re-processing the same non-interactive step.
+    # Question steps are excluded because users can legitimately re-answer after back navigation.
+    if execution_path.present? && step['type'] != 'question'
+      last_entry = execution_path.last
+      if graph_mode?
+        return false if last_entry&.dig('step_uuid') == step['id']
+      else
+        return false if last_entry&.dig('step_index') == current_step_index
+      end
+    end
+
     # Track iterations to prevent infinite loops in step-by-step mode
     self.iteration_count ||= execution_path&.length || 0
     self.iteration_count += 1

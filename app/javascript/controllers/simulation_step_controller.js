@@ -88,10 +88,20 @@ export default class extends Controller {
     if (this.submitted) return
     if (!this.hasFormTarget) return
 
+    // Check if form was already submitted (persists across Stimulus reconnection via DOM attribute)
+    if (this.formTarget.dataset.submitting === "true") return
+
     // Check if submit button is disabled (no input yet)
     if (this.hasSubmitTarget && this.submitTarget.disabled) return
 
+    // Cancel any pending auto-advance timer to prevent double-submit
+    if (this.autoAdvanceTimer) {
+      clearTimeout(this.autoAdvanceTimer)
+      this.autoAdvanceTimer = null
+    }
+
     this.submitted = true
+    this.formTarget.dataset.submitting = "true"
 
     // Show spinner on submit button
     if (this.hasSubmitTarget) {

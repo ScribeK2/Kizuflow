@@ -33,6 +33,8 @@
 
     <!-- Importmap for ES modules -->
     <%= javascript_importmap_tags %>
+
+    <%= yield :head if content_for?(:head) %>
   </head>
 
   <body class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans antialiased">

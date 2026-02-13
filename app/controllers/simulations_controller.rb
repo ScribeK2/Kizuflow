@@ -132,36 +132,7 @@ class SimulationsController < ApplicationController
           redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
         end
       else
-        # Check if next step is auto-advancing - if so, process it
-        # decision, simple_decision, and sub_flow types auto-advance (routing steps)
-        # escalate, resolve, and message steps show UI first and need user acknowledgment
-        next_step = @simulation.current_step
-        if next_step && %w[decision simple_decision sub_flow].include?(next_step['type'])
-          @simulation.process_step(nil)
-
-          # After processing a sub_flow step, parent may now be awaiting_subflow
-          if @simulation.awaiting_subflow?
-            active_child = @simulation.active_child_simulation
-            if active_child
-              redirect_to step_simulation_path(active_child)
-            else
-              redirect_to step_simulation_path(@simulation)
-            end
-            return
-          end
-
-          if @simulation.complete?
-            if @simulation.parent_simulation.present?
-              redirect_to step_simulation_path(@simulation.parent_simulation)
-            else
-              redirect_to simulation_path(@simulation), notice: "Simulation completed successfully!"
-            end
-          else
-            redirect_to step_simulation_path(@simulation)
-          end
-        else
-          redirect_to step_simulation_path(@simulation)
-        end
+        redirect_to step_simulation_path(@simulation)
       end
     else
       redirect_to step_simulation_path(@simulation), alert: "Failed to process step."
