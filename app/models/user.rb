@@ -63,6 +63,31 @@ class User < ApplicationRecord
     display_name.presence || email
   end
 
+  # Avatar display helpers
+  def avatar_initial
+    display_label[0].upcase
+  end
+
+  AVATAR_COLORS = {
+    'admin' => 'bg-red-500',
+    'editor' => 'bg-blue-500',
+    'user' => 'bg-emerald-500'
+  }.freeze
+
+  AVATAR_BADGE_CLASSES = {
+    'admin' => 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+    'editor' => 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+    'user' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
+  }.freeze
+
+  def avatar_color_class
+    AVATAR_COLORS[role] || AVATAR_COLORS['user']
+  end
+
+  def avatar_role_badge_classes
+    AVATAR_BADGE_CLASSES[role] || AVATAR_BADGE_CLASSES['user']
+  end
+
   # When true, Devise will not send the "password changed" email (used for admin
   # temporary password resets where the password is shown in the UI instead).
   attr_accessor :skip_password_change_notification

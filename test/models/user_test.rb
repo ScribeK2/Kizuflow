@@ -321,4 +321,50 @@ class UserTest < ActiveSupport::TestCase
       group.destroy
     end
   end
+
+  # Avatar helper tests
+  test "avatar_initial returns first character of display_name uppercased" do
+    user = User.new(display_name: "john", email: "john@example.com")
+    assert_equal "J", user.avatar_initial
+  end
+
+  test "avatar_initial falls back to email first character when no display_name" do
+    user = User.new(display_name: nil, email: "alice@example.com")
+    assert_equal "A", user.avatar_initial
+  end
+
+  test "avatar_initial handles blank display_name" do
+    user = User.new(display_name: "", email: "bob@example.com")
+    assert_equal "B", user.avatar_initial
+  end
+
+  test "avatar_color_class returns emerald for user role" do
+    user = User.new(role: "user")
+    assert_equal "bg-emerald-500", user.avatar_color_class
+  end
+
+  test "avatar_color_class returns blue for editor role" do
+    user = User.new(role: "editor")
+    assert_equal "bg-blue-500", user.avatar_color_class
+  end
+
+  test "avatar_color_class returns red for admin role" do
+    user = User.new(role: "admin")
+    assert_equal "bg-red-500", user.avatar_color_class
+  end
+
+  test "avatar_role_badge_classes returns emerald classes for user role" do
+    user = User.new(role: "user")
+    assert_equal "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300", user.avatar_role_badge_classes
+  end
+
+  test "avatar_role_badge_classes returns blue classes for editor role" do
+    user = User.new(role: "editor")
+    assert_equal "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300", user.avatar_role_badge_classes
+  end
+
+  test "avatar_role_badge_classes returns red classes for admin role" do
+    user = User.new(role: "admin")
+    assert_equal "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300", user.avatar_role_badge_classes
+  end
 end
