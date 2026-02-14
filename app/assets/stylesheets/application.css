@@ -147,3 +147,72 @@
   text-decoration: line-through;
 }
 
+/* Step markdown images - constrained within step cards */
+.step-markdown-content img.step-markdown-image {
+  max-width: 100%;
+  max-height: 200px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 0.5em 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.step-markdown-content img.step-markdown-image:hover {
+  opacity: 0.85;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .step-markdown-content img.step-markdown-image {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Image lightbox modal */
+.image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.85);
+  padding: 2rem;
+  cursor: pointer;
+}
+
+.image-lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.image-lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 9999px;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.image-lightbox-close:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
