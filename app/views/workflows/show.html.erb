@@ -58,7 +58,7 @@
     <% if @workflow.steps.present? && @workflow.steps.any? %>
       <div class="p-6 space-y-4">
         <% @workflow.steps.each_with_index do |step, index| %>
-          <div class="<%= step['type'] == 'checkpoint' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700' %> border rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
+          <div class="<%= step['type'] == 'checkpoint' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700' %> border rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;" data-controller="image-lightbox">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center mb-2">
@@ -71,7 +71,7 @@
                   </span>
                 </div>
                 <% if step['description'].present? %>
-                  <p class="text-gray-600 dark:text-gray-300 ml-11"><%= step['description'] %></p>
+                  <div class="text-gray-600 dark:text-gray-300 ml-11"><%= render_step_markdown(step['description']) %></div>
                 <% end %>
                 <% if step['type'] == 'question' && step['question'].present? %>
                   <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step['question'] %></p>
@@ -89,7 +89,8 @@
                 <% end %>
                 <% if step['type'] == 'action' && step['instructions'].present? %>
                   <div class="ml-11 mt-2 text-sm text-gray-600 dark:text-gray-300">
-                    <strong>Instructions:</strong> <%= step['instructions'] %>
+                    <strong>Instructions:</strong>
+                    <%= render_step_markdown(step['instructions']) %>
                   </div>
                 <% end %>
                 <% if step['type'] == 'checkpoint' %>
