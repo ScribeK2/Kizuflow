@@ -27,6 +27,7 @@ module ApplicationHelper
 
   # Render Markdown content from workflow step fields (instructions, descriptions, etc.)
   # Sanitizes output to allow only safe HTML tags.
+  # Images are allowed with src restricted to http(s) and relative paths only.
   def render_step_markdown(text)
     return "".html_safe if text.blank?
 
@@ -44,8 +45,19 @@ module ApplicationHelper
     html = markdown.render(text)
 
     safe_html = sanitize(html,
-                         tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del],
-                         attributes: %w[href target rel])
+                         tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del img],
+                         attributes: %w[href target rel src alt loading])
+
+    # Scrub dangerous src attributes (only allow http, https, and relative paths)
+    safe_html = safe_html.gsub(/<img\s[^>]*src\s*=\s*"([^"]*)"[^>]*>/i) do |match|
+      src = Regexp.last_match(1)
+      if src.match?(%r{\A(https?://|/)}) && !src.match?(/\Ajavascript:/i)
+        # Add step-markdown-image class and loading=lazy for valid images
+        match.sub("<img", '<img class="step-markdown-image" loading="lazy"')
+      else
+        "" # Strip images with dangerous src values
+      end
+    end.html_safe
 
     content_tag(:div, safe_html, class: "step-markdown-content")
   end
