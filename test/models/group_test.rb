@@ -344,6 +344,32 @@ class GroupTest < ActiveSupport::TestCase
     assert child.can_be_viewed_by?(user)
   end
 
+  # Folder associations
+  test "should have many folders" do
+    group = Group.create!(name: "Folder Group")
+    folder1 = Folder.create!(name: "F1", group: group)
+    folder2 = Folder.create!(name: "F2", group: group)
+
+    assert_equal 2, group.folders.count
+    assert_includes group.folders, folder1
+    assert_includes group.folders, folder2
+  end
+
+  test "uncategorized_workflows should return workflows without folder" do
+    group = Group.create!(name: "Folder Group")
+    folder = Folder.create!(name: "Categorized", group: group)
+    user = User.create!(email: "foldertestuser@example.com", password: "password123", password_confirmation: "password123")
+    wf_in_folder = Workflow.create!(title: "In Folder", user: user)
+    wf_uncategorized = Workflow.create!(title: "Uncategorized", user: user)
+
+    GroupWorkflow.create!(group: group, workflow: wf_in_folder, folder: folder, is_primary: true)
+    GroupWorkflow.create!(group: group, workflow: wf_uncategorized, is_primary: true)
+
+    uncategorized = group.uncategorized_workflows
+    assert_includes uncategorized, wf_uncategorized
+    assert_not_includes uncategorized, wf_in_folder
+  end
+
   test "can_be_viewed_by? should return false for unassigned user" do
     user = User.create!(
       email: "user@test.com",

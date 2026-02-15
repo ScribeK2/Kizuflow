@@ -33,6 +33,9 @@ Rails.application.routes.draw do
     resources :simulations, only: %i[new create]
   end
 
+  # Folder management (accessible to editors/admins)
+  patch 'folders/move_workflow', to: 'folders#move_workflow', as: :move_workflow_folder
+
   resources :templates do
     member do
       post :use
@@ -63,6 +66,9 @@ Rails.application.routes.draw do
     end
     resources :templates, except: [:show]
     resources :workflows, only: %i[index show]
-    resources :groups
+    resources :groups do
+      patch 'folders/reorder', to: 'folders#reorder', as: :reorder_folders
+      resources :folders, except: [:show]
+    end
   end
 end

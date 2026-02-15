@@ -121,10 +121,48 @@
       </div>
 
       <!-- Workflows List -->
-      <% if @workflows.any? %>
+      <% if @selected_group.present? && @folders.present? && @folders.any? %>
+        <%# Folder accordion view when a group is selected and has folders %>
+        <div class="space-y-3 animate-fade-in-up">
+          <% @folders.each do |folder| %>
+            <% folder_workflows = @workflows_by_folder&.dig(folder.id) || Workflow.none %>
+            <%= render partial: "workflows/folder_accordion", locals: { folder: folder, workflows: folder_workflows, selected_group: @selected_group } %>
+          <% end %>
+
+          <%# Uncategorized folder (always last, virtual) %>
+          <% if @uncategorized_workflows.present? && @uncategorized_workflows.any? %>
+            <details class="group solid-card overflow-hidden mb-3" data-controller="folder-accordion" open>
+              <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors list-none [&::-webkit-details-marker]:hidden"
+                       data-action="toggle->folder-accordion#toggle">
+                <div class="flex items-center space-x-3">
+                  <svg class="w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform duration-200 rotate-90"
+                       data-folder-accordion-target="chevron"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                  <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
+                  </svg>
+                  <span class="font-semibold text-slate-500 dark:text-slate-400 italic">Uncategorized</span>
+                </div>
+                <span class="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-full">
+                  <%= pluralize(@uncategorized_workflows.size, "workflow") %>
+                </span>
+              </summary>
+              <div class="border-t border-slate-200 dark:border-slate-700">
+                <ul class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  <% @uncategorized_workflows.each_with_index do |workflow, index| %>
+                    <%= render partial: "workflows/workflow_list_item", locals: { workflow: workflow, index: index } %>
+                  <% end %>
+                </ul>
+              </div>
+            </details>
+          <% end %>
+        </div>
+      <% elsif @workflows.any? %>
+        <%# Flat list view (no group selected or group has no folders) %>
         <div class="solid-card overflow-hidden animate-fade-in-up">
           <ul class="divide-y divide-slate-200 dark:divide-slate-700">
-            <%# Eager load associations to prevent N+1 queries %>
             <% @workflows.each_with_index do |workflow, index| %>
               <%= render partial: 'workflows/workflow_list_item', locals: { workflow: workflow, index: index } %>
             <% end %>

@@ -63,6 +63,31 @@ class WorkflowsController < ApplicationController
       end
     end
 
+    # Load folders for the selected group
+    if @selected_group.present?
+      @folders = @selected_group.folders.ordered
+      @uncategorized_workflows = @selected_group.uncategorized_workflows
+                                                .includes(:user, :rich_text_description)
+                                                .search_by(params[:search])
+      @uncategorized_workflows = case @sort_by
+                                 when 'alphabetical'
+                                   @uncategorized_workflows.order(Arel.sql('LOWER(title) ASC'))
+                                 when 'most_steps'
+                                   @uncategorized_workflows.order(Arel.sql("COALESCE(json_array_length(steps), 0) DESC"))
+                                 else
+                                   @uncategorized_workflows.order(updated_at: :desc)
+                                 end
+
+      if @folders.present?
+        @workflows_by_folder = {}
+        @folders.each do |folder|
+          folder_workflows = @workflows.joins(:group_workflows)
+                                       .where(group_workflows: { folder_id: folder.id })
+          @workflows_by_folder[folder.id] = folder_workflows
+        end
+      end
+    end
+
     # Load accessible groups for sidebar
     # If no groups exist, show all workflows (backward compatibility)
     # Eager load children to prevent N+1 queries when rendering the tree
@@ -524,6 +549,16 @@ class WorkflowsController < ApplicationController
       elsif params[:workflow].key?(:group_ids)
         # Explicitly clear groups if group_ids is present but empty
         @workflow.group_workflows.destroy_all
+      end
+
+      # Assign folder if provided
+      if params[:workflow][:folder_id].present? && params[:workflow][:group_ids].present?
+        primary_group_id = Array(params[:workflow][:group_ids]).reject(&:blank?).first
+        primary_gw = @workflow.group_workflows.find_by(group_id: primary_group_id)
+        if primary_gw
+          folder = Folder.find_by(id: params[:workflow][:folder_id], group_id: primary_group_id)
+          primary_gw.update!(folder: folder) if folder
+        end
       end
 
       redirect_to step2_workflow_path(@workflow), notice: "Step 1 completed. Now let's add some steps."

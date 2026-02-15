@@ -6,6 +6,7 @@ class Group < ApplicationRecord
   has_many :workflows, through: :group_workflows
   has_many :user_groups, dependent: :destroy
   has_many :users, through: :user_groups
+  has_many :folders, dependent: :destroy
 
   # Validations
   validates :name, presence: true, uniqueness: { scope: :parent_id }
@@ -168,6 +169,12 @@ class Group < ApplicationRecord
     return false unless user
 
     user.groups.include?(self) || ancestors.any? { |ancestor| user.groups.include?(ancestor) }
+  end
+
+  # Get workflows in this group that don't have a folder assignment
+  def uncategorized_workflows
+    workflows.joins(:group_workflows)
+             .where(group_workflows: { group_id: id, folder_id: nil })
   end
 
   # Class method to get or create the default "Uncategorized" group

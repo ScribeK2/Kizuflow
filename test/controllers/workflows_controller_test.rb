@@ -469,6 +469,19 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Inaccessible", response.body
   end
 
+  test "index with group_id should load folders for that group" do
+    group = Group.create!(name: "Folder Index Group")
+    UserGroup.create!(user: @editor, group: group)
+    folder = Folder.create!(name: "DNS Folder", group: group)
+    workflow = Workflow.create!(title: "DNS WF", user: @editor)
+    GroupWorkflow.create!(group: group, workflow: workflow, folder: folder, is_primary: true)
+
+    sign_in @editor
+    get workflows_path(group_id: group.id)
+    assert_response :success
+    assert_match "DNS WF", response.body
+  end
+
   test "admin should see all groups in sidebar" do
     Group.create!(name: "Group 1")
     Group.create!(name: "Group 2")

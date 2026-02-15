@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_09_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_15_140436) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -49,12 +49,28 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_09_000000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "folders", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "group_id", null: false
+    t.integer "parent_id"
+    t.integer "position", default: 0
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id", "name"], name: "index_folders_on_group_id_and_name", unique: true
+    t.index ["group_id", "position"], name: "index_folders_on_group_id_and_position"
+    t.index ["group_id"], name: "index_folders_on_group_id"
+    t.index ["parent_id"], name: "index_folders_on_parent_id"
+  end
+
   create_table "group_workflows", force: :cascade do |t|
     t.integer "group_id", null: false
     t.integer "workflow_id", null: false
     t.boolean "is_primary", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "folder_id"
+    t.index ["folder_id"], name: "index_group_workflows_on_folder_id"
     t.index ["group_id", "workflow_id"], name: "index_group_workflows_on_group_and_workflow", unique: true
     t.index ["group_id"], name: "index_group_workflows_on_group_id"
     t.index ["workflow_id"], name: "index_group_workflows_on_workflow_id"
@@ -149,11 +165,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_09_000000) do
     t.index ["is_public"], name: "index_workflows_on_is_public"
     t.index ["status", "user_id"], name: "index_workflows_on_status_and_user_id"
     t.index ["status"], name: "index_workflows_on_status"
+    t.index ["steps"], name: "index_workflows_on_steps"
     t.index ["user_id"], name: "index_workflows_on_user_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "folders", "groups"
+  add_foreign_key "group_workflows", "folders"
   add_foreign_key "group_workflows", "groups"
   add_foreign_key "group_workflows", "workflows"
   add_foreign_key "simulations", "simulations", column: "parent_simulation_id", on_delete: :nullify
