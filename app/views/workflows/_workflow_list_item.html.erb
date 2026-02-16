@@ -60,7 +60,7 @@
           <% end %>
           <% if @selected_group.present? && @folders.present? && @folders.any? && workflow.can_be_edited_by?(current_user) %>
             <% current_gw = workflow.group_workflows.find_by(group_id: @selected_group.id) %>
-            <%= form_with url: move_workflow_folder_path, method: :patch, data: { turbo: false }, class: "inline-flex items-center" do |f| %>
+            <%= form_with url: move_workflow_folder_path, method: :patch, class: "inline-flex items-center" do |f| %>
               <%= hidden_field_tag :workflow_id, workflow.id %>
               <%= hidden_field_tag :group_id, @selected_group.id %>
               <select name="folder_id" data-controller="move-to-folder" data-action="change->move-to-folder#submit"
