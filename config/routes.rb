@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     collection do
       get :import
       post :import_file
+      post :start_wizard
     end
     member do
       get :export

@@ -16,10 +16,10 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
   # ==========================================================================
 
   test "complete wizard flow creates working workflow" do
-    # Step 1: Create draft via GET /workflows/new
+    # Step 1: Create draft via POST /workflows/start_wizard
     # Use force_linear_mode=1 to test linear workflow creation
     # (graph mode is now the default; this test validates linear mode still works)
-    get new_workflow_path(force_linear_mode: 1)
+    post start_wizard_workflows_path(force_linear_mode: 1)
 
     assert_response :redirect
     follow_redirect!
@@ -169,7 +169,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
   # ==========================================================================
 
   test "draft workflow has expiration date set" do
-    get new_workflow_path
+    post start_wizard_workflows_path
     follow_redirect!
 
     draft = Workflow.drafts.last

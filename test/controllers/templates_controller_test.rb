@@ -151,4 +151,22 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal "You don't have permission to perform this action.", flash[:alert]
   end
+
+  # Visibility check for use action
+  test "editor should not be able to use private template" do
+    sign_in @editor
+    assert_no_difference("Workflow.count") do
+      post use_template_path(@private_template)
+    end
+    assert_redirected_to templates_path
+    assert_equal "You don't have permission to use this template.", flash[:alert]
+  end
+
+  test "admin should be able to use private template" do
+    sign_in @admin
+    assert_difference("Workflow.count") do
+      post use_template_path(@private_template)
+    end
+    assert_redirected_to edit_workflow_path(Workflow.last)
+  end
 end

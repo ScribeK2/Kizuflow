@@ -757,7 +757,7 @@ export default class extends Controller {
             <div class="field-container">
               <input type="text" 
                      name="workflow[steps][][title]" 
-                     value="${stepData.title || ""}" 
+                     value="${this.escapeHtml(stepData.title || "")}"
                      placeholder="Step title" 
                      class="w-full border rounded px-3 py-2" 
                      required
@@ -768,7 +768,7 @@ export default class extends Controller {
                         placeholder="Step description" 
                         class="w-full border rounded px-3 py-2" 
                         rows="2"
-                        data-step-form-target="field">${stepData.description || ""}</textarea>
+                        data-step-form-target="field">${this.escapeHtml(stepData.description || "")}</textarea>
             </div>
             ${this.getStepTypeSpecificFields(stepType, stepData, truePathOptions, falsePathOptions)}
           </div>

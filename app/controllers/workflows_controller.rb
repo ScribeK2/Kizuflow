@@ -2,7 +2,7 @@ class WorkflowsController < ApplicationController
   before_action :set_workflow,
                 only: %i[show edit update destroy export export_pdf preview variables save_as_template start begin_execution step1 update_step1 step2 update_step2 step3 create_from_draft render_step]
   before_action :ensure_draft_workflow!, only: %i[step1 update_step1 step2 update_step2 step3 create_from_draft]
-  before_action :ensure_editor_or_admin!, only: %i[new create import import_file]
+  before_action :ensure_editor_or_admin!, only: %i[new create import import_file start_wizard]
   before_action :ensure_can_view_workflow!, only: %i[show export export_pdf start begin_execution]
   before_action :ensure_can_edit_workflow!, only: %i[edit update save_as_template]
   before_action :ensure_can_delete_workflow!, only: [:destroy]
@@ -126,8 +126,15 @@ class WorkflowsController < ApplicationController
   def show; end
 
   def new
-    # Create a draft workflow and redirect to wizard step 1
-    # Graph mode is now default; use ?force_linear_mode=1 to create linear workflow
+    @workflow = current_user.workflows.build(
+      status: 'draft',
+      title: 'Untitled Workflow',
+      graph_mode: determine_graph_mode_for_new
+    )
+    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+  end
+
+  def start_wizard
     @workflow = current_user.workflows.build(
       status: 'draft',
       title: 'Untitled Workflow',
@@ -136,9 +143,7 @@ class WorkflowsController < ApplicationController
     if @workflow.save
       redirect_to step1_workflow_path(@workflow), notice: "Let's create your workflow step by step."
     else
-      # Fallback: if draft creation fails, show traditional form
-      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
-      render :new, status: :unprocessable_content
+      redirect_to workflows_path, alert: "Could not start wizard. Please try again."
     end
   end
 

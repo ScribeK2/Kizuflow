@@ -2,9 +2,8 @@ class SimulationsController < ApplicationController
   before_action :set_workflow, only: %i[new create]
 
   def show
-    @simulation = Simulation.find(params[:id])
+    @simulation = current_user.simulations.find(params[:id])
     @workflow = @simulation.workflow
-    ensure_can_view_workflow!(@workflow)
   end
 
   def new
@@ -34,9 +33,8 @@ class SimulationsController < ApplicationController
   end
 
   def step
-    @simulation = Simulation.find(params[:id])
+    @simulation = current_user.simulations.find(params[:id])
     @workflow = @simulation.workflow
-    ensure_can_view_workflow!(@workflow)
 
     # Guard clauses for terminal/waiting states
     return if handle_step_guard_redirects
@@ -54,15 +52,8 @@ class SimulationsController < ApplicationController
   end
 
   def stop
-    @simulation = Simulation.find(params[:id])
+    @simulation = current_user.simulations.find(params[:id])
     @workflow = @simulation.workflow
-    ensure_can_view_workflow!(@workflow)
-
-    # Ensure user owns this simulation
-    unless @simulation.user == current_user
-      redirect_to simulation_path(@simulation), alert: "You don't have permission to stop this workflow."
-      return
-    end
 
     # Stop the workflow
     @simulation.stop!(@simulation.current_step_index)
@@ -70,15 +61,8 @@ class SimulationsController < ApplicationController
   end
 
   def resolve_checkpoint
-    @simulation = Simulation.find(params[:id])
+    @simulation = current_user.simulations.find(params[:id])
     @workflow = @simulation.workflow
-    ensure_can_view_workflow!(@workflow)
-
-    # Ensure user owns this simulation
-    unless @simulation.user == current_user
-      redirect_to simulation_path(@simulation), alert: "You don't have permission to resolve this checkpoint."
-      return
-    end
 
     # Get resolution parameters
     resolved = ['true', true].include?(params[:resolved])
@@ -97,9 +81,8 @@ class SimulationsController < ApplicationController
   end
 
   def next_step
-    @simulation = Simulation.find(params[:id])
+    @simulation = current_user.simulations.find(params[:id])
     @workflow = @simulation.workflow
-    ensure_can_view_workflow!(@workflow)
 
     # Prevent processing if stopped
     if @simulation.stopped?

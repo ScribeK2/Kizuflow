@@ -56,9 +56,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get new" do
     get new_workflow_path
-    # Now redirects to wizard step1 after creating draft
-    assert_response :redirect
-    assert_redirected_to step1_workflow_path(Workflow.drafts.last)
+    assert_response :success
   end
 
   test "should create workflow" do
@@ -206,17 +204,13 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to create workflows" do
     sign_in @admin
     get new_workflow_path
-    # Redirects to wizard step1 after creating draft
-    assert_response :redirect
-    assert_predicate Workflow.drafts.where(user: @admin), :exists?
+    assert_response :success
   end
 
   test "editor should be able to create workflows" do
     sign_in @editor
     get new_workflow_path
-    # Redirects to wizard step1 after creating draft
-    assert_response :redirect
-    assert_predicate Workflow.drafts.where(user: @editor), :exists?
+    assert_response :success
   end
 
   test "user should not be able to create workflows" do
@@ -492,5 +486,34 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Group 1", response.body
     assert_match "Group 2", response.body
+  end
+
+  # start_wizard and idempotent new tests
+  test "should create draft via POST start_wizard and redirect to step1" do
+    sign_in @editor
+    assert_difference("Workflow.count", 1) do
+      post start_wizard_workflows_path
+    end
+    workflow = Workflow.last
+    assert_equal "draft", workflow.status
+    assert_equal "Untitled Workflow", workflow.title
+    assert_redirected_to step1_workflow_path(workflow)
+  end
+
+  test "GET new should not create a workflow record" do
+    sign_in @editor
+    assert_no_difference("Workflow.count") do
+      get new_workflow_path
+    end
+    assert_response :success
+  end
+
+  test "user should not be able to start wizard" do
+    sign_in @user
+    assert_no_difference("Workflow.count") do
+      post start_wizard_workflows_path
+    end
+    assert_redirected_to root_path
+    assert_equal "You don't have permission to perform this action.", flash[:alert]
   end
 end

@@ -7,6 +7,19 @@ class FoldersController < ApplicationController
     @workflow = Workflow.find(params[:workflow_id])
     @group = @folder&.group || Group.find(params[:group_id])
 
+    # Ensure user can edit this workflow
+    ensure_can_edit_workflow!(@workflow)
+    return if performed?
+
+    # Ensure user has access to the target group (admins can access all groups)
+    unless current_user.admin?
+      accessible_ids = Group.accessible_group_ids_for(current_user)
+      unless accessible_ids.include?(@group.id)
+        redirect_to workflows_path, alert: "You don't have permission to move workflows to this group."
+        return
+      end
+    end
+
     group_workflow = GroupWorkflow.find_by!(group: @group, workflow: @workflow)
     group_workflow.update!(folder: @folder)
 

@@ -166,4 +166,109 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to workflows_path
     assert_equal "You don't have permission to view this workflow.", flash[:alert]
   end
+
+  # IDOR Tests — users cannot access other users' simulations
+  test "user cannot view another user's simulation" do
+    other_user = User.create!(
+      email: "other-sim-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "editor"
+    )
+    other_workflow = Workflow.create!(
+      title: "Other Workflow",
+      user: other_user,
+      is_public: true,
+      steps: [{ type: "question", title: "Q1", question: "What?" }]
+    )
+    other_simulation = Simulation.create!(
+      workflow: other_workflow,
+      user: other_user,
+      current_step_index: 0,
+      execution_path: [],
+      results: {},
+      inputs: {}
+    )
+
+    get simulation_path(other_simulation)
+    assert_response :not_found
+  end
+
+  test "user cannot access step of another user's simulation" do
+    other_user = User.create!(
+      email: "other-step-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "editor"
+    )
+    other_workflow = Workflow.create!(
+      title: "Other Workflow",
+      user: other_user,
+      is_public: true,
+      steps: [{ type: "question", title: "Q1", question: "What?" }]
+    )
+    other_simulation = Simulation.create!(
+      workflow: other_workflow,
+      user: other_user,
+      current_step_index: 0,
+      execution_path: [],
+      results: {},
+      inputs: {}
+    )
+
+    get step_simulation_path(other_simulation)
+    assert_response :not_found
+  end
+
+  test "user cannot advance another user's simulation" do
+    other_user = User.create!(
+      email: "other-next-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "editor"
+    )
+    other_workflow = Workflow.create!(
+      title: "Other Workflow",
+      user: other_user,
+      is_public: true,
+      steps: [{ type: "question", title: "Q1", question: "What?" }]
+    )
+    other_simulation = Simulation.create!(
+      workflow: other_workflow,
+      user: other_user,
+      current_step_index: 0,
+      execution_path: [],
+      results: {},
+      inputs: {}
+    )
+
+    post next_step_simulation_path(other_simulation), params: { answer: "test" }
+    assert_response :not_found
+  end
+
+  test "user cannot stop another user's simulation" do
+    other_user = User.create!(
+      email: "other-stop-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      role: "editor"
+    )
+    other_workflow = Workflow.create!(
+      title: "Other Workflow",
+      user: other_user,
+      is_public: true,
+      steps: [{ type: "question", title: "Q1", question: "What?" }]
+    )
+    other_simulation = Simulation.create!(
+      workflow: other_workflow,
+      user: other_user,
+      current_step_index: 0,
+      execution_path: [],
+      results: {},
+      inputs: {}
+    )
+
+    post stop_simulation_path(other_simulation)
+    assert_response :not_found
+  end
 end

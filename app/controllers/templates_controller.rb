@@ -22,6 +22,12 @@ class TemplatesController < ApplicationController
   def use
     @template = Template.find(params[:id])
 
+    # Enforce same visibility rules as show
+    unless current_user&.admin? || @template.is_public?
+      redirect_to templates_path, alert: "You don't have permission to use this template."
+      return
+    end
+
     # Deep copy the workflow_data to avoid modifying the template
     workflow_data = JSON.parse(@template.workflow_data.to_json)
 

@@ -99,7 +99,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "a[aria-label='Create a new workflow']"
+    assert_select "button[aria-label='Create a new workflow']"
     assert_select "a[aria-label='Browse workflow templates']"
   end
 
@@ -107,6 +107,6 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "a[aria-label='Create a new workflow']", count: 0
+    assert_select "button[aria-label='Create a new workflow']", count: 0
   end
 end
