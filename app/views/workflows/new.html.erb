@@ -62,7 +62,7 @@
         <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
       <% end %>
 
-      <div data-controller="workflow-builder" id="workflow-builder-container" data-workflow-builder-graph-mode-value="false">
+      <div data-controller="workflow-builder" id="workflow-builder-container" data-workflow-builder-graph-mode-value="false" data-workflow-builder-debug-value="<%= Rails.env.development? %>">
         <div class="flex justify-between items-center mb-4">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
           <div class="flex space-x-2">

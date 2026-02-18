@@ -131,7 +131,15 @@ class WorkflowsController < ApplicationController
       title: 'Untitled Workflow',
       graph_mode: determine_graph_mode_for_new
     )
-    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+    # Save the draft immediately so the builder has a workflow ID for server-side
+    # step rendering. This mirrors start_wizard and ensures addStepFromModal never
+    # falls back to client-side rendering on a truly unsaved record.
+    if @workflow.save
+      redirect_to step1_workflow_path(@workflow)
+    else
+      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
+      render :new, status: :unprocessable_content
+    end
   end
 
   def start_wizard
@@ -461,7 +469,7 @@ class WorkflowsController < ApplicationController
       return
     end
 
-    # Detect file format
+    # Detect file format from filename/content_type
     format = detect_file_format(uploaded_file.original_filename, uploaded_file.content_type)
 
     unless format
@@ -469,65 +477,22 @@ class WorkflowsController < ApplicationController
       return
     end
 
-    # Parse file
-    parser = create_parser(format, file_content)
-    workflow_data = parser.parse
+    result = WorkflowImporter.new(current_user, format: format, content: file_content).call
 
-    unless workflow_data
-      # Truncate error messages to prevent cookie overflow
-      error_summary = truncate_for_flash(parser.errors, max_items: 3)
-      redirect_to import_workflows_path, alert: "Failed to parse file: #{error_summary}"
-      return
-    end
+    if result.success?
+      @workflow = result.workflow
 
-    # Create workflow with Graph Mode support
-    # Imported workflows are always:
-    # - Graph Mode enabled (default for new workflows)
-    # - Published (not drafts) so they're immediately usable
-    # - Private by default for security
-    @workflow = current_user.workflows.build(
-      title: workflow_data[:title],
-      description: workflow_data[:description] || "",
-      steps: workflow_data[:steps] || [],
-      graph_mode: workflow_data[:graph_mode] != false, # Default to true unless explicitly false
-      start_node_uuid: workflow_data[:start_node_uuid] || workflow_data[:steps]&.first&.dig('id'),
-      is_public: false,
-      status: 'published'
-    )
-
-    # Store import metadata
-    @import_metadata = workflow_data[:import_metadata] || {}
-    @import_warnings = parser.warnings
-    @import_errors = parser.errors
-
-    # Check if workflow has incomplete steps
-    @has_incomplete_steps = workflow_data[:steps]&.any? { |step| step['_import_incomplete'] }
-
-    # Run post-import graph validation
-    if @workflow.graph_mode?
-      graph_validation_errors = validate_imported_graph(@workflow)
-      if graph_validation_errors.any?
-        @import_warnings.concat(graph_validation_errors)
-      end
-    end
-
-    # Try to save (validation will skip incomplete imported steps)
-    if @workflow.save
-      # If there are warnings or incomplete steps, redirect to edit with a notice
-      if @has_incomplete_steps || @import_warnings.any?
-        notice_parts = []
-        notice_parts << "Workflow imported successfully in Graph Mode!"
-        notice_parts << "#{incomplete_steps_count} incomplete step(s) need attention." if @has_incomplete_steps
-        notice_parts << "#{@import_warnings.count} warning(s) occurred." if @import_warnings.any?
-
+      if result.incomplete_steps? || result.warnings.any?
+        notice_parts = ["Workflow imported successfully in Graph Mode!"]
+        notice_parts << "#{result.incomplete_steps_count} incomplete step(s) need attention." if result.incomplete_steps?
+        notice_parts << "#{result.warnings.count} warning(s) occurred." if result.warnings.any?
         redirect_to edit_workflow_path(@workflow), notice: notice_parts.join(" ")
       else
         redirect_to @workflow, notice: "Workflow imported successfully in Graph Mode!"
       end
     else
-      # Truncate error messages to prevent cookie overflow
-      error_summary = truncate_for_flash(@workflow.errors.full_messages, max_items: 3)
-      redirect_to import_workflows_path, alert: "Failed to create workflow: #{error_summary}"
+      error_summary = truncate_for_flash(result.errors, max_items: 3)
+      redirect_to import_workflows_path, alert: "Failed to import workflow: #{error_summary}"
     end
   end
 
@@ -917,36 +882,6 @@ class WorkflowsController < ApplicationController
     end
   end
 
-  def create_parser(format, file_content)
-    # Rails should autoload services automatically, but ensure it's loaded
-    # Using const_get to handle autoloading gracefully
-    case format
-    when :json
-      WorkflowParsers::JsonParser.new(file_content)
-    when :csv
-      WorkflowParsers::CsvParser.new(file_content)
-    when :yaml
-      WorkflowParsers::YamlParser.new(file_content)
-    when :markdown
-      WorkflowParsers::MarkdownParser.new(file_content)
-    else
-      raise ArgumentError, "Unknown format: #{format}"
-    end
-  rescue NameError => e
-    # If autoloading fails, try explicit require
-    Rails.logger.warn("Failed to autoload WorkflowParsers: #{e.message}")
-    require Rails.root.join("app/services/workflow_parsers/base_parser")
-    require Rails.root.join("app/services/workflow_parsers/json_parser")
-    require Rails.root.join("app/services/workflow_parsers/csv_parser")
-    require Rails.root.join("app/services/workflow_parsers/yaml_parser")
-    require Rails.root.join("app/services/workflow_parsers/markdown_parser")
-    retry
-  end
-
-  def incomplete_steps_count
-    @workflow.steps&.count { |step| step['_import_incomplete'] } || 0
-  end
-
   # Truncate an array of messages to prevent cookie overflow
   # Rails session cookies have a 4KB limit
   def truncate_for_flash(messages, max_items: 3, max_length: 500)
@@ -960,33 +895,6 @@ class WorkflowsController < ApplicationController
     end
 
     result.truncate(max_length)
-  end
-
-  # Validate imported graph structure and return any errors
-  def validate_imported_graph(workflow)
-    errors = []
-    return errors unless workflow.steps.present?
-
-    # Build graph steps hash
-    graph_steps = {}
-    workflow.steps.each do |step|
-      graph_steps[step['id']] = step if step.is_a?(Hash) && step['id']
-    end
-
-    start_uuid = workflow.start_node_uuid || workflow.steps.first&.dig('id')
-
-    begin
-      validator = GraphValidator.new(graph_steps, start_uuid)
-      unless validator.valid?
-        validator.errors.each do |error|
-          errors << "Graph validation: #{error}"
-        end
-      end
-    rescue NameError
-      # GraphValidator not loaded - skip validation
-    end
-
-    errors
   end
 
   # Parse transitions_json from form submissions into proper transitions array

@@ -55,8 +55,10 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
-    get new_workflow_path
-    assert_response :success
+    assert_difference("Workflow.count", 1) do
+      get new_workflow_path
+    end
+    assert_redirected_to step1_workflow_path(Workflow.last)
   end
 
   test "should create workflow" do
@@ -203,14 +205,18 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin should be able to create workflows" do
     sign_in @admin
-    get new_workflow_path
-    assert_response :success
+    assert_difference("Workflow.count", 1) do
+      get new_workflow_path
+    end
+    assert_redirected_to step1_workflow_path(Workflow.last)
   end
 
   test "editor should be able to create workflows" do
     sign_in @editor
-    get new_workflow_path
-    assert_response :success
+    assert_difference("Workflow.count", 1) do
+      get new_workflow_path
+    end
+    assert_redirected_to step1_workflow_path(Workflow.last)
   end
 
   test "user should not be able to create workflows" do
@@ -500,12 +506,15 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to step1_workflow_path(workflow)
   end
 
-  test "GET new should not create a workflow record" do
+  test "GET new creates a draft workflow and redirects to step1" do
     sign_in @editor
-    assert_no_difference("Workflow.count") do
+    assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_response :success
+    workflow = Workflow.last
+    assert_equal "draft", workflow.status
+    assert_equal "Untitled Workflow", workflow.title
+    assert_redirected_to step1_workflow_path(workflow)
   end
 
   test "user should not be able to start wizard" do

@@ -24,6 +24,7 @@
           <div data-controller="workflow-builder variable-autocomplete"
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
                data-workflow-builder-graph-mode-value="<%= @workflow.graph_mode? %>"
+               data-workflow-builder-debug-value="<%= Rails.env.development? %>"
                data-variable-autocomplete-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
 
