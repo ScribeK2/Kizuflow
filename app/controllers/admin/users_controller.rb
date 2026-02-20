@@ -72,13 +72,10 @@ class Admin::UsersController < ApplicationController
     # Log the action for security audit
     Rails.logger.info "[ADMIN ACTION] #{current_user.email} generated temporary password for #{@user.email} (ID: #{@user.id}) from IP: #{request.remote_ip}"
 
-    # Store in session for modal display (for non-AJAX fallback)
-    session[:temp_password] = temp_password
-    session[:temp_password_user] = @user.email
-
     # Respond with JSON for AJAX requests
     respond_to do |format|
       format.json do
+        response.set_header("Cache-Control", "no-store")
         render json: {
           success: true,
           password: temp_password,
