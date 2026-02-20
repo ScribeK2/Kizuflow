@@ -16,13 +16,8 @@ module ApplicationHelper
 
   # Render rich text content safely
   def render_rich_text(content)
-    if content.present?
-      if content.respond_to?(:to_s)
-        content_tag(:div, content.to_s.html_safe, class: "prose prose-sm max-w-none")
-      else
-        content.to_s
-      end
-    end
+    return nil unless content.present?
+    content_tag(:div, content, class: "prose prose-sm max-w-none")
   end
 
   # Render Markdown content from workflow step fields (instructions, descriptions, etc.)
