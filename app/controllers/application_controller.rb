@@ -87,7 +87,7 @@ class ApplicationController < ActionController::Base
 
     Sentry.set_extras(
       params: request.filtered_parameters.except("controller", "action"),
-      url: request.url
+      url: request.path
     )
   end
 end
