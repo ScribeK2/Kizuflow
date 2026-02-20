@@ -10,20 +10,20 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     # Create users with different roles (using unique emails)
     @admin = User.create!(
       email: "admin-test-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @editor = User.create!(
       email: "editor-test-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     @user = User.create!(
       email: "user-test-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     @workflow = Workflow.create!(
@@ -429,8 +429,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should not show workflows from inaccessible groups" do
     user = User.create!(
       email: "user-#{SecureRandom.hex(4)}@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     accessible_group = Group.create!(name: "Accessible")
     inaccessible_group = Group.create!(name: "Inaccessible")

@@ -8,19 +8,19 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-access-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @user1 = User.create!(
       email: "user1-access-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     @user2 = User.create!(
       email: "user2-access-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     @group1 = Group.create!(name: "Group 1")
     @group2 = Group.create!(name: "Group 2")

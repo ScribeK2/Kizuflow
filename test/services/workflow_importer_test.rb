@@ -4,8 +4,8 @@ class WorkflowImporterTest < ActiveSupport::TestCase
   setup do
     @user = User.create!(
       email: "importer-test-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
   end

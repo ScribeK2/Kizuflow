@@ -10,8 +10,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     # Create user directly instead of using fixtures
     @user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     sign_in @user
   end

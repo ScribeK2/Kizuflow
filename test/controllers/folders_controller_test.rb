@@ -8,20 +8,20 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-folder-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @editor = User.create!(
       email: "editor-folder-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     @other_editor = User.create!(
       email: "other-editor-folder-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
 
@@ -106,8 +106,8 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
   test "regular user cannot move workflows" do
     regular_user = User.create!(
       email: "user-folder-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     sign_in regular_user

@@ -4,8 +4,8 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
   setup do
     @editor = User.create!(
       email: "wf-system-test-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     @workflow = Workflow.create!(

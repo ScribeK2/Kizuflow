@@ -6,7 +6,7 @@ class RenderStepTest < ActionDispatch::IntegrationTest
   setup do
     @user = User.create!(
       email: "render_step_test@example.com",
-      password: "password123",
+      password: "password123!",
       role: "admin"
     )
     @workflow = Workflow.create!(

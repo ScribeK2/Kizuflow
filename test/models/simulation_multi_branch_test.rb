@@ -4,8 +4,8 @@ class SimulationMultiBranchTest < ActiveSupport::TestCase
   def setup
     @user = User.create!(
       email: "multi-branch-test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
   end
 

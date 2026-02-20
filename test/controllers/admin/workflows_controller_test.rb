@@ -8,14 +8,14 @@ class Admin::WorkflowsControllerTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-wf-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @editor = User.create!(
       email: "editor-wf-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     @workflow = Workflow.create!(

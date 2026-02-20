@@ -6,8 +6,8 @@ class Admin::FoldersControllerTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "folderadmin@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @group = Group.create!(name: "Folder Test Group")
@@ -99,8 +99,8 @@ class Admin::FoldersControllerTest < ActionDispatch::IntegrationTest
     sign_out @admin
     editor = User.create!(
       email: "foldereditor@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     sign_in editor

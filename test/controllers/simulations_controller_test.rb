@@ -10,8 +10,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
     # Create user directly instead of using fixtures (must be editor or admin to create workflows)
     @user = User.create!(
       email: "user-sim-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     @workflow = Workflow.create!(
@@ -58,8 +58,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to simulate any workflow" do
     admin = User.create!(
       email: "admin-sim-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     workflow = Workflow.create!(
@@ -78,8 +78,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "editor should be able to simulate workflows they can view" do
     editor = User.create!(
       email: "editor-sim-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     own_workflow = Workflow.create!(
@@ -108,8 +108,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "editor should not be able to simulate other user's private workflow" do
     editor = User.create!(
       email: "editor-sim2-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     private_workflow = Workflow.create!(
@@ -129,8 +129,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "user should be able to simulate public workflow" do
     regular_user = User.create!(
       email: "user-sim-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     public_workflow = Workflow.create!(
@@ -149,8 +149,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "user should not be able to simulate private workflow" do
     regular_user = User.create!(
       email: "user-sim2-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     private_workflow = Workflow.create!(
@@ -171,8 +171,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "user cannot view another user's simulation" do
     other_user = User.create!(
       email: "other-sim-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     other_workflow = Workflow.create!(
@@ -197,8 +197,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "user cannot access step of another user's simulation" do
     other_user = User.create!(
       email: "other-step-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     other_workflow = Workflow.create!(
@@ -223,8 +223,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "user cannot advance another user's simulation" do
     other_user = User.create!(
       email: "other-next-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     other_workflow = Workflow.create!(
@@ -249,8 +249,8 @@ class SimulationsControllerTest < ActionDispatch::IntegrationTest
   test "user cannot stop another user's simulation" do
     other_user = User.create!(
       email: "other-stop-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     other_workflow = Workflow.create!(

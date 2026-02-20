@@ -6,8 +6,8 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "folders_int_admin@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @group = Group.create!(name: "Integration Group")

@@ -7,15 +7,15 @@ class UserTest < ActiveSupport::TestCase
   test "should create valid user" do
     user = User.new(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
 
     assert_predicate user, :valid?
   end
 
   test "should not create user without email" do
-    user = User.new(password: "password123")
+    user = User.new(password: "password123!")
 
     assert_not user.valid?
     assert_includes user.errors[:email], "can't be blank"
@@ -36,8 +36,8 @@ class UserTest < ActiveSupport::TestCase
   test "should destroy workflows when user is destroyed" do
     user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     Workflow.create!(title: "Test", user: user)
 
@@ -50,8 +50,8 @@ class UserTest < ActiveSupport::TestCase
   test "should default to user role" do
     user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
 
     assert_equal "user", user.role
@@ -60,8 +60,8 @@ class UserTest < ActiveSupport::TestCase
   test "should validate role inclusion" do
     user = User.new(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "invalid_role"
     )
 
@@ -72,8 +72,8 @@ class UserTest < ActiveSupport::TestCase
   test "admin? should return true for admin users" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
 
@@ -83,8 +83,8 @@ class UserTest < ActiveSupport::TestCase
   test "admin? should return false for non-admin users" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
 
@@ -94,8 +94,8 @@ class UserTest < ActiveSupport::TestCase
   test "editor? should return true for editor users" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
 
@@ -105,8 +105,8 @@ class UserTest < ActiveSupport::TestCase
   test "user? should return true for regular users" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
 
@@ -116,8 +116,8 @@ class UserTest < ActiveSupport::TestCase
   test "can_create_workflows? should return true for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
 
@@ -127,8 +127,8 @@ class UserTest < ActiveSupport::TestCase
   test "can_create_workflows? should return true for editor" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
 
@@ -138,8 +138,8 @@ class UserTest < ActiveSupport::TestCase
   test "can_create_workflows? should return false for user" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
 
@@ -149,20 +149,20 @@ class UserTest < ActiveSupport::TestCase
   test "can_manage_templates? should return true only for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
 
@@ -174,14 +174,14 @@ class UserTest < ActiveSupport::TestCase
   test "can_access_admin? should return true only for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
 
@@ -192,20 +192,20 @@ class UserTest < ActiveSupport::TestCase
   test "admins scope should return only admin users" do
     admin1 = User.create!(
       email: "admin1@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     admin2 = User.create!(
       email: "admin2@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
 
@@ -219,20 +219,20 @@ class UserTest < ActiveSupport::TestCase
   test "editors scope should return only editor users" do
     editor1 = User.create!(
       email: "editor1@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     editor2 = User.create!(
       email: "editor2@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
 
@@ -247,8 +247,8 @@ class UserTest < ActiveSupport::TestCase
   test "should have many groups through user_groups" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
@@ -264,8 +264,8 @@ class UserTest < ActiveSupport::TestCase
   test "accessible_groups should return all groups for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     group1 = Group.create!(name: "Group 1")
@@ -280,8 +280,8 @@ class UserTest < ActiveSupport::TestCase
   test "accessible_groups should return only assigned groups for non-admin" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     assigned_group = Group.create!(name: "Assigned Group")
     other_group = Group.create!(name: "Other Group")
@@ -297,8 +297,8 @@ class UserTest < ActiveSupport::TestCase
   test "should destroy user_groups when user is destroyed" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Test Group")
     UserGroup.create!(group: group, user: user)
@@ -311,8 +311,8 @@ class UserTest < ActiveSupport::TestCase
   test "should destroy user_groups when group is destroyed" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Test Group")
     UserGroup.create!(group: group, user: user)

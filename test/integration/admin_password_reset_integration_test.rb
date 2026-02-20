@@ -8,20 +8,20 @@ class AdminPasswordResetIntegrationTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-reset-#{SecureRandom.hex(4)}@example.com",
-      password: 'password123',
-      password_confirmation: 'password123',
+      password: 'password123!',
+      password_confirmation: 'password123!',
       role: 'admin'
     )
     @user = User.create!(
       email: "user-reset-#{SecureRandom.hex(4)}@example.com",
-      password: 'password123',
-      password_confirmation: 'password123',
+      password: 'password123!',
+      password_confirmation: 'password123!',
       role: 'user'
     )
     @editor = User.create!(
       email: "editor-reset-#{SecureRandom.hex(4)}@example.com",
-      password: 'password123',
-      password_confirmation: 'password123',
+      password: 'password123!',
+      password_confirmation: 'password123!',
       role: 'editor'
     )
     ActionMailer::Base.deliveries.clear

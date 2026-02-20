@@ -6,12 +6,12 @@ class AdminPasswordResetTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: 'admin-test@example.com',
-      password: 'password123',
+      password: 'password123!',
       role: 'admin'
     )
     @user = User.create!(
       email: 'user-test@example.com',
-      password: 'password123',
+      password: 'password123!',
       role: 'user'
     )
   end

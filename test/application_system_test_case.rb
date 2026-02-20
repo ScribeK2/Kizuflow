@@ -19,7 +19,7 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # Sign in via the login form (works with any Capybara driver)
-  def sign_in_as(user, password: "password123")
+  def sign_in_as(user, password: "password123!")
     visit "/users/sign_in"
     fill_in "Email", with: user.email
     fill_in "Password", with: password

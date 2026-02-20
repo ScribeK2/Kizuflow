@@ -45,7 +45,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
   test "deleting user cascades to workflows" do
     user = User.create!(
       email: "cascade-test@example.com",
-      password: "password123",
+      password: "password123!",
       role: "editor"
     )
 
@@ -138,7 +138,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
   test "user role validates against allowed values" do
     user = User.new(
       email: "role-test@example.com",
-      password: "password123",
+      password: "password123!",
       role: "invalid_role"
     )
 
@@ -164,7 +164,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
     %w[admin editor user].each do |role|
       user = User.new(
         email: "#{role}-valid@example.com",
-        password: "password123",
+        password: "password123!",
         role: role
       )
 
@@ -190,7 +190,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
   test "display_name respects length limit" do
     user = User.new(
       email: "length-test@example.com",
-      password: "password123",
+      password: "password123!",
       role: "user",
       display_name: "A" * 51  # Exceeds 50 char limit
     )
@@ -202,7 +202,7 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
   test "display_name accepts valid length" do
     user = User.new(
       email: "length-valid@example.com",
-      password: "password123",
+      password: "password123!",
       role: "user",
       display_name: "A" * 50  # Exactly at limit
     )

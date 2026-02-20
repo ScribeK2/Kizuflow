@@ -8,20 +8,20 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-users-#{SecureRandom.hex(4)}@example.com",
-      password: 'password123',
-      password_confirmation: 'password123',
+      password: 'password123!',
+      password_confirmation: 'password123!',
       role: 'admin'
     )
     @editor = User.create!(
       email: "editor-users-#{SecureRandom.hex(4)}@example.com",
-      password: 'password123',
-      password_confirmation: 'password123',
+      password: 'password123!',
+      password_confirmation: 'password123!',
       role: 'editor'
     )
     @user = User.create!(
       email: "user-users-#{SecureRandom.hex(4)}@example.com",
-      password: 'password123',
-      password_confirmation: 'password123',
+      password: 'password123!',
+      password_confirmation: 'password123!',
       role: 'user'
     )
   end
@@ -107,13 +107,13 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     user1 = User.create!(
       email: "user1-#{SecureRandom.hex(4)}@test.com",
-      password: 'password123',
-      password_confirmation: 'password123'
+      password: 'password123!',
+      password_confirmation: 'password123!'
     )
     user2 = User.create!(
       email: "user2-#{SecureRandom.hex(4)}@test.com",
-      password: 'password123',
-      password_confirmation: 'password123'
+      password: 'password123!',
+      password_confirmation: 'password123!'
     )
     group = Group.create!(name: 'Bulk Group')
 
@@ -136,8 +136,8 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     user = User.create!(
       email: "user-#{SecureRandom.hex(4)}@test.com",
-      password: 'password123',
-      password_confirmation: 'password123'
+      password: 'password123!',
+      password_confirmation: 'password123!'
     )
     group1 = Group.create!(name: 'Group 1')
     group2 = Group.create!(name: 'Group 2')

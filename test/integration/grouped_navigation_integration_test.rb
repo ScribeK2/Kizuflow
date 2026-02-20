@@ -8,14 +8,14 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-nav-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @user = User.create!(
       email: "user-nav-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     @parent_group = Group.create!(name: "Parent Group")
     @child_group = Group.create!(name: "Child Group", parent: @parent_group)

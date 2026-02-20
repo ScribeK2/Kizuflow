@@ -4,8 +4,8 @@ class WorkflowTest < ActiveSupport::TestCase
   def setup
     @user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
   end
 
@@ -85,8 +85,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should allow admin to view any workflow" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     private_workflow = Workflow.create!(
@@ -101,8 +101,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should allow editor to view own workflows" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     own_workflow = Workflow.create!(
@@ -117,8 +117,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should allow editor to view public workflows" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     public_workflow = Workflow.create!(
@@ -133,8 +133,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should not allow editor to view other user's private workflows" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     other_workflow = Workflow.create!(
@@ -149,8 +149,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should allow user to view public workflows" do
     regular_user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     public_workflow = Workflow.create!(
@@ -165,8 +165,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should not allow user to view private workflows" do
     regular_user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     private_workflow = Workflow.create!(
@@ -181,8 +181,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_edited_by? should allow admin to edit any workflow" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     workflow = Workflow.create!(
@@ -197,8 +197,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_edited_by? should allow editor to edit own workflows" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     own_workflow = Workflow.create!(
@@ -213,8 +213,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_edited_by? should not allow editor to edit other user's workflows" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     other_workflow = Workflow.create!(
@@ -229,8 +229,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_edited_by? should not allow user to edit workflows" do
     regular_user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     workflow = Workflow.create!(
@@ -245,20 +245,20 @@ class WorkflowTest < ActiveSupport::TestCase
   test "can_be_deleted_by? should follow same rules as edit" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     regular_user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
 
@@ -274,8 +274,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "visible_to scope should return all workflows for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     workflow1 = Workflow.create!(title: "Private", user: @user, is_public: false)
@@ -290,8 +290,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "visible_to scope should return own + public for editor" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     own_private = Workflow.create!(title: "My Private", user: editor, is_public: false)
@@ -310,8 +310,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "visible_to scope should return only public for user" do
     regular_user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "user"
     )
     private_workflow = Workflow.create!(title: "Private", user: @user, is_public: false)
@@ -446,8 +446,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "visible_to scope should include workflows in user's assigned groups" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Assigned Group")
     workflow = Workflow.create!(title: "Group Workflow", user: @user, is_public: false)
@@ -465,8 +465,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "visible_to scope should include workflows without groups for backward compatibility" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     workflow = Workflow.create!(title: "Workflow Without Groups", user: @user, is_public: false)
 
@@ -481,8 +481,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "visible_to scope should always include public workflows regardless of groups" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Other Group")
     public_workflow = Workflow.create!(title: "Public Workflow", user: @user, is_public: true)

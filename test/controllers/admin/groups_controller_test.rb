@@ -8,14 +8,14 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-groups-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @editor = User.create!(
       email: "editor-groups-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
   end
@@ -121,8 +121,8 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     user = User.create!(
       email: "user-#{SecureRandom.hex(4)}@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Group With Workflows")
     workflow = Workflow.create!(title: "Test Workflow", user: user)

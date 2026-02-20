@@ -8,14 +8,14 @@ class Admin::TemplatesControllerTest < ActionDispatch::IntegrationTest
   def setup
     @admin = User.create!(
       email: "admin-tmpl-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     @editor = User.create!(
       email: "editor-tmpl-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     @template = Template.create!(

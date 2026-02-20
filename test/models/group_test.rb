@@ -4,8 +4,8 @@ class GroupTest < ActiveSupport::TestCase
   def setup
     @user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
   end
 
@@ -76,8 +76,8 @@ class GroupTest < ActiveSupport::TestCase
 
   test "should have many users through user_groups" do
     group = Group.create!(name: "Test Group")
-    user1 = User.create!(email: "user1@test.com", password: "password123", password_confirmation: "password123")
-    user2 = User.create!(email: "user2@test.com", password: "password123", password_confirmation: "password123")
+    user1 = User.create!(email: "user1@test.com", password: "password123!", password_confirmation: "password123!")
+    user2 = User.create!(email: "user2@test.com", password: "password123!", password_confirmation: "password123!")
 
     UserGroup.create!(group: group, user: user1)
     UserGroup.create!(group: group, user: user2)
@@ -117,8 +117,8 @@ class GroupTest < ActiveSupport::TestCase
   test "visible_to scope should return all groups for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     group1 = Group.create!(name: "Group 1")
@@ -133,8 +133,8 @@ class GroupTest < ActiveSupport::TestCase
   test "visible_to scope should return assigned groups plus Uncategorized for regular user" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     assigned_group = Group.create!(name: "Assigned Group")
     other_group = Group.create!(name: "Other Group")
@@ -310,8 +310,8 @@ class GroupTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should return true for admin" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     group = Group.create!(name: "Test Group")
@@ -322,8 +322,8 @@ class GroupTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should return true for assigned user" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Test Group")
     UserGroup.create!(group: group, user: user)
@@ -336,8 +336,8 @@ class GroupTest < ActiveSupport::TestCase
     child = Group.create!(name: "Child", parent: root)
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     UserGroup.create!(group: root, user: user)
 
@@ -358,7 +358,7 @@ class GroupTest < ActiveSupport::TestCase
   test "uncategorized_workflows should return workflows without folder" do
     group = Group.create!(name: "Folder Group")
     folder = Folder.create!(name: "Categorized", group: group)
-    user = User.create!(email: "foldertestuser@example.com", password: "password123", password_confirmation: "password123")
+    user = User.create!(email: "foldertestuser@example.com", password: "password123!", password_confirmation: "password123!")
     wf_in_folder = Workflow.create!(title: "In Folder", user: user)
     wf_uncategorized = Workflow.create!(title: "Uncategorized", user: user)
 
@@ -373,8 +373,8 @@ class GroupTest < ActiveSupport::TestCase
   test "can_be_viewed_by? should return false for unassigned user" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     group = Group.create!(name: "Test Group")
 

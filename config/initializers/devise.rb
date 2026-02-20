@@ -151,7 +151,7 @@ Devise.setup do |config|
 
   # ==> Configuration for :validatable
   # Range for password length.
-  config.password_length = 6..128
+  config.password_length = 12..128
 
   # Email regex used to validate email formats. It asserts a number sign (#) at the
   # start of the domain, and reverses that assertion at the end. You're unlikely to

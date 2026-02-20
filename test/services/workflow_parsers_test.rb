@@ -505,7 +505,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
   # Helper to create a published workflow for title resolution tests
   def create_published_workflow(title:, user: nil)
     user ||= User.create!(email: "subflow-test-#{SecureRandom.hex(4)}@example.com",
-                          password: 'password123', role: 'user')
+                          password: 'password123!', role: 'user')
     Workflow.create!(
       title: title,
       user: user,
@@ -574,7 +574,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
   end
 
   test "resolve_subflow_titles marks step incomplete when multiple matches found" do
-    user = User.create!(email: "multi-match-test@example.com", password: 'password123', role: 'user')
+    user = User.create!(email: "multi-match-test@example.com", password: 'password123!', role: 'user')
     create_published_workflow(title: "Duplicate Title", user: user)
     create_published_workflow(title: "Duplicate Title", user: user)
 
@@ -615,7 +615,7 @@ class WorkflowParsersTest < ActiveSupport::TestCase
   end
 
   test "resolve_subflow_titles excludes draft workflows from matching" do
-    user = User.create!(email: "draft-test@example.com", password: 'password123', role: 'user')
+    user = User.create!(email: "draft-test@example.com", password: 'password123!', role: 'user')
     Workflow.create!(
       title: "Draft Only Workflow",
       user: user,

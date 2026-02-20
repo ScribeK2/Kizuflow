@@ -4,8 +4,8 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
   def setup
     @user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
   end

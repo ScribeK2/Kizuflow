@@ -8,8 +8,8 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
   def setup
     @editor = User.create!(
       email: "editor-import-test-#{SecureRandom.hex(4)}@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
 

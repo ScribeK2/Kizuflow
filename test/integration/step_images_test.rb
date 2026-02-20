@@ -4,8 +4,8 @@ class StepImagesTest < ActionDispatch::IntegrationTest
   def setup
     @user = User.create!(
       email: "step-images-test@example.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     sign_in @user

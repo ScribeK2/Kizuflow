@@ -4,8 +4,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   def setup
     @user = User.create!(
       email: "test@example.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     # Ensure Uncategorized group exists
     @uncategorized = Group.uncategorized
@@ -23,8 +23,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   test "workflows without groups should be accessible to their owners" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     workflow = Workflow.create!(title: "Workflow Without Groups", user: editor, is_public: false)
@@ -40,8 +40,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   test "workflows without groups should be accessible to admins" do
     admin = User.create!(
       email: "admin@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "admin"
     )
     workflow = Workflow.create!(title: "Workflow Without Groups", user: @user, is_public: false)
@@ -64,8 +64,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
 
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
 
     visible = Workflow.visible_to(user)
@@ -76,8 +76,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   test "users without group assignments should see Uncategorized group" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
 
     visible_groups = Group.visible_to(user)
@@ -119,8 +119,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   test "fallback: if no groups exist, workflows should still be accessible to owners and admins" do
     editor = User.create!(
       email: "editor@test.com",
-      password: "password123",
-      password_confirmation: "password123",
+      password: "password123!",
+      password_confirmation: "password123!",
       role: "editor"
     )
     # Remove all groups except Uncategorized
@@ -136,8 +136,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   test "workflows in Uncategorized should be visible to users assigned to Uncategorized if public" do
     user = User.create!(
       email: "user@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     workflow = Workflow.create!(title: "Uncategorized Workflow", user: @user, is_public: true)
 
@@ -158,8 +158,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     # is_public is for workflows visible to EVERYONE, not just for group-based access
     user = User.create!(
       email: "user-#{SecureRandom.hex(4)}@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     workflow = Workflow.create!(title: "Private Group Workflow", user: @user, is_public: false)
 
@@ -179,8 +179,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
     # Users without group assignment should not see private workflows
     user = User.create!(
       email: "user-#{SecureRandom.hex(4)}@test.com",
-      password: "password123",
-      password_confirmation: "password123"
+      password: "password123!",
+      password_confirmation: "password123!"
     )
     restricted_group = Group.create!(name: "Restricted")
     workflow = Workflow.create!(title: "Private Restricted Workflow", user: @user, is_public: false)
