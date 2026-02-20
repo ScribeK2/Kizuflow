@@ -367,4 +367,18 @@ class UserTest < ActiveSupport::TestCase
     user = User.new(role: "admin")
     assert_equal "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300", user.avatar_role_badge_classes
   end
+
+  test "generate_temporary_password returns a 16-char alphanumeric string and updates password" do
+    user = User.create!(
+      email: "temppass@test.com",
+      password: "password123!",
+      password_confirmation: "password123!"
+    )
+
+    temp = user.generate_temporary_password
+
+    assert_equal 16, temp.length
+    assert_match(/\A[a-zA-Z0-9]+\z/, temp)
+    assert user.valid_password?(temp), "User should be able to authenticate with the temporary password"
+  end
 end
