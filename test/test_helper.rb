@@ -12,6 +12,12 @@ class ActiveSupport::TestCase
 
   # Add more helper methods to be used by all tests here...
   include Devise::Test::IntegrationHelpers
+
+  # Reset rack-attack cache between tests to prevent throttle bleed
+  setup do
+    Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
+    Rack::Attack.reset!
+  end
 end
 
 # Fix for Devise sign_in with dynamically created users
