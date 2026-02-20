@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_15_140436) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_20_131916) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -141,9 +141,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_15_140436) do
     t.datetime "updated_at", null: false
     t.string "role", default: "user", null: false
     t.string "display_name", limit: 50
+    t.integer "failed_attempts", default: 0, null: false
+    t.datetime "locked_at"
+    t.string "unlock_token"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"
+    t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
   create_table "workflows", force: :cascade do |t|

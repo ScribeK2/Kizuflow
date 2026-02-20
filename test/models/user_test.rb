@@ -368,6 +368,19 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300", user.avatar_role_badge_classes
   end
 
+  test "user model responds to lockable attributes" do
+    user = User.new
+    assert_respond_to user, :failed_attempts
+    assert_respond_to user, :locked_at
+    assert_respond_to user, :unlock_token
+    assert_respond_to user, :access_locked?
+  end
+
+  test "user model responds to timeoutable" do
+    user = User.new
+    assert_respond_to user, :timedout?
+  end
+
   test "generate_temporary_password returns a 16-char alphanumeric string and updates password" do
     user = User.create!(
       email: "temppass@test.com",
