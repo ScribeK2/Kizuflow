@@ -78,7 +78,7 @@ class WorkflowGraphConverter
 
   # Deep copy the steps array to avoid modifying the original
   def deep_copy(obj)
-    Marshal.load(Marshal.dump(obj))
+    obj.deep_dup
   end
 
   # Ensure all steps have UUIDs
