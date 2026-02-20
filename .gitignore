@@ -125,3 +125,6 @@ TEST_SUMMARY.md
 # Semgrep
 semgrep-results*/
 .semgrep/
+
+# Git worktrees
+.worktrees/

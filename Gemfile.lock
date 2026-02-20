@@ -82,6 +82,8 @@ GEM
     bindex (0.8.1)
     bootsnap (1.18.6)
       msgpack (~> 1.2)
+    brakeman (8.0.2)
+      racc
     builder (3.3.0)
     bullet (8.1.0)
       activesupport (>= 3.0.0)
@@ -414,6 +416,7 @@ PLATFORMS
 DEPENDENCIES
   actiontext
   bootsnap (>= 1.4.4)
+  brakeman
   bullet
   capybara
   debug
