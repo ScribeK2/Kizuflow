@@ -81,13 +81,14 @@ def filter_sensitive_params(data)
 
   sensitive_keys = %w[password password_confirmation token api_key secret]
 
-  data.transform_values do |value|
-    if sensitive_keys.any? { |key| value.to_s.downcase.include?(key) }
-      "[FILTERED]"
-    elsif value.is_a?(Hash)
-      filter_sensitive_params(value)
-    else
-      value
-    end
+  data.each_with_object({}) do |(key, value), filtered|
+    key_s = key.to_s.downcase
+    filtered[key] = if sensitive_keys.any? { |sk| key_s.include?(sk) }
+                      "[FILTERED]"
+                    elsif value.is_a?(Hash)
+                      filter_sensitive_params(value)
+                    else
+                      value
+                    end
   end
 end
