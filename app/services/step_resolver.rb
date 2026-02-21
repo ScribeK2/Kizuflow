@@ -38,11 +38,7 @@ class StepResolver
       )
     end
 
-    if @workflow.graph_mode?
-      resolve_graph_next(step, results)
-    else
-      resolve_linear_next(step, results)
-    end
+    resolve_graph_next(step, results)
   end
 
   # Resolve the next step after a sub-flow completes (bypasses SubflowMarker interception).
@@ -54,21 +50,13 @@ class StepResolver
   def resolve_next_after_subflow(step, results)
     return nil unless step
 
-    if @workflow.graph_mode?
-      resolve_graph_next(step, results)
-    else
-      resolve_linear_next(step, results)
-    end
+    resolve_graph_next(step, results)
   end
 
   # Find the start step for this workflow
   # @return [Hash, nil] The start step hash or nil
   def start_step
-    if @workflow.graph_mode?
-      @workflow.start_node
-    else
-      @workflow.steps&.first
-    end
+    @workflow.start_node
   end
 
   # Check if a step is a terminal node (no outgoing transitions)
@@ -80,14 +68,8 @@ class StepResolver
     # Resolve steps are always terminal regardless of mode
     return true if step['type'] == 'resolve'
 
-    if @workflow.graph_mode?
-      transitions = step['transitions'] || []
-      transitions.empty? && step['type'] != 'sub_flow'
-    else
-      # In linear mode, check if it's the last step
-      step_index = @workflow.steps&.index(step)
-      step_index && step_index >= (@workflow.steps.length - 1)
-    end
+    transitions = step['transitions'] || []
+    transitions.empty? && step['type'] != 'sub_flow'
   end
 
   private
@@ -122,48 +104,6 @@ class StepResolver
     # No transition matched - look for a default (unconditional) transition
     default_transition = transitions.find { |t| t['condition'].blank? }
     default_transition&.dig('target_uuid')
-  end
-
-  # Resolve next step in linear mode using existing branch/path logic
-  def resolve_linear_next(step, results)
-    # First check for universal jumps
-    jump_result = check_jumps(step, results)
-    return step_id_at_index(jump_result) if jump_result.is_a?(Integer)
-
-    # Handle multi-branch format (new)
-    if step['branches'].present? && step['branches'].is_a?(Array) && step['branches'].length > 0
-      step['branches'].each do |branch|
-        branch_condition = branch['condition'] || branch[:condition]
-        branch_path = branch['path'] || branch[:path]
-
-        if branch_condition.present? && branch_path.present? && evaluate_condition(branch_condition, results)
-          return resolve_path_reference(branch_path)
-        end
-      end
-
-      # No branch matched, check else_path
-      if step['else_path'].present?
-        return resolve_path_reference(step['else_path'])
-      end
-    else
-      # Legacy format (true_path/false_path)
-      condition_result = evaluate_condition(step['condition'], results) if step['condition'].present?
-
-      if condition_result && step['true_path'].present?
-        return resolve_path_reference(step['true_path'])
-      elsif !condition_result && step['false_path'].present?
-        return resolve_path_reference(step['false_path'])
-      end
-    end
-
-    # Default: move to next step
-    current_index = @workflow.steps&.index(step)
-    return nil unless current_index
-
-    next_index = current_index + 1
-    if next_index < @workflow.steps.length
-      @workflow.steps[next_index]['id']
-    end
   end
 
   # Check universal jumps on any step type
@@ -201,24 +141,4 @@ class StepResolver
     ConditionEvaluator.evaluate(condition, results)
   end
 
-  # Resolve a path reference (ID or title) to a step ID
-  def resolve_path_reference(reference)
-    return nil if reference.blank?
-
-    # First try as UUID
-    if reference.match?(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && @workflow.find_step_by_id(reference)
-      return reference
-    end
-
-    # Try as title
-    step = @workflow.find_step_by_title(reference)
-    step&.dig('id')
-  end
-
-  # Get step ID at a given index
-  def step_id_at_index(index)
-    return nil unless @workflow.steps && index < @workflow.steps.length
-
-    @workflow.steps[index]['id']
-  end
 end
