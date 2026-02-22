@@ -206,8 +206,15 @@ module WorkflowParsers
       if match = stripped.match(/^\*\*Type\*\*:\s*(.+)$/i) || stripped.match(/^Type:\s*(.+)$/i)
         step_type = (match ? match[1] : ::Regexp.last_match(1)).strip.downcase
         # Auto-convert deprecated types
-        step_type = 'question' if %w[decision simple_decision].include?(step_type)
-        step_type = 'message' if step_type == 'checkpoint'
+        if %w[decision simple_decision].include?(step_type)
+          current_step[:_import_converted] = true
+          current_step[:_import_converted_from] = step_type
+          step_type = 'question'
+        elsif step_type == 'checkpoint'
+          current_step[:_import_converted] = true
+          current_step[:_import_converted_from] = 'checkpoint'
+          step_type = 'message'
+        end
         current_step[:type] = VALID_MD_TYPES.include?(step_type) ? step_type : 'action'
         return
       end
@@ -425,6 +432,12 @@ module WorkflowParsers
       # Add transitions if present (Graph Mode)
       if step[:transitions].present? && step[:transitions].any?
         normalized[:transitions] = step[:transitions]
+      end
+
+      # Preserve import conversion flags
+      if step[:_import_converted]
+        normalized[:_import_converted] = true
+        normalized[:_import_converted_from] = step[:_import_converted_from]
       end
 
       normalized

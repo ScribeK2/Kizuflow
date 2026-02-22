@@ -64,7 +64,7 @@ class WorkflowTest < ActiveSupport::TestCase
     # JSON stores keys as strings, not symbols
     assert_equal 2, workflow.steps.length
     assert_equal "question", workflow.steps.first["type"]
-    assert_equal "Decision 1", workflow.steps.last["title"]
+    assert_equal "Action 1", workflow.steps.last["title"]
   end
 
   test "recent scope should order by created_at desc" do

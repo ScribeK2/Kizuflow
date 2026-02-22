@@ -3,9 +3,7 @@
 module StepTypeIcons
   ICONS = {
     'question' => '?',
-    'decision' => '/',
     'action' => '!',
-    'checkpoint' => 'v',
     'sub_flow' => '~',
     'message' => 'm',
     'escalate' => '^',

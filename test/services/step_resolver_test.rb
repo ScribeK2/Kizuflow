@@ -7,15 +7,16 @@ class StepResolverTest < ActiveSupport::TestCase
     @user = users(:one)
   end
 
-  test "resolves next step in linear mode" do
+  test "resolves next step via transitions" do
     workflow = Workflow.create!(
-      title: "Linear Test",
+      title: "Sequential Test",
       user: @user,
-      graph_mode: false,
+      graph_mode: true,
+      start_node_uuid: 'a',
       steps: [
-        { 'id' => 'a', 'type' => 'question', 'title' => 'Q1', 'question' => 'Test?' },
-        { 'id' => 'b', 'type' => 'action', 'title' => 'A1', 'instructions' => 'Do something' },
-        { 'id' => 'c', 'type' => 'action', 'title' => 'A2', 'instructions' => 'Done' }
+        { 'id' => 'a', 'type' => 'question', 'title' => 'Q1', 'question' => 'Test?', 'transitions' => [{ 'target_uuid' => 'b' }] },
+        { 'id' => 'b', 'type' => 'action', 'title' => 'A1', 'instructions' => 'Do something', 'transitions' => [{ 'target_uuid' => 'c' }] },
+        { 'id' => 'c', 'type' => 'action', 'title' => 'A2', 'instructions' => 'Done', 'transitions' => [] }
       ]
     )
 

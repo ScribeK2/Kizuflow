@@ -407,8 +407,9 @@ class WorkflowParsersTest < ActiveSupport::TestCase
 
     assert_predicate result, :present?
     # Decision type should be auto-converted to question
-    converted_step = result[:steps].find { |s| s['title'] == 'Check' }
+    converted_step = result[:steps].find { |s| s['title']&.include?('Check') }
 
+    assert_predicate converted_step, :present?, "Should find the Check step"
     assert_equal 'question', converted_step['type'], "Decision should be auto-converted to question"
     assert converted_step['_import_converted'], "Should be flagged as converted"
   end

@@ -330,6 +330,12 @@ module WorkflowParsers
         normalized['jumps'] = step['jumps'] || step[:jumps]
       end
 
+      # Preserve import conversion flags from upstream parsers
+      if step[:_import_converted] || step['_import_converted']
+        normalized['_import_converted'] = true
+        normalized['_import_converted_from'] = step[:_import_converted_from] || step['_import_converted_from']
+      end
+
       # Mark incomplete steps
       normalized['_import_incomplete'] = is_step_incomplete?(normalized)
       normalized['_import_errors'] = step_errors(normalized) if normalized['_import_incomplete']

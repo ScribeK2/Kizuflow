@@ -68,10 +68,13 @@ module WorkflowParsers
       step_type = (row[:type] || row[:step_type] || 'action').to_s.downcase.strip
 
       # Auto-convert deprecated types
+      converted_from = nil
       if step_type == 'decision' || step_type == 'simple_decision'
+        converted_from = step_type
         add_warning("Row #{row_number}: Converting deprecated '#{step_type}' to 'question'")
         step_type = 'question'
       elsif step_type == 'checkpoint'
+        converted_from = 'checkpoint'
         add_warning("Row #{row_number}: Converting deprecated 'checkpoint' to 'message'")
         step_type = 'message'
       end
@@ -87,6 +90,12 @@ module WorkflowParsers
         title: row[:title] || row[:step_title] || "Step #{row_number}",
         description: row[:description] || row[:step_description] || ''
       }
+
+      # Flag steps that were auto-converted from deprecated types
+      if converted_from
+        step[:_import_converted] = true
+        step[:_import_converted_from] = converted_from
+      end
 
       case step_type
       when 'question'
