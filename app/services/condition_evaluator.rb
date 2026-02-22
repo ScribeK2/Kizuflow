@@ -1,5 +1,5 @@
 # Unified service for condition validation and evaluation
-# Used by both Workflow (validation) and Simulation (execution)
+# Used by both Workflow (validation) and Scenario (execution)
 #
 # Supported condition formats:
 #   - variable == 'value'    (string equality, case-insensitive)

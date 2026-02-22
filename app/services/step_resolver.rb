@@ -24,7 +24,7 @@ class StepResolver
 
   # Resolve the next step UUID from the current step
   # @param step [Hash] The current step hash
-  # @param results [Hash] Current simulation results (variable values)
+  # @param results [Hash] Current scenario results (variable values)
   # @return [String, SubflowMarker, nil] Next step UUID, sub-flow marker, or nil
   def resolve_next(step, results)
     return nil unless step
@@ -43,9 +43,9 @@ class StepResolver
 
   # Resolve the next step after a sub-flow completes (bypasses SubflowMarker interception).
   # This directly evaluates the sub_flow step's outgoing transitions/linear position
-  # to determine where the parent simulation should resume.
+  # to determine where the parent scenario should resume.
   # @param step [Hash] The sub_flow step that just completed
-  # @param results [Hash] Current simulation results
+  # @param results [Hash] Current scenario results
   # @return [String, nil] Next step UUID or nil
   def resolve_next_after_subflow(step, results)
     return nil unless step

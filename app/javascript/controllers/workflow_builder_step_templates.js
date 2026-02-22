@@ -193,7 +193,7 @@ export function getCheckpointFieldsHtml(stepData = {}) {
                 class="w-full border rounded px-3 py-2"
                 rows="2"
                 data-step-form-target="field">${escapeHtml(stepData.checkpoint_message || "")}</textarea>
-      <p class="mt-1 text-xs text-gray-500">This message will be shown when the simulation reaches this checkpoint.</p>
+      <p class="mt-1 text-xs text-gray-500">This message will be shown when the scenario reaches this checkpoint.</p>
     </div>
   `
 }

@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Handles simulation step interactivity:
+// Handles scenario step interactivity:
 // - Auto-advance on radio selection (yes/no, multiple choice)
 // - Auto-focus first input on connect
 // - Keyboard shortcuts (Enter = submit, Esc = cancel)
@@ -9,10 +9,10 @@ import { Controller } from "@hotwired/stimulus"
 // - ARIA live region announcements
 //
 // Usage:
-//   data-controller="simulation-step"
-//   data-simulation-step-auto-advance-value="true"
-//   data-simulation-step-step-info-value="Step 3: Ask customer name"
-//   data-simulation-step-cancel-url-value="/workflows/1"
+//   data-controller="scenario-step"
+//   data-scenario-step-auto-advance-value="true"
+//   data-scenario-step-step-info-value="Step 3: Ask customer name"
+//   data-scenario-step-cancel-url-value="/workflows/1"
 export default class extends Controller {
   static targets = ["form", "submit", "cancel", "input", "announce"]
   static values = {
@@ -62,7 +62,7 @@ export default class extends Controller {
       this.submitForm()
     } else if (event.key === "Escape") {
       event.preventDefault()
-      this.cancelSimulation()
+      this.cancelScenario()
     }
   }
 
@@ -119,14 +119,14 @@ export default class extends Controller {
     this.formTarget.requestSubmit()
   }
 
-  cancelSimulation() {
+  cancelScenario() {
     if (!this.cancelUrlValue) return
 
     // Trigger Turbo confirmation if the cancel link has one
     if (this.hasCancelTarget) {
       this.cancelTarget.click()
     } else {
-      if (confirm("Are you sure you want to cancel? Your simulation progress will be lost.")) {
+      if (confirm("Are you sure you want to cancel? Your scenario progress will be lost.")) {
         window.location.href = this.cancelUrlValue
       }
     }

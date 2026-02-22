@@ -1,23 +1,23 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Handles expand/collapse of individual execution path items on the simulation results page.
+// Handles expand/collapse of individual execution path items on the scenario results page.
 //
 // Usage:
-//   <div data-controller="simulation-results">
-//     <button data-action="click->simulation-results#expandAll">Expand All</button>
-//     <button data-action="click->simulation-results#collapseAll">Collapse All</button>
-//     <div data-simulation-results-target="item">
-//       <button data-action="click->simulation-results#toggle">
-//         <svg data-simulation-results-target="toggleIcon">...</svg>
+//   <div data-controller="scenario-results">
+//     <button data-action="click->scenario-results#expandAll">Expand All</button>
+//     <button data-action="click->scenario-results#collapseAll">Collapse All</button>
+//     <div data-scenario-results-target="item">
+//       <button data-action="click->scenario-results#toggle">
+//         <svg data-scenario-results-target="toggleIcon">...</svg>
 //       </button>
-//       <div data-simulation-results-target="details" class="hidden">...</div>
+//       <div data-scenario-results-target="details" class="hidden">...</div>
 //     </div>
 //   </div>
 export default class extends Controller {
   static targets = ["details", "toggleIcon", "item"]
 
   toggle(event) {
-    const item = event.currentTarget.closest("[data-simulation-results-target='item']")
+    const item = event.currentTarget.closest("[data-scenario-results-target='item']")
     if (!item) return
 
     const index = this.itemTargets.indexOf(item)
