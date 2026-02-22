@@ -11,8 +11,8 @@ class Workflow < ApplicationRecord
   has_many :group_workflows, dependent: :destroy
   has_many :groups, through: :group_workflows
 
-  # Simulation associations
-  has_many :simulations, dependent: :destroy
+  # Scenario associations
+  has_many :scenarios, dependent: :destroy
 
   # Sub-flow associations: track which workflows reference this one as a sub-flow
   has_many :referencing_workflows, class_name: 'Workflow', foreign_key: 'id', primary_key: 'id' do

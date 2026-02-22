@@ -6,7 +6,7 @@ class User < ApplicationRecord
          :lockable, :timeoutable
 
   has_many :workflows, dependent: :destroy
-  has_many :simulations, dependent: :destroy
+  has_many :scenarios, dependent: :destroy
   has_many :user_groups, dependent: :destroy
   has_many :groups, through: :user_groups
 

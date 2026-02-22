@@ -1,26 +1,26 @@
 require 'timeout'
 
-class Simulation < ApplicationRecord
-  include SimulationExecution
+class Scenario < ApplicationRecord
+  include ScenarioExecution
 
   belongs_to :workflow
   belongs_to :user
 
-  # Parent/child simulation associations for sub-flows
-  belongs_to :parent_simulation, class_name: 'Simulation', optional: true
-  has_many :child_simulations, class_name: 'Simulation', foreign_key: 'parent_simulation_id', dependent: :destroy
+  # Parent/child scenario associations for sub-flows
+  belongs_to :parent_scenario, class_name: 'Scenario', optional: true
+  has_many :child_scenarios, class_name: 'Scenario', foreign_key: 'parent_scenario_id', dependent: :destroy
 
   # Status constants
   STATUSES = %w[active completed stopped timeout error awaiting_subflow].freeze
 
-  # Simulation limits to prevent infinite loops and DoS
-  MAX_ITERATIONS = ENV.fetch("SIMULATION_MAX_ITERATIONS", 1000).to_i
-  MAX_EXECUTION_TIME = ENV.fetch("SIMULATION_MAX_SECONDS", 30).to_i # seconds
+  # Scenario limits to prevent infinite loops and DoS
+  MAX_ITERATIONS = ENV.fetch("SCENARIO_MAX_ITERATIONS", 1000).to_i
+  MAX_EXECUTION_TIME = ENV.fetch("SCENARIO_MAX_SECONDS", 30).to_i # seconds
   MAX_CONDITION_DEPTH = 50 # Max nested condition evaluations per step
 
   # Custom error classes
-  class SimulationTimeout < StandardError; end
-  class SimulationIterationLimit < StandardError; end
+  class ScenarioTimeout < StandardError; end
+  class ScenarioIterationLimit < StandardError; end
 
   # JSON columns - automatically serialized/deserialized
 
@@ -69,17 +69,17 @@ class Simulation < ApplicationRecord
     status == 'awaiting_subflow'
   end
 
-  # Get the active child simulation (if any)
-  def active_child_simulation
-    child_simulations.find_by(status: %w[active awaiting_subflow])
+  # Get the active child scenario (if any)
+  def active_child_scenario
+    child_scenarios.find_by(status: %w[active awaiting_subflow])
   end
 
-  # Check if simulation is stopped
+  # Check if scenario is stopped
   def stopped?
     status == 'stopped'
   end
 
-  # Check if simulation is complete
+  # Check if scenario is complete
   def complete?
     return true if status == 'completed'
     return true if stopped?
@@ -104,7 +104,7 @@ class Simulation < ApplicationRecord
 
   # Process a single step and advance
   # Returns false if step can't be processed, true otherwise
-  # Raises SimulationIterationLimit if max iterations exceeded
+  # Raises ScenarioIterationLimit if max iterations exceeded
   def process_step(answer = nil)
     return false if complete?
     return false if stopped?
@@ -136,9 +136,9 @@ class Simulation < ApplicationRecord
     if iteration_count > MAX_ITERATIONS
       self.status = 'error'
       self.results ||= {}
-      self.results['_error'] = "Simulation exceeded maximum iterations (#{MAX_ITERATIONS})"
+      self.results['_error'] = "Scenario exceeded maximum iterations (#{MAX_ITERATIONS})"
       save
-      raise SimulationIterationLimit, "Simulation exceeded maximum of #{MAX_ITERATIONS} steps"
+      raise ScenarioIterationLimit, "Scenario exceeded maximum of #{MAX_ITERATIONS} steps"
     end
 
     # Initialize execution_path if needed
@@ -271,7 +271,7 @@ class Simulation < ApplicationRecord
   end
 
   # Process a resolve step (Graph Mode)
-  # Resolve steps are always terminal and complete the simulation
+  # Resolve steps are always terminal and complete the scenario
   def process_resolve_step(step, path_entry)
     path_entry[:resolved] = true
     self.results ||= {}
@@ -287,12 +287,12 @@ class Simulation < ApplicationRecord
 
     self.execution_path << path_entry
 
-    # Resolve steps are always terminal - complete the simulation
+    # Resolve steps are always terminal - complete the scenario
     self.status = 'completed'
     self.current_node_uuid = nil if graph_mode?
   end
 
-  # Process a sub-flow step - creates child simulation
+  # Process a sub-flow step - creates child scenario
   def process_subflow_step(step, path_entry)
     target_workflow_id = step['target_workflow_id']
     target_workflow = Workflow.find_by(id: target_workflow_id)
@@ -309,12 +309,12 @@ class Simulation < ApplicationRecord
     self.resume_node_uuid = step['id']
 
     # Stop any stale active children from previous sub-flow attempts (e.g. back navigation)
-    # to prevent active_child_simulation from finding the wrong child later.
-    child_simulations.where(status: %w[active awaiting_subflow]).find_each do |stale_child|
+    # to prevent active_child_scenario from finding the wrong child later.
+    child_scenarios.where(status: %w[active awaiting_subflow]).find_each do |stale_child|
       stale_child.update!(status: 'stopped')
     end
 
-    # Create child simulation with inherited variables
+    # Create child scenario with inherited variables
     child_results = self.results.dup || {}
 
     # Apply variable mapping if defined
@@ -325,10 +325,10 @@ class Simulation < ApplicationRecord
       end
     end
 
-    child_simulation = Simulation.create!(
+    child_scenario = Scenario.create!(
       workflow: target_workflow,
       user: user,
-      parent_simulation: self,
+      parent_scenario: self,
       results: child_results,
       inputs: {},
       status: 'active'
@@ -336,11 +336,11 @@ class Simulation < ApplicationRecord
 
     # Initialize child's starting position
     if target_workflow.graph_mode?
-      child_simulation.update!(current_node_uuid: target_workflow.start_node_uuid)
+      child_scenario.update!(current_node_uuid: target_workflow.start_node_uuid)
     end
 
     path_entry[:subflow_started] = true
-    path_entry[:child_simulation_id] = child_simulation.id
+    path_entry[:child_scenario_id] = child_scenario.id
     path_entry[:target_workflow_title] = target_workflow.title
     self.execution_path << path_entry
 
@@ -355,7 +355,7 @@ class Simulation < ApplicationRecord
 
   # Process completion of a sub-flow
   def process_subflow_completion
-    child = active_child_simulation || child_simulations.where(status: 'completed').order(updated_at: :desc).first
+    child = active_child_scenario || child_scenarios.where(status: 'completed').order(updated_at: :desc).first
 
     # If child is still running, wait
     return false if child && !child.complete?
@@ -398,7 +398,7 @@ class Simulation < ApplicationRecord
       # Guard against self-loop: if the resolved next step is the same sub_flow step
       # we just completed, treat it as end-of-workflow rather than looping infinitely.
       if next_uuid == resume_node_uuid
-        Rails.logger.warn "[Simulation ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
+        Rails.logger.warn "[Scenario ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
         advance_to_step_uuid(nil)
       else
         advance_to_step_uuid(next_uuid)
@@ -449,7 +449,7 @@ class Simulation < ApplicationRecord
                              end
   end
 
-  # Check if simulation is complete
+  # Check if scenario is complete
   def check_completion
     return if %w[stopped awaiting_subflow].include?(status)
 
@@ -515,18 +515,18 @@ class Simulation < ApplicationRecord
     return false unless workflow.present? && inputs.present?
 
     # Wrap execution with timeout protection
-    Timeout.timeout(MAX_EXECUTION_TIME, SimulationTimeout) do
+    Timeout.timeout(MAX_EXECUTION_TIME, ScenarioTimeout) do
       execute_with_limits
     end
-  rescue SimulationTimeout
+  rescue ScenarioTimeout
     self.status = 'timeout'
     self.results ||= {}
-    self.results['_error'] = "Simulation timed out after #{MAX_EXECUTION_TIME} seconds"
+    self.results['_error'] = "Scenario timed out after #{MAX_EXECUTION_TIME} seconds"
     save
-    Rails.logger.warn "Simulation #{id} timed out for workflow #{workflow_id}"
+    Rails.logger.warn "Scenario #{id} timed out for workflow #{workflow_id}"
     false
-  rescue SimulationIterationLimit
-    Rails.logger.warn "Simulation #{id} hit iteration limit for workflow #{workflow_id}"
+  rescue ScenarioIterationLimit
+    Rails.logger.warn "Scenario #{id} hit iteration limit for workflow #{workflow_id}"
     false
   end
 
@@ -564,22 +564,22 @@ class Simulation < ApplicationRecord
   def resolve_step_reference(reference)
     return nil if reference.blank?
 
-    Rails.logger.debug { "[Simulation ##{id}] resolve_step_reference: '#{reference}'" }
+    Rails.logger.debug { "[Scenario ##{id}] resolve_step_reference: '#{reference}'" }
 
     # First try to resolve to ID using workflow's helper (handles both IDs and titles)
     step_id = workflow.resolve_step_reference_to_id(reference)
     if step_id.present?
       step = find_step_by_id(step_id)
-      Rails.logger.debug { "[Simulation ##{id}] Resolved via ID: #{step ? step['title'] : 'NOT FOUND'}" }
+      Rails.logger.debug { "[Scenario ##{id}] Resolved via ID: #{step ? step['title'] : 'NOT FOUND'}" }
       return step if step
     end
 
     # Fallback to title-based lookup for backward compatibility
     step = find_step_by_title(reference)
-    Rails.logger.debug { "[Simulation ##{id}] Resolved via title: #{step ? step['title'] : 'NOT FOUND'}" }
+    Rails.logger.debug { "[Scenario ##{id}] Resolved via title: #{step ? step['title'] : 'NOT FOUND'}" }
 
     unless step
-      Rails.logger.error "[Simulation ##{id}] Could not resolve '#{reference}'. Available: #{workflow.steps.map { |s| s['title'] }}"
+      Rails.logger.error "[Scenario ##{id}] Could not resolve '#{reference}'. Available: #{workflow.steps.map { |s| s['title'] }}"
     end
 
     step

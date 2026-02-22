@@ -1,6 +1,6 @@
-# Extracted execution logic for Simulation model.
+# Extracted execution logic for Scenario model.
 # Contains determine_next_step_index and execute_with_limits.
-module SimulationExecution
+module ScenarioExecution
   extend ActiveSupport::Concern
 
   def determine_next_step_index(step, results)
@@ -29,7 +29,7 @@ module SimulationExecution
         self.results = results.merge('_error' => "Exceeded maximum iterations (#{self.class::MAX_ITERATIONS})")
         self.execution_path = path
         save
-        raise Simulation::SimulationIterationLimit, "Simulation exceeded maximum of #{self.class::MAX_ITERATIONS} iterations"
+        raise Scenario::ScenarioIterationLimit, "Scenario exceeded maximum of #{self.class::MAX_ITERATIONS} iterations"
       end
 
       path << {
@@ -47,7 +47,7 @@ module SimulationExecution
     self.results = results
     save
   rescue StandardError => e
-    Rails.logger.error "Simulation execution failed: #{e.message}"
+    Rails.logger.error "Scenario execution failed: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
     false
   end
