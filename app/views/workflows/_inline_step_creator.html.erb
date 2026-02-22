@@ -90,20 +90,13 @@
           </button>
         </div>
       <% else %>
-        <%# Linear Mode: Show Question, Decision, Action, Checkpoint %>
+        <%# Non-graph mode: Same step types without graph-specific UI %>
         <div class="grid grid-cols-4 gap-2">
           <button type="button"
                   data-action="click->inline-step-creator#createStep"
                   data-step-type="question"
                   class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
             <span class="text-xs font-medium text-white">Question</span>
-          </button>
-
-          <button type="button"
-                  data-action="click->inline-step-creator#createStep"
-                  data-step-type="decision"
-                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-slate-600 hover:bg-slate-700">
-            <span class="text-xs font-medium text-white">Decision</span>
           </button>
 
           <button type="button"
@@ -115,9 +108,16 @@
 
           <button type="button"
                   data-action="click->inline-step-creator#createStep"
-                  data-step-type="checkpoint"
-                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-amber-500 hover:bg-amber-600">
-            <span class="text-xs font-medium text-white">Checkpoint</span>
+                  data-step-type="message"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-cyan-500 hover:bg-cyan-600">
+            <span class="text-xs font-medium text-white">Message</span>
+          </button>
+
+          <button type="button"
+                  data-action="click->inline-step-creator#createStep"
+                  data-step-type="sub_flow"
+                  class="flex items-center justify-center p-2.5 rounded-full transition-all duration-200 hover:scale-105 bg-indigo-500 hover:bg-indigo-600">
+            <span class="text-xs font-medium text-white">Sub-flow</span>
           </button>
         </div>
       <% end %>

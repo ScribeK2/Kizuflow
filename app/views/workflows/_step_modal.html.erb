@@ -36,9 +36,9 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <% [
                 { value: 'question', label: 'Question', icon: '?', color: 'slate' },
-                { value: 'decision', label: 'Decision', icon: '/', color: 'slate' },
                 { value: 'action', label: 'Action', icon: '!', color: 'emerald' },
-                { value: 'checkpoint', label: 'Checkpoint', icon: 'v', color: 'amber' }
+                { value: 'message', label: 'Message', icon: 'i', color: 'cyan' },
+                { value: 'sub_flow', label: 'Sub-Flow', icon: '↪', color: 'indigo' }
               ].each do |type| %>
                 <label class="flex flex-col items-center gap-1 p-3 border-2 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-slate-300 dark:border-slate-600 step-type-option"
                        data-step-type-option="<%= type[:value] %>"
@@ -130,20 +130,7 @@
                          id="modal-step-variable-name"
                          placeholder="e.g., user_name, age, etc."
                          class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional: Name this answer for use in decision steps</p>
-                </div>
-              </div>
-
-              <%# Decision fields %>
-              <div id="decision-fields" class="hidden">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Condition</label>
-                  <input type="text"
-                         name="condition"
-                         id="modal-step-condition"
-                         placeholder="e.g., variable_name == 'value'"
-                         class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400">
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">You can add branches after creating the step</p>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional: Name this answer for use in transition conditions</p>
                 </div>
               </div>
 
@@ -167,9 +154,21 @@
                 </div>
               </div>
 
-              <%# Checkpoint fields %>
-              <div id="checkpoint-fields" class="hidden">
-                <p class="text-sm text-gray-600 dark:text-gray-400">Checkpoint steps mark important milestones in your workflow.</p>
+              <%# Message fields %>
+              <div id="message-fields" class="hidden">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message Content</label>
+                  <textarea name="content"
+                            id="modal-step-content"
+                            placeholder="Message to display..."
+                            rows="3"
+                            class="w-full border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400"></textarea>
+                </div>
+              </div>
+
+              <%# Sub-Flow fields %>
+              <div id="sub_flow-fields" class="hidden">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Sub-flow steps launch another workflow as a child process.</p>
               </div>
             </div>
           </div>

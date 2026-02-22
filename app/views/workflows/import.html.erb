@@ -323,7 +323,7 @@ Resolution Notes: Customer inquiry handled</code></pre>
           <div class="px-4 pb-4">
             <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
               Files from older versions without explicit transitions are automatically converted to Graph Mode during import.
-              Legacy step types (<code>decision</code>, <code>checkpoint</code>) and formats (<code>branches</code>, <code>true_path</code>/<code>false_path</code>) are converted to the appropriate Graph Mode equivalents.
+              Legacy step types (<code>decision</code>, <code>checkpoint</code>) are auto-converted: decision/simple_decision becomes <code>question</code>, checkpoint becomes <code>message</code>. Legacy formats (<code>branches</code>, <code>true_path</code>/<code>false_path</code>) are converted to Graph Mode transitions.
             </p>
             <pre class="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 text-xs overflow-x-auto"><code>{
   "title": "Legacy Workflow",

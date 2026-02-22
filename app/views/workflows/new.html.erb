@@ -67,10 +67,9 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
           <div class="flex space-x-2">
             <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Question</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="decision" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Decision</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Action</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="checkpoint" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">Add Checkpoint</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="sub_flow" data-step-type="sub_flow" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105" data-workflow-builder-target="subflowButton">Add Sub-flow</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Action</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="message" class="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Message</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="sub_flow" data-step-type="sub_flow" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Sub-flow</button>
           </div>
         </div>
         <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-slate-50 dark:bg-slate-800/50">
@@ -86,9 +85,9 @@
       <script type="application/json" id="step-templates-data">
         {
           "question": <%= raw json_escape(StepTemplate.all_for_type(:question).to_json) %>,
-          "decision": <%= raw json_escape(StepTemplate.all_for_type(:decision).to_json) %>,
           "action": <%= raw json_escape(StepTemplate.all_for_type(:action).to_json) %>,
-          "checkpoint": []
+          "message": [],
+          "sub_flow": []
         }
       </script>
 

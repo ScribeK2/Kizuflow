@@ -45,9 +45,7 @@
       <% steps = @workflow.steps || [] %>
       <% has_steps = steps.length > 0 %>
       <% all_have_titles = steps.all? { |s| s.is_a?(Hash) && s['title'].present? && s['title'].to_s.strip.present? } %>
-      <% decision_steps = steps.select { |s| s.is_a?(Hash) && s['type'] == 'decision' } %>
-      <% all_decisions_have_branches = decision_steps.all? { |s| s['branches'].is_a?(Array) && s['branches'].any? } %>
-      <% all_pass = has_steps && all_have_titles && all_decisions_have_branches %>
+      <% all_pass = has_steps && all_have_titles %>
       <div class="rounded-lg p-4 border <%= all_pass ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' %>">
         <h3 class="text-sm font-semibold <%= all_pass ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' %> mb-2">Validation Summary</h3>
         <ul class="space-y-1 text-sm">
@@ -70,17 +68,6 @@
                 <span class="text-gray-700 dark:text-gray-300">Some steps are missing titles</span>
               <% end %>
             </li>
-            <% if decision_steps.any? %>
-              <li class="flex items-center gap-2">
-                <% if all_decisions_have_branches %>
-                  <span class="text-emerald-600 dark:text-emerald-400">&#10003;</span>
-                  <span class="text-gray-700 dark:text-gray-300">All decision steps have branches configured</span>
-                <% else %>
-                  <span class="text-amber-500 dark:text-amber-400">&#9888;</span>
-                  <span class="text-gray-700 dark:text-gray-300">Some decision steps are missing branch configuration</span>
-                <% end %>
-              </li>
-            <% end %>
           <% end %>
         </ul>
       </div>
@@ -109,7 +96,7 @@
             <p class="text-gray-500 dark:text-gray-400 text-center py-8">Loading preview...</p>
           </div>
           <div class="px-6 pb-6 text-xs text-gray-500 dark:text-gray-400">
-            <p><%= ui_svg_icon('lightbulb', css_classes: "w-4 h-4 inline-block align-text-bottom") %> Tip: Click on any step in the flowchart to edit it. Decision branches are shown in green (Yes) and red (No).</p>
+            <p><%= ui_svg_icon('lightbulb', css_classes: "w-4 h-4 inline-block align-text-bottom") %> Tip: Click on any step in the flowchart to edit it. Transitions are shown as connections between steps.</p>
           </div>
         </div>
       <% else %>

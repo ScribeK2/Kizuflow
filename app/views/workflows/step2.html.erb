@@ -48,7 +48,7 @@
                 </button>
 
                 <% if @workflow.graph_mode? %>
-                  <%# Graph Mode: Show Message, Escalate, Resolve instead of Decision, Checkpoint %>
+                  <%# Graph Mode: Show all step types with graph-specific UI %>
                   <button type="button"
                           data-action="click->workflow-builder#addStepDirect"
                           data-step-type="message"
@@ -80,12 +80,12 @@
                     Sub-flow
                   </button>
                 <% else %>
-                  <%# Linear Mode: Show Decision, Action, Checkpoint %>
+                  <%# Non-graph mode: Same step types without graph-specific UI %>
                   <button type="button"
                           data-action="click->workflow-builder#addStepDirect"
-                          data-step-type="decision"
-                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-slate-600 hover:bg-slate-700">
-                    Decision
+                          data-step-type="message"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-cyan-500 hover:bg-cyan-600">
+                    Message
                   </button>
                   <button type="button"
                           data-action="click->workflow-builder#addStepDirect"
@@ -95,18 +95,10 @@
                   </button>
                   <button type="button"
                           data-action="click->workflow-builder#addStepDirect"
-                          data-step-type="checkpoint"
-                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-amber-500 hover:bg-amber-600">
-                    Checkpoint
+                          data-step-type="sub_flow"
+                          class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
+                    Sub-flow
                   </button>
-                  <% if current_user&.admin? %>
-                    <button type="button"
-                            data-action="click->workflow-builder#addStepDirect"
-                            data-step-type="sub_flow"
-                            class="inline-flex items-center text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
-                      Sub-flow
-                    </button>
-                  <% end %>
                 <% end %>
               </div>
             </div>
@@ -268,9 +260,9 @@
           <% else %>
             <button type="button"
                     data-action="click->floating-step-adder#addStep"
-                    data-step-type="decision"
-                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-slate-600 hover:bg-slate-700">
-              Decision
+                    data-step-type="message"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-cyan-500 hover:bg-cyan-600">
+              Message
             </button>
             <button type="button"
                     data-action="click->floating-step-adder#addStep"
@@ -280,9 +272,9 @@
             </button>
             <button type="button"
                     data-action="click->floating-step-adder#addStep"
-                    data-step-type="checkpoint"
-                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-amber-500 hover:bg-amber-600">
-              Checkpoint
+                    data-step-type="sub_flow"
+                    class="inline-flex items-center text-white px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 bg-indigo-500 hover:bg-indigo-600">
+              Sub-flow
             </button>
           <% end %>
         </div>
