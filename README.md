@@ -2,12 +2,12 @@
 
 <img width="1535" height="1282" alt="image" src="https://github.com/user-attachments/assets/3b67a44b-b412-438a-9938-48b1d3f1d085" />
 
-A workflow builder for call/chat centers to create, simulate, and manage training and troubleshooting flows. Built as a Ruby on Rails monolith using Hotwire for interactivity.
+A workflow builder for call/chat centers to create, run scenarios, and manage training and troubleshooting flows. Built as a Ruby on Rails monolith using Hotwire for interactivity.
 
 ## Features
 
 - **Workflow Builder** - Drag-and-drop interface with four step types: questions, decisions, actions, and checkpoints
-- **Simulation Mode** - Test workflows step-by-step with input tracking and execution paths
+- **Scenario Mode** - Test workflows step-by-step with input tracking and execution paths
 - **Real-Time Collaboration** - Multi-user editing with presence indicators via Action Cable
 - **Template Library** - Pre-built workflows for onboarding, troubleshooting, and training
 - **Import/Export** - Import from JSON, CSV, YAML, Markdown; export to JSON or PDF
@@ -53,7 +53,7 @@ Visit `http://localhost:3000` to access the application.
 1. **Sign up** with email and password
 2. **Create a workflow** from scratch or use a template
 3. **Add steps** using the drag-and-drop builder
-4. **Test** with simulation mode
+4. **Test** with scenario mode
 5. **Export** as JSON or PDF
 
 ## Running Tests
