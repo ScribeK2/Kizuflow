@@ -1,5 +1,4 @@
 # Workflow View Helpers
-# Sprint 1: Decision Step Revolution helpers for improved UX
 module WorkflowsHelper
   include StepTypeIcons
 
@@ -10,9 +9,7 @@ module WorkflowsHelper
   # SVG path data for step type icons (Heroicons-style, 24x24, stroke-based)
   STEP_TYPE_SVG_PATHS = {
     'question' => "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-    'decision' => "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
     'action' => "M13 10V3L4 14h7v7l9-11h-7z",
-    'checkpoint' => "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z",
     'sub_flow' => "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
     'message' => "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z",
     'escalate' => "M5 10l7-7m0 0l7 7m-7-7v18",
@@ -36,9 +33,11 @@ module WorkflowsHelper
   def step_type_label(type)
     case type
     when 'question' then 'Question'
-    when 'decision' then 'Decision'
     when 'action' then 'Action'
-    when 'checkpoint' then 'Checkpoint'
+    when 'message' then 'Message'
+    when 'sub_flow' then 'Sub-flow'
+    when 'escalate' then 'Escalate'
+    when 'resolve' then 'Resolve'
     else type&.titleize || 'Step'
     end
   end
@@ -83,12 +82,16 @@ module WorkflowsHelper
     case type
     when 'question'
       "#{base} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-    when 'decision'
-      "#{base} bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
     when 'action'
       "#{base} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-    when 'checkpoint'
-      "#{base} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+    when 'message'
+      "#{base} bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300"
+    when 'sub_flow'
+      "#{base} bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+    when 'escalate'
+      "#{base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+    when 'resolve'
+      "#{base} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
     else
       "#{base} bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
     end
@@ -210,9 +213,7 @@ module WorkflowsHelper
 
     dot_colors = {
       'question' => 'bg-blue-500',
-      'decision' => 'bg-purple-500',
       'action' => 'bg-emerald-500',
-      'checkpoint' => 'bg-amber-500',
       'message' => 'bg-cyan-500',
       'escalate' => 'bg-red-500',
       'resolve' => 'bg-green-500',
@@ -221,9 +222,7 @@ module WorkflowsHelper
 
     dot_labels = {
       'question' => 'Question',
-      'decision' => 'Decision',
       'action' => 'Action',
-      'checkpoint' => 'Checkpoint',
       'message' => 'Message',
       'escalate' => 'Escalate',
       'resolve' => 'Resolve',

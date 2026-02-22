@@ -82,23 +82,6 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
     assert(workflow.errors[:steps].any? { |e| e.include?("Too many options") })
   end
 
-  test "step with too many branches is rejected" do
-    many_branches = 51.times.map { |i| { "condition" => "var == '#{i}'", "path" => "Step #{i}" } }
-
-    workflow = Workflow.new(
-      title: "Too Many Branches",
-      user: @user,
-      steps: [{
-        "type" => "decision",
-        "title" => "Step 1",
-        "branches" => many_branches
-      }]
-    )
-
-    assert_not workflow.valid?
-    assert(workflow.errors[:steps].any? { |e| e.include?("Too many branches") })
-  end
-
   test "workflow title exceeding 255 characters is rejected" do
     long_title = "A" * 256
 
@@ -125,12 +108,11 @@ class WorkflowSizeLimitsTest < ActiveSupport::TestCase
           "variable_name" => "name"
         },
         {
-          "type" => "decision",
+          "type" => "question",
           "title" => "Decision Step",
-          "branches" => [
-            { "condition" => "name == 'test'", "path" => "Action Step" }
-          ],
-          "else_path" => "Question Step"
+          "question" => "Is the name correct?",
+          "answer_type" => "text",
+          "variable_name" => "confirmation"
         },
         {
           "type" => "action",

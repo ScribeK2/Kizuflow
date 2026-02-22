@@ -53,7 +53,7 @@ class WorkflowTest < ActiveSupport::TestCase
   test "should store steps as JSON" do
     steps = [
       { type: "question", title: "Question 1", description: "First question", question: "What is your name?" },
-      { type: "decision", title: "Decision 1", condition: "answer == 'yes'" }
+      { type: "action", title: "Action 1", instructions: "Check the answer" }
     ]
     workflow = Workflow.create!(
       title: "Test Workflow",
@@ -64,7 +64,7 @@ class WorkflowTest < ActiveSupport::TestCase
     # JSON stores keys as strings, not symbols
     assert_equal 2, workflow.steps.length
     assert_equal "question", workflow.steps.first["type"]
-    assert_equal "Decision 1", workflow.steps.last["title"]
+    assert_equal "Action 1", workflow.steps.last["title"]
   end
 
   test "recent scope should order by created_at desc" do

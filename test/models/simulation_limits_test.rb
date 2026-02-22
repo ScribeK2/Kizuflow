@@ -25,40 +25,47 @@ class SimulationLimitsTest < ActiveSupport::TestCase
     assert_includes Simulation::STATUSES, 'error'
   end
 
-  test "execute_with_limits stops at iteration limit" do
-    # Create a workflow with an infinite loop (branches back to step 1)
-    workflow = Workflow.create!(
+  test "process_step stops at iteration limit" do
+    # Create a graph-mode workflow with an infinite loop (action loops back to question)
+    workflow = Workflow.new(
       title: "Infinite Loop Workflow",
       user: @user,
+      graph_mode: true,
+      start_node_uuid: 'step-1',
       steps: [
         {
+          "id" => "step-1",
           "type" => "question",
           "title" => "Step 1",
           "question" => "What?",
-          "variable_name" => "answer"
+          "variable_name" => "answer",
+          "transitions" => [{ "target_uuid" => "step-2" }]
         },
         {
-          "type" => "decision",
+          "id" => "step-2",
+          "type" => "action",
           "title" => "Loop Back",
-          "branches" => [
-            { "condition" => "answer == 'loop'", "path" => "Step 1" }
-          ],
-          "else_path" => "Step 1" # Always loops back
+          "instructions" => "Continue looping",
+          "transitions" => [{ "target_uuid" => "step-1" }]
         }
       ]
     )
+    workflow.save!(validate: false)
 
     simulation = Simulation.create!(
       workflow: workflow,
       user: @user,
       status: 'active',
+      current_node_uuid: 'step-1',
       inputs: { "answer" => "loop" }
     )
 
-    # Execute should return false when hitting limits
-    result = simulation.execute
-
-    assert_not result, "Execute should return false when hitting iteration limit"
+    # Process steps in a loop until iteration limit is hit
+    assert_raises(Simulation::SimulationIterationLimit) do
+      (Simulation::MAX_ITERATIONS + 10).times do
+        break unless simulation.process_step("loop")
+      end
+    end
 
     simulation.reload
 

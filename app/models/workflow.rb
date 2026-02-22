@@ -31,10 +31,9 @@ class Workflow < ApplicationRecord
   validate :validate_subflow_circular_references, if: :has_subflow_steps?
 
   # Valid step types for workflows
-  # Note: simple_decision is a variant of decision used for yes/no routing
   # Note: sub_flow is used for calling other workflows as sub-routines
   # Note: message, escalate, resolve are Graph Mode step types
-  VALID_STEP_TYPES = %w[question decision simple_decision action checkpoint sub_flow message escalate resolve].freeze
+  VALID_STEP_TYPES = %w[question action sub_flow message escalate resolve].freeze
 
   # Size limits to prevent DoS and ensure performance
   # These can be overridden via environment variables if needed
@@ -239,9 +238,6 @@ class Workflow < ApplicationRecord
       is_complete = case step['type']
                     when 'question'
                       step['question'].present?
-                    when 'decision'
-                      branches = step['branches'] || []
-                      branches.any? { |b| b['condition'].present? && b['path'].present? }
                     when 'action'
                       step['instructions'].present?
                     else
@@ -366,51 +362,9 @@ class Workflow < ApplicationRecord
 
   # Migrate all step references in branches from title-based to ID-based
   # This is idempotent - safe to run multiple times
+  # Deprecated: decision steps have been removed. This method is a no-op.
   def migrate_step_references_to_ids!
-    return false unless steps.present?
-
-    changed = false
-
-    steps.each do |step|
-      next unless step.is_a?(Hash) && step['type'] == 'decision'
-
-      # Migrate branch paths
-      if step['branches'].present? && step['branches'].is_a?(Array)
-        step['branches'].each do |branch|
-          path = branch['path'] || branch[:path]
-          next unless path.present?
-
-          new_id = resolve_step_reference_to_id(path)
-          if new_id && new_id != path
-            branch['path'] = new_id
-            changed = true
-          end
-        end
-      end
-
-      # Migrate else_path
-      if step['else_path'].present?
-        new_id = resolve_step_reference_to_id(step['else_path'])
-        if new_id && new_id != step['else_path']
-          step['else_path'] = new_id
-          changed = true
-        end
-      end
-
-      # Migrate legacy paths
-      %w[true_path false_path].each do |path_key|
-        next unless step[path_key].present?
-
-        new_id = resolve_step_reference_to_id(step[path_key])
-        if new_id && new_id != step[path_key]
-          step[path_key] = new_id
-          changed = true
-        end
-      end
-    end
-
-    save if changed
-    changed
+    false
   end
 
   # ============================================================================

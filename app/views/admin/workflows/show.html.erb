@@ -66,17 +66,6 @@
                 <% if step['type'] == 'question' && step['question'].present? %>
                   <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step['question'] %></p>
                 <% end %>
-                <% if step['type'] == 'decision' %>
-                  <div class="ml-11 mt-2 text-sm">
-                    <p class="text-gray-600 dark:text-gray-300"><strong>Condition:</strong> <%= step['condition'] %></p>
-                    <% if step['true_path'].present? %>
-                      <p class="text-green-600 dark:text-green-400 mt-1">✓ True → <%= step['true_path'] %></p>
-                    <% end %>
-                    <% if step['false_path'].present? %>
-                      <p class="text-red-600 dark:text-red-400 mt-1">✗ False → <%= step['false_path'] %></p>
-                    <% end %>
-                  </div>
-                <% end %>
                 <% if step['type'] == 'action' && step['instructions'].present? %>
                   <div class="ml-11 mt-2 text-sm text-gray-600 dark:text-gray-300">
                     <strong>Instructions:</strong> <%= step['instructions'] %>

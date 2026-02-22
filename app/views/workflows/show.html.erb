@@ -58,7 +58,7 @@
     <% if @workflow.steps.present? && @workflow.steps.any? %>
       <div class="p-6 space-y-4">
         <% @workflow.steps.each_with_index do |step, index| %>
-          <div class="<%= step['type'] == 'checkpoint' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700' %> border rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;" data-controller="image-lightbox">
+          <div class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;" data-controller="image-lightbox">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center mb-2">
@@ -66,7 +66,7 @@
                     <%= index + 1 %>
                   </span>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= step['title'] %></h3>
-                  <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= step['type'] == 'checkpoint' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300' : step['type'] == 'decision' ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300' : step['type'] == 'action' ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300' %>">
+                  <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300">
                     <%= step['type'] %>
                   </span>
                 </div>
@@ -76,35 +76,10 @@
                 <% if step['type'] == 'question' && step['question'].present? %>
                   <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step['question'] %></p>
                 <% end %>
-                <% if step['type'] == 'decision' %>
-                  <div class="ml-11 mt-2 text-sm">
-                    <p class="text-gray-600 dark:text-gray-300"><strong>Condition:</strong> <%= step['condition'] %></p>
-                    <% if step['true_path'].present? %>
-                      <p class="text-emerald-600 dark:text-emerald-400 mt-1">True: <%= step['true_path'] %></p>
-                    <% end %>
-                    <% if step['false_path'].present? %>
-                      <p class="text-red-600 dark:text-red-400 mt-1">False: <%= step['false_path'] %></p>
-                    <% end %>
-                  </div>
-                <% end %>
                 <% if step['type'] == 'action' && step['instructions'].present? %>
                   <div class="ml-11 mt-2 text-sm text-gray-600 dark:text-gray-300">
                     <strong>Instructions:</strong>
                     <%= render_step_markdown(step['instructions']) %>
-                  </div>
-                <% end %>
-                <% if step['type'] == 'checkpoint' %>
-                  <div class="ml-11 mt-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-lg p-3">
-                    <div class="flex items-start">
-                      <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div class="flex-1">
-                        <p class="text-sm text-emerald-800 dark:text-emerald-300">
-                          <strong>Checkpoint:</strong> Users can mark the issue as resolved here to complete the workflow early, or continue to the next step.
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 <% end %>
               </div>

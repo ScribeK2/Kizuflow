@@ -285,12 +285,6 @@ class WorkflowsController < ApplicationController
           pdf.text "Variable: #{step['variable_name']}", size: 9, style: :italic if step['variable_name'].present?
         when 'action'
           pdf.text "Instructions: #{step['instructions']}", size: 10 if step['instructions'].present?
-        when 'decision'
-          if step['branches'].present?
-            step['branches'].each_with_index do |branch, bi|
-              pdf.text "  Branch #{bi + 1}: #{branch['condition']} → #{branch['path']}", size: 9
-            end
-          end
         when 'message'
           pdf.text "Message: #{step['content']}", size: 10 if step['content'].present?
         when 'escalate'
@@ -377,15 +371,10 @@ class WorkflowsController < ApplicationController
       step['answer_type'] = step_data[:answer_type] || 'yes_no'
       step['variable_name'] = step_data[:variable_name] || ''
       step['options'] = step_data[:options] || []
-    when 'decision'
-      step['branches'] = step_data[:branches] || []
-      step['else_path'] = step_data[:else_path] || ''
     when 'action'
       step['action_type'] = step_data[:action_type] || 'Instruction'
       step['instructions'] = step_data[:instructions] || ''
       step['attachments'] = step_data[:attachments] || []
-    when 'checkpoint'
-      step['checkpoint_message'] = step_data[:checkpoint_message] || ''
     when 'sub_flow'
       step['target_workflow_id'] = step_data[:target_workflow_id] || ''
       step['variable_mapping'] = step_data[:variable_mapping] || {}
@@ -739,8 +728,8 @@ class WorkflowsController < ApplicationController
                                      :graph_mode, :start_node_uuid,
                                      steps: [
                                        :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
-                                       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
-                                       :checkpoint_message, :target_workflow_id,
+                                       :else_path, :action_type, :instructions,
+                                       :target_workflow_id,
                                        :content,
                                        :target_type, :target_value, :priority, :reason_required, :notes,
                                        :resolution_type, :resolution_code, :notes_required, :survey_trigger,
@@ -765,8 +754,8 @@ class WorkflowsController < ApplicationController
     # Added: target_workflow_id for sub-flow steps, transitions for graph mode
     params.require(:workflow).permit(steps: [
                                        :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
-                                       :condition, :true_path, :false_path, :else_path, :action_type, :instructions,
-                                       :checkpoint_message, :target_workflow_id,
+                                       :else_path, :action_type, :instructions,
+                                       :target_workflow_id,
                                        :content,
                                        :target_type, :target_value, :priority, :reason_required, :notes,
                                        :resolution_type, :resolution_code, :notes_required, :survey_trigger,

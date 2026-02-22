@@ -138,46 +138,6 @@
         <% end %>
       </div>
       
-    <% when "decision" %>
-      <div class="space-y-2">
-        <% if step["title"].present? %>
-          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(step["title"], sample_variables) %></h5>
-        <% end %>
-
-        <% if step["description"].present? %>
-          <div class="text-sm text-gray-600">
-            <%= render_step_markdown(VariableInterpolator.interpolate(step["description"], sample_variables)) %>
-          </div>
-        <% end %>
-
-        <div class="mt-3 p-3 bg-white border rounded-md">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xs font-medium text-gray-500">Condition:</span>
-            <code class="text-xs bg-gray-100 px-2 py-1 rounded">
-              <%= step["condition"].present? ? step["condition"] : "No condition set" %>
-            </code>
-          </div>
-
-          <div class="space-y-1 mt-3">
-            <% if step["true_path"].present? %>
-              <div class="flex items-center gap-2 text-sm">
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-800 text-xs font-bold">✓</span>
-                <span class="text-gray-600">If true:</span>
-                <span class="font-medium text-green-700">→ <%= step["true_path"] %></span>
-              </div>
-            <% end %>
-
-            <% if step["false_path"].present? %>
-              <div class="flex items-center gap-2 text-sm">
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-800 text-xs font-bold">✗</span>
-                <span class="text-gray-600">If false:</span>
-                <span class="font-medium text-red-700">→ <%= step["false_path"] %></span>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      </div>
-
     <% when "message" %>
       <div class="space-y-2">
         <% if step["title"].present? %>

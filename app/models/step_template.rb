@@ -2,27 +2,33 @@
 # These are common step configurations that users can quickly apply
 class StepTemplate
   TEMPLATES = {
-    decision: {
+    question: {
       "simple_yes_no" => {
-        name: "Simple Yes/No Decision",
-        type: "decision",
-        title: "Decision Point",
-        description: "Branch based on yes/no answer",
-        condition: "answer == 'yes'"
+        name: "Simple Yes/No Question",
+        type: "question",
+        title: "Yes or No?",
+        description: "Ask a yes/no question",
+        question: "Is this correct?",
+        answer_type: "yes_no",
+        variable_name: "answer"
       },
-      "variable_check" => {
-        name: "Variable Check",
-        type: "decision",
-        title: "Check Variable",
-        description: "Check a variable value",
-        condition: "variable_name == 'value'"
+      "text_input" => {
+        name: "Text Input",
+        type: "question",
+        title: "Enter Information",
+        description: "Collect text input from user",
+        question: "Please enter the value:",
+        answer_type: "text",
+        variable_name: "user_input"
       },
-      "age_threshold" => {
-        name: "Age Threshold",
-        type: "decision",
-        title: "Age Check",
-        description: "Check if age meets threshold",
-        condition: "age >= 18"
+      "multiple_choice" => {
+        name: "Multiple Choice",
+        type: "question",
+        title: "Select an Option",
+        description: "Choose from predefined options",
+        question: "Which option do you prefer?",
+        answer_type: "multiple_choice",
+        variable_name: "selection"
       }
     }
   }.freeze

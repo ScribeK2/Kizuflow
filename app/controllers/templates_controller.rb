@@ -75,19 +75,6 @@ class TemplatesController < ApplicationController
           transition.is_a?(Hash) && transition['target_uuid'].present?
         end
       end
-
-      # Normalize legacy branch paths (linear mode templates)
-      next unless step['type'] == 'decision' && step['branches'].present?
-
-      step['branches'].each do |branch|
-        if branch['condition'].present? && branch['path'].blank?
-          branch['path'] ||= ''
-        end
-      end
-
-      step['branches'] = step['branches'].select do |branch|
-        branch.is_a?(Hash) && (branch['condition'].present? || branch['path'].present?)
-      end
     end
 
     steps
