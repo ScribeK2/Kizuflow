@@ -56,10 +56,10 @@
               <% end %>
             </div>
             <div class="hidden sm:ml-8 sm:flex sm:space-x-6">
-              <%= link_to "Dashboard", root_path, class: "border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 hover:border-slate-500 dark:hover:border-slate-400" %>
-              <%= link_to "Workflows", workflows_path, class: "border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 hover:border-slate-500 dark:hover:border-slate-400" %>
+              <%= link_to "Dashboard", root_path, class: "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 #{current_page?(root_path) ? 'border-emerald-500 text-slate-900 dark:text-white font-semibold' : 'border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}" %>
+              <%= link_to "Workflows", workflows_path, class: "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 #{current_page?(workflows_path) ? 'border-emerald-500 text-slate-900 dark:text-white font-semibold' : 'border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}" %>
               <% if current_user&.can_create_workflows? %>
-                <%= link_to "Templates", templates_path, class: "border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 hover:border-slate-500 dark:hover:border-slate-400" %>
+                <%= link_to "Templates", templates_path, class: "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 #{current_page?(templates_path) ? 'border-emerald-500 text-slate-900 dark:text-white font-semibold' : 'border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}" %>
               <% end %>
             </div>
           </div>
