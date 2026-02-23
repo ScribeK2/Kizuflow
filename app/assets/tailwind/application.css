@@ -14,6 +14,11 @@
   --color-accent: #10b981;         /* emerald-500 */
   --color-accent-dark: #059669;    /* emerald-600 */
 
+  /* Secondary: Blue */
+  --color-secondary: #3b82f6;       /* blue-500 */
+  --color-secondary-light: #60a5fa; /* blue-400 */
+  --color-secondary-dark: #2563eb;  /* blue-600 */
+
   /* Surfaces */
   --color-surface: #ffffff;
   --color-surface-muted: #f8fafc;  /* slate-50 */
@@ -21,9 +26,11 @@
   --color-surface-dark-muted: #0f172a; /* slate-900 */
 
   /* Semantic */
-  --color-danger: #dc2626;
-  --color-warning: #d97706;
-  --color-success: #16a34a;
+  --color-danger: #ef4444;           /* red-500 */
+  --color-danger-dark: #dc2626;      /* red-600 */
+  --color-warning: #f59e0b;          /* amber-500 */
+  --color-warning-dark: #d97706;     /* amber-600 */
+  --color-success: #16a34a;          /* green-600 */
 
   /* Borders */
   --color-border: #e2e8f0;         /* slate-200 */
