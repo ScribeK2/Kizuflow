@@ -16,7 +16,7 @@
     </div>
   </div>
 
-  <%= form_with model: @workflow, local: true, class: "solid-card overflow-hidden animate-fade-in-up",
+  <%= form_with model: @workflow, local: true, class: "solid-card animate-fade-in-up",
                 data: { controller: "autosave", autosave_workflow_id_value: @workflow.id, autosave_lock_version_value: @workflow.lock_version } do |form| %>
     <%# Hidden field for optimistic locking - prevents race conditions when multiple users edit %>
     <%= form.hidden_field :lock_version %>
