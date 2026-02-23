@@ -2,7 +2,18 @@
     Cache key includes: workflow, current_user, selected_group, and folders
     Busts when: workflow updated, user permissions change, group context changes, or folders change %>
 <% cache [workflow, current_user, @selected_group, current_user&.role, @folders&.map(&:id)] do %>
-  <li class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200 animate-fade-in-up" style="animation-delay: <%= local_assigns[:index].to_i * 0.05 %>s;">
+  <%
+    border_color = case workflow.dominant_step_type
+                   when 'question' then 'border-l-blue-500'
+                   when 'action' then 'border-l-amber-500'
+                   when 'message' then 'border-l-purple-500'
+                   when 'resolve' then 'border-l-emerald-500'
+                   when 'escalate' then 'border-l-red-500'
+                   when 'sub_flow' then 'border-l-cyan-500'
+                   else 'border-l-slate-300 dark:border-l-slate-600'
+                   end
+  %>
+  <li class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-150 rounded-xl border-l-4 <%= border_color %> animate-fade-in-up" style="animation-delay: <%= local_assigns[:index].to_i * 0.05 %>s;">
     <div class="px-6 py-5 sm:px-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center flex-1 min-w-0">
@@ -32,8 +43,20 @@
             <div class="text-sm text-gray-600 dark:text-gray-400 mb-1 line-clamp-2">
               <%= workflow.description_text.presence || "No description" %>
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              <%= pluralize(workflow.steps&.length || 0, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago
+            <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500 mt-1">
+              <span><%= pluralize(workflow.steps&.length || 0, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago</span>
+              <% step_types = workflow.step_type_counts %>
+              <% total = step_types.values.sum.to_f %>
+              <% if total > 0 %>
+                <div class="flex h-1.5 w-20 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700">
+                  <div class="bg-blue-500" style="width: <%= (step_types['question'].to_f / total * 100).round %>%"></div>
+                  <div class="bg-amber-500" style="width: <%= (step_types['action'].to_f / total * 100).round %>%"></div>
+                  <div class="bg-emerald-500" style="width: <%= (step_types['resolve'].to_f / total * 100).round %>%"></div>
+                  <div class="bg-red-500" style="width: <%= (step_types['escalate'].to_f / total * 100).round %>%"></div>
+                  <div class="bg-purple-500" style="width: <%= (step_types['message'].to_f / total * 100).round %>%"></div>
+                  <div class="bg-cyan-500" style="width: <%= (step_types['sub_flow'].to_f / total * 100).round %>%"></div>
+                </div>
+              <% end %>
             </div>
           </div>
         </div>
@@ -54,8 +77,10 @@
             <% end %>
           <% end %>
           <% if workflow.can_be_deleted_by?(current_user) %>
-            <%= link_to workflow_path(workflow), data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40 transition-all duration-200 hover:scale-105" do %>
-              Delete
+            <%= link_to workflow_path(workflow), data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400", title: "Delete workflow" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
             <% end %>
           <% end %>
           <% if @selected_group.present? && @folders.present? && @folders.any? && workflow.can_be_edited_by?(current_user) %>

@@ -310,6 +310,18 @@ class Workflow < ApplicationRecord
     end.compact
   end
 
+  # Count steps by type, returns hash like { 'question' => 3, 'action' => 2, ... }
+  def step_type_counts
+    return {} unless steps.present?
+
+    steps.each_with_object(Hash.new(0)) { |step, counts| counts[step['type']] += 1 if step['type'].present? }
+  end
+
+  # Returns the most common step type in this workflow
+  def dominant_step_type
+    step_type_counts.max_by { |_, count| count }&.first
+  end
+
   # Get variables with their metadata (answer type, options) for condition builders
   # Returns an array of hashes with variable info
   def variables_with_metadata
