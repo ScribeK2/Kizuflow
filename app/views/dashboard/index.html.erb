@@ -1,12 +1,12 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <%# -- A. Personalized Header -- %>
   <div class="mb-8 animate-fade-in">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-      Dashboard
-    </h1>
-    <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+    <p class="text-lg text-gray-600 dark:text-gray-400">
       Welcome back, <%= current_user.display_label %>!
     </p>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100 mt-1">
+      Dashboard
+    </h1>
   </div>
 
   <%# -- B. Quick Actions Row (editors/admins only) -- %>
@@ -30,7 +30,7 @@
   <%# -- C. Stat Cards Grid -- %>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
     <%# Card 1: Total Workflows %>
-    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;" aria-label="Total workflows: <%= @workflow_count %>">
+    <div class="solid-card hover-lift overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;" aria-label="Total workflows: <%= @workflow_count %>">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
@@ -47,7 +47,7 @@
     </div>
 
     <%# Card 2: Published %>
-    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.15s;" aria-label="Published workflows: <%= @published_count %>">
+    <div class="solid-card hover-lift overflow-hidden animate-fade-in-up" style="animation-delay: 0.15s;" aria-label="Published workflows: <%= @published_count %>">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
@@ -67,17 +67,20 @@
     </div>
 
     <%# Card 3: Scenarios Run %>
-    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;" aria-label="Scenarios run: <%= @scenario_total %>">
+    <div class="solid-card hover-lift overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;" aria-label="Scenarios run: <%= @scenario_total %>">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-3xl font-bold text-gray-900 dark:text-gray-100"><%= @scenario_total %></p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scenarios Run</p>
             <% if @scenario_active > 0 %>
-              <p class="text-xs text-blue-600 dark:text-blue-400 mt-1"><%= @scenario_active %> active</p>
+              <p class="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1.5">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-subtle-pulse"></span>
+                <%= @scenario_active %> active
+              </p>
             <% end %>
           </div>
-          <div class="text-slate-600 dark:text-slate-400 opacity-80">
+          <div class="text-blue-500 dark:text-blue-400 opacity-80">
             <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -88,7 +91,7 @@
     </div>
 
     <%# Card 4: Completion Rate %>
-    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.25s;" aria-label="Scenario completion rate: <%= @scenario_completion_rate %>%">
+    <div class="solid-card hover-lift overflow-hidden animate-fade-in-up" style="animation-delay: 0.25s;" aria-label="Scenario completion rate: <%= @scenario_completion_rate %>%">
       <div class="px-6 py-5">
         <div class="flex items-center justify-between">
           <div>
@@ -98,10 +101,16 @@
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><%= @scenario_completed %> of <%= @scenario_total %></p>
             <% end %>
           </div>
-          <div class="text-emerald-600 dark:text-emerald-400 opacity-80">
-            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <div class="relative w-12 h-12">
+            <svg class="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="20" fill="none" stroke-width="3" class="stroke-slate-200 dark:stroke-slate-700" />
+              <circle cx="24" cy="24" r="20" fill="none" stroke-width="3" class="stroke-emerald-500" stroke-linecap="round" stroke-dasharray="<%= (125.66).round(2) %>" stroke-dashoffset="<%= (125.66 * (1 - @scenario_completion_rate / 100.0)).round(2) %>" />
             </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -153,11 +162,11 @@
                     </svg>
                     Start
                   <% end %>
-                  <%= link_to workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105", aria: { label: "View workflow: #{workflow.title}" } do %>
+                  <%= link_to workflow_path(workflow), class: "text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200", aria: { label: "View workflow: #{workflow.title}" } do %>
                     View
                   <% end %>
                   <% if workflow.can_be_edited_by?(current_user) %>
-                    <%= link_to edit_workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105", aria: { label: "Edit workflow: #{workflow.title}" } do %>
+                    <%= link_to edit_workflow_path(workflow), class: "text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200", aria: { label: "Edit workflow: #{workflow.title}" } do %>
                       Edit
                     <% end %>
                   <% end %>
@@ -196,12 +205,12 @@
     </div>
 
     <%# Right: Recent Activity / Scenarios (1/3) %>
-    <div class="solid-card overflow-hidden animate-fade-in-up" style="animation-delay: 0.35s;">
+    <div class="solid-card overflow-hidden animate-fade-in-up sticky top-24" style="animation-delay: 0.35s;">
       <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Recent Activity</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your latest scenarios</p>
       </div>
-      <div class="divide-y divide-slate-200 dark:divide-slate-700">
+      <div class="divide-y divide-slate-100 dark:divide-slate-700/50">
         <% if @recent_scenarios.any? %>
           <% @recent_scenarios.each do |scenario| %>
             <% workflow = scenario.workflow %>
