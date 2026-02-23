@@ -13,27 +13,21 @@
 
 <div data-controller="inline-step-creator"
      data-inline-step-creator-after-index-value="<%= after_index %>"
-     class="inline-step-creator my-2">
+     class="inline-step-creator my-1">
 
-  <%# Collapsed state - just the + button %>
+  <%# Collapsed state - hover-reveal dashed line with + button %>
   <div data-inline-step-creator-target="addButton"
-       class="flex justify-center">
+       class="group/add flex items-center justify-center py-1">
+    <div class="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700 group-hover/add:border-emerald-400 dark:group-hover/add:border-emerald-500 transition-colors"></div>
     <button type="button"
             data-action="click->inline-step-creator#expand"
-            class="group flex items-center gap-2 px-3 py-1.5 rounded-full
-                   bg-slate-100 dark:bg-slate-700/50
-                   hover:bg-slate-200 dark:hover:bg-slate-600
-                   border-2 border-dashed border-slate-300 dark:border-slate-600
-                   hover:border-slate-400 dark:hover:border-slate-500
-                   transition-all duration-200 hover:scale-105"
+            class="opacity-0 group-hover/add:opacity-100 transition-all duration-200 mx-2 p-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm hover:shadow-md btn-press"
             title="Add a new step here">
-      <svg class="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
-      <span class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300">
-        Add step
-      </span>
     </button>
+    <div class="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700 group-hover/add:border-emerald-400 dark:group-hover/add:border-emerald-500 transition-colors"></div>
   </div>
 
   <%# Expanded state - step type selector %>

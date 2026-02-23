@@ -25,6 +25,16 @@
   'resolve' => '#22c55e'
 } %>
 
+<%# Left border colors by step type %>
+<% type_border_classes = {
+  'question' => 'border-l-4 border-l-blue-500',
+  'action' => 'border-l-4 border-l-amber-500',
+  'message' => 'border-l-4 border-l-purple-500',
+  'resolve' => 'border-l-4 border-l-emerald-500',
+  'escalate' => 'border-l-4 border-l-red-500',
+  'sub_flow' => 'border-l-4 border-l-cyan-500'
+} %>
+
 <%# Step type icons %>
 <% type_icons = {
   'question' => '?',
@@ -35,7 +45,7 @@
   'resolve' => '✓'
 } %>
 
-<div class="step-item border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200"
+<div class="step-item border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 <%= type_border_classes[step_type] || 'border-l-4 border-l-slate-400' %>"
      data-step-index="<%= index %>"
      data-controller="step-form collapsible-step"
      data-step-form-step-type-value="<%= step_type %>"
@@ -117,7 +127,7 @@
   <% end %>
 
   <%# Collapsible Content %>
-  <div data-collapsible-step-target="content" class="p-4">
+  <div data-collapsible-step-target="content" class="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700">
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4"
          data-controller="preview-updater"
