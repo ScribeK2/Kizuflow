@@ -43,20 +43,8 @@
             <div class="text-sm text-gray-600 dark:text-gray-400 mb-1 line-clamp-2">
               <%= workflow.description_text.presence || "No description" %>
             </div>
-            <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-500 mt-1">
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
               <span><%= pluralize(workflow.steps&.length || 0, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago</span>
-              <% step_types = workflow.step_type_counts %>
-              <% total = step_types.values.sum.to_f %>
-              <% if total > 0 %>
-                <div class="flex h-1.5 w-20 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700">
-                  <div class="bg-blue-500" style="width: <%= (step_types['question'].to_f / total * 100).round %>%"></div>
-                  <div class="bg-amber-500" style="width: <%= (step_types['action'].to_f / total * 100).round %>%"></div>
-                  <div class="bg-emerald-500" style="width: <%= (step_types['resolve'].to_f / total * 100).round %>%"></div>
-                  <div class="bg-red-500" style="width: <%= (step_types['escalate'].to_f / total * 100).round %>%"></div>
-                  <div class="bg-purple-500" style="width: <%= (step_types['message'].to_f / total * 100).round %>%"></div>
-                  <div class="bg-cyan-500" style="width: <%= (step_types['sub_flow'].to_f / total * 100).round %>%"></div>
-                </div>
-              <% end %>
             </div>
           </div>
         </div>
