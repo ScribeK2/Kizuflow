@@ -5,6 +5,8 @@ export default class extends Controller {
     duration: { type: Number, default: 5000 }
   }
 
+  static targets = ["progress"]
+
   connect() {
     this.dismissTimer = setTimeout(() => {
       this.fadeOut()
@@ -27,10 +29,10 @@ export default class extends Controller {
   fadeOut() {
     const animation = this.element.animate(
       [
-        { opacity: 1, transform: "translateY(0)" },
-        { opacity: 0, transform: "translateY(-10px)" }
+        { opacity: 1, transform: "translateX(0)" },
+        { opacity: 0, transform: "translateX(10px)" }
       ],
-      { duration: 400, easing: "ease-in", fill: "forwards" }
+      { duration: 300, easing: "ease-in", fill: "forwards" }
     )
     animation.onfinish = () => this.element.remove()
   }
