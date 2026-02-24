@@ -175,7 +175,7 @@ class WorkflowsController < ApplicationController
     if @workflow.save
       # Assign groups if provided
       if params[:workflow][:group_ids].present?
-        group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?)
+        group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?).uniq
         group_ids.each_with_index do |group_id, index|
           @workflow.group_workflows.create!(
             group_id: group_id,
@@ -208,7 +208,7 @@ class WorkflowsController < ApplicationController
           # Update group assignments
           if params[:workflow][:group_ids].present?
             @workflow.group_workflows.destroy_all
-            group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?)
+            group_ids = Array(params[:workflow][:group_ids]).reject(&:blank?).uniq
             group_ids.each_with_index do |group_id, index|
               @workflow.group_workflows.create!(
                 group_id: group_id,
