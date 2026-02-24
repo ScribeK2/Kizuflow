@@ -135,39 +135,25 @@ export class FlowchartRenderer {
     return positions
   }
 
-  // Build SVG path for a connection (vertical layout - top to bottom)
+  // Build SVG path for a connection using smooth cubic bezier curves
   buildConnectionPath(fromPos, toPos, connType, connIndex = 0) {
-    // For vertical layout: connect from bottom center of source to top center of target
     const fromX = fromPos.x + this.nodeWidth / 2
     const fromY = fromPos.y + this.nodeHeight
     const toX = toPos.x + this.nodeWidth / 2
     const toY = toPos.y
-    const dx = toX - fromX
     const dy = toY - fromY
 
-    // If going backwards (target is above source), curve around
+    // Backward edge (target above source) - route around the side
     if (dy < 0) {
-      const curveOffset = 60 + (connIndex * 20)
-      return `M ${fromX} ${fromY} C ${fromX + curveOffset} ${fromY + 30}, ${toX + curveOffset} ${toY - 30}, ${toX} ${toY}`
+      const offset = 60 + (connIndex * 25)
+      return `M ${fromX} ${fromY} C ${fromX + offset} ${fromY + 40}, ${toX + offset} ${toY - 40}, ${toX} ${toY}`
     }
 
-    // For conditional/branch connections, add slight curve based on index
-    if (connType === "true" || connType === "conditional" || connType.startsWith("branch_")) {
-      const curveOffset = 20 + (connIndex * 15)
-      const controlY = fromY + dy * 0.5
-      return `M ${fromX} ${fromY} Q ${fromX + curveOffset} ${controlY}, ${toX} ${toY}`
-    } else if (connType === "false") {
-      const curveOffset = -20 - (connIndex * 15)
-      const controlY = fromY + dy * 0.5
-      return `M ${fromX} ${fromY} Q ${fromX + curveOffset} ${controlY}, ${toX} ${toY}`
-    } else if (connType === "else") {
-      // Dashed line, slight curve
-      const controlY = fromY + dy * 0.5
-      return `M ${fromX} ${fromY} Q ${fromX - 15} ${controlY}, ${toX} ${toY}`
-    } else {
-      // Default straight vertical line
-      return `M ${fromX} ${fromY} L ${toX} ${toY}`
-    }
+    // Standard downward connection - smooth cubic bezier
+    // Control points at 40% and 60% of the vertical distance for a natural curve
+    const cp1y = fromY + dy * 0.4
+    const cp2y = fromY + dy * 0.6
+    return `M ${fromX} ${fromY} C ${fromX} ${cp1y}, ${toX} ${cp2y}, ${toX} ${toY}`
   }
 
   // Build SVG defs for arrowheads
@@ -257,26 +243,22 @@ export class FlowchartRenderer {
 
       svgHtml += `<path d="${path}" stroke="${color}" stroke-width="${strokeWidth}" fill="none" stroke-dasharray="${strokeDasharray}" marker-end="url(#${arrowId})"/>`
 
-      // Add label for branches and conditional connections
-      const showLabel = conn.label && (
-        conn.type === "true" ||
-        conn.type === "false" ||
-        conn.type.startsWith("branch_") ||
-        conn.type === "else" ||
-        conn.type === "conditional"
-      )
+      // Add label for connections with labels
+      const showLabel = conn.label && conn.label.trim() !== ""
 
       if (showLabel) {
-        // Position label to the side of the connection for vertical layout
+        // Position label at midpoint of the bezier curve
+        const midX = (fromX + toX) / 2
         const midY = (fromY + toY) / 2
-        const labelOffset = conn.type === "false" || connIndex % 2 === 1 ? -8 : 8
-        const labelX = fromX + labelOffset + (this.nodeWidth / 4)
-        const labelY = midY
         const labelText = this.escapeHtml(conn.label)
         const textLength = labelText.length * charWidth
+        const pillPadX = 8
+        const pillPadY = 4
+        const pillWidth = textLength + pillPadX * 2
+        const pillHeight = fontSize + pillPadY * 2
         svgHtml += `
-          <rect x="${labelX - 4}" y="${labelY - 10}" width="${textLength + 8}" height="16" fill="white" opacity="0.95" rx="3"/>
-          <text x="${labelX + textLength/2}" y="${labelY + 2}" text-anchor="middle" fill="${color}" font-size="${fontSize}" font-weight="600">${labelText}</text>
+          <rect x="${midX - pillWidth / 2}" y="${midY - pillHeight / 2}" width="${pillWidth}" height="${pillHeight}" fill="white" stroke="${color}" stroke-width="1" opacity="0.95" rx="8"/>
+          <text x="${midX}" y="${midY + fontSize / 3}" text-anchor="middle" fill="${color}" font-size="${fontSize}" font-weight="600">${labelText}</text>
         `
       }
     })
