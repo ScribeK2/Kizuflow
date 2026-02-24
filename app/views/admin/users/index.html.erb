@@ -56,16 +56,7 @@
                   <div class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= user.email %></div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= 
-                    case user.role
-                    when 'admin'
-                      'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
-                    when 'editor'
-                      'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                    else
-                      'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300'
-                    end
-                  %>">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= user.avatar_role_badge_classes %>">
                     <%= user.role.capitalize %>
                   </span>
                 </td>
@@ -103,7 +94,7 @@
                       Groups
                     </button>
                     <button type="button"
-                            class="reset-password-btn text-xs px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 font-medium inline-flex items-center"
+                            class="reset-password-btn text-xs px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-slate-800 font-medium inline-flex items-center"
                             data-user-id="<%= user.id %>"
                             data-user-email="<%= user.email %>"
                             title="Generate temporary password">
