@@ -319,47 +319,42 @@ export class FlowchartRenderer {
     return icons[type] || '#'
   }
 
-  // Build HTML for a single step node (with colored header)
+  // Build HTML for a single step node (polished card design)
   buildNodeHtml(step, pos, options = {}) {
-    const bgColorClass = this.getStepColorClass(step.type)
     const borderClass = this.getStepBorderClass(step.type)
     const headerColor = this.getStepColor(step.type)
     const fontSize = this.compact ? "text-xs" : "text-sm"
     const padding = this.compact ? 8 : 12
-    const badgeSize = this.compact ? 18 : 22
+    const badgeSize = this.compact ? 18 : 24
     const icon = this.getStepIcon(step.type)
 
     const darkModeClasses = this.darkMode
       ? "dark:bg-gray-800 dark:text-gray-100"
       : ""
 
-    const lineClamp = this.compact
-      ? 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'
-      : 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'
-
     return `
-      <div class="absolute workflow-node z-10 ${this.clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}"
+      <div class="absolute workflow-node z-10 ${this.clickable ? 'cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-slate-400 transition-all duration-150' : ''}"
            style="left: ${pos.x}px; top: ${pos.y}px; width: ${this.nodeWidth}px;"
            data-step-index="${step.index}"
-           ${this.clickable ? `data-action="click->wizard-flow-preview#editStep"` : ''}>
-        <div class="rounded-lg bg-white shadow-md overflow-hidden border ${borderClass} ${darkModeClasses}"
+           ${this.clickable ? 'data-action="click->wizard-flow-preview#editStep"' : ''}>
+        <div class="rounded-xl bg-white shadow-sm hover:shadow-md overflow-hidden border ${borderClass} ${darkModeClasses} transition-shadow duration-200"
              style="min-height: ${this.nodeHeight}px;">
           <!-- Colored header bar -->
           <div class="flex items-center gap-2 px-3 py-2" style="background-color: ${headerColor};">
-            <span class="inline-flex items-center justify-center rounded-full bg-white/30 text-white font-bold"
-                  style="width: ${badgeSize}px; height: ${badgeSize}px; font-size: 11px;">
+            <span class="inline-flex items-center justify-center rounded-full bg-white/25 text-white font-bold"
+                  style="width: ${badgeSize}px; height: ${badgeSize}px; font-size: ${this.compact ? 10 : 12}px;">
               ${step.index + 1}
             </span>
-            <span class="text-white/90 font-bold text-sm">${icon}</span>
-            <span class="text-xs font-semibold uppercase text-white/90 tracking-wide">${this.escapeHtml(step.type || 'unknown')}</span>
+            <span class="text-white/80 font-bold" style="font-size: ${this.compact ? 11 : 13}px;">${icon}</span>
+            <span class="text-xs font-semibold uppercase text-white/80 tracking-wider">${this.escapeHtml(step.type || 'unknown')}</span>
           </div>
           <!-- Content -->
           <div style="padding: ${padding}px;">
-            <h4 class="font-semibold ${fontSize} text-gray-900 break-words" style="${lineClamp}">
-              ${this.escapeHtml(step.title || `Step ${step.index + 1}`)}
+            <h4 class="font-semibold ${fontSize} text-gray-900 break-words" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              ${this.escapeHtml(step.title || 'Step ' + (step.index + 1))}
             </h4>
-            ${step.type === "resolve" ? `<p class="text-xs text-green-600 mt-1 font-medium">Terminal</p>` : ""}
-            ${this.clickable ? `<p class="text-xs text-gray-400 mt-2">Click to edit</p>` : ''}
+            ${step.type === "resolve" ? '<p class="text-xs text-green-600 mt-1 font-medium">Terminal</p>' : ""}
+            ${this.clickable ? '<p class="text-xs text-gray-400 mt-2">Click to edit</p>' : ''}
           </div>
         </div>
       </div>
