@@ -116,15 +116,13 @@
   <input type="hidden" name="workflow[steps][][index]" value="<%= index %>">
   <input type="hidden" name="workflow[steps][][type]" value="<%= step_type %>">
 
-  <%# Graph Mode: Transitions data stored as hidden field %>
-  <% if workflow&.graph_mode? %>
-    <% transitions = step['transitions'] || [] %>
-    <input type="hidden"
-           name="workflow[steps][][transitions_json]"
-           value="<%= transitions.to_json %>"
-           data-step-transitions-target="hiddenInput"
-           data-step-id="<%= step_id %>">
-  <% end %>
+  <%# Transitions data stored as hidden field (always rendered for flow preview) %>
+  <% transitions = step['transitions'] || [] %>
+  <input type="hidden"
+         name="workflow[steps][][transitions_json]"
+         value="<%= transitions.to_json %>"
+         data-step-transitions-target="hiddenInput"
+         data-step-id="<%= step_id %>">
 
   <%# Collapsible Content %>
   <div data-collapsible-step-target="content" class="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700">

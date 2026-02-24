@@ -167,23 +167,9 @@ export default class extends Controller {
     }
   }
 
-  // Check if graph mode is enabled
-  isGraphMode() {
-    // Check form checkbox (new/edit/step1 pages)
-    const graphModeCheckbox = document.querySelector("input[name*='graph_mode']")
-    if (graphModeCheckbox) return graphModeCheckbox.checked
-
-    // Check workflow builder data attribute (step2 page)
-    const workflowBuilder = document.querySelector("[data-workflow-builder-graph-mode-value]")
-    if (workflowBuilder) return workflowBuilder.dataset.workflowBuilderGraphModeValue === "true"
-
-    return false
-  }
-
   // Parse steps from the form
   parseSteps() {
     const steps = []
-    const isGraphMode = this.isGraphMode()
 
     // Find step items within the workflow builder container
     const workflowBuilder = document.querySelector("[data-controller*='workflow-builder']")
@@ -214,18 +200,16 @@ export default class extends Controller {
         index: index
       }
 
-      // Parse graph mode transitions
-      if (isGraphMode) {
-        const transitionsInput = stepItem.querySelector("input[name*='transitions_json']")
-        if (transitionsInput && transitionsInput.value) {
-          try {
-            step.transitions = JSON.parse(transitionsInput.value)
-          } catch (e) {
-            step.transitions = []
-          }
-        } else {
+      // Always parse transitions (all workflows use graph mode)
+      const transitionsInput = stepItem.querySelector("input[name*='transitions_json']")
+      if (transitionsInput && transitionsInput.value) {
+        try {
+          step.transitions = JSON.parse(transitionsInput.value)
+        } catch (e) {
           step.transitions = []
         }
+      } else {
+        step.transitions = []
       }
 
       // Get type-specific fields
