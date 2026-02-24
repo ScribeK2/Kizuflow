@@ -1,5 +1,6 @@
 // Shared FlowchartRenderer service for rendering workflow flowcharts
 // Used by flow_preview_controller, template_flow_preview_controller, and wizard_flow_preview_controller
+import dagre from "dagre"
 
 export class FlowchartRenderer {
   constructor(options = {}) {
@@ -10,6 +11,8 @@ export class FlowchartRenderer {
     this.darkMode = options.darkMode || false
     this.clickable = options.clickable || false
     this.arrowIdPrefix = options.arrowIdPrefix || ''
+    this.rankSep = options.rankSep || 80
+    this.nodeSep = options.nodeSep || 40
   }
 
   // Find step by title
@@ -86,39 +89,47 @@ export class FlowchartRenderer {
     return connections
   }
 
-  // Calculate node positions (vertical layout - top to bottom)
+  // Calculate node positions using Dagre for proper DAG layout
   calculatePositions(steps, connections) {
-    const positions = {}
-    const horizontalSpacing = this.nodeWidth + this.nodeMargin
-    const verticalSpacing = this.nodeHeight + 60 // More spacing for vertical arrows
+    if (!steps || steps.length === 0) return {}
 
-    // Track branch targets and sources for layout decisions
-    const branchTargets = new Set()
-    const branchSources = new Map() // Maps target index to array of source indices
-    connections.forEach(conn => {
-      if (conn.type === "true" || conn.type === "false" || conn.type.startsWith("branch_") || conn.type === "else" || conn.type === "conditional") {
-        branchTargets.add(conn.to)
-        if (!branchSources.has(conn.to)) {
-          branchSources.set(conn.to, [])
-        }
-        branchSources.get(conn.to).push(conn.from)
-      }
+    // Create a new directed graph
+    const g = new dagre.graphlib.Graph()
+    g.setGraph({
+      rankdir: "TB",
+      ranksep: this.rankSep,
+      nodesep: this.nodeSep,
+      marginx: this.nodeMargin,
+      marginy: this.nodeMargin
+    })
+    g.setDefaultEdgeLabel(() => ({}))
+
+    // Add nodes
+    steps.forEach((step) => {
+      g.setNode(String(step.index), {
+        width: this.nodeWidth,
+        height: this.nodeHeight
+      })
     })
 
-    // Center horizontally for simple vertical flow
-    const centerX = this.nodeMargin + this.nodeWidth / 2
-    let currentY = this.nodeMargin
-    let maxX = this.nodeMargin
+    // Add edges from connections
+    connections.forEach((conn) => {
+      g.setEdge(String(conn.from), String(conn.to))
+    })
 
-    steps.forEach((step, index) => {
-      // For simple vertical layout, center all nodes
-      let nodeX = this.nodeMargin
+    // Run the layout algorithm
+    dagre.layout(g)
 
-      // If this step has multiple incoming branches or is a branch target from non-adjacent step,
-      // we might offset it slightly, but for now keep it simple and centered
-      positions[index] = { x: nodeX, y: currentY }
-      maxX = Math.max(maxX, nodeX + this.nodeWidth)
-      currentY += verticalSpacing
+    // Extract positions (Dagre gives center coords, convert to top-left)
+    const positions = {}
+    steps.forEach((step) => {
+      const node = g.node(String(step.index))
+      if (node) {
+        positions[step.index] = {
+          x: node.x - this.nodeWidth / 2,
+          y: node.y - this.nodeHeight / 2
+        }
+      }
     })
 
     return positions
