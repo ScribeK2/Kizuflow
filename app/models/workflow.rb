@@ -148,9 +148,13 @@ class Workflow < ApplicationRecord
       .or(where(id: desc_matches.select(:id)))
   }
 
-  # Helper method to get description as plain text
+  # Helper method to get description as plain text (strips markdown syntax)
   def description_text
-    description
+    return nil if description.blank?
+
+    ActionController::Base.helpers.strip_tags(
+      Redcarpet::Markdown.new(Redcarpet::Render::HTML.new).render(description)
+    ).squish
   end
 
   # Helper method to check if description exists
