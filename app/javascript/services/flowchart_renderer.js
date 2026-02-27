@@ -13,6 +13,7 @@ export class FlowchartRenderer {
     this.arrowIdPrefix = options.arrowIdPrefix || ''
     this.rankSep = options.rankSep || 80
     this.nodeSep = options.nodeSep || 40
+    this.interactive = options.interactive || false
   }
 
   // Find step by title
@@ -59,6 +60,8 @@ export class FlowchartRenderer {
         connections.push({
           from: step.index,
           to: targetStep.index,
+          fromId: step.id,
+          toId: targetStep.id,
           type: transition.condition ? "conditional" : "default",
           label: label.length > 20 ? label.substring(0, 17) + "..." : label,
           color: transition.condition ? color : "#6b7280"
@@ -221,7 +224,8 @@ export class FlowchartRenderer {
     const fontSize = this.compact ? 9 : 11
     const charWidth = this.compact ? 5 : 6
 
-    let svgHtml = `<svg class="absolute inset-0 pointer-events-none" style="width: ${maxX}px; height: ${maxY}px; z-index: 0;">`
+    const svgClass = this.interactive ? 'absolute inset-0' : 'absolute inset-0 pointer-events-none'
+    let svgHtml = `<svg class="${svgClass}" style="width: ${maxX}px; height: ${maxY}px; z-index: 0;">`
     svgHtml += this.buildSvgDefs()
 
     connections.forEach((conn, connIndex) => {
@@ -241,7 +245,10 @@ export class FlowchartRenderer {
       const arrowId = this.getArrowId(conn)
       const strokeDasharray = conn.type === "else" ? "5,5" : "none"
 
-      svgHtml += `<path d="${path}" stroke="${color}" stroke-width="${strokeWidth}" fill="none" stroke-dasharray="${strokeDasharray}" marker-end="url(#${arrowId})"/>`
+      const interactiveAttrs = this.interactive
+        ? ` data-from-id="${this.escapeHtml(conn.fromId || '')}" data-to-id="${this.escapeHtml(conn.toId || '')}" data-conn-index="${connIndex}" pointer-events="stroke" cursor="pointer"`
+        : ''
+      svgHtml += `<path d="${path}" stroke="${color}" stroke-width="${strokeWidth}" fill="none" stroke-dasharray="${strokeDasharray}" marker-end="url(#${arrowId})"${interactiveAttrs}/>`
 
       // Add label for connections with labels
       const showLabel = conn.label && conn.label.trim() !== ""
@@ -332,6 +339,54 @@ export class FlowchartRenderer {
       ? "dark:bg-gray-800 dark:text-gray-100"
       : ""
 
+    const escapedStepId = this.escapeHtml(step.id || '')
+    const escapedStepType = this.escapeHtml(step.type || 'unknown')
+
+    // Interactive mode: hover-reveals ports, no wizard click behavior
+    if (this.interactive) {
+      const isStart = step.isStartNode
+      const startBadge = isStart
+        ? '<span class="ml-auto text-[10px] font-bold uppercase tracking-wider bg-white/30 text-white px-1.5 py-0.5 rounded">START</span>'
+        : ''
+
+      return `
+        <div class="absolute workflow-node z-10 group cursor-pointer transition-all duration-150"
+             style="left: ${pos.x}px; top: ${pos.y}px; width: ${this.nodeWidth}px;"
+             data-step-index="${step.index}"
+             data-step-id="${escapedStepId}"
+             data-step-type="${escapedStepType}">
+          <div class="rounded-xl bg-white shadow-sm hover:shadow-md overflow-hidden border ${borderClass} ${darkModeClasses} transition-shadow duration-200${isStart ? ' ring-2 ring-green-400 ring-offset-1' : ''}"
+               style="min-height: ${this.nodeHeight}px;">
+            <!-- Colored header bar -->
+            <div class="flex items-center gap-2 px-3 py-2" style="background-color: ${headerColor};">
+              <span class="inline-flex items-center justify-center rounded-full bg-white/25 text-white font-bold"
+                    style="width: ${badgeSize}px; height: ${badgeSize}px; font-size: ${this.compact ? 10 : 12}px;">
+                ${step.index + 1}
+              </span>
+              <span class="text-white/80 font-bold" style="font-size: ${this.compact ? 11 : 13}px;">${icon}</span>
+              <span class="text-xs font-semibold uppercase text-white/80 tracking-wider">${escapedStepType}</span>
+              ${startBadge}
+            </div>
+            <!-- Content -->
+            <div style="padding: ${padding}px;">
+              <h4 class="font-semibold ${fontSize} text-gray-900 break-words" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${this.escapeHtml(step.title || 'Step ' + (step.index + 1))}
+              </h4>
+              ${step.type === "resolve" ? '<p class="text-xs text-green-600 mt-1 font-medium">Terminal</p>' : ""}
+              <p class="text-xs text-gray-400 mt-2">Double-click to edit</p>
+            </div>
+          </div>
+          <!-- Input port (top center) -->
+          <div class="input-port absolute left-1/2 -translate-x-1/2 -top-2 w-4 h-4 rounded-full bg-blue-400 border-2 border-white shadow opacity-0 group-hover:opacity-100 transition-opacity z-20"
+               data-port="input" data-step-id="${escapedStepId}"></div>
+          <!-- Output port (bottom center) -->
+          <div class="output-port absolute left-1/2 -translate-x-1/2 -bottom-2 w-4 h-4 rounded-full bg-gray-400 border-2 border-white shadow opacity-0 group-hover:opacity-100 transition-opacity cursor-crosshair z-20"
+               data-port="output" data-step-id="${escapedStepId}"></div>
+        </div>
+      `
+    }
+
+    // Non-interactive (preview) mode: original behavior
     return `
       <div class="absolute workflow-node z-10 ${this.clickable ? 'cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-slate-400 transition-all duration-150' : ''}"
            style="left: ${pos.x}px; top: ${pos.y}px; width: ${this.nodeWidth}px;"
