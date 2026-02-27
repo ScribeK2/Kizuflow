@@ -255,9 +255,9 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     # Passwords should be different
     assert_not_equal first_password, second_password
 
-    # Passwords should be secure (contain various characters)
+    # Passwords should be secure (16-char alphanumeric from SecureRandom)
     assert_match(/[a-zA-Z]/, first_password)
-    assert_match(/[0-9]/, first_password)
+    assert_operator first_password.length, :>=, 16
   end
 
   test 'temporary password flow works for user login' do
