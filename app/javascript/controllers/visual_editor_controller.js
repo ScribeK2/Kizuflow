@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
-import { FlowchartRenderer } from "../services/flowchart_renderer"
-import { VisualEditorService } from "../services/visual_editor_service"
+import { FlowchartRenderer } from "services/flowchart_renderer"
+import { VisualEditorService } from "services/visual_editor_service"
 
 // Main orchestrator for the visual workflow editor.
 // Wires together FlowchartRenderer (interactive mode), VisualEditorService,
@@ -74,11 +74,22 @@ export default class extends Controller {
     }
     window.addEventListener("beforeunload", this.boundBeforeUnload)
 
+    // Sync hidden inputs before form submission
+    this.boundFormSubmit = () => this.syncHiddenInputs()
+    const form = this.element.closest("form")
+    if (form) {
+      form.addEventListener("submit", this.boundFormSubmit)
+    }
+
     this.render()
   }
 
   disconnect() {
     window.removeEventListener("beforeunload", this.boundBeforeUnload)
+    const form = this.element.closest("form")
+    if (form) {
+      form.removeEventListener("submit", this.boundFormSubmit)
+    }
   }
 
   // --- Rendering ---

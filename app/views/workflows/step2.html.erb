@@ -197,30 +197,6 @@
             <%= render partial: "flow_preview" %>
           </div>
 
-          <%# Navigation Buttons %>
-          <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-            <%= link_to step1_workflow_path(@workflow),
-                class: "inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-700 py-2 px-4 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" do %>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-              </svg>
-              Previous
-            <% end %>
-
-            <div class="flex items-center gap-3">
-              <% if @workflow.steps.present? %>
-                <span class="text-sm text-gray-500 dark:text-gray-400">
-                  <%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %> added
-                </span>
-              <% end %>
-
-              <%= form.submit "Next: Review →",
-                  class: "bg-slate-600 hover:bg-slate-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer",
-                  data: {
-                    action: "click->step-form#logSubmit"
-                  } %>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -230,6 +206,31 @@
     <% if @workflow.graph_mode? %>
       <%= render partial: "visual_editor", locals: { workflow: @workflow } %>
     <% end %>
+
+    <%# Navigation Buttons (always visible, outside mode containers) %>
+    <div class="flex justify-between items-center pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+      <%= link_to step1_workflow_path(@workflow),
+          class: "inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-700 py-2 px-4 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Previous
+      <% end %>
+
+      <div class="flex items-center gap-3">
+        <% if @workflow.steps.present? %>
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            <%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %> added
+          </span>
+        <% end %>
+
+        <%= form.submit "Next: Review →",
+            class: "bg-slate-600 hover:bg-slate-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer",
+            data: {
+              action: "click->step-form#logSubmit"
+            } %>
+      </div>
+    </div>
   <% end %>
 
   <%# Floating Action Button for Quick Step Adding %>

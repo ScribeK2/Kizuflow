@@ -565,6 +565,10 @@ class WorkflowsController < ApplicationController
       ).call
     end
 
+    # Remove non-model params before update
+    permitted_params.delete(:visual_editor_steps_json)
+    permitted_params.delete(:editor_mode)
+
     if @workflow.update(permitted_params)
       redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
     else
