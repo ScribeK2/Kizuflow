@@ -33,3 +33,13 @@ editor_workflow:
   is_public: false
   steps: <%= [{ type: "action", title: "Action Step" }].to_json %>
 
+graph_mode_workflow:
+  title: "Graph Mode Workflow"
+  description: "Workflow with graph mode enabled"
+  user: editor_user
+  is_public: false
+  status: draft
+  graph_mode: true
+  start_node_uuid: "aaaaaaaa-0001-0001-0001-000000000001"
+  steps: <%= [{ id: "aaaaaaaa-0001-0001-0001-000000000001", type: "question", title: "First Question", question: "What?", answer_type: "yes_no", transitions: [{ target_uuid: "aaaaaaaa-0001-0001-0001-000000000002", condition: "yes", label: "Yes" }] }, { id: "aaaaaaaa-0001-0001-0001-000000000002", type: "action", title: "Do Something", action_type: "Instruction", instructions: "Do it", transitions: [] }].to_json %>
+
