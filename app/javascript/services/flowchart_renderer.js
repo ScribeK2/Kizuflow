@@ -248,15 +248,21 @@ export class FlowchartRenderer {
       const interactiveAttrs = this.interactive
         ? ` data-from-id="${this.escapeHtml(conn.fromId || '')}" data-to-id="${this.escapeHtml(conn.toId || '')}" data-conn-index="${connIndex}" pointer-events="stroke" cursor="pointer"`
         : ''
+
+      // Wrap in <g> group when interactive for hover targeting
+      if (this.interactive) {
+        svgHtml += `<g class="edge-group" data-from-id="${this.escapeHtml(conn.fromId || '')}" data-to-id="${this.escapeHtml(conn.toId || '')}" data-conn-index="${connIndex}">`
+      }
+
       svgHtml += `<path d="${path}" stroke="${color}" stroke-width="${strokeWidth}" fill="none" stroke-dasharray="${strokeDasharray}" marker-end="url(#${arrowId})"${interactiveAttrs}/>`
 
       // Add label for connections with labels
       const showLabel = conn.label && conn.label.trim() !== ""
+      const midX = (fromX + toX) / 2
+      const midY = (fromY + toY) / 2
 
       if (showLabel) {
         // Position label at midpoint of the bezier curve
-        const midX = (fromX + toX) / 2
-        const midY = (fromY + toY) / 2
         const labelText = this.escapeHtml(conn.label)
         const textLength = labelText.length * charWidth
         const pillPadX = 8
@@ -267,6 +273,19 @@ export class FlowchartRenderer {
           <rect x="${midX - pillWidth / 2}" y="${midY - pillHeight / 2}" width="${pillWidth}" height="${pillHeight}" fill="white" stroke="${color}" stroke-width="1" opacity="0.95" rx="8"/>
           <text x="${midX}" y="${midY + fontSize / 3}" text-anchor="middle" fill="${color}" font-size="${fontSize}" font-weight="600">${labelText}</text>
         `
+      }
+
+      // Delete button at edge midpoint (hidden by default, shown on hover via JS)
+      if (this.interactive) {
+        const delY = showLabel ? midY - 20 : midY
+        svgHtml += `
+          <g class="edge-delete-btn" style="display: none;" data-from-id="${this.escapeHtml(conn.fromId || '')}" data-conn-index="${connIndex}" cursor="pointer" pointer-events="all">
+            <circle cx="${midX}" cy="${delY}" r="10" fill="#ef4444" opacity="0.9"/>
+            <line x1="${midX - 4}" y1="${delY - 4}" x2="${midX + 4}" y2="${delY + 4}" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="${midX + 4}" y1="${delY - 4}" x2="${midX - 4}" y2="${delY + 4}" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        `
+        svgHtml += `</g>`
       }
     })
 

@@ -165,17 +165,38 @@ export default class extends Controller {
       }
     })
 
-    // Edge event listeners
-    const edges = this.canvasContentTarget.querySelectorAll("path[data-from-id]")
-    edges.forEach(edge => {
-      edge.addEventListener("mouseenter", () => {
-        edge.setAttribute("stroke-width", "4")
-        edge.style.filter = "drop-shadow(0 0 3px rgba(0,0,0,0.3))"
+    // Edge group event listeners (hover to show delete, click to remove)
+    const edgeGroups = this.canvasContentTarget.querySelectorAll(".edge-group")
+    edgeGroups.forEach(group => {
+      const pathEl = group.querySelector("path")
+      const deleteBtn = group.querySelector(".edge-delete-btn")
+
+      group.addEventListener("mouseenter", () => {
+        if (pathEl) {
+          pathEl.setAttribute("stroke-width", "4")
+          pathEl.style.filter = "drop-shadow(0 0 3px rgba(0,0,0,0.3))"
+        }
+        if (deleteBtn) deleteBtn.style.display = ""
       })
-      edge.addEventListener("mouseleave", () => {
-        edge.setAttribute("stroke-width", "2")
-        edge.style.filter = ""
+
+      group.addEventListener("mouseleave", () => {
+        if (pathEl) {
+          pathEl.setAttribute("stroke-width", "2")
+          pathEl.style.filter = ""
+        }
+        if (deleteBtn) deleteBtn.style.display = "none"
       })
+
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation()
+          const fromId = deleteBtn.dataset.fromId
+          const connIndex = parseInt(deleteBtn.dataset.connIndex, 10)
+          if (fromId && !isNaN(connIndex)) {
+            this.service.removeTransition(fromId, connIndex)
+          }
+        })
+      }
     })
   }
 
