@@ -162,11 +162,11 @@
                     </svg>
                     Start
                   <% end %>
-                  <%= link_to workflow_path(workflow), class: "text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200", aria: { label: "View workflow: #{workflow.title}" } do %>
+                  <%= link_to workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all duration-200", aria: { label: "View workflow: #{workflow.title}" } do %>
                     View
                   <% end %>
                   <% if workflow.can_be_edited_by?(current_user) %>
-                    <%= link_to edit_workflow_path(workflow), class: "text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200", aria: { label: "Edit workflow: #{workflow.title}" } do %>
+                    <%= link_to edit_workflow_path(workflow), class: "px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all duration-200", aria: { label: "Edit workflow: #{workflow.title}" } do %>
                       Edit
                     <% end %>
                   <% end %>
