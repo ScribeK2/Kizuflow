@@ -36,7 +36,7 @@ class WorkflowsController < ApplicationController
                  when 'alphabetical'
                    @workflows.order(Arel.sql('LOWER(title) ASC'))
                  when 'most_steps'
-                   @workflows.order(Arel.sql("COALESCE(json_array_length(steps), 0) DESC"))
+                   @workflows.order(steps_count: :desc)
                  else
                    # 'recent' — order by updated_at
                    @workflows.order(updated_at: :desc)
@@ -73,7 +73,7 @@ class WorkflowsController < ApplicationController
                                  when 'alphabetical'
                                    @uncategorized_workflows.order(Arel.sql('LOWER(title) ASC'))
                                  when 'most_steps'
-                                   @uncategorized_workflows.order(Arel.sql("COALESCE(json_array_length(steps), 0) DESC"))
+                                   @uncategorized_workflows.order(steps_count: :desc)
                                  else
                                    @uncategorized_workflows.order(updated_at: :desc)
                                  end

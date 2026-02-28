@@ -88,18 +88,23 @@ module PerformanceHelper
   def build_sample_steps(workflow_index)
     step_count = 3 + (workflow_index % 8) # 3-10 steps per workflow
     step_count.times.map do |i|
-      step_type = %w[question decision action message resolve escalate][i % 6]
+      step_type = %w[question action sub_flow message resolve escalate][i % 6]
       {
         "id" => SecureRandom.uuid,
         "type" => step_type,
         "title" => "Step #{i + 1} of workflow #{workflow_index}",
         "description" => "Instructions for step #{i + 1}"
       }.tap do |step|
-        if step_type == "decision"
-          step["branches"] = [
-            { "condition" => "yes", "path" => SecureRandom.uuid },
-            { "condition" => "no", "path" => SecureRandom.uuid }
-          ]
+        case step_type
+        when "question"
+          step["question"] = "What is the answer for step #{i + 1}?"
+          step["answer_type"] = "text"
+          step["variable_name"] = "var_#{workflow_index}_#{i}"
+        when "action"
+          step["instructions"] = "Perform action #{i + 1}"
+        when "sub_flow"
+          # Leave target_workflow_id blank to avoid validation issues
+          step["_import_incomplete"] = true
         end
       end
     end
