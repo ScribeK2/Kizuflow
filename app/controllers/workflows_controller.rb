@@ -51,6 +51,7 @@ class WorkflowsController < ApplicationController
           # Eager load ancestors to prevent N+1 queries in breadcrumb rendering
           # Load up to 5 levels deep (max depth) to cover all ancestors
           @selected_group = Group.includes(parent: { parent: { parent: { parent: :parent } } }).find_by(id: params[:group_id])
+          @selected_ancestor_ids = @selected_group&.ancestors&.map(&:id) || []
           @workflows = @workflows.in_group(@selected_group)
         else
           @selected_group = nil
@@ -95,6 +96,10 @@ class WorkflowsController < ApplicationController
                               .roots
                               .includes(:children)
                               .order(:position, :name)
+
+    # Precompute workflows counts for sidebar to avoid N+1 queries
+    all_sidebar_groups = @accessible_groups.to_a + @accessible_groups.flat_map(&:children)
+    Group.precompute_workflows_counts(all_sidebar_groups) if all_sidebar_groups.any?
 
     # Fallback: if no groups exist at all, don't filter by groups
     if @accessible_groups.empty? && !current_user&.admin?
