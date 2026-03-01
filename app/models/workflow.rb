@@ -15,6 +15,10 @@ class Workflow < ApplicationRecord
   # Scenario associations
   has_many :scenarios, dependent: :destroy
 
+  # Versioning associations
+  has_many :versions, class_name: "WorkflowVersion", dependent: :destroy
+  belongs_to :published_version, class_name: "WorkflowVersion", optional: true
+
   # Sub-flow associations: track which workflows reference this one as a sub-flow
   has_many :referencing_workflows, class_name: 'Workflow', foreign_key: 'id', primary_key: 'id' do
     def with_subflow_references(target_workflow_id)
