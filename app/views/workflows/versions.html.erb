@@ -1,0 +1,61 @@
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+      Version History: <%= @workflow.title %>
+    </h1>
+    <%= link_to "Back to Workflow", @workflow,
+        class: "text-sm text-blue-600 dark:text-blue-400 hover:underline" %>
+  </div>
+
+  <% if @versions.any? %>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead class="bg-gray-50 dark:bg-gray-900">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Version</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Published By</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Changelog</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <% @versions.each do |version| %>
+            <tr class="<%= version == @workflow.published_version ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' %>">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                v<%= version.version_number %>
+                <% if version == @workflow.published_version %>
+                  <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Current</span>
+                <% end %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <%= version.published_by.email %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <%= version.published_at.strftime("%b %d, %Y %H:%M") %>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                <%= version.changelog.presence || "—" %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                <%= link_to "View", workflow_version_path(@workflow, version),
+                    class: "text-blue-600 dark:text-blue-400 hover:underline" %>
+                <% if @workflow.can_be_edited_by?(current_user) && version != @workflow.published_version %>
+                  <%= button_to "Restore", restore_workflow_version_path(@workflow, version),
+                      method: :post,
+                      class: "text-amber-600 dark:text-amber-400 hover:underline",
+                      data: { turbo_confirm: "Restore version #{version.version_number}? This will overwrite the current draft steps." } %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+      <p>No published versions yet.</p>
+      <p class="mt-2 text-sm">Use the Publish button on the workflow page to create the first version.</p>
+    </div>
+  <% end %>
+</div>
