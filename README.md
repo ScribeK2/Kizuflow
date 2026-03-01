@@ -1,27 +1,88 @@
-# Kizuflow
+<p align="center">
+  <img src="public/favicon.svg" alt="Kizuflow logo" width="64" height="64">
+</p>
 
-<img width="1535" height="1282" alt="image" src="https://github.com/user-attachments/assets/3b67a44b-b412-438a-9938-48b1d3f1d085" />
+<h1 align="center">Kizuflow</h1>
 
-A workflow builder for call/chat centers to create, run scenarios, and manage training and troubleshooting flows. Built as a Ruby on Rails monolith using Hotwire for interactivity.
+<p align="center">
+  A workflow builder for call and chat centers — create, run, and manage training and troubleshooting flows with drag-and-drop simplicity.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Ruby_on_Rails-8.0-cc0000?logo=rubyonrails" alt="Rails 8.0">
+  <img src="https://img.shields.io/badge/Ruby-3.3-cc342d?logo=ruby" alt="Ruby 3.3">
+  <img src="https://img.shields.io/badge/Hotwire-Turbo_+_Stimulus-5200ff" alt="Hotwire">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06b6d4?logo=tailwindcss" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
+</p>
+
+---
 
 ## Features
 
-- **Workflow Builder** - Drag-and-drop interface with four step types: questions, decisions, actions, and checkpoints
-- **Scenario Mode** - Test workflows step-by-step with input tracking and execution paths
-- **Real-Time Collaboration** - Multi-user editing with presence indicators via Action Cable
-- **Template Library** - Pre-built workflows for onboarding, troubleshooting, and training
-- **Import/Export** - Import from JSON, CSV, YAML, Markdown; export to JSON or PDF
-- **Hierarchical Groups** - Organize workflows into nested groups with role-based access control
-- **Role-Based Access** - Administrator, Editor, and User roles with granular permissions
+### Workflow Builder
+- **Six step types** — Question, Action, Sub-Flow, Message, Escalate, and Resolve
+- **Drag-and-drop ordering** with inline step creation and collapsible cards
+- **Two editing modes** — Linear (sequential list) and Graph Mode (visual node editor with connections via dagre/leader-line)
+- **Sub-flow support** — Call other workflows as reusable sub-routines with circular reference detection
+- **Markdown content** — Rich text editing with toolbar and live preview (Redcarpet)
+- **Multi-branch decisions** — Visual condition builder with presets and variable autocomplete
+- **Autosave and optimistic locking** — Concurrent editing protection via `lock_version`
+
+### Scenario Mode
+- **Step-by-step execution** — Walk through any workflow interactively, recording inputs and results
+- **Graph traversal** — Follows branches and connections in both linear and graph mode workflows
+- **Variable interpolation** — `{{variable}}` syntax resolved at runtime
+- **Sub-flow execution** — Spawns child scenarios for sub-flow steps, resuming the parent on completion
+- **Safety limits** — Iteration cap (1,000), execution timeout (30s), and nested condition depth limit to prevent infinite loops
+
+### Collaboration & Real-Time
+- **Action Cable presence** — See who is editing a workflow in real time via `WorkflowChannel`
+- **Optimistic locking** — Prevents conflicting saves with automatic conflict detection
+
+### Organization
+- **Hierarchical groups** — Nested groups (up to 5 levels) with recursive membership
+- **Folders** — Organize workflows within groups with drag-and-drop reordering
+- **Template library** — Save and reuse workflows as templates; admin-managed public templates
+- **Search and filtering** — Client-side fuzzy search (Fuse.js) across workflows
+
+### Import & Export
+- **Import** from JSON, CSV, YAML, or Markdown — auto-detects format, assigns UUIDs, marks incomplete steps
+- **Export** to JSON or PDF (Prawn) with full step details
+
+### Access Control
+- **Three roles** — Administrator, Editor, User with granular permissions
+- **Group-based visibility** — Workflows inherit access from group membership; parent groups cascade to children
+- **Account security** — Devise authentication with lockable accounts, rate limiting (Rack::Attack)
+
+### Admin Panel (`/admin`)
+- User management with role assignment, password resets, and bulk group assignment
+- Template management (create, edit, categorize)
+- Group and folder hierarchy management
+- Workflow overview and monitoring
+
+### Guided Workflow Wizard
+- **Three-step creation wizard** — Title/description, add steps with templates, review and publish
+- **Step templates** — Pre-built step configurations for common patterns
+- **Live flow preview** — Visual preview updates as you build
 
 ## Tech Stack
 
-- Ruby on Rails 8.0
-- Hotwire (Turbo + Stimulus)
-- Tailwind CSS
-- SQLite (development) / PostgreSQL (production)
-- Devise authentication
-- Action Cable for WebSockets
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Ruby on Rails 8.0 (#nobuild — no Node.js required) |
+| **Frontend** | Hotwire (Turbo + Stimulus), 60+ Stimulus controllers |
+| **Styling** | Tailwind CSS (standalone CLI via tailwindcss-rails) |
+| **Database** | SQLite (dev/test), PostgreSQL (production) |
+| **Real-time** | Action Cable (Redis in production, in-memory in dev) |
+| **Auth** | Devise with lockable accounts |
+| **PDF** | Prawn |
+| **Markdown** | Redcarpet |
+| **JS (vendored)** | SortableJS, Fuse.js, dagre, leader-line, spark-md5 |
+| **Monitoring** | Sentry (sentry-rails) |
+| **Security** | Rack::Attack, Brakeman, Bullet (N+1 detection) |
+| **Linting** | RuboCop (with rails, minitest, performance plugins) |
+| **Deployment** | Kamal, Puma |
 
 ## Prerequisites
 
@@ -29,12 +90,11 @@ A workflow builder for call/chat centers to create, run scenarios, and manage tr
 - Bundler
 - SQLite3 (development) or PostgreSQL (production)
 
-No Node.js required - uses Rails' #nobuild approach with importmap-rails and tailwindcss-rails standalone CLI.
+No Node.js required — uses Rails' importmap-rails for JS and tailwindcss-rails standalone CLI for styles.
 
 ## Installation
 
 ```bash
-# Clone and install dependencies
 git clone https://github.com/ScribeK2/Kizuflow
 cd Kizuflow
 bundle install
@@ -51,20 +111,32 @@ Visit `http://localhost:3000` to access the application.
 ## Usage
 
 1. **Sign up** with email and password
-2. **Create a workflow** from scratch or use a template
-3. **Add steps** using the drag-and-drop builder
-4. **Test** with scenario mode
-5. **Export** as JSON or PDF
+2. **Create a workflow** from scratch, use the guided wizard, or start from a template
+3. **Add steps** — questions, actions, sub-flows, messages, escalations, or resolve steps
+4. **Switch to Graph Mode** for visual node-based editing with connections
+5. **Test** with Scenario Mode — walk through the flow step by step
+6. **Organize** into groups and folders
+7. **Export** as JSON or PDF, or save as a reusable template
 
 ## Running Tests
 
 ```bash
+# All tests (Minitest)
 bin/rails test
+
+# Single file
+bin/rails test test/models/workflow_test.rb
+
+# Specific test by line number
+bin/rails test test/models/workflow_test.rb:42
+
+# Verbose output
+bin/rails test -v
 ```
 
 ## Deployment
 
-Configured for deployment with Kamal. See `config/deploy.yml` for details.
+Configured for deployment with [Kamal](https://kamal-deploy.org/). See `config/deploy.yml` for details.
 
 Required environment variables:
 - `RAILS_MASTER_KEY`
@@ -73,8 +145,8 @@ Required environment variables:
 
 ## Contributing
 
-Contributions welcome. Please follow Rails conventions, add tests for new features, and ensure all tests pass before submitting.
+Contributions welcome. Please follow Rails conventions, add Minitest tests for new features, and ensure all tests pass before submitting.
 
 ## License
 
-Open source. See [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
