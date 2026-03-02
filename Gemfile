@@ -19,7 +19,7 @@ gem "turbo-rails"
 gem "tzinfo-data", platforms: %i[mingw mswin x64_mingw jruby]
 
 # Authentication
-gem "devise"
+gem "devise", "~> 5.0"
 
 # Rate limiting and request throttling
 gem "rack-attack"
