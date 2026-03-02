@@ -105,7 +105,8 @@ class User < ApplicationRecord
   # Generate a secure temporary password for admin reset
   def generate_temporary_password
     self.skip_password_change_notification = true
-    temp_password = SecureRandom.alphanumeric(16)
+    temp_password = SecureRandom.alphanumeric(14) + SecureRandom.random_number(10).to_s + ("A".."Z").to_a.sample
+    temp_password = temp_password.chars.shuffle.join
     self.password = temp_password
     self.password_confirmation = temp_password
     save!(validate: false)

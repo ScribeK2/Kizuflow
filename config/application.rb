@@ -12,7 +12,7 @@ Bundler.require(*Rails.groups)
 
 module Kizuflow
   class Application < Rails::Application
-    config.load_defaults 8.0
+    config.load_defaults 8.1
 
     # Configuration for the application, engines, and railties goes here.
     config.assets.enabled = true

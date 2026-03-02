@@ -9,7 +9,7 @@ gem "image_processing", "~> 1.2"
 gem "importmap-rails"
 gem "pg", "~> 1.1", group: [:production]
 gem "puma", ">= 5.0"
-gem "rails", "~> 8.0.0"
+gem "rails", "~> 8.1.0"
 gem "redis", "~> 5.0"
 gem "sprockets-rails"
 gem "sqlite3", ">= 2.1", group: %i[development test]
