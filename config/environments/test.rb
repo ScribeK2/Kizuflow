@@ -3,9 +3,6 @@ require 'active_support/core_ext/integer/time'
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  # While in a test environment, code is reloaded between requests.
-  config.cache_classes = false
-
   # Do not eager load code on boot. This avoids loading your whole application
   # just for the purpose of running a single test.
   config.eager_load = false

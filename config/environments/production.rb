@@ -5,7 +5,6 @@ Rails.application.configure do
 
   # ADD THIS LINE — inside the block
   config.database_url = ENV['DATABASE_URL']
-  config.cache_classes = true
   config.eager_load = true
 
   # Full error reports are disabled.
