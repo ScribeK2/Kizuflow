@@ -173,4 +173,15 @@ class VariableInterpolatorTest < ActiveSupport::TestCase
 
     assert_equal "John and John Doe and john@example.com", result
   end
+
+  test "normalize_variables converts symbol keys to strings" do
+    input = { foo: "bar", "baz" => "qux" }
+    result = VariableInterpolator.normalize_variables(input)
+    assert_equal({ "foo" => "bar", "baz" => "qux" }, result)
+  end
+
+  test "normalize_variables returns empty hash for non-hash input" do
+    assert_equal({}, VariableInterpolator.normalize_variables(nil))
+    assert_equal({}, VariableInterpolator.normalize_variables("string"))
+  end
 end

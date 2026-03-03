@@ -77,13 +77,6 @@ class VariableInterpolator
   def self.normalize_variables(variables)
     return {} unless variables.is_a?(Hash)
 
-    normalized = {}
-    variables.each do |key, value|
-      # Convert key to string if it's a symbol
-      string_key = key.is_a?(Symbol) ? key.to_s : key.to_s
-      normalized[string_key] = value
-    end
-
-    normalized
+    variables.transform_keys(&:to_s)
   end
 end
