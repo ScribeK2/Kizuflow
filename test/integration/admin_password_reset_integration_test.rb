@@ -147,7 +147,7 @@ class AdminPasswordResetIntegrationTest < ActionDispatch::IntegrationTest
     assert_includes @user.groups, group
 
     # User should still have their role
-    assert_equal 'user', @user.role
+    assert_equal 'regular', @user.role
 
     # Password should be changed
     assert_not_equal original_password, @user.encrypted_password

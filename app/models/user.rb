@@ -10,30 +10,15 @@ class User < ApplicationRecord
   has_many :user_groups, dependent: :destroy
   has_many :groups, through: :user_groups
 
-  # Role constants
+  # String-backed enum — maps to existing column values with no migration needed.
+  # :regular maps to DB value "user" to avoid User.user naming collision.
+  enum :role, { admin: "admin", editor: "editor", regular: "user" }, default: "user"
+
+  # Keep ROLES for backward compatibility with any code referencing it
   ROLES = %w[admin editor user].freeze
 
   # Validations
-  validates :role, presence: true, inclusion: { in: ROLES }
   validates :display_name, length: { maximum: 50 }, allow_blank: true
-
-  # Scopes
-  scope :admins, -> { where(role: 'admin') }
-  scope :editors, -> { where(role: 'editor') }
-  scope :users, -> { where(role: 'user') }
-
-  # Role checking methods
-  def admin?
-    role == 'admin'
-  end
-
-  def editor?
-    role == 'editor'
-  end
-
-  def user?
-    role == 'user'
-  end
 
   # Check if user can create workflows
   def can_create_workflows?
@@ -73,21 +58,21 @@ class User < ApplicationRecord
   AVATAR_COLORS = {
     'admin' => 'bg-emerald-500',
     'editor' => 'bg-blue-500',
-    'user' => 'bg-slate-500'
+    'regular' => 'bg-slate-500'
   }.freeze
 
   AVATAR_BADGE_CLASSES = {
     'admin' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
     'editor' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    'user' => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+    'regular' => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
   }.freeze
 
   def avatar_color_class
-    AVATAR_COLORS[role] || AVATAR_COLORS['user']
+    AVATAR_COLORS[role] || AVATAR_COLORS['regular']
   end
 
   def avatar_role_badge_classes
-    AVATAR_BADGE_CLASSES[role] || AVATAR_BADGE_CLASSES['user']
+    AVATAR_BADGE_CLASSES[role] || AVATAR_BADGE_CLASSES['regular']
   end
 
   # When true, Devise will not send the "password changed" email (used for admin

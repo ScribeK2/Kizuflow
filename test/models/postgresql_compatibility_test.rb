@@ -135,15 +135,14 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
   # Enum/CHECK Constraint Tests
   # ===========================================
 
-  test "user role validates against allowed values" do
-    user = User.new(
-      email: "role-test@example.com",
-      password: "password123!",
-      role: "invalid_role"
-    )
-
-    assert_not user.valid?
-    assert_includes user.errors[:role], "is not included in the list"
+  test "user role rejects invalid values" do
+    assert_raises(ArgumentError) do
+      User.new(
+        email: "role-test@example.com",
+        password: "password123!",
+        role: "invalid_role"
+      )
+    end
   end
 
   test "scenario status validates against allowed values" do

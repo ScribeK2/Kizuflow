@@ -54,19 +54,18 @@ class UserTest < ActiveSupport::TestCase
       password_confirmation: "password123!"
     )
 
-    assert_equal "user", user.role
+    assert_equal "regular", user.role
   end
 
-  test "should validate role inclusion" do
-    user = User.new(
-      email: "test@example.com",
-      password: "password123!",
-      password_confirmation: "password123!",
-      role: "invalid_role"
-    )
-
-    assert_not user.valid?
-    assert_includes user.errors[:role], "is not included in the list"
+  test "should reject invalid role values" do
+    assert_raises(ArgumentError) do
+      User.new(
+        email: "test@example.com",
+        password: "password123!",
+        password_confirmation: "password123!",
+        role: "invalid_role"
+      )
+    end
   end
 
   test "admin? should return true for admin users" do
@@ -102,15 +101,15 @@ class UserTest < ActiveSupport::TestCase
     assert_predicate editor, :editor?
   end
 
-  test "user? should return true for regular users" do
+  test "regular? should return true for regular users" do
     user = User.create!(
       email: "user@test.com",
       password: "password123!",
       password_confirmation: "password123!",
-      role: "user"
+      role: "regular"
     )
 
-    assert_predicate user, :user?
+    assert_predicate user, :regular?
   end
 
   test "can_create_workflows? should return true for admin" do
@@ -209,7 +208,7 @@ class UserTest < ActiveSupport::TestCase
       role: "editor"
     )
 
-    admins = User.admins
+    admins = User.admin
 
     assert_includes admins.map(&:id), admin1.id
     assert_includes admins.map(&:id), admin2.id
@@ -236,7 +235,7 @@ class UserTest < ActiveSupport::TestCase
       role: "user"
     )
 
-    editors = User.editors
+    editors = User.editor
 
     assert_includes editors.map(&:id), editor1.id
     assert_includes editors.map(&:id), editor2.id
