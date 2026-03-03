@@ -6,5 +6,5 @@ class WorkflowVersion < ApplicationRecord
             uniqueness: { scope: :workflow_id }
   validates :published_at, presence: true
 
-  default_scope { order(version_number: :desc) }
+  scope :newest_first, -> { order(version_number: :desc) }
 end

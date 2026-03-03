@@ -487,7 +487,7 @@ class WorkflowsController < ApplicationController
   end
 
   def versions
-    @versions = @workflow.versions.includes(:published_by)
+    @versions = @workflow.versions.newest_first.includes(:published_by)
   end
 
   def import

@@ -141,12 +141,12 @@ class WorkflowVersionTest < ActiveSupport::TestCase
     assert_equal "Q1", version.steps_snapshot.first["title"]
   end
 
-  test "orders by version_number descending by default" do
+  test "newest_first scope orders by version_number descending" do
     v1 = WorkflowVersion.create!(workflow: @workflow, version_number: 1, steps_snapshot: [], metadata_snapshot: {}, published_by: @user, published_at: 2.days.ago)
     v2 = WorkflowVersion.create!(workflow: @workflow, version_number: 2, steps_snapshot: [], metadata_snapshot: {}, published_by: @user, published_at: 1.day.ago)
     v3 = WorkflowVersion.create!(workflow: @workflow, version_number: 3, steps_snapshot: [], metadata_snapshot: {}, published_by: @user, published_at: Time.current)
 
-    versions = @workflow.versions.to_a
+    versions = @workflow.versions.newest_first.to_a
     assert_equal [v3, v2, v1], versions
   end
 end

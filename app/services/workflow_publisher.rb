@@ -32,9 +32,7 @@ class WorkflowPublisher
     version = nil
 
     Workflow.transaction do
-      next_number = (@workflow.versions.unscoped
-                       .where(workflow_id: @workflow.id)
-                       .maximum(:version_number) || 0) + 1
+      next_number = (@workflow.versions.maximum(:version_number) || 0) + 1
 
       version = WorkflowVersion.create!(
         workflow: @workflow,
