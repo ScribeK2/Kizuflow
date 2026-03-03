@@ -319,7 +319,13 @@ class Scenario < ApplicationRecord
 
     # Apply variable mapping if defined
     variable_mapping = step['variable_mapping'] || {}
-    variable_mapping = JSON.parse(variable_mapping) rescue {} if variable_mapping.is_a?(String)
+    if variable_mapping.is_a?(String)
+      variable_mapping = begin
+        JSON.parse(variable_mapping)
+      rescue JSON::ParserError
+        {}
+      end
+    end
     variable_mapping = {} unless variable_mapping.is_a?(Hash)
     variable_mapping.each do |parent_var, child_var|
       if self.results&.key?(parent_var)
@@ -369,7 +375,13 @@ class Scenario < ApplicationRecord
       # Get variable mapping from the sub-flow step
       resume_step = workflow.find_step_by_id(resume_node_uuid)
       variable_mapping = resume_step&.dig('variable_mapping') || {}
-      variable_mapping = JSON.parse(variable_mapping) rescue {} if variable_mapping.is_a?(String)
+      if variable_mapping.is_a?(String)
+        variable_mapping = begin
+          JSON.parse(variable_mapping)
+        rescue JSON::ParserError
+          {}
+        end
+      end
       variable_mapping = {} unless variable_mapping.is_a?(Hash)
 
       # Merge child results back to parent.
