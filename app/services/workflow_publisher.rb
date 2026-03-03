@@ -31,7 +31,7 @@ class WorkflowPublisher
 
     version = nil
 
-    ActiveRecord::Base.transaction do
+    Workflow.transaction do
       next_number = (@workflow.versions.unscoped
                        .where(workflow_id: @workflow.id)
                        .maximum(:version_number) || 0) + 1

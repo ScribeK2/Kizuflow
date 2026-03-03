@@ -38,17 +38,17 @@ class WorkflowImporter
     if workflow.save
       Result.new(
         success: true,
-        workflow: workflow,
+        workflow:,
         errors: [],
-        warnings: warnings,
+        warnings:,
         incomplete_steps_count: incomplete_count
       )
     else
       Result.new(
         success: false,
-        workflow: workflow,
+        workflow:,
         errors: workflow.errors.full_messages,
-        warnings: warnings,
+        warnings:,
         incomplete_steps_count: incomplete_count
       )
     end
@@ -92,8 +92,8 @@ class WorkflowImporter
     Result.new(
       success: false,
       workflow: nil,
-      errors: errors,
-      warnings: warnings,
+      errors:,
+      warnings:,
       incomplete_steps_count: 0
     )
   end

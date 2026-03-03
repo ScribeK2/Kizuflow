@@ -534,7 +534,7 @@ class Workflow < ApplicationRecord
       description: description || description_text,
       category: category || "custom",
       workflow_data: steps || [],
-      is_public: is_public
+      is_public:
     }
   end
 
