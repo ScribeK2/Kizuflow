@@ -52,17 +52,18 @@ class Workflow < ApplicationRecord
   # Clean up import flags when steps are completed
   before_save :cleanup_import_flags
   # Set draft expiration before save (7 days from creation or update)
-  before_save :set_draft_expiration, if: -> { status == 'draft' }
+  before_save :set_draft_expiration, if: :draft?
   # Assign to Uncategorized group if no groups assigned (only for published workflows)
-  after_create :assign_to_uncategorized_if_needed, if: -> { status == 'published' || status.nil? }
+  after_create :assign_to_uncategorized_if_needed, if: :published?
+
+  enum :status, { draft: "draft", published: "published" }, default: "published"
 
   scope :recent, -> { order(created_at: :desc) }
   scope :public_workflows, -> { where(is_public: true) }
 
   # Draft workflow scopes
-  scope :drafts, -> { where(status: 'draft') }
-  scope :published, -> { where(status: 'published') }
-  scope :expired_drafts, -> { drafts.where('draft_expires_at < ?', Time.current) }
+  scope :drafts, -> { draft }
+  scope :expired_drafts, -> { draft.where('draft_expires_at < ?', Time.current) }
 
   # Get workflows visible to a specific user
   # Admins see all, Editors see own + public, Users see only public
@@ -185,17 +186,7 @@ class Workflow < ApplicationRecord
 
   # Set draft expiration timestamp (7 days from now)
   def set_draft_expiration
-    self.draft_expires_at = 7.days.from_now if status == 'draft'
-  end
-
-  # Check if workflow is a draft
-  def draft?
-    status == 'draft'
-  end
-
-  # Check if workflow is published
-  def published?
-    status == 'published' || status.nil?
+    self.draft_expires_at = 7.days.from_now if draft?
   end
 
   # Determine if graph structure validation should run
@@ -203,7 +194,7 @@ class Workflow < ApplicationRecord
   # This allows incremental workflow building without requiring all steps
   # to be connected before saving.
   def should_validate_graph_structure?
-    graph_mode? && (status == 'published' || @validate_graph_now)
+    graph_mode? && (published? || @validate_graph_now)
   end
 
   # Force graph validation on next save (for explicit validation requests)
