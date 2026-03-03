@@ -145,17 +145,14 @@ class PostgresqlCompatibilityTest < ActiveSupport::TestCase
     end
   end
 
-  test "scenario status validates against allowed values" do
-    workflow = workflows(:one)
-    user = users(:regular_user)
-
-    scenario = Scenario.new(
-      workflow: workflow,
-      user: user,
-      status: "invalid_status"
-    )
-
-    assert_not scenario.valid?
+  test "scenario status rejects invalid values" do
+    assert_raises(ArgumentError) do
+      Scenario.new(
+        workflow: workflows(:one),
+        user: users(:regular_user),
+        status: "invalid_status"
+      )
+    end
   end
 
   test "valid enum values are accepted" do

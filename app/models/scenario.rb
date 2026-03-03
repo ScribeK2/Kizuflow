@@ -10,7 +10,18 @@ class Scenario < ApplicationRecord
   belongs_to :parent_scenario, class_name: 'Scenario', optional: true
   has_many :child_scenarios, class_name: 'Scenario', foreign_key: 'parent_scenario_id', dependent: :destroy
 
-  # Status constants
+  # String-backed enum — maps to existing column values with no migration needed.
+  # :timed_out maps to DB "timeout", :errored maps to DB "error" to avoid Ruby naming conflicts.
+  enum :status, {
+    active: "active",
+    completed: "completed",
+    stopped: "stopped",
+    timed_out: "timeout",
+    errored: "error",
+    awaiting_subflow: "awaiting_subflow"
+  }, default: "active"
+
+  # Keep STATUSES for backward compatibility
   STATUSES = %w[active completed stopped timeout error awaiting_subflow].freeze
 
   # Scenario limits to prevent infinite loops and DoS
@@ -27,8 +38,7 @@ class Scenario < ApplicationRecord
   # Initialize execution_path and results as empty arrays/hashes if needed
   before_save :initialize_execution_data
 
-  # Validate status
-  validates :status, inclusion: { in: STATUSES }, allow_nil: false
+  # Enum handles status validation automatically
 
   # Track iteration count for step-by-step processing
   attr_accessor :iteration_count
@@ -64,31 +74,21 @@ class Scenario < ApplicationRecord
     end
   end
 
-  # Check if waiting for sub-flow to complete
-  def awaiting_subflow?
-    status == 'awaiting_subflow'
-  end
-
   # Get the active child scenario (if any)
   def active_child_scenario
     child_scenarios.find_by(status: %w[active awaiting_subflow])
   end
 
-  # Check if scenario is stopped
-  def stopped?
-    status == 'stopped'
-  end
-
   # Check if scenario is complete
   def complete?
-    return true if status == 'completed'
+    return true if completed?
     return true if stopped?
     return false if awaiting_subflow?
     return true unless workflow&.steps&.present?
 
     if graph_mode?
       # In graph mode, complete when no current node or current node is nil
-      current_node_uuid.nil? && status != 'active'
+      current_node_uuid.nil? && !active?
     else
       current_step_index >= workflow.steps.length
     end
@@ -108,7 +108,7 @@ class Scenario < ApplicationRecord
   def process_step(answer = nil)
     return false if complete?
     return false if stopped?
-    return false if %w[timeout error].include?(status)
+    return false if timed_out? || errored?
 
     # If awaiting sub-flow completion, check child status
     if awaiting_subflow?

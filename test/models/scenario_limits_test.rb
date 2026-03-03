@@ -69,7 +69,7 @@ class ScenarioLimitsTest < ActiveSupport::TestCase
 
     scenario.reload
 
-    assert_equal 'error', scenario.status
+    assert_equal 'errored', scenario.status
     assert_predicate scenario.results['_error'], :present?
     assert_includes scenario.results['_error'], 'iterations'
   end
