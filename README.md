@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Ruby_on_Rails-8.0-cc0000?logo=rubyonrails" alt="Rails 8.0">
-  <img src="https://img.shields.io/badge/Ruby-3.3-cc342d?logo=ruby" alt="Ruby 3.3">
+  <img src="https://img.shields.io/badge/Ruby_on_Rails-8.1-cc0000?logo=rubyonrails" alt="Rails 8.1">
+  <img src="https://img.shields.io/badge/Ruby-4.0-cc342d?logo=ruby" alt="Ruby 4.0">
   <img src="https://img.shields.io/badge/Hotwire-Turbo_+_Stimulus-5200ff" alt="Hotwire">
   <img src="https://img.shields.io/badge/Tailwind_CSS-4-06b6d4?logo=tailwindcss" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
@@ -70,7 +70,7 @@
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Ruby on Rails 8.0 (#nobuild — no Node.js required) |
+| **Framework** | Ruby on Rails 8.1 (#nobuild — no Node.js required) |
 | **Frontend** | Hotwire (Turbo + Stimulus), 60+ Stimulus controllers |
 | **Styling** | Tailwind CSS (standalone CLI via tailwindcss-rails) |
 | **Database** | SQLite (dev/test), PostgreSQL (production) |
@@ -86,7 +86,7 @@
 
 ## Prerequisites
 
-- Ruby 3.3.0+
+- Ruby 4.0.0+
 - Bundler
 - SQLite3 (development) or PostgreSQL (production)
 
