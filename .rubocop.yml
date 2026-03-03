@@ -7,6 +7,7 @@ plugins:
 
 AllCops:
   TargetRubyVersion: 4.0
+  TargetRailsVersion: 8.1
   NewCops: enable
   SuggestExtensions: false
   Exclude:
@@ -15,7 +16,6 @@ AllCops:
     - "db/seeds.rb"
     - "vendor/**/*"
     - "bin/**/*"
-    - "spec/**/*"
     - "config/puma.rb"
     - "config/boot.rb"
     - "config/environments/**/*"
