@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Validates DAG (Directed Acyclic Graph) structure for graph-mode workflows.
 # Ensures the workflow graph is valid before execution.
 #

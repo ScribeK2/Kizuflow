@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Handles authorization logic for workflows.
 # Determines who can view, edit, and delete workflows based on user roles and group membership.
 module WorkflowAuthorization

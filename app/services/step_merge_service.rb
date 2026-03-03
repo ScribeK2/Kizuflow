@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Service for merging submitted workflow steps with existing steps.
 # Preserves fields that weren't in the form submission (like variable_name for question steps)
 # while allowing explicit updates to take precedence.

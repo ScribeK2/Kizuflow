@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Handles step normalization, variable name generation, and format conversion
 # for workflows. Ensures backward compatibility with legacy step formats.
 # Also handles graph-mode normalization for DAG-based workflows.

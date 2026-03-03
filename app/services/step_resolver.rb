@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Resolves the next step in a graph-mode workflow based on current step and results.
 # Handles transition condition evaluation and sub-flow detection.
 #

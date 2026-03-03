@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # View helpers for feature flag checks
 module FeatureFlagsHelper
   # Check if graph mode is the default for new workflows

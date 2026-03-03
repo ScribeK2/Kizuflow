@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Validates sub-flow references to prevent circular dependencies.
 # A circular dependency would cause infinite recursion during execution.
 #

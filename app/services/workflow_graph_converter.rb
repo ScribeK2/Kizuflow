@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Converts linear (array-based) workflows to graph (DAG-based) workflows.
 # Maps sequential steps to explicit transitions while preserving decision branches.
 #
