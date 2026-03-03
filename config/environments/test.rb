@@ -31,14 +31,8 @@ Rails.application.configure do
   # Disable Action Mailer's delivery in test environment.
   config.action_mailer.delivery_method = :test
 
-  # Print deprecation notices to the stderr.
-  config.active_support.deprecation = :stderr
-
-  # Raise exceptions for disallowed deprecations.
-  config.active_support.disallowed_deprecation = :raise
-
-  # Tell Active Support which deprecation messages to disallow.
-  config.active_support.disallowed_deprecation_warnings = []
+  # Report deprecation notices in test output.
+  config.active_support.report_deprecations = true
 
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
