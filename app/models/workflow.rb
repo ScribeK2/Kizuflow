@@ -496,7 +496,6 @@ class Workflow < ApplicationRecord
     return true if graph_mode?
     return false unless steps.present?
 
-    require_relative '../services/workflow_graph_converter'
     converter = WorkflowGraphConverter.new(self)
     converted_steps = converter.convert
 
@@ -550,7 +549,6 @@ class Workflow < ApplicationRecord
   def validate_graph_structure
     return unless graph_mode? && steps.present?
 
-    require_relative '../services/graph_validator'
     validator = GraphValidator.new(graph_steps, start_node_uuid || steps.first&.dig('id'))
 
     unless validator.valid?
@@ -600,7 +598,6 @@ class Workflow < ApplicationRecord
   def validate_subflow_circular_references
     return unless persisted? # Only check on existing workflows
 
-    require_relative '../services/subflow_validator'
     validator = SubflowValidator.new(id)
 
     unless validator.valid?
