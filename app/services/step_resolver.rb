@@ -11,7 +11,7 @@
 #   - nil if no valid transition or terminal node
 class StepResolver
   # Marker returned when a sub-flow step is encountered
-  SubflowMarker = Struct.new(:target_workflow_id, :variable_mapping, :step_uuid, keyword_init: true)
+  SubflowMarker = Data.define(:target_workflow_id, :variable_mapping, :step_uuid)
 
   attr_reader :workflow
 

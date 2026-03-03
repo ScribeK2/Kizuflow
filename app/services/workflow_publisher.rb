@@ -1,5 +1,5 @@
 class WorkflowPublisher
-  Result = Struct.new(:version, :error, keyword_init: true) do
+  Result = Data.define(:version, :error) do
     def success?
       error.nil?
     end
@@ -16,7 +16,7 @@ class WorkflowPublisher
   end
 
   def publish
-    return Result.new(error: "Workflow has no steps") if @workflow.steps.blank?
+    return Result.new(version: nil, error: "Workflow has no steps") if @workflow.steps.blank?
 
     # Validate graph structure before publishing
     if @workflow.graph_mode?
@@ -25,7 +25,7 @@ class WorkflowPublisher
         @workflow.start_node_uuid || @workflow.steps.first&.dig("id")
       )
       unless validator.valid?
-        return Result.new(error: validator.errors.join(", "))
+        return Result.new(version: nil, error: validator.errors.join(", "))
       end
     end
 
@@ -47,9 +47,9 @@ class WorkflowPublisher
       @workflow.update!(published_version: version)
     end
 
-    Result.new(version:)
+    Result.new(version:, error: nil)
   rescue ActiveRecord::RecordInvalid => e
-    Result.new(error: e.message)
+    Result.new(version: nil, error: e.message)
   end
 
   private

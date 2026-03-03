@@ -1,5 +1,5 @@
 class WorkflowImporter
-  Result = Struct.new(:success, :workflow, :errors, :warnings, :incomplete_steps_count, keyword_init: true) do
+  Result = Data.define(:success, :workflow, :errors, :warnings, :incomplete_steps_count) do
     def success? = success
     def incomplete_steps? = incomplete_steps_count.to_i > 0
   end
