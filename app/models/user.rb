@@ -17,6 +17,8 @@ class User < ApplicationRecord
   # Keep ROLES for backward compatibility with any code referencing it
   ROLES = %w[admin editor user].freeze
 
+  normalizes :display_name, with: ->(name) { name.strip }
+
   # Validations
   validates :display_name, length: { maximum: 50 }, allow_blank: true
 

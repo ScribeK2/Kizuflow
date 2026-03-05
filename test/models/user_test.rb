@@ -337,6 +337,11 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "B", user.avatar_initial
   end
 
+  test "display_name is stripped on assignment" do
+    user = User.new(display_name: "  John Doe  ")
+    assert_equal "John Doe", user.display_name
+  end
+
   test "avatar_color_class returns slate for user role" do
     user = User.new(role: "user")
     assert_equal "bg-slate-500", user.avatar_color_class
