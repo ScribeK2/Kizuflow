@@ -1,7 +1,6 @@
 require "test_helper"
 
 class RenderStepTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
 
   setup do
     @user = User.create!(

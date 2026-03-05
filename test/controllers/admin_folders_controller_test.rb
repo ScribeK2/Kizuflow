@@ -1,7 +1,6 @@
 require "test_helper"
 
 class Admin::FoldersControllerTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
 
   def setup
     @admin = User.create!(

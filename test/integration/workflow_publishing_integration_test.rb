@@ -1,7 +1,6 @@
 require "test_helper"
 
 class WorkflowPublishingIntegrationTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
 
   def setup
     @editor = User.create!(

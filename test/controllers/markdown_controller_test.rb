@@ -1,9 +1,6 @@
 require "test_helper"
 
 class MarkdownControllerTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
-
-  self.use_transactional_tests = true
 
   def setup
     @user = User.create!(

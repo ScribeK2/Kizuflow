@@ -1,10 +1,6 @@
 require "test_helper"
 
 class WorkflowsControllerTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
-
-  # Don't use fixtures - create data directly to avoid JSON fixture teardown issues
-  self.use_transactional_tests = true
 
   def setup
     # Create users with different roles (using unique emails)

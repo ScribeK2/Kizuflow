@@ -1,9 +1,6 @@
 require "test_helper"
 
 class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
-
-  self.use_transactional_tests = true
 
   def setup
     @admin = User.create!(

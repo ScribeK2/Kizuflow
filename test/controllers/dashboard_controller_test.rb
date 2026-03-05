@@ -1,10 +1,6 @@
 require "test_helper"
 
 class DashboardControllerTest < ActionDispatch::IntegrationTest
-  include Devise::Test::IntegrationHelpers
-
-  # Don't use fixtures - create data directly
-  self.use_transactional_tests = true
 
   def setup
     # Create user directly instead of using fixtures
