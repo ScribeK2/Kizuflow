@@ -157,6 +157,36 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "You don't have permission to use this template.", flash[:alert]
   end
 
+  test "should convert deprecated decision step types when using template" do
+    template_with_deprecated = Template.create!(
+      name: "Legacy Template",
+      category: "troubleshooting",
+      is_public: true,
+      workflow_data: [
+        { "id" => SecureRandom.uuid, "type" => "message", "title" => "Welcome", "content" => "Hello" },
+        { "id" => SecureRandom.uuid, "type" => "decision", "title" => "Choose Path", "question" => "Which way?" },
+        { "id" => SecureRandom.uuid, "type" => "simple_decision", "title" => "Yes or No", "question" => "Agree?" },
+        { "id" => SecureRandom.uuid, "type" => "checkpoint", "title" => "Check Point", "checkpoint_message" => "Pause here" },
+        { "id" => SecureRandom.uuid, "type" => "resolve", "title" => "Done", "resolution_type" => "success" }
+      ]
+    )
+
+    sign_in @editor
+    assert_difference("Workflow.count") do
+      post use_template_path(template_with_deprecated)
+    end
+
+    workflow = Workflow.last
+    step_types = workflow.steps.map { |s| s["type"] }
+
+    assert_includes step_types, "question"
+    assert_includes step_types, "message"
+    assert_not_includes step_types, "decision"
+    assert_not_includes step_types, "simple_decision"
+    assert_not_includes step_types, "checkpoint"
+    assert_redirected_to edit_workflow_path(workflow)
+  end
+
   test "admin should be able to use private template" do
     sign_in @admin
     assert_difference("Workflow.count") do

@@ -71,6 +71,17 @@ class TemplatesController < ApplicationController
       # Ensure title is present (required)
       step['title'] ||= "Untitled Step"
 
+      # Auto-convert deprecated step types (same mapping as import system)
+      case step['type']
+      when 'decision', 'simple_decision'
+        step['type'] = 'question'
+        step['answer_type'] ||= 'text'
+        step['variable_name'] ||= ''
+      when 'checkpoint'
+        step['type'] = 'message'
+        step['content'] ||= step.delete('checkpoint_message') || ''
+      end
+
       # Normalize graph mode transitions
       if step['transitions'].is_a?(Array)
         step['transitions'] = step['transitions'].select do |transition|
