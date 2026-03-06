@@ -43,11 +43,20 @@ class Admin::TemplatesController < ApplicationController
   private
 
   def template_params
-    params.require(:template).permit(:name, :description, :category, :is_public, :workflow_data)
+    params.require(:template).permit(:name, :description, :category, :is_public,
+                                     :graph_mode, :start_node_uuid, :workflow_data)
   end
 
   def parse_workflow_data(template)
-    if params[:template][:workflow_data].present?
+    # Visual editor mode: parse steps from JSON hidden input
+    if params[:template][:editor_mode] == 'visual' && params[:template][:visual_editor_steps_json].present?
+      begin
+        template.workflow_data = JSON.parse(params[:template][:visual_editor_steps_json])
+        template.start_node_uuid = params[:template][:start_node_uuid] if params[:template][:start_node_uuid].present?
+      rescue JSON::ParserError => e
+        template.errors.add(:workflow_data, "Invalid visual editor JSON: #{e.message}")
+      end
+    elsif params[:template][:workflow_data].present?
       begin
         workflow_data_json = params[:template][:workflow_data]
         template.workflow_data = JSON.parse(workflow_data_json)
