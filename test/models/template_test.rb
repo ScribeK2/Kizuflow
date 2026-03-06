@@ -90,6 +90,28 @@ class TemplateTest < ActiveSupport::TestCase
     assert_equal "Public Template", public_templates.first.name
   end
 
+  test "should default graph_mode to true" do
+    template = Template.create!(
+      name: "Graph Mode Test",
+      category: "test",
+      workflow_data: []
+    )
+
+    assert template.graph_mode
+  end
+
+  test "should store start_node_uuid" do
+    uuid = SecureRandom.uuid
+    template = Template.create!(
+      name: "Start Node Test",
+      category: "test",
+      workflow_data: [{ "id" => uuid, "type" => "message", "title" => "Start" }],
+      start_node_uuid: uuid
+    )
+
+    assert_equal uuid, template.start_node_uuid
+  end
+
   test "by_category scope should filter by category" do
     # Clear existing templates to avoid fixture interference
     Template.destroy_all
