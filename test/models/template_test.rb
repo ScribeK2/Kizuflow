@@ -112,6 +112,14 @@ class TemplateTest < ActiveSupport::TestCase
     assert_equal uuid, template.start_node_uuid
   end
 
+  test "graph_mode? predicate works" do
+    template = Template.create!(name: "Test", category: "test", workflow_data: [], graph_mode: true)
+    assert_predicate template, :graph_mode?
+
+    template.update!(graph_mode: false)
+    assert_not_predicate template, :graph_mode?
+  end
+
   test "by_category scope should filter by category" do
     # Clear existing templates to avoid fixture interference
     Template.destroy_all
