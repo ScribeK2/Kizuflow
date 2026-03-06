@@ -24,8 +24,9 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     @template = Template.create!(
       name: "Test Template",
       description: "A test template",
-      category: "post-onboarding",
+      category: "troubleshooting",
       is_public: true,
+      graph_mode: false,
       workflow_data: [{ type: "question", title: "Question 1", question: "What is your name?", answer_type: "text" }]
     )
     @private_template = Template.create!(
@@ -162,6 +163,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
       name: "Legacy Template",
       category: "troubleshooting",
       is_public: true,
+      graph_mode: false,
       workflow_data: [
         { "id" => SecureRandom.uuid, "type" => "message", "title" => "Welcome", "content" => "Hello" },
         { "id" => SecureRandom.uuid, "type" => "decision", "title" => "Choose Path", "question" => "Which way?" },
@@ -193,5 +195,33 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
       post use_template_path(@private_template)
     end
     assert_redirected_to edit_workflow_path(Workflow.last)
+  end
+
+  test "should create graph mode workflow from graph mode template" do
+    start_uuid = SecureRandom.uuid
+    resolve_uuid = SecureRandom.uuid
+    graph_template = Template.create!(
+      name: "Graph Template",
+      category: "troubleshooting",
+      is_public: true,
+      graph_mode: true,
+      start_node_uuid: start_uuid,
+      workflow_data: [
+        { "id" => start_uuid, "type" => "message", "title" => "Start", "content" => "Welcome",
+          "transitions" => [{ "target_uuid" => resolve_uuid }] },
+        { "id" => resolve_uuid, "type" => "resolve", "title" => "Done", "resolution_type" => "success",
+          "transitions" => [] }
+      ]
+    )
+
+    sign_in @editor
+    assert_difference("Workflow.count") do
+      post use_template_path(graph_template)
+    end
+
+    workflow = Workflow.last
+    assert workflow.graph_mode?
+    assert_equal start_uuid, workflow.start_node_uuid
+    assert_equal 2, workflow.steps.length
   end
 end

@@ -36,9 +36,12 @@ class TemplatesController < ApplicationController
     # Ensure all steps have IDs and normalize the data
     workflow_data = normalize_template_steps(workflow_data) if workflow_data.present?
 
-    # Detect graph mode from step data (presence of transitions arrays)
-    is_graph_mode = workflow_data&.any? { |step| step['transitions'].is_a?(Array) }
-    start_node_uuid = is_graph_mode && workflow_data.present? ? workflow_data.first['id'] : nil
+    # Detect graph mode: template must have graph_mode enabled AND steps with transitions
+    has_transitions = workflow_data&.any? { |step| step['transitions'].is_a?(Array) }
+    is_graph_mode = @template.graph_mode? && has_transitions
+    start_node_uuid = if is_graph_mode && workflow_data.present?
+                        @template.start_node_uuid.presence || workflow_data.first['id']
+                      end
 
     @workflow = current_user.workflows.build(
       title: "#{@template.name} - #{Time.current.strftime('%Y-%m-%d')}",
