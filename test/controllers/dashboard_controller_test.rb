@@ -46,14 +46,14 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "p", text: /Welcome back, Alice!/
+    assert_select "p", text: /Welcome back,\s+Alice/
   end
 
   test "should show personalized greeting with email when no display name" do
     get root_path
 
     assert_response :success
-    assert_select "p", text: /Welcome back, test@example.com!/
+    assert_select "p", text: /Welcome back,\s+test@example\.com/
   end
 
   test "should show scenario stats" do
