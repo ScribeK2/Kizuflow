@@ -1,12 +1,12 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <%# -- A. Personalized Header -- %>
   <div class="mb-8 animate-fade-in">
-    <p class="text-lg text-gray-600 dark:text-gray-400">
-      Welcome back, <%= current_user.display_label %>!
-    </p>
-    <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100 mt-1">
+    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
       Dashboard
     </h1>
+    <p class="mt-3 text-lg text-gray-600 dark:text-gray-400">
+      Welcome back, <span class="font-medium text-slate-700 dark:text-slate-300"><%= current_user.display_label %></span>
+    </p>
   </div>
 
   <%# -- B. Quick Actions Row (editors/admins only) -- %>
