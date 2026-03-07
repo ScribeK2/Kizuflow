@@ -71,7 +71,8 @@ class Admin::AnalyticsController < ApplicationController
     scope = @base_scope.where.not(started_at: nil)
     @runs_grouped_by_week = @date_range.nil? || (@date_range.last - @date_range.first) > 30.days
     if @runs_grouped_by_week
-      scope.group("strftime('%Y-%W', started_at)").count
+      # Group by Monday of each week: subtract days since Monday using (weekday + 6) % 7
+      scope.group("date(started_at, '-' || ((strftime('%w', started_at) + 6) % 7) || ' days')").count
     else
       scope.group("date(started_at)").count
     end
