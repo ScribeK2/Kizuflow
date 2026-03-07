@@ -46,7 +46,7 @@
                 %>
                 <button type="button"
                         onclick="location.href='<%= step_scenario_path(@scenario) %>?step=<%= index %>'"
-                        class="<%= scenario_stepper_classes(is_completed, is_current) %>"
+                        class="<%= scenario_stepper_classes(is_completed, is_current, path_item['step_type'] || path_item['type']) %>"
                         title="<%= path_item['step_title'] %>"
                         style="flex-shrink: 0;">
                   <%= scenario_stepper_step_content(path_item, index, is_completed, is_current) %>
@@ -64,8 +64,8 @@
             <% end %>
             <% unless @scenario.complete? %>
               <div class="flex items-center flex-shrink-0 ml-2" style="flex-shrink: 0;">
-                <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center flex-shrink-0" style="flex-shrink: 0;">
-                  <span class="text-xs font-semibold text-gray-400 dark:text-gray-500"><%= (@scenario.execution_path&.length || 0) + 1 %></span>
+                <div class="w-8 h-8 rounded-full border-2 border-blue-300 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 animate-pulse" style="flex-shrink: 0;">
+                  <span class="text-xs font-bold text-blue-500 dark:text-blue-400"><%= (@scenario.execution_path&.length || 0) + 1 %></span>
                 </div>
               </div>
             <% end %>
@@ -107,9 +107,9 @@
            data-scenario-step-step-info-value="<%= step_info_text %>"
            data-scenario-step-auto-advance-value="<%= auto_advance %>">
         <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-5">
             <div class="flex items-center">
-              <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-600 text-white text-lg font-semibold mr-4">
+              <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl <%= scenario_step_number_classes(step['type']) %> text-lg font-bold mr-4 shadow-sm">
                 <%= (@scenario.execution_path&.length || 0) + 1 %>
               </span>
               <div>
@@ -121,7 +121,7 @@
               </div>
             </div>
             <%= form_with url: stop_scenario_path(@scenario), method: :post, data: { turbo_confirm: "Are you sure you want to stop this workflow? You can't continue after stopping." } do |form| %>
-              <%= form.submit "Stop Workflow", class: "px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
+              <%= form.submit "Stop Workflow", class: "px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
             <% end %>
           </div>
 
@@ -140,24 +140,27 @@
                 </label>
 
                 <% if step['answer_type'] == 'yes_no' %>
-                  <div class="space-y-2">
-                    <div class="flex items-center">
-                      <%= form.radio_button :answer, "yes", { class: "mr-2", required: true, data: { action: "change->scenario-step#inputChanged", scenario_step_target: "input" } } %>
-                      <%= form.label :answer_yes, "Yes", class: "text-gray-700 dark:text-gray-300" %>
-                    </div>
-                    <div class="flex items-center">
-                      <%= form.radio_button :answer, "no", { class: "mr-2", required: true, data: { action: "change->scenario-step#inputChanged" } } %>
-                      <%= form.label :answer_no, "No", class: "text-gray-700 dark:text-gray-300" %>
-                    </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="radio-card">
+                      <%= form.radio_button :answer, "yes", { required: true, data: { action: "change->scenario-step#inputChanged", scenario_step_target: "input" } } %>
+                      <span class="radio-dot"></span>
+                      <span class="radio-label">Yes</span>
+                    </label>
+                    <label class="radio-card">
+                      <%= form.radio_button :answer, "no", { required: true, data: { action: "change->scenario-step#inputChanged" } } %>
+                      <span class="radio-dot"></span>
+                      <span class="radio-label">No</span>
+                    </label>
                   </div>
                 <% elsif step['answer_type'] == 'multiple_choice' %>
                   <% if step['options'].present? %>
                     <div class="space-y-2">
                       <% step['options'].each_with_index do |option, opt_idx| %>
-                        <div class="flex items-center">
-                          <%= form.radio_button :answer, option['value'] || option['label'], { class: "mr-2", required: true, data: { action: "change->scenario-step#inputChanged" }.merge(opt_idx == 0 ? { scenario_step_target: "input" } : {}) } %>
-                          <%= form.label :answer, option['label'] || option['value'], class: "text-gray-700 dark:text-gray-300" %>
-                        </div>
+                        <label class="radio-card">
+                          <%= form.radio_button :answer, option['value'] || option['label'], { required: true, data: { action: "change->scenario-step#inputChanged" }.merge(opt_idx == 0 ? { scenario_step_target: "input" } : {}) } %>
+                          <span class="radio-dot"></span>
+                          <span class="radio-label"><%= option['label'] || option['value'] %></span>
+                        </label>
                       <% end %>
                     </div>
                   <% else %>
@@ -179,21 +182,21 @@
                   <%= scenario_back_button(@scenario) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed", disabled: true, data: { scenario_step_target: "submit" } %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-sm", disabled: true, data: { scenario_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
 
           <% when 'action' %>
-            <div class="backdrop-blur-sm bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200/30 dark:border-blue-800/30 rounded-lg p-4 mb-4 relative" data-controller="clipboard">
+            <div class="bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-5 mb-4 relative" data-controller="clipboard">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Instructions:</h3>
-                  <div class="text-sm text-blue-800 dark:text-blue-300" data-clipboard-target="source"><%= render_step_markdown(VariableInterpolator.interpolate(step['instructions'], @scenario.results || {})) %></div>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-3">Instructions</h3>
+                  <div class="text-sm text-amber-900 dark:text-amber-200 leading-relaxed" data-clipboard-target="source"><%= render_step_markdown(VariableInterpolator.interpolate(step['instructions'], @scenario.results || {})) %></div>
                 </div>
                 <button type="button"
-                        class="ml-3 mt-1 p-1.5 rounded-md text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors duration-200 flex-shrink-0"
+                        class="ml-3 mt-1 p-2 rounded-lg text-amber-400 hover:text-amber-600 dark:text-amber-500 dark:hover:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors duration-200 flex-shrink-0"
                         title="Copy instructions to clipboard"
                         data-action="click->clipboard#copy"
                         data-clipboard-target="button">
@@ -211,23 +214,25 @@
                   <%= scenario_back_button(@scenario) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { scenario_step_target: "submit" } %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200", data: { scenario_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
 
           <% when 'message' %>
-            <div class="backdrop-blur-sm bg-cyan-50/50 dark:bg-cyan-900/20 border border-cyan-200/30 dark:border-cyan-800/30 rounded-lg p-4 mb-4">
+            <div class="bg-purple-50/80 dark:bg-purple-900/20 border border-purple-200/50 dark:border-purple-800/30 rounded-xl p-5 mb-4">
               <div class="flex items-start">
-                <svg class="w-6 h-6 text-cyan-600 dark:text-cyan-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-800/40 flex items-center justify-center mr-3 mt-0.5">
+                  <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
                 <div class="flex-1">
                   <% if step['content'].present? %>
-                    <div class="text-sm text-cyan-800 dark:text-cyan-300"><%= render_step_markdown(VariableInterpolator.interpolate(step['content'], @scenario.results || {})) %></div>
+                    <div class="text-sm text-purple-900 dark:text-purple-200 leading-relaxed"><%= render_step_markdown(VariableInterpolator.interpolate(step['content'], @scenario.results || {})) %></div>
                   <% else %>
-                    <p class="text-sm text-cyan-800 dark:text-cyan-300 italic">No message content provided.</p>
+                    <p class="text-sm text-purple-800 dark:text-purple-300 italic">No message content provided.</p>
                   <% end %>
                 </div>
               </div>
@@ -244,20 +249,22 @@
                   <%= scenario_back_button(@scenario) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
-                  <%= form.submit "Continue", class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { scenario_step_target: "submit" } %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200", data: { scenario_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
 
           <% when 'escalate' %>
-            <div class="backdrop-blur-sm bg-orange-50/50 dark:bg-orange-900/20 border border-orange-200/30 dark:border-orange-800/30 rounded-lg p-4 mb-4">
+            <div class="bg-orange-50/80 dark:bg-orange-900/20 border border-orange-200/50 dark:border-orange-800/30 rounded-xl p-5 mb-4">
               <div class="flex items-start">
-                <svg class="w-6 h-6 text-orange-600 dark:text-orange-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                </svg>
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-800/40 flex items-center justify-center mr-3 mt-0.5">
+                  <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                  </svg>
+                </div>
                 <div class="flex-1">
-                  <h3 class="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-2">Escalation Required</h3>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 mb-2">Escalation Required</h3>
                   <% if step['target_type'].present? || step['target_value'].present? %>
                     <p class="text-sm text-orange-800 dark:text-orange-300 mb-2">
                       <strong>Target:</strong>
@@ -286,20 +293,22 @@
                   <%= scenario_back_button(@scenario) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
-                  <%= form.submit "Continue", class: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { scenario_step_target: "submit" } %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
+                  <%= form.submit "Continue", class: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200", data: { scenario_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
 
           <% when 'resolve' %>
-            <div class="backdrop-blur-sm bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-200/30 dark:border-emerald-800/30 rounded-lg p-4 mb-4">
+            <div class="bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-xl p-5 mb-4">
               <div class="flex items-start">
-                <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-800/40 flex items-center justify-center mr-3 mt-0.5">
+                  <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
                 <div class="flex-1">
-                  <h3 class="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-2">Resolution</h3>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Resolution</h3>
                   <% if step['resolution_type'].present? %>
                     <p class="text-sm text-emerald-800 dark:text-emerald-300 mb-2">
                       <strong>Type:</strong>
@@ -319,11 +328,11 @@
                   <%= scenario_back_button(@scenario) %>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:scale-105", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
+                  <%= link_to "Cancel", cancel_url, class: "bg-white/50 dark:bg-gray-800/50 py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-200", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
                   <% if @scenario.parent_scenario.present? %>
-                    <%= form.submit "Finish & Return", class: "bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { scenario_step_target: "submit" } %>
+                    <%= form.submit "Finish & Return", class: "bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200", data: { scenario_step_target: "submit" } %>
                   <% else %>
-                    <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105", data: { scenario_step_target: "submit" } %>
+                    <%= form.submit "Complete Workflow", class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200", data: { scenario_step_target: "submit" } %>
                   <% end %>
                 </div>
               </div>

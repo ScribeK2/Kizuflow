@@ -43,14 +43,38 @@ module ScenariosHelper
     end
   end
 
-  # CSS classes for a stepper pill based on its state.
-  def scenario_stepper_classes(is_completed, is_current)
+  # CSS classes for the step number badge based on step type.
+  STEP_NUMBER_CLASSES = {
+    'question' => 'bg-blue-600 text-white dark:bg-blue-500',
+    'action' => 'bg-amber-500 text-white dark:bg-amber-500',
+    'message' => 'bg-purple-600 text-white dark:bg-purple-500',
+    'sub_flow' => 'bg-indigo-600 text-white dark:bg-indigo-500',
+    'escalate' => 'bg-orange-500 text-white dark:bg-orange-500',
+    'resolve' => 'bg-emerald-500 text-white dark:bg-emerald-500'
+  }.freeze
+
+  def scenario_step_number_classes(step_type)
+    STEP_NUMBER_CLASSES[step_type] || 'bg-slate-600 text-white dark:bg-slate-500'
+  end
+
+  # CSS classes for a stepper pill based on its state and step type.
+  STEPPER_TYPE_CLASSES = {
+    'question' => 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40',
+    'action' => 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40',
+    'message' => 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40',
+    'sub_flow' => 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40',
+    'escalate' => 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40',
+    'resolve' => 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+  }.freeze
+
+  def scenario_stepper_classes(is_completed, is_current, step_type = nil)
     base = "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap cursor-pointer"
 
     if is_current
       "#{base} bg-blue-500 text-white shadow-md ring-2 ring-blue-300 dark:ring-blue-400"
     elsif is_completed
-      "#{base} bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-700"
+      type_classes = STEPPER_TYPE_CLASSES[step_type] || 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800/80'
+      "#{base} #{type_classes}"
     else
       "#{base} bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800/80"
     end
