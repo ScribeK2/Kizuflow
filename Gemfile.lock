@@ -202,6 +202,10 @@ GEM
       ttfunk (~> 1.8)
     prettyprint (0.2.0)
     prism (1.9.0)
+    propshaft (1.3.1)
+      actionpack (>= 7.0.0)
+      activesupport (>= 7.0.0)
+      rack
     psych (5.3.1)
       date
       stringio
@@ -312,14 +316,6 @@ GEM
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
       logger
-    sprockets (4.2.2)
-      concurrent-ruby (~> 1.0)
-      logger
-      rack (>= 2.2.4, < 4)
-    sprockets-rails (3.5.2)
-      actionpack (>= 6.1)
-      activesupport (>= 6.1)
-      sprockets (>= 3.0.0)
     sqlite3 (2.9.1-aarch64-linux-gnu)
     sqlite3 (2.9.1-aarch64-linux-musl)
     sqlite3 (2.9.1-arm-linux-gnu)
@@ -395,6 +391,7 @@ DEPENDENCIES
   importmap-rails
   pg (~> 1.1)
   prawn
+  propshaft
   puma (>= 5.0)
   rack-attack
   rails (~> 8.1.0)
@@ -407,7 +404,6 @@ DEPENDENCIES
   selenium-webdriver
   sentry-rails
   sentry-ruby
-  sprockets-rails
   sqlite3 (>= 2.1)
   stimulus-rails
   tailwindcss-rails

@@ -14,10 +14,6 @@ module Kizuflow
   class Application < Rails::Application
     config.load_defaults 8.1
 
-    # Configuration for the application, engines, and railties goes here.
-    config.assets.enabled = true
-    config.assets.version = "1.0"
-
     # Timezone configuration
     # Store all times in UTC in the database (critical for SQLite/PostgreSQL consistency)
     config.active_record.default_timezone = :utc

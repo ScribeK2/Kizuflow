@@ -59,7 +59,4 @@ Rails.application.configure do
   # Configure Action Cable for test environment
   config.action_cable.disable_request_forgery_protection = true
 
-  # Asset pipeline settings for test environment
-  config.assets.compile = true
-  config.assets.check_precompiled_asset = false
 end

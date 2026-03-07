@@ -20,12 +20,6 @@ Rails.application.configure do
     'Cache-Control' => "public, max-age=31536000"
   }
 
-  # Compress CSS using a preprocessor.
-  # config.assets.css_compressor = :sass
-
-  # Allow fallback to assets pipeline if a precompiled asset is missed (helps during deployment)
-  config.assets.compile = false
-
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 

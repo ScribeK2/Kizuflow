@@ -12,13 +12,6 @@ class CachingTest < ActiveSupport::TestCase
       "Cache store config should not be commented out")
   end
 
-  test "production disables live asset compilation" do
-    config_content = File.read(Rails.root.join("config/environments/production.rb"))
-
-    assert_match(/config\.assets\.compile\s*=\s*false/, config_content,
-      "Production should not compile assets on the fly")
-  end
-
   test "production sets long cache for fingerprinted assets" do
     config_content = File.read(Rails.root.join("config/environments/production.rb"))
 
