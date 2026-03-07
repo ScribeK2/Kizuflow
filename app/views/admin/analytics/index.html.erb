@@ -25,50 +25,40 @@
     </div>
   </div>
 
-  <%# Filters %>
+  <%# Filters (wraps with analytics-filters controller for button/tab state) %>
   <%= render "filters" %>
 
   <%# Stat Cards %>
   <%= render "stat_cards" %>
 
-  <%# Tabs %>
-  <div class="mt-8" data-controller="tabs">
+  <%# Tabs — active tab preserved across filter changes via ?tab= param %>
+  <% active_tab = (params[:tab] || "0").to_i %>
+  <div class="mt-8" data-controller="tabs" data-tabs-active-value="<%= active_tab %>">
     <div class="border-b border-slate-200 dark:border-slate-700 mb-6">
       <nav class="-mb-px flex space-x-8">
-        <button data-tabs-target="tab" data-action="click->tabs#switch"
-                class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-slate-600 text-slate-700 dark:border-slate-400 dark:text-slate-200"
-                aria-selected="true">
-          Overview
-        </button>
-        <button data-tabs-target="tab" data-action="click->tabs#switch"
-                class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 dark:text-gray-400"
-                aria-selected="false">
-          Workflows
-        </button>
-        <button data-tabs-target="tab" data-action="click->tabs#switch"
-                class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 dark:text-gray-400"
-                aria-selected="false">
-          Agents
-        </button>
-        <button data-tabs-target="tab" data-action="click->tabs#switch"
-                class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 dark:text-gray-400"
-                aria-selected="false">
-          Operations
-        </button>
+        <% %w[Overview Workflows Agents Operations].each_with_index do |label, i| %>
+          <% is_active = i == active_tab %>
+          <button data-tabs-target="tab" data-action="click->tabs#switch"
+                  class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200
+                         <%= is_active ? 'border-slate-600 text-slate-700 dark:border-slate-400 dark:text-slate-200' : 'border-transparent text-gray-500 dark:text-gray-400' %>"
+                  aria-selected="<%= is_active %>">
+            <%= label %>
+          </button>
+        <% end %>
       </nav>
     </div>
 
     <%# Tab Panels %>
-    <div data-tabs-target="panel">
+    <div data-tabs-target="panel" class="<%= 'hidden' unless active_tab == 0 %>">
       <%= render "tab_overview" %>
     </div>
-    <div data-tabs-target="panel" class="hidden">
+    <div data-tabs-target="panel" class="<%= 'hidden' unless active_tab == 1 %>">
       <%= render "tab_workflows" %>
     </div>
-    <div data-tabs-target="panel" class="hidden">
+    <div data-tabs-target="panel" class="<%= 'hidden' unless active_tab == 2 %>">
       <%= render "tab_agents" %>
     </div>
-    <div data-tabs-target="panel" class="hidden">
+    <div data-tabs-target="panel" class="<%= 'hidden' unless active_tab == 3 %>">
       <%= render "tab_operations" %>
     </div>
   </div>

@@ -1,14 +1,17 @@
-<%= form_tag admin_analytics_path, method: :get, class: "solid-card px-6 py-4 mb-6 animate-fade-in-up", data: { turbo_frame: "_top" } do %>
+<%= form_tag admin_analytics_path, method: :get, class: "solid-card px-6 py-4 mb-6 animate-fade-in-up", data: { controller: "analytics-filters" } do %>
   <div class="flex flex-wrap items-end gap-4">
     <%# Date Range %>
     <div>
       <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Date Range</label>
       <div class="inline-flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+        <% current_range = params[:range] || "30d" %>
         <% %w[7d 30d 90d all].each do |range| %>
-          <% active = (params[:range] || "30d") == range %>
-          <button type="submit" name="range" value="<%= range %>"
+          <% active = current_range == range %>
+          <button type="button"
                   class="px-3 py-1.5 text-sm font-medium transition-colors duration-150
-                         <%= active ? 'bg-slate-700 text-white dark:bg-slate-500' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-slate-700' %>">
+                         <%= active ? 'bg-slate-700 text-white dark:bg-slate-500' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-slate-700' %>"
+                  data-action="click->analytics-filters#selectRange"
+                  data-value="<%= range %>">
             <%= range == "all" ? "All" : range %>
           </button>
         <% end %>
@@ -19,11 +22,14 @@
     <div>
       <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Purpose</label>
       <div class="inline-flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+        <% current_purpose = params[:purpose] || "all" %>
         <% %w[all simulation live].each do |purpose| %>
-          <% active = (params[:purpose] || "all") == purpose %>
-          <button type="submit" name="purpose" value="<%= purpose %>"
+          <% active = current_purpose == purpose %>
+          <button type="button"
                   class="px-3 py-1.5 text-sm font-medium transition-colors duration-150
-                         <%= active ? 'bg-slate-700 text-white dark:bg-slate-500' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-slate-700' %>">
+                         <%= active ? 'bg-slate-700 text-white dark:bg-slate-500' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-slate-700' %>"
+                  data-action="click->analytics-filters#selectPurpose"
+                  data-value="<%= purpose %>">
             <%= purpose.capitalize %>
           </button>
         <% end %>
@@ -60,8 +66,9 @@
             onchange: "this.form.requestSubmit()" %>
     </div>
 
-    <%# Hidden fields to preserve other filter params %>
-    <%= hidden_field_tag :range, params[:range] || "30d" %>
-    <%= hidden_field_tag :purpose, params[:purpose] || "all" %>
+    <%# Hidden fields for filter state %>
+    <%= hidden_field_tag :range, current_range, data: { analytics_filters_target: "rangeField" } %>
+    <%= hidden_field_tag :purpose, current_purpose, data: { analytics_filters_target: "purposeField" } %>
+    <%= hidden_field_tag :tab, params[:tab] || "0", data: { analytics_filters_target: "tabField" } %>
   </div>
 <% end %>

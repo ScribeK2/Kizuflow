@@ -32,8 +32,12 @@ class Admin::AnalyticsController < ApplicationController
                        .count
                        .sort_by { |hour, _| hour.to_i }
 
-    # Filter dropdown data
-    @workflows_for_filter = Workflow.joins(:scenarios).distinct.order(:title)
+    # Filter dropdown data (deduplicate workflows with same title by picking the most recently updated)
+    @workflows_for_filter = Workflow.joins(:scenarios)
+                              .select("workflows.id, workflows.title")
+                              .group("workflows.title")
+                              .having("workflows.id = MAX(workflows.id)")
+                              .order(:title)
     @users_for_filter = User.joins(:scenarios).distinct.order(:email)
     @groups_for_filter = Group.order(:name)
 

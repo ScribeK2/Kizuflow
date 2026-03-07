@@ -22,6 +22,10 @@ export default class extends Controller {
     if (index === -1) return
     this.activeValue = index
     this.showTab(index)
+
+    // Sync tab index to analytics filter hidden field if present
+    const tabField = document.querySelector('[data-analytics-filters-target="tabField"]')
+    if (tabField) tabField.value = index
   }
 
   showTab(index) {

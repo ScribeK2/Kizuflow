@@ -30,7 +30,11 @@
       </div>
     <% else %>
       <div class="px-6 py-12 text-center">
-        <p class="text-gray-500 dark:text-gray-400">No drop-off data for this period.</p>
+        <svg class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-gray-500 dark:text-gray-400 font-medium">No drop-off data for this period</p>
+        <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Abandoned scenarios will show which steps agents leave most often.</p>
       </div>
     <% end %>
   </div>
@@ -38,25 +42,43 @@
   <%# Busiest Hours %>
   <div class="solid-card overflow-hidden">
     <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
-      <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Busiest Hours</h3>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scenario runs grouped by hour of day.</p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Busiest Hours</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scenario runs grouped by hour of day.</p>
+        </div>
+        <span class="text-xs text-gray-400 dark:text-gray-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+          Times shown in server timezone (<%= Time.zone.name %>)
+        </span>
+      </div>
     </div>
     <% if @busiest_hours.any? %>
+      <% max_count = @busiest_hours.map { |_, c| c }.max %>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead class="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hour</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-48">Hour</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Run Count</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
             <% @busiest_hours.each do |hour, count| %>
+              <% bar_pct = max_count > 0 ? (count.to_f / max_count * 100).round : 0 %>
               <tr class="even:bg-slate-50 dark:even:bg-slate-800/50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                   <%= "#{hour.to_i.to_s.rjust(2, '0')}:00 - #{hour.to_i.to_s.rjust(2, '0')}:59" %>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"><%= number_with_delimiter(count) %></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1 max-w-xs bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                      <div class="h-full rounded-full transition-all duration-300
+                                  <%= bar_pct >= 80 ? 'bg-emerald-500' : bar_pct >= 40 ? 'bg-slate-500' : 'bg-slate-400' %>"
+                           style="width: <%= bar_pct %>%"></div>
+                    </div>
+                    <span class="text-sm font-medium tabular-nums w-8 text-right"><%= number_with_delimiter(count) %></span>
+                  </div>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -64,7 +86,11 @@
       </div>
     <% else %>
       <div class="px-6 py-12 text-center">
-        <p class="text-gray-500 dark:text-gray-400">No hourly data for this period.</p>
+        <svg class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-gray-500 dark:text-gray-400 font-medium">No hourly data for this period</p>
+        <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Run scenarios to see peak activity hours.</p>
       </div>
     <% end %>
   </div>
