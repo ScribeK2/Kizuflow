@@ -85,7 +85,7 @@
               <% bar_pct = max_runs > 0 ? (count.to_f / max_runs * 100).round : 0 %>
               <tr class="even:bg-slate-50 dark:even:bg-slate-800/50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  <% date = Date.parse(period) %>
+                  <% date = period.is_a?(Date) ? period : Date.parse(period.to_s) %>
                   <%= @runs_grouped_by_week ? "Week of #{date.strftime("%b %-d, %Y")}" : date.strftime("%b %-d, %Y") %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
