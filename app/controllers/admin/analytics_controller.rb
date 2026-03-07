@@ -28,7 +28,7 @@ class Admin::AnalyticsController < ApplicationController
     # Operations tab
     @dropoff_points = build_dropoff_points
     @busiest_hours = @base_scope.where.not(started_at: nil)
-                       .group("strftime('%H', started_at)")
+                       .group(hour_extract_sql)
                        .count
                        .sort_by { |hour, _| hour.to_i }
 
@@ -75,10 +75,38 @@ class Admin::AnalyticsController < ApplicationController
     scope = @base_scope.where.not(started_at: nil)
     @runs_grouped_by_week = @date_range.nil? || (@date_range.last - @date_range.first) > 30.days
     if @runs_grouped_by_week
-      # Group by Monday of each week: subtract days since Monday using (weekday + 6) % 7
-      scope.group("date(started_at, '-' || ((strftime('%w', started_at) + 6) % 7) || ' days')").count
+      scope.group(week_start_sql).count
     else
-      scope.group("date(started_at)").count
+      scope.group(date_sql).count
+    end
+  end
+
+  def sqlite?
+    ActiveRecord::Base.connection.adapter_name.downcase.include?("sqlite")
+  end
+
+  def hour_extract_sql
+    if sqlite?
+      "strftime('%H', started_at)"
+    else
+      "to_char(started_at, 'HH24')"
+    end
+  end
+
+  def date_sql
+    if sqlite?
+      "date(started_at)"
+    else
+      "started_at::date"
+    end
+  end
+
+  def week_start_sql
+    if sqlite?
+      # Group by Monday: subtract days since Monday using (weekday + 6) % 7
+      "date(started_at, '-' || ((strftime('%w', started_at) + 6) % 7) || ' days')"
+    else
+      "date_trunc('week', started_at)::date"
     end
   end
 
