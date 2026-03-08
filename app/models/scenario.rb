@@ -117,7 +117,7 @@ class Scenario < ApplicationRecord
   # Process a single step and advance
   # Returns false if step can't be processed, true otherwise
   # Raises ScenarioIterationLimit if max iterations exceeded
-  def process_step(answer = nil)
+  def process_step(answer = nil, resolved_here: false)
     return false if complete?
     return false if stopped?
     return false if timed_out? || errored?
@@ -164,13 +164,13 @@ class Scenario < ApplicationRecord
       process_question_step(step, answer, path_entry)
 
     when 'action'
-      process_action_step(step, path_entry)
+      process_action_step(step, path_entry, resolved_here: resolved_here)
 
     when 'sub_flow'
       return process_subflow_step(step, path_entry)
 
     when 'message'
-      process_message_step(step, path_entry)
+      process_message_step(step, path_entry, resolved_here: resolved_here)
 
     when 'escalate'
       process_escalate_step(step, path_entry)
@@ -237,7 +237,7 @@ class Scenario < ApplicationRecord
   end
 
   # Process an action step
-  def process_action_step(step, path_entry)
+  def process_action_step(step, path_entry, resolved_here: false)
     path_entry[:action_completed] = true
     self.results ||= {}
     self.results[step['title']] = "Action executed"
@@ -255,12 +255,18 @@ class Scenario < ApplicationRecord
     end
 
     self.execution_path << path_entry
-    advance_to_next_step(step)
+
+    # Handle mid-step resolution if the agent indicated this step resolved the issue
+    if resolved_here && step['can_resolve']
+      resolve_at_current_step(step)
+    else
+      advance_to_next_step(step)
+    end
   end
 
   # Process a message step (Graph Mode)
   # Message steps display information to the CSR and auto-advance
-  def process_message_step(step, path_entry)
+  def process_message_step(step, path_entry, resolved_here: false)
     path_entry[:message_displayed] = true
     self.results ||= {}
     self.results[step['title']] = "Message displayed"
@@ -271,7 +277,13 @@ class Scenario < ApplicationRecord
     end
 
     self.execution_path << path_entry
-    advance_to_next_step(step)
+
+    # Handle mid-step resolution if the agent indicated this step resolved the issue
+    if resolved_here && step['can_resolve']
+      resolve_at_current_step(step)
+    else
+      advance_to_next_step(step)
+    end
   end
 
   # Process an escalate step (Graph Mode)
@@ -462,6 +474,22 @@ class Scenario < ApplicationRecord
   end
 
   private
+
+  # Resolve the scenario at the current step (mid-step resolution via can_resolve flag)
+  def resolve_at_current_step(step)
+    # Mark the last execution path entry as resolved
+    self.execution_path.last[:resolved] = true if execution_path.present?
+
+    self.results ||= {}
+    self.results['_resolution'] = {
+      'type' => 'success',
+      'resolved_at_step' => step['id']
+    }
+
+    record_completion("resolved")
+    self.status = 'completed'
+    self.current_node_uuid = nil if graph_mode?
+  end
 
   # Advance to the next step based on mode
   def advance_to_next_step(step)

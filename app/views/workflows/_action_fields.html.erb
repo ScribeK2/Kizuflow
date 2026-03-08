@@ -108,7 +108,7 @@
                     <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(<%= number_to_human_size(blob.byte_size) %>)</span>
                   </div>
                 </div>
-                <button type="button" 
+                <button type="button"
                         class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
                         data-action="click->file-attachment#removeAttachment"
                         data-attachment-id="<%= attachment_id %>">
@@ -123,7 +123,7 @@
                   </svg>
                   <span class="text-sm text-yellow-700 dark:text-yellow-300">Attachment not found</span>
                 </div>
-                <button type="button" 
+                <button type="button"
                         class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
                         data-action="click->file-attachment#removeAttachment"
                         data-attachment-id="<%= attachment_id %>">
@@ -135,5 +135,22 @@
         <% end %>
       <% end %>
     </div>
+  </div>
+
+  <%# Can Resolve Checkbox %>
+  <div class="mb-4">
+    <label class="flex items-center cursor-pointer">
+      <input type="hidden" name="workflow[steps][][can_resolve]" value="false">
+      <input type="checkbox"
+             name="workflow[steps][][can_resolve]"
+             value="true"
+             <%= 'checked' if step['can_resolve'] == true || step['can_resolve'] == 'true' %>
+             class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+             data-step-form-target="field">
+      <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">This step may resolve the issue</span>
+    </label>
+    <p class="mt-1 ml-6 text-xs text-gray-500 dark:text-gray-400">
+      When enabled, the scenario player shows a "This resolved the issue" button alongside Continue.
+    </p>
   </div>
 </div>

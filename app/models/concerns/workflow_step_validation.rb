@@ -66,6 +66,7 @@ module WorkflowStepValidation
   end
 
   def validate_action_step(step, step_num)
+    validate_can_resolve(step, step_num)
     validate_jumps(step, step_num)
 
     if step['output_fields'].present?
@@ -94,6 +95,7 @@ module WorkflowStepValidation
   end
 
   def validate_message_step(step, step_num)
+    validate_can_resolve(step, step_num)
     validate_jumps(step, step_num) if step['jumps'].present?
   end
 
@@ -112,6 +114,14 @@ module WorkflowStepValidation
     end
     if graph_mode? && step['transitions'].present? && step['transitions'].any?
       errors.add(:steps, "Step #{step_num}: Resolve steps cannot have outgoing transitions")
+    end
+  end
+
+  def validate_can_resolve(step, step_num)
+    return unless step.key?('can_resolve')
+
+    unless step['can_resolve'] == true || step['can_resolve'] == false
+      errors.add(:steps, "Step #{step_num}: can_resolve must be a boolean")
     end
   end
 

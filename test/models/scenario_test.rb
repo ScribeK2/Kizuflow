@@ -208,4 +208,85 @@ class ScenarioTest < ActiveSupport::TestCase
     child_results = (scenario.results || {}).dup
     assert_equal({}, child_results)
   end
+
+  # can_resolve mid-step resolution tests
+  test "action step with can_resolve ends scenario when resolved_here is true" do
+    workflow = Workflow.create!(
+      title: "Resolve Test",
+      user: @user,
+      graph_mode: true,
+      steps: [
+        { 'id' => 'step-1', 'type' => 'action', 'title' => 'Restart service', 'instructions' => 'Restart it', 'can_resolve' => true, 'transitions' => [{ 'target_uuid' => 'step-2' }] },
+        { 'id' => 'step-2', 'type' => 'resolve', 'title' => 'Done', 'resolution_type' => 'success', 'transitions' => [] }
+      ],
+      start_node_uuid: 'step-1'
+    )
+
+    scenario = Scenario.create!(workflow: workflow, user: @user, inputs: {}, current_node_uuid: 'step-1')
+    scenario.process_step(nil, resolved_here: true)
+
+    assert_equal 'completed', scenario.status
+    assert_equal 'resolved', scenario.outcome
+    assert_equal 'success', scenario.results['_resolution']['type']
+    assert_equal 'step-1', scenario.results['_resolution']['resolved_at_step']
+    assert_equal true, scenario.execution_path.last['resolved']
+  end
+
+  test "action step with can_resolve continues normally when resolved_here is false" do
+    workflow = Workflow.create!(
+      title: "Continue Test",
+      user: @user,
+      graph_mode: true,
+      steps: [
+        { 'id' => 'step-1', 'type' => 'action', 'title' => 'Restart service', 'instructions' => 'Restart it', 'can_resolve' => true, 'transitions' => [{ 'target_uuid' => 'step-2' }] },
+        { 'id' => 'step-2', 'type' => 'resolve', 'title' => 'Done', 'resolution_type' => 'success', 'transitions' => [] }
+      ],
+      start_node_uuid: 'step-1'
+    )
+
+    scenario = Scenario.create!(workflow: workflow, user: @user, inputs: {}, current_node_uuid: 'step-1')
+    scenario.process_step(nil, resolved_here: false)
+
+    assert_equal 'step-2', scenario.current_node_uuid
+    assert_not_equal 'completed', scenario.status
+  end
+
+  test "message step with can_resolve ends scenario when resolved_here is true" do
+    workflow = Workflow.create!(
+      title: "Message Resolve Test",
+      user: @user,
+      graph_mode: true,
+      steps: [
+        { 'id' => 'step-1', 'type' => 'message', 'title' => 'Info', 'content' => 'Try this fix', 'can_resolve' => true, 'transitions' => [{ 'target_uuid' => 'step-2' }] },
+        { 'id' => 'step-2', 'type' => 'resolve', 'title' => 'Done', 'resolution_type' => 'success', 'transitions' => [] }
+      ],
+      start_node_uuid: 'step-1'
+    )
+
+    scenario = Scenario.create!(workflow: workflow, user: @user, inputs: {}, current_node_uuid: 'step-1')
+    scenario.process_step(nil, resolved_here: true)
+
+    assert_equal 'completed', scenario.status
+    assert_equal 'resolved', scenario.outcome
+    assert_equal 'step-1', scenario.results['_resolution']['resolved_at_step']
+  end
+
+  test "resolved_here is ignored when step does not have can_resolve" do
+    workflow = Workflow.create!(
+      title: "No Can Resolve Test",
+      user: @user,
+      graph_mode: true,
+      steps: [
+        { 'id' => 'step-1', 'type' => 'action', 'title' => 'Normal action', 'instructions' => 'Do it', 'transitions' => [{ 'target_uuid' => 'step-2' }] },
+        { 'id' => 'step-2', 'type' => 'resolve', 'title' => 'Done', 'resolution_type' => 'success', 'transitions' => [] }
+      ],
+      start_node_uuid: 'step-1'
+    )
+
+    scenario = Scenario.create!(workflow: workflow, user: @user, inputs: {}, current_node_uuid: 'step-1')
+    scenario.process_step(nil, resolved_here: true)
+
+    # Should continue normally since can_resolve is not set
+    assert_equal 'step-2', scenario.current_node_uuid
+  end
 end

@@ -392,6 +392,7 @@ export class FlowchartRenderer {
                 ${this.escapeHtml(step.title || 'Step ' + (step.index + 1))}
               </h4>
               ${step.type === "resolve" ? '<p class="text-xs text-green-600 mt-1 font-medium">Terminal</p>' : ""}
+              ${step.can_resolve ? '<p class="text-xs text-emerald-600 mt-1 font-medium">Can resolve</p>' : ""}
               <p class="text-xs text-gray-400 mt-2">Double-click to edit</p>
             </div>
           </div>
@@ -428,6 +429,7 @@ export class FlowchartRenderer {
               ${this.escapeHtml(step.title || 'Step ' + (step.index + 1))}
             </h4>
             ${step.type === "resolve" ? '<p class="text-xs text-green-600 mt-1 font-medium">Terminal</p>' : ""}
+            ${step.can_resolve ? '<p class="text-xs text-emerald-600 mt-1 font-medium">Can resolve</p>' : ""}
             ${this.clickable ? '<p class="text-xs text-gray-400 mt-2">Click to edit</p>' : ''}
           </div>
         </div>

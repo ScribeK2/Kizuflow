@@ -632,9 +632,11 @@ export default class extends Controller {
         case "action":
           this.readField(form, "step-action-type", data, "action_type")
           this.readField(form, "step-instructions", data, "instructions")
+          this.readCheckboxField(form, "step-can-resolve", data, "can_resolve")
           break
         case "message":
           this.readField(form, "step-content", data, "content")
+          this.readCheckboxField(form, "step-can-resolve", data, "can_resolve")
           break
         case "escalate":
           this.readField(form, "step-target-type", data, "target_type")
@@ -659,6 +661,11 @@ export default class extends Controller {
   readField(form, name, data, key) {
     const el = form.querySelector(`[name="${name}"]`)
     if (el) data[key] = el.value
+  }
+
+  readCheckboxField(form, name, data, key) {
+    const el = form.querySelector(`[name="${name}"]`)
+    if (el) data[key] = el.checked
   }
 
   deleteStepFromModal() {
@@ -696,9 +703,11 @@ export default class extends Controller {
           ["Instruction", "API Call", "Email", "Notification", "Custom"].map(at => ({ value: at, label: at }))
         ))
         wrapper.appendChild(this.createTextareaField("Instructions", "step-instructions", step.instructions || "", 3))
+        wrapper.appendChild(this.createCheckboxField("This step may resolve the issue", "step-can-resolve", step.can_resolve))
         break
       case "message":
         wrapper.appendChild(this.createTextareaField("Message Content", "step-content", step.content || "", 4))
+        wrapper.appendChild(this.createCheckboxField("This step may resolve the issue", "step-can-resolve", step.can_resolve))
         break
       case "escalate":
         wrapper.appendChild(this.createTextField("Target Type", "step-target-type", step.target_type || ""))
@@ -775,6 +784,27 @@ export default class extends Controller {
     })
 
     div.appendChild(select)
+    return div
+  }
+
+  createCheckboxField(label, name, checked) {
+    const div = document.createElement("div")
+    const lbl = document.createElement("label")
+    lbl.className = "flex items-center cursor-pointer"
+
+    const input = document.createElement("input")
+    input.type = "checkbox"
+    input.name = name
+    input.checked = !!checked
+    input.className = "h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+    lbl.appendChild(input)
+
+    const span = document.createElement("span")
+    span.className = "ml-2 text-sm text-gray-700 dark:text-gray-300"
+    span.textContent = label
+    lbl.appendChild(span)
+
+    div.appendChild(lbl)
     return div
   }
 

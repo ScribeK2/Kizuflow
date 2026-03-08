@@ -71,10 +71,11 @@ class ScenariosController < ApplicationController
 
     # Get answer from params
     answer = params[:answer]
+    resolved_here = ActiveModel::Type::Boolean.new.cast(params[:resolved_here]) || false
 
     # Process the current step
     # Note: checkpoint steps won't process here - they use resolve_checkpoint instead
-    if @scenario.process_step(answer)
+    if @scenario.process_step(answer, resolved_here: resolved_here)
       # After processing a sub_flow step, parent may now be awaiting_subflow
       if @scenario.awaiting_subflow?
         active_child = @scenario.active_child_scenario

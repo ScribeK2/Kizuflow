@@ -497,4 +497,53 @@ class WorkflowTest < ActiveSupport::TestCase
 
     assert_includes visible.map(&:id), public_workflow.id
   end
+
+  # can_resolve normalization tests
+  test "normalize can_resolve coerces string to boolean on action steps" do
+    workflow = Workflow.create!(
+      title: "Test can_resolve",
+      user: @user,
+      steps: [
+        { 'type' => 'action', 'title' => 'Fix it', 'instructions' => 'Do the thing', 'can_resolve' => 'true' }
+      ]
+    )
+
+    assert_equal true, workflow.steps.first['can_resolve']
+  end
+
+  test "normalize can_resolve strips flag from unsupported step types" do
+    workflow = Workflow.create!(
+      title: "Test can_resolve strip",
+      user: @user,
+      steps: [
+        { 'type' => 'question', 'title' => 'Ask', 'question' => 'What?', 'can_resolve' => true }
+      ]
+    )
+
+    assert_nil workflow.steps.first['can_resolve']
+  end
+
+  test "normalize can_resolve preserves flag on message steps" do
+    workflow = Workflow.create!(
+      title: "Test can_resolve message",
+      user: @user,
+      steps: [
+        { 'type' => 'message', 'title' => 'Info', 'content' => 'Hello', 'can_resolve' => true }
+      ]
+    )
+
+    assert_equal true, workflow.steps.first['can_resolve']
+  end
+
+  test "normalize can_resolve defaults false for falsy values" do
+    workflow = Workflow.create!(
+      title: "Test can_resolve false",
+      user: @user,
+      steps: [
+        { 'type' => 'action', 'title' => 'Fix it', 'instructions' => 'Do the thing', 'can_resolve' => 'false' }
+      ]
+    )
+
+    assert_equal false, workflow.steps.first['can_resolve']
+  end
 end

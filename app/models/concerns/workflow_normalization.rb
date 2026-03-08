@@ -84,6 +84,9 @@ module WorkflowNormalization
     # Auto-generate variable names for question steps that don't have one
     ensure_variable_names
 
+    # Normalize can_resolve flag on each step
+    normalize_can_resolve
+
     # Filter out completely empty steps (no type, no title, no data)
     # But preserve steps that have data even if type is missing (they're still being filled out)
     self.steps = steps.select do |step|
@@ -94,6 +97,25 @@ module WorkflowNormalization
         step['question'].present? ||
         step['action_type'].present?
       )
+    end
+  end
+
+  # Normalize can_resolve: coerce to boolean, strip from non-action/message steps
+  def normalize_can_resolve
+    return unless steps.present?
+
+    steps.each do |step|
+      next unless step.is_a?(Hash)
+
+      if %w[action message].include?(step['type'])
+        # Coerce to boolean if present
+        if step.key?('can_resolve')
+          step['can_resolve'] = ActiveModel::Type::Boolean.new.cast(step['can_resolve']) || false
+        end
+      else
+        # Strip can_resolve from step types that don't support it
+        step.delete('can_resolve')
+      end
     end
   end
 
