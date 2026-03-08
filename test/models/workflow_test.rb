@@ -546,4 +546,57 @@ class WorkflowTest < ActiveSupport::TestCase
 
     assert_equal false, workflow.steps.first['can_resolve']
   end
+
+  test "can_resolve persists through StepMergeService merge" do
+    workflow = Workflow.create!(
+      title: "Test merge can_resolve",
+      user: @user,
+      steps: [
+        { 'id' => 'step-1', 'type' => 'message', 'title' => 'Msg', 'content' => 'Hello', 'can_resolve' => false },
+        { 'id' => 'step-2', 'type' => 'action', 'title' => 'Act', 'instructions' => 'Do it', 'can_resolve' => false }
+      ]
+    )
+
+    # Simulate list editor form submission with can_resolve enabled
+    submitted_steps = [
+      { 'id' => 'step-1', 'type' => 'message', 'title' => 'Msg', 'content' => 'Hello', 'can_resolve' => 'true' },
+      { 'id' => 'step-2', 'type' => 'action', 'title' => 'Act', 'instructions' => 'Do it', 'can_resolve' => 'true' }
+    ]
+
+    merged = StepMergeService.new(
+      existing_steps: workflow.steps,
+      submitted_steps: submitted_steps
+    ).call
+
+    workflow.update!(steps: merged)
+    workflow.reload
+
+    assert_equal true, workflow.steps[0]['can_resolve'], "Message step can_resolve should be true"
+    assert_equal true, workflow.steps[1]['can_resolve'], "Action step can_resolve should be true"
+  end
+
+  test "can_resolve false persists through StepMergeService merge" do
+    workflow = Workflow.create!(
+      title: "Test merge can_resolve false",
+      user: @user,
+      steps: [
+        { 'id' => 'step-1', 'type' => 'message', 'title' => 'Msg', 'content' => 'Hello', 'can_resolve' => true }
+      ]
+    )
+
+    # Simulate unchecking can_resolve
+    submitted_steps = [
+      { 'id' => 'step-1', 'type' => 'message', 'title' => 'Msg', 'content' => 'Hello', 'can_resolve' => 'false' }
+    ]
+
+    merged = StepMergeService.new(
+      existing_steps: workflow.steps,
+      submitted_steps: submitted_steps
+    ).call
+
+    workflow.update!(steps: merged)
+    workflow.reload
+
+    assert_equal false, workflow.steps[0]['can_resolve'], "Message step can_resolve should be false"
+  end
 end
