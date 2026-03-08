@@ -181,6 +181,23 @@ export function getActionFieldsHtml(stepData = {}) {
         ${attachmentsHtml}
       </div>
     </div>
+
+    <div class="mb-4" data-controller="checkbox-hidden">
+      <label class="flex items-center cursor-pointer">
+        <input type="hidden" name="workflow[steps][][can_resolve]"
+               value="${stepData.can_resolve ? 'true' : 'false'}"
+               data-checkbox-hidden-target="hidden"
+               data-step-form-target="field">
+        <input type="checkbox"
+               data-checkbox-hidden-target="checkbox"
+               data-action="change->checkbox-hidden#toggle"
+               class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+        <span class="ml-2 text-sm text-gray-700">This step may resolve the issue</span>
+      </label>
+      <p class="mt-1 ml-6 text-xs text-gray-500">
+        When enabled, the scenario player shows a "This resolved the issue" button alongside Continue.
+      </p>
+    </div>
   `
 }
 
@@ -219,6 +236,23 @@ export function getMessageFieldsHtml(stepData = {}) {
                 rows="4"
                 data-step-form-target="field">${escapeHtml(stepData.content || "")}</textarea>
       <p class="mt-1 text-xs text-gray-500">Supports variable interpolation with {{variable_name}} syntax.</p>
+    </div>
+
+    <div class="mb-4" data-controller="checkbox-hidden">
+      <label class="flex items-center cursor-pointer">
+        <input type="hidden" name="workflow[steps][][can_resolve]"
+               value="${stepData.can_resolve ? 'true' : 'false'}"
+               data-checkbox-hidden-target="hidden"
+               data-step-form-target="field">
+        <input type="checkbox"
+               data-checkbox-hidden-target="checkbox"
+               data-action="change->checkbox-hidden#toggle"
+               class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+        <span class="ml-2 text-sm text-gray-700">This step may resolve the issue</span>
+      </label>
+      <p class="mt-1 ml-6 text-xs text-gray-500">
+        When enabled, the scenario player shows a "This resolved the issue" button alongside Continue.
+      </p>
     </div>
   `
 }
