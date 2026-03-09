@@ -17,6 +17,10 @@ gem "tailwindcss-rails"
 gem "turbo-rails"
 gem "tzinfo-data", platforms: %i[mingw mswin x64_mingw jruby]
 
+# Rich text editing via Action Text + Lexxy (Lexical-based editor)
+gem "lexxy", "~> 0.8.0.beta"
+gem "image_processing", "~> 1.2"
+
 # Authentication
 gem "devise", "~> 5.0"
 
@@ -26,7 +30,7 @@ gem "rack-attack"
 # PDF generation
 gem "prawn"
 
-# Markdown rendering for step content
+# Markdown rendering (kept temporarily for data migration from markdown to HTML)
 gem "redcarpet"
 
 # Error tracking and performance monitoring (production)
