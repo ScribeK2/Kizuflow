@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_06_203657) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_162412) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -120,6 +120,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_06_203657) do
     t.index ["workflow_version_id"], name: "index_scenarios_on_workflow_version_id"
   end
 
+  create_table "steps", force: :cascade do |t|
+    t.string "action_type"
+    t.string "answer_type"
+    t.boolean "can_resolve", default: false
+    t.datetime "created_at", null: false
+    t.json "jumps"
+    t.boolean "notes_required", default: false
+    t.json "options"
+    t.json "output_fields"
+    t.integer "position", null: false
+    t.string "priority"
+    t.string "question"
+    t.boolean "reason_required", default: false
+    t.string "resolution_code"
+    t.string "resolution_type"
+    t.integer "sub_flow_workflow_id"
+    t.boolean "survey_trigger", default: false
+    t.string "target_type"
+    t.string "target_value"
+    t.string "title"
+    t.string "type", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.json "variable_mapping"
+    t.string "variable_name"
+    t.integer "workflow_id", null: false
+    t.index ["sub_flow_workflow_id"], name: "index_steps_on_sub_flow_workflow_id"
+    t.index ["type"], name: "index_steps_on_type"
+    t.index ["uuid"], name: "index_steps_on_uuid", unique: true
+    t.index ["workflow_id", "position"], name: "index_steps_on_workflow_id_and_position"
+    t.index ["workflow_id"], name: "index_steps_on_workflow_id"
+  end
+
   create_table "templates", force: :cascade do |t|
     t.string "category"
     t.datetime "created_at", null: false
@@ -215,6 +248,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_06_203657) do
   add_foreign_key "scenarios", "users"
   add_foreign_key "scenarios", "workflow_versions", on_delete: :nullify
   add_foreign_key "scenarios", "workflows"
+  add_foreign_key "steps", "workflows"
   add_foreign_key "user_groups", "groups"
   add_foreign_key "user_groups", "users"
   add_foreign_key "workflow_versions", "users", column: "published_by_id"
