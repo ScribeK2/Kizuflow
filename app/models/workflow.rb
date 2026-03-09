@@ -13,6 +13,10 @@ class Workflow < ApplicationRecord
   # Scenario associations
   has_many :scenarios, dependent: :destroy
 
+  # ActiveRecord step associations (parallel to JSONB during migration)
+  has_many :workflow_steps, class_name: "Step", dependent: :destroy
+  belongs_to :start_step, class_name: "Step", optional: true
+
   # Versioning associations
   has_many :versions, class_name: "WorkflowVersion", dependent: :destroy
   belongs_to :published_version, class_name: "WorkflowVersion", optional: true
