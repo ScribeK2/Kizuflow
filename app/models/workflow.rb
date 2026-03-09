@@ -14,6 +14,9 @@ class Workflow < ApplicationRecord
   has_many :scenarios, dependent: :destroy
 
   # ActiveRecord step associations (parallel to JSONB during migration)
+  # IMPORTANT: nullify_start_step must run BEFORE dependent :destroy on workflow_steps
+  # to avoid circular FK constraint (workflows.start_step_id → steps.id)
+  before_destroy :nullify_start_step, prepend: true
   has_many :workflow_steps, class_name: "Step", dependent: :destroy
   belongs_to :start_step, class_name: "Step", optional: true
 
@@ -598,6 +601,17 @@ class Workflow < ApplicationRecord
   end
 
   private
+
+  def nullify_start_step
+    update_column(:start_step_id, nil) if start_step_id.present?
+    # Delete all transitions and Action Text records referencing this workflow's steps
+    # to avoid FK constraint violations during cascading step deletion
+    step_ids = workflow_steps.unscoped.where(workflow_id: id).pluck(:id)
+    if step_ids.any?
+      Transition.where(step_id: step_ids).or(Transition.where(target_step_id: step_ids)).delete_all
+      ActionText::RichText.where(record_type: "Step", record_id: step_ids).delete_all
+    end
+  end
 
   def update_steps_count
     self.steps_count = steps.is_a?(Array) ? steps.size : 0
