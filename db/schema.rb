@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_09_162530) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_162717) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -234,6 +234,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_162530) do
     t.integer "lock_version", default: 0, null: false
     t.integer "published_version_id"
     t.string "start_node_uuid"
+    t.integer "start_step_id"
     t.string "status", default: "published", null: false
     t.json "steps"
     t.integer "steps_count", default: 0, null: false
@@ -245,6 +246,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_162530) do
     t.index ["graph_mode"], name: "index_workflows_on_graph_mode"
     t.index ["is_public"], name: "index_workflows_on_is_public"
     t.index ["published_version_id"], name: "index_workflows_on_published_version_id"
+    t.index ["start_step_id"], name: "index_workflows_on_start_step_id"
     t.index ["status", "user_id"], name: "index_workflows_on_status_and_user_id"
     t.index ["status"], name: "index_workflows_on_status"
     t.index ["updated_at"], name: "index_workflows_on_updated_at"
@@ -268,6 +270,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_162530) do
   add_foreign_key "user_groups", "users"
   add_foreign_key "workflow_versions", "users", column: "published_by_id"
   add_foreign_key "workflow_versions", "workflows"
+  add_foreign_key "workflows", "steps", column: "start_step_id"
   add_foreign_key "workflows", "users"
   add_foreign_key "workflows", "workflow_versions", column: "published_version_id"
 end
