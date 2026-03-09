@@ -23,17 +23,24 @@
     <%# Template panel at full column width with z-index above Live Preview %>
     <%= render 'workflows/instruction_templates' %>
 
-    <%= render partial: "shared/markdown_editor", locals: {
-      name: "workflow[steps][][instructions]",
-      value: step['instructions'],
-      placeholder: "Enter step-by-step instructions for the CSR to follow... (type {{ to insert variables)",
-      rows: 5,
-      extra_data: {
-        step_form_target: "field",
-        instruction_template_target: "instructionsField",
-        variable_autocomplete_target: "input"
-      }
-    } %>
+    <% if ar_step?(step) %>
+      <%= form_with model: [workflow, step], url: workflow_step_path(workflow, step), method: :patch, local: true do |f| %>
+        <%= f.rich_text_area :instructions,
+            data: { step_form_target: "field", instruction_template_target: "instructionsField", variable_autocomplete_target: "input" } %>
+      <% end %>
+    <% else %>
+      <%= render partial: "shared/markdown_editor", locals: {
+        name: "workflow[steps][][instructions]",
+        value: step['instructions'],
+        placeholder: "Enter step-by-step instructions for the CSR to follow... (type {{ to insert variables)",
+        rows: 5,
+        extra_data: {
+          step_form_target: "field",
+          instruction_template_target: "instructionsField",
+          variable_autocomplete_target: "input"
+        }
+      } %>
+    <% end %>
   </div>
 
   <%# Attachments Section %>

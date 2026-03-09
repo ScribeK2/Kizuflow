@@ -133,7 +133,7 @@
 
           <% unless step['type'] == 'message' %>
             <% if step['description'].present? %>
-              <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @scenario.results || {})) %></div>
+              <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_content(step, 'description', @scenario.results || {}) %></div>
             <% end %>
           <% end %>
 
@@ -252,7 +252,7 @@
                     </div>
                     <div class="flex-1">
                       <h3 class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-3">Instructions</h3>
-                      <div class="text-sm text-amber-900 dark:text-amber-200 leading-relaxed" data-clipboard-target="source"><%= render_step_markdown(VariableInterpolator.interpolate(step['instructions'], @scenario.results || {})) %></div>
+                      <div class="text-sm text-amber-900 dark:text-amber-200 leading-relaxed" data-clipboard-target="source"><%= render_step_content(step, 'instructions', @scenario.results || {}) %></div>
                     </div>
                   </div>
                   <button type="button"
@@ -299,8 +299,8 @@
                   </div>
                   <div class="flex-1">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-3">Message</h3>
-                    <% if step['content'].present? %>
-                      <div class="text-sm text-purple-900 dark:text-purple-200 leading-relaxed"><%= render_step_markdown(VariableInterpolator.interpolate(step['content'], @scenario.results || {})) %></div>
+                    <% if step_field(step, 'content').present? %>
+                      <div class="text-sm text-purple-900 dark:text-purple-200 leading-relaxed"><%= render_step_content(step, 'content', @scenario.results || {}) %></div>
                     <% else %>
                       <p class="text-sm text-purple-800 dark:text-purple-300 italic">No message content provided.</p>
                     <% end %>
@@ -310,7 +310,7 @@
             </div>
 
             <% if step['description'].present? %>
-              <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_markdown(VariableInterpolator.interpolate(step['description'], @scenario.results || {})) %></div>
+              <div class="text-gray-600 dark:text-gray-300 mb-4"><%= render_step_content(step, 'description', @scenario.results || {}) %></div>
             <% end %>
 
             <%= form_with url: next_step_scenario_path(@scenario), method: :post, data: { turbo: false, scenario_step_target: "form" } do |form| %>
@@ -358,8 +358,8 @@
                         </span>
                       </p>
                     <% end %>
-                    <% if step['notes'].present? %>
-                      <div class="text-sm text-orange-700 dark:text-orange-300 mt-2"><%= render_step_markdown(VariableInterpolator.interpolate(step['notes'], @scenario.results || {})) %></div>
+                    <% if step_field(step, 'notes').present? %>
+                      <div class="text-sm text-orange-700 dark:text-orange-300 mt-2"><%= render_step_content(step, 'notes', @scenario.results || {}) %></div>
                     <% end %>
                   </div>
                 </div>

@@ -12,8 +12,8 @@
 %>
 
 <% expanded = local_assigns.fetch(:expanded, true) %>
-<% step_type = step['type']&.to_s&.downcase %>
-<% step_id = step['id'] || SecureRandom.uuid %>
+<% step_type = ar_step?(step) ? step_field(step, 'type') : step['type']&.to_s&.downcase %>
+<% step_id = ar_step?(step) ? step.uuid : (step['id'] || SecureRandom.uuid) %>
 
 <%# Step type background colors (using slate/emerald theme) %>
 <% type_bg_colors = {
@@ -79,7 +79,7 @@
 
       <%# Step Title %>
       <span class="font-medium text-white truncate max-w-xs">
-        <%= step['title'].presence || "Untitled #{step_type&.titleize}" %>
+        <%= step_field(step, 'title').presence || "Untitled #{step_type&.titleize}" %>
       </span>
 
       <%# Collapsed Summary (shown when collapsed) %>
@@ -141,7 +141,7 @@
           </label>
           <input type="text"
                  name="workflow[steps][][title]"
-                 value="<%= step['title'] %>"
+                 value="<%= step_field(step, 'title') %>"
                  placeholder="Enter a descriptive title..."
                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
                  required
@@ -157,7 +157,7 @@
           </label>
           <%= render partial: "shared/markdown_editor", locals: {
             name: "workflow[steps][][description]",
-            value: step['description'],
+            value: step_field(step, 'description'),
             placeholder: "Add a brief description of this step...",
             rows: 2,
             extra_data: {
@@ -171,7 +171,7 @@
         <%= render partial: "step_fields", locals: {
           step: step,
           step_type: step_type,
-          available_steps: workflow.steps || [],
+          available_steps: ar_step?(step) ? workflow.workflow_steps : (workflow.steps || []),
           step_index: index,
           workflow: workflow
         } %>
@@ -192,8 +192,8 @@
 
     <%# Graph Mode: Connections Editor %>
     <% if workflow&.graph_mode? %>
-      <% transitions = step['transitions'] || [] %>
-      <% other_steps = (workflow.steps || []).reject { |s| s['id'] == step_id } %>
+      <% transitions = ar_step?(step) ? step.transitions.map { |t| { 'target_uuid' => t.target_step.uuid, 'condition' => t.condition, 'label' => t.label } } : (step['transitions'] || []) %>
+      <% other_steps = ar_step?(step) ? workflow.workflow_steps.reject { |s| s.uuid == step_id }.map { |s| { 'id' => s.uuid, 'title' => s.title } } : (workflow.steps || []).reject { |s| s['id'] == step_id } %>
 
       <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700"
            data-controller="step-transitions"

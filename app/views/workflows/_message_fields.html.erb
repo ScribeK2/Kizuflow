@@ -21,16 +21,23 @@
       Message Content
       <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
     </label>
-    <%= render partial: "shared/markdown_editor", locals: {
-      name: "workflow[steps][][content]",
-      value: step['content'],
-      placeholder: "Enter the message to display to the CSR... (type {{ to insert variables)",
-      rows: 4,
-      extra_data: {
-        step_form_target: "field",
-        variable_autocomplete_target: "input"
-      }
-    } %>
+    <% if ar_step?(step) %>
+      <%= form_with model: [workflow, step], url: workflow_step_path(workflow, step), method: :patch, local: true do |f| %>
+        <%= f.rich_text_area :content,
+            data: { step_form_target: "field", variable_autocomplete_target: "input" } %>
+      <% end %>
+    <% else %>
+      <%= render partial: "shared/markdown_editor", locals: {
+        name: "workflow[steps][][content]",
+        value: step['content'],
+        placeholder: "Enter the message to display to the CSR... (type {{ to insert variables)",
+        rows: 4,
+        extra_data: {
+          step_form_target: "field",
+          variable_autocomplete_target: "input"
+        }
+      } %>
+    <% end %>
   </div>
 
   <%# Can Resolve Checkbox %>

@@ -8,7 +8,11 @@
         </h1>
         <% if @workflow.has_description? %>
           <div class="text-gray-600 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none mt-3">
-            <%= render_step_markdown(@workflow.description) %>
+            <% if @workflow.description.respond_to?(:body) %>
+              <%= @workflow.description %>
+            <% else %>
+              <%= render_step_markdown(@workflow.description) %>
+            <% end %>
           </div>
         <% end %>
       </div>
@@ -63,9 +67,10 @@
     <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Workflow Steps</h2>
     </div>
-    <% if @workflow.steps.present? && @workflow.steps.any? %>
+    <% display_steps = workflow_display_steps(@workflow) %>
+    <% if display_steps.present? && display_steps.any? %>
       <div class="p-6 space-y-4">
-        <% @workflow.steps.each_with_index do |step, index| %>
+        <% display_steps.each_with_index do |step, index| %>
           <div class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;" data-controller="image-lightbox">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
@@ -73,21 +78,21 @@
                   <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 dark:bg-slate-500 text-white text-sm font-semibold mr-3 flex-shrink-0">
                     <%= index + 1 %>
                   </span>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= step['title'] %></h3>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= step_field(step, 'title') %></h3>
                   <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300">
-                    <%= step['type'] %>
+                    <%= step_field(step, 'type') %>
                   </span>
                 </div>
-                <% if step['description'].present? %>
-                  <div class="text-gray-600 dark:text-gray-300 ml-11"><%= render_step_markdown(step['description']) %></div>
+                <% if step_field(step, 'description').present? %>
+                  <div class="text-gray-600 dark:text-gray-300 ml-11"><%= render_step_content(step, 'description') %></div>
                 <% end %>
-                <% if step['type'] == 'question' && step['question'].present? %>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step['question'] %></p>
+                <% if step_field(step, 'type') == 'question' && step_field(step, 'question').present? %>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step_field(step, 'question') %></p>
                 <% end %>
-                <% if step['type'] == 'action' && step['instructions'].present? %>
+                <% if step_field(step, 'type') == 'action' && step_field(step, 'instructions').present? %>
                   <div class="ml-11 mt-2 text-sm text-gray-600 dark:text-gray-300">
                     <strong>Instructions:</strong>
-                    <%= render_step_markdown(step['instructions']) %>
+                    <%= render_step_content(step, 'instructions') %>
                   </div>
                 <% end %>
               </div>
