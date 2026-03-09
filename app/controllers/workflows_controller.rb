@@ -9,118 +9,29 @@ class WorkflowsController < ApplicationController
   before_action :parse_transitions_json, only: %i[create update update_step2]
 
   def index
-    @status_filter = params[:status].presence || 'all'
-    @sort_by = params[:sort].presence || 'recent'
+    filter = WorkflowsFilter.new(user: current_user, params: params).call
 
-    # Build base scope based on status filter
-    case @status_filter
-    when 'draft'
-      # Only show the current user's own drafts (drafts are never shared)
-      @workflows = current_user.workflows.drafts
-    when 'published'
-      # Published workflows visible to the current user
-      @workflows = Workflow.visible_to(current_user)
-    else
-      # "all" — published visible + own drafts
-      published_ids = Workflow.visible_to(current_user).select(:id)
-      own_draft_ids = current_user.workflows.drafts.select(:id)
-      @workflows = Workflow.where(id: published_ids).or(Workflow.where(id: own_draft_ids))
-    end
+    @status_filter          = filter.status_filter
+    @sort_by                = filter.sort_by
+    @search_query           = filter.search_query
+    @workflows              = filter.workflows
+    @selected_group         = filter.selected_group
+    @selected_ancestor_ids  = filter.selected_ancestor_ids
+    @folders                = filter.folders
+    @uncategorized_workflows = filter.uncategorized_workflows
+    @workflows_by_folder    = filter.workflows_by_folder
+    @accessible_groups      = filter.accessible_groups
+    @total_count            = filter.total_count
+    @total_pages            = filter.total_pages
+    @page                   = filter.page
+    @per_page               = WorkflowsFilter::PER_PAGE
+    @workflows_paginated    = filter.workflows_paginated
 
-    # Eager load associations to prevent N+1 queries (especially important for caching)
-    @workflows = @workflows.includes(:user, group_workflows: :group)
-                           .search_by(params[:search])
-
-    # Apply sort order
-    @workflows = case @sort_by
-                 when 'alphabetical'
-                   @workflows.order(Arel.sql('LOWER(title) ASC'))
-                 when 'most_steps'
-                   @workflows.order(steps_count: :desc)
-                 else
-                   # 'recent' — order by updated_at
-                   @workflows.order(updated_at: :desc)
-                 end
-
-    # Filter by group if selected
-    if params[:group_id].present?
-      begin
-        # Check access first with a simple query
-        potential_group = Group.find_by(id: params[:group_id])
-        if potential_group && potential_group.can_be_viewed_by?(current_user)
-          # Eager load ancestors to prevent N+1 queries in breadcrumb rendering
-          # Load up to 5 levels deep (max depth) to cover all ancestors
-          @selected_group = Group.includes(parent: { parent: { parent: { parent: :parent } } }).find_by(id: params[:group_id])
-          @selected_ancestor_ids = @selected_group&.ancestors&.map(&:id) || []
-          @workflows = @workflows.in_group(@selected_group)
-        else
-          @selected_group = nil
-          flash.now[:alert] = "You don't have permission to view this group."
-        end
-      rescue StandardError => e
-        Rails.logger.error "Error loading group #{params[:group_id]}: #{e.message}\n#{e.backtrace.join("\n")}"
-        @selected_group = nil
-        flash.now[:alert] = "An error occurred while loading the group."
-      end
-    end
-
-    # Load folders for the selected group
-    if @selected_group.present?
-      @folders = @selected_group.folders.ordered
-      @uncategorized_workflows = @selected_group.uncategorized_workflows
-                                                .includes(:user)
-                                                .search_by(params[:search])
-      @uncategorized_workflows = case @sort_by
-                                 when 'alphabetical'
-                                   @uncategorized_workflows.order(Arel.sql('LOWER(title) ASC'))
-                                 when 'most_steps'
-                                   @uncategorized_workflows.order(steps_count: :desc)
-                                 else
-                                   @uncategorized_workflows.order(updated_at: :desc)
-                                 end
-
-      if @folders.present?
-        @workflows_by_folder = {}
-        @folders.each do |folder|
-          folder_workflows = @workflows.joins(:group_workflows)
-                                       .where(group_workflows: { folder_id: folder.id })
-          @workflows_by_folder[folder.id] = folder_workflows
-        end
-      end
-    end
-
-    # Load accessible groups for sidebar
-    # If no groups exist, show all workflows (backward compatibility)
-    # Eager load children to prevent N+1 queries when rendering the tree
-    @accessible_groups = Group.visible_to(current_user)
-                              .roots
-                              .includes(:children)
-                              .order(:position, :name)
-
-    # Precompute workflows counts for sidebar to avoid N+1 queries
-    all_sidebar_groups = @accessible_groups.to_a + @accessible_groups.flat_map(&:children)
-    Group.precompute_workflows_counts(all_sidebar_groups) if all_sidebar_groups.any?
-
-    # Fallback: if no groups exist at all, don't filter by groups
-    if @accessible_groups.empty? && !current_user&.admin?
-      # For non-admins with no groups, show all workflows they have access to
-      # (this maintains backward compatibility)
-    end
-
-    @search_query = params[:search]
-
-    # Pagination (HTML only — JSON returns all results for API consumers)
-    @page = [ (params[:page] || 1).to_i, 1 ].max
-    @per_page = 10
-    @total_count = @workflows.count
-    @total_pages = [ (@total_count.to_f / @per_page).ceil, 1 ].max
-    @page = [ @page, @total_pages ].min
-    @workflows_paginated = @workflows.limit(@per_page).offset((@page - 1) * @per_page)
+    flash.now[:alert] = filter.group_error if filter.group_error
 
     respond_to do |format|
       format.html
       format.json do
-        # Return simplified workflow data for API consumers (e.g., sub-flow selector)
         workflows_data = @workflows.map do |w|
           {
             id: w.id,
@@ -359,8 +270,8 @@ class WorkflowsController < ApplicationController
     # This allows users to see what variables will look like when interpolated
     sample_variables = generate_sample_variables(@workflow)
 
-    # Render preview partial within Turbo Frame
-    render partial: "workflows/preview_pane",
+    # Render preview partial wrapped in matching Turbo Frame for src-driven updates
+    render partial: "workflows/preview_frame",
            locals: { step: step_data, index: step_index, sample_variables: sample_variables },
            formats: [:html]
   end

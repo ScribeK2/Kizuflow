@@ -1,5 +1,4 @@
-class Admin::UsersController < ApplicationController
-  before_action :ensure_admin!
+class Admin::UsersController < Admin::BaseController
 
   def index
     @users = User.includes(:groups, :workflows).order(created_at: :desc)

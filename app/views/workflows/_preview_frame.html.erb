@@ -1,0 +1,3 @@
+<%= turbo_frame_tag "step_preview_#{index}" do %>
+  <%= render partial: "workflows/preview_pane", locals: { step: step, index: index, sample_variables: sample_variables } %>
+<% end %>

@@ -4,8 +4,6 @@ class Workflow < ApplicationRecord
   include StepTypeIcons
   include WorkflowStepValidation
 
-  MARKDOWN_RENDERER = Redcarpet::Markdown.new(Redcarpet::Render::HTML.new)
-
   belongs_to :user
 
   # Group associations
@@ -157,8 +155,9 @@ class Workflow < ApplicationRecord
   def description_text
     return nil if description.blank?
 
+    renderer = Redcarpet::Markdown.new(Redcarpet::Render::HTML.new)
     ActionController::Base.helpers.strip_tags(
-      MARKDOWN_RENDERER.render(description)
+      renderer.render(description)
     ).squish
   end
 
@@ -549,6 +548,13 @@ class Workflow < ApplicationRecord
   def validate_subflow_steps
     return unless steps.present?
 
+    # Batch-load all target workflows to avoid N+1 queries
+    target_ids = subflow_steps
+                   .reject { |s| s['_import_incomplete'] == true }
+                   .map { |s| s['target_workflow_id'] }
+                   .compact
+    target_workflows = Workflow.where(id: target_ids).index_by(&:id)
+
     subflow_steps.each_with_index do |step, _|
       step_index = steps.index(step) + 1
       next if step['_import_incomplete'] == true
@@ -561,7 +567,7 @@ class Workflow < ApplicationRecord
       end
 
       # Check that target workflow exists
-      target_workflow = Workflow.find_by(id: target_id)
+      target_workflow = target_workflows[target_id.to_i]
       unless target_workflow
         errors.add(:steps, "Step #{step_index}: Target workflow #{target_id} does not exist")
         next

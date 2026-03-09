@@ -1,5 +1,4 @@
-class Admin::DashboardController < ApplicationController
-  before_action :ensure_admin!
+class Admin::DashboardController < Admin::BaseController
 
   def index
     @users_count = User.count

@@ -1,5 +1,4 @@
-class Admin::TemplatesController < ApplicationController
-  before_action :ensure_admin!
+class Admin::TemplatesController < Admin::BaseController
 
   def index
     @templates = Template.order(:name)

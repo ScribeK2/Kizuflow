@@ -1,5 +1,4 @@
-class Admin::WorkflowsController < ApplicationController
-  before_action :ensure_admin!
+class Admin::WorkflowsController < Admin::BaseController
 
   def index
     @workflows = Workflow.includes(:user).order(created_at: :desc)

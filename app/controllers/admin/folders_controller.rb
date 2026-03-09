@@ -1,5 +1,4 @@
-class Admin::FoldersController < ApplicationController
-  before_action :ensure_admin!
+class Admin::FoldersController < Admin::BaseController
   before_action :set_group
   before_action :set_folder, only: %i[edit update destroy]
 

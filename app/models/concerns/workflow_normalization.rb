@@ -155,8 +155,6 @@ module WorkflowNormalization
   def normalize_graph_steps
     return unless steps.present?
 
-    steps.map { |s| s['id'] }.compact
-
     steps.each do |step|
       next unless step.is_a?(Hash)
 

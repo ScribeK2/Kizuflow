@@ -1,7 +1,6 @@
 require "csv"
 
-class Admin::AnalyticsController < ApplicationController
-  before_action :ensure_admin!
+class Admin::AnalyticsController < Admin::BaseController
 
   def index
     @date_range = parse_date_range

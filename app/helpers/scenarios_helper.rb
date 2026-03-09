@@ -88,7 +88,7 @@ module ScenariosHelper
     step_count = path.length
 
     # Duration
-    duration_seconds = (scenario.updated_at - scenario.created_at).to_i
+    duration_seconds = scenario.duration_seconds.to_i
     duration_text = if duration_seconds < 60
                       "#{duration_seconds}s"
                     elsif duration_seconds < 3600

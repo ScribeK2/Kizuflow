@@ -1,5 +1,4 @@
-class Admin::GroupsController < ApplicationController
-  before_action :ensure_admin!
+class Admin::GroupsController < Admin::BaseController
   before_action :set_group, only: %i[show edit update destroy]
 
   def index
