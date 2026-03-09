@@ -528,6 +528,75 @@ class Workflow < ApplicationRecord
     }
   end
 
+  # ============================================================================
+  # ActiveRecord Step Methods (used during and after migration)
+  # These methods query the `steps` table instead of the JSONB column.
+  # During migration both paths coexist. After Task 28 removes the JSONB
+  # column, the legacy methods above will be deleted and `workflow_steps`
+  # will be renamed to `steps`.
+  # ============================================================================
+
+  # Find a step record by UUID
+  def find_workflow_step_by_uuid(uuid)
+    return nil unless uuid.present?
+    workflow_steps.unscoped.find_by(uuid: uuid)
+  end
+
+  # Find a step record by title (case-insensitive fallback)
+  def find_workflow_step_by_title(title)
+    return nil unless title.present?
+    workflow_steps.find_by(title: title) ||
+      workflow_steps.where("LOWER(title) = ?", title.downcase).first
+  end
+
+  # Get the start step (ActiveRecord)
+  def ar_start_node
+    start_step || workflow_steps.first
+  end
+
+  # Get terminal steps (no outgoing transitions)
+  def ar_terminal_nodes
+    workflow_steps.left_joins(:transitions).where(transitions: { id: nil })
+  end
+
+  # Get steps as hash keyed by UUID for graph operations
+  def ar_graph_steps
+    workflow_steps.includes(:transitions).index_by(&:uuid)
+  end
+
+  # Get variables metadata from question steps (ActiveRecord)
+  def ar_variables_with_metadata
+    Steps::Question.where(workflow_id: id).map do |step|
+      {
+        name: step.variable_name,
+        title: step.title,
+        answer_type: step.answer_type,
+        options: step.options || [],
+        display_name: "#{step.title} (#{step.variable_name})"
+      }
+    end
+  end
+
+  # Get step options for select dropdowns (ActiveRecord)
+  def ar_step_options_for_select
+    workflow_steps.map.with_index do |step, index|
+      next nil unless step.title.present?
+      {
+        id: step.uuid,
+        title: step.title,
+        type: step.type.demodulize.underscore,
+        index: index,
+        display_name: "#{index + 1}. #{step.title}",
+        type_icon: step_type_icon(step.type.demodulize.underscore)
+      }
+    end.compact
+  end
+
+  # Find workflows referencing a given workflow as a sub-flow (ActiveRecord)
+  def self.ar_referencing_as_subflow(target_workflow_id)
+    joins(:workflow_steps).where(steps: { type: "Steps::SubFlow", sub_flow_workflow_id: target_workflow_id })
+  end
+
   private
 
   def update_steps_count
