@@ -32,7 +32,7 @@
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= render partial: "shared/markdown_editor", locals: { form: form, field: :description, id: "workflow_description" } %>
+        <%= form.rich_text_area :description %>
       </div>
 
       <% if @accessible_groups&.any? %>

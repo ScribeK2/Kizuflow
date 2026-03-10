@@ -37,10 +37,7 @@
 
       <div>
         <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= render partial: "shared/markdown_editor", locals: { form: form, field: :description, id: "workflow_description", placeholder: "Describe what this workflow does..." } %>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          <%= ui_svg_icon('lightbulb', css_classes: "w-4 h-4 inline-block align-text-bottom") %> Tip: Supports **Markdown** formatting. Include CSR notes, expected time, or common pitfalls.
-        </p>
+        <%= form.rich_text_area :description %>
       </div>
 
       <% if @accessible_groups&.any? %>
