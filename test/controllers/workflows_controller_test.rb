@@ -91,7 +91,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     @workflow.reload
 
     assert_equal "Updated Title", @workflow.title
-    assert_equal "Updated description", @workflow.description
+    assert_equal "Updated description", @workflow.description.to_plain_text
   end
 
   test "should update workflow with steps" do

@@ -19,6 +19,7 @@ class Workflow < ApplicationRecord
   before_destroy :nullify_start_step, prepend: true
   has_many :workflow_steps, class_name: "Step", dependent: :destroy
   belongs_to :start_step, class_name: "Step", optional: true
+  has_rich_text :description
 
   # Versioning associations
   has_many :versions, class_name: "WorkflowVersion", dependent: :destroy
@@ -158,14 +159,10 @@ class Workflow < ApplicationRecord
       .or(where(id: desc_matches.select(:id)))
   }
 
-  # Helper method to get description as plain text (strips markdown syntax)
+  # Helper method to get description as plain text
   def description_text
     return nil if description.blank?
-
-    renderer = Redcarpet::Markdown.new(Redcarpet::Render::HTML.new)
-    ActionController::Base.helpers.strip_tags(
-      renderer.render(description)
-    ).squish
+    description.to_plain_text.squish
   end
 
   # Helper method to check if description exists

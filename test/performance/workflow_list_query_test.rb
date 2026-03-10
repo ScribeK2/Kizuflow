@@ -12,7 +12,7 @@ class WorkflowListQueryTest < ActiveSupport::TestCase
   test "loading 200 published workflows for a regular user uses 15 or fewer queries" do
     assert_max_queries(15) do
       workflows = Workflow.visible_to(@user)
-                          .includes(:user, group_workflows: :group)
+                          .includes(:user, :rich_text_description, group_workflows: :group)
                           .order(updated_at: :desc)
                           .limit(20)
                           .to_a
@@ -30,7 +30,7 @@ class WorkflowListQueryTest < ActiveSupport::TestCase
   test "loading workflows for admin uses 15 or fewer queries" do
     assert_max_queries(15) do
       workflows = Workflow.visible_to(@admin)
-                          .includes(:user, group_workflows: :group)
+                          .includes(:user, :rich_text_description, group_workflows: :group)
                           .order(updated_at: :desc)
                           .limit(20)
                           .to_a
@@ -43,10 +43,8 @@ class WorkflowListQueryTest < ActiveSupport::TestCase
     end
   end
 
-  test "Redcarpet renderer is reused across description_text calls" do
+  test "description_text completes efficiently across multiple workflows" do
     workflows = @data[:workflows].first(20)
-    # If Redcarpet is instantiated once as a constant, object_id will be the same
-    # We just verify it completes without creating 20 separate renderers
     assert_completes_within(0.5) do
       workflows.each(&:description_text)
     end
