@@ -89,7 +89,9 @@ export default class extends Controller {
     }
     const form = this.element.closest("form")
     if (form) {
-      form.addEventListener("submit", this.boundFormSubmit)
+      // Use capturing phase so our handler fires BEFORE Turbo's submit observer.
+      // This lets us call preventDefault() before Turbo intercepts the form.
+      form.addEventListener("submit", this.boundFormSubmit, true)
     }
 
     this.render()
@@ -99,7 +101,7 @@ export default class extends Controller {
     window.removeEventListener("beforeunload", this.boundBeforeUnload)
     const form = this.element.closest("form")
     if (form) {
-      form.removeEventListener("submit", this.boundFormSubmit)
+      form.removeEventListener("submit", this.boundFormSubmit, true)
     }
   }
 
