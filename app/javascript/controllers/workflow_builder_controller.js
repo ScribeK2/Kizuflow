@@ -1,10 +1,19 @@
 import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
-import {
-  buildStepHtml,
-  getWorkflowIdFromForm,
-  escapeHtml
-} from "controllers/workflow_builder_step_templates"
+
+function escapeHtml(text) {
+  const div = document.createElement("div")
+  div.textContent = text
+  return div.innerHTML
+}
+
+function getWorkflowIdFromForm(element) {
+  const form = element.closest("form")
+  if (!form) return null
+  const action = form.action || ""
+  const match = action.match(/\/workflows\/(\d+)/)
+  return match ? match[1] : null
+}
 
 export default class extends Controller {
   static targets = ["container"]
@@ -373,15 +382,13 @@ export default class extends Controller {
           usedServerRendering = true
         } catch (error) {
           this.warn("[WorkflowBuilder] Server-side rendering failed:", error.message)
-          this.warn("[WorkflowBuilder] Falling back to client-side rendering")
-          stepHtml = buildStepHtml(this, stepType, insertIndex, stepData)
+          this.showError("Failed to add step. Please try again.")
+          return
         }
       } else {
-        // Fallback to client-side rendering for new workflows
-        this.log("[WorkflowBuilder] No workflow ID found, using client-side rendering")
-        this.log("[WorkflowBuilder] URL:", window.location.pathname)
-        this.log("[WorkflowBuilder] Element:", this.element?.id || 'no-id')
-        stepHtml = buildStepHtml(this, stepType, insertIndex, stepData)
+        this.warn("[WorkflowBuilder] No workflow ID found, cannot add step")
+        this.showError("Please save the workflow first before adding steps.")
+        return
       }
 
       this.log(`[WorkflowBuilder] Inserting step (server=${usedServerRendering}), HTML preview:`, stepHtml.substring(0, 200))
@@ -786,5 +793,17 @@ export default class extends Controller {
 
   warn(...args) {
     if (this.debugValue) console.warn(...args)
+  }
+
+  showError(message) {
+    const statusEl = document.querySelector("[data-autosave-target='status']")
+    if (statusEl) {
+      statusEl.textContent = message
+      statusEl.classList.add("text-red-600")
+      setTimeout(() => {
+        statusEl.textContent = "Ready to save"
+        statusEl.classList.remove("text-red-600")
+      }, 3000)
+    }
   }
 }

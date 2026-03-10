@@ -117,22 +117,7 @@ class WorkflowsController < ApplicationController
 
     permitted_params = workflow_params
 
-    # Visual editor mode: parse steps from JSON hidden input
-    if params[:workflow][:editor_mode] == 'visual' && params[:workflow][:visual_editor_steps_json].present?
-      begin
-        visual_steps = JSON.parse(params[:workflow][:visual_editor_steps_json])
-        permitted_params[:steps] = visual_steps
-        if params[:workflow][:start_node_uuid].present?
-          permitted_params[:start_node_uuid] = params[:workflow][:start_node_uuid]
-        end
-      rescue JSON::ParserError => e
-        Rails.logger.error "[update] Failed to parse visual editor steps: #{e.message}"
-        flash[:alert] = "Failed to save visual editor changes."
-        redirect_to edit_workflow_path(@workflow) and return
-      end
-    end
-
-    # Remove non-model params before update
+    # Steps are now persisted via sync_steps endpoint — remove step-related params
     permitted_params.delete(:visual_editor_steps_json)
     permitted_params.delete(:editor_mode)
 
