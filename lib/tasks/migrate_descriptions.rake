@@ -1,4 +1,39 @@
 namespace :descriptions do
+  desc "Migrate workflow descriptions from plain text markdown to Action Text"
+  task migrate: :environment do
+    require "redcarpet"
+
+    renderer = Redcarpet::Render::HTML.new(hard_wrap: true, link_attributes: { target: "_blank", rel: "noopener" })
+    markdown = Redcarpet::Markdown.new(renderer,
+      fenced_code_blocks: true, autolink: true, tables: true,
+      strikethrough: true, no_intra_emphasis: true)
+
+    workflows = Workflow.where.not(description: [nil, ""])
+    puts "Migrating #{workflows.count} workflow descriptions..."
+
+    migrated = 0
+    skipped = 0
+
+    workflows.find_each do |workflow|
+      # Skip if already has rich text description
+      if workflow.rich_text_description&.body.present?
+        skipped += 1
+        next
+      end
+
+      html = markdown.render(workflow.read_attribute(:description))
+      workflow.update_column(:description, nil) # Clear plain text
+      workflow.update!(description: html)
+      migrated += 1
+    rescue => e
+      puts "  ERROR: Workflow ##{workflow.id} (#{workflow.title}): #{e.message}"
+    end
+
+    puts "\nMigration complete:"
+    puts "  Migrated: #{migrated}"
+    puts "  Skipped (already migrated): #{skipped}"
+  end
+
   desc "Convert HTML descriptions (from Trix/Action Text) to Markdown"
   task convert_html_to_markdown: :environment do
     converted = 0
