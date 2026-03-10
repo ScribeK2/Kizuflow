@@ -68,7 +68,7 @@ module StepHelper
   # Serialize AR steps to JSON-compatible array for the visual editor.
   # Returns the same shape that VisualEditorService expects.
   def serialize_steps_for_editor(workflow)
-    workflow.workflow_steps.includes(:transitions).map do |s|
+    workflow.workflow_steps.includes(:transitions, :rich_text_instructions, :rich_text_content, :rich_text_notes).map do |s|
       data = {
         "id" => s.uuid,
         "type" => s.type.demodulize.underscore,
