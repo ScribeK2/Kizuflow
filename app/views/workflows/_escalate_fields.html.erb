@@ -102,16 +102,12 @@
             data: { step_form_target: "field", variable_autocomplete_target: "input" } %>
       <% end %>
     <% else %>
-      <%= render partial: "shared/markdown_editor", locals: {
-        name: "workflow[steps][][notes]",
-        value: step['notes'],
-        placeholder: "Additional context or instructions for the escalation...",
-        rows: 2,
-        extra_data: {
-          step_form_target: "field",
-          variable_autocomplete_target: "input"
-        }
-      } %>
+      <textarea name="workflow[steps][][notes]"
+                placeholder="Additional context or instructions for the escalation..."
+                rows="2"
+                data-step-form-target="field"
+                data-variable-autocomplete-target="input"
+                class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"><%= step['notes'] %></textarea>
     <% end %>
   </div>
 </div>
