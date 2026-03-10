@@ -21,7 +21,7 @@
           <% if @workflow.description_text.present? %>
             <div>
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Description:</span>
-              <div class="text-sm text-gray-900 dark:text-gray-100 mt-1 prose prose-sm dark:prose-invert max-w-none"><%= render_step_markdown(@workflow.description) %></div>
+              <div class="text-sm text-gray-900 dark:text-gray-100 mt-1 prose prose-sm dark:prose-invert max-w-none"><%= @workflow.description %></div>
             </div>
           <% end %>
           <% if @workflow.groups.any? %>

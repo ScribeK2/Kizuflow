@@ -6,7 +6,7 @@
     </h1>
     <% if @workflow.has_description? %>
       <div class="text-gray-600 dark:text-gray-300 prose prose-lg dark:prose-invert max-w-none mt-4 mx-auto text-left">
-        <%= render_step_markdown(@workflow.description) %>
+        <%= @workflow.description %>
       </div>
     <% end %>
   </div>
