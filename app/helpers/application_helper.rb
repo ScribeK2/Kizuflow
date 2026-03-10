@@ -4,41 +4,16 @@ module ApplicationHelper
     workflow.description.present? ? workflow.description.to_s : "No description"
   end
 
-  # Render Markdown content from workflow step fields (instructions, descriptions, etc.)
-  # Sanitizes output to allow only safe HTML tags.
-  # Images are allowed with src restricted to http(s) and relative paths only.
+  # Temporary: simple HTML sanitizer replacing the old Redcarpet-based markdown renderer.
+  # Will be removed when all callers are migrated to Action Text (Tasks 17-19).
   def render_step_markdown(text)
     return "".html_safe if text.blank?
 
-    renderer = Redcarpet::Render::HTML.new(
-      hard_wrap: true,
-      link_attributes: { target: "_blank", rel: "noopener noreferrer" }
-    )
-    markdown = Redcarpet::Markdown.new(renderer,
-                                       fenced_code_blocks: true,
-                                       autolink: true,
-                                       tables: true,
-                                       strikethrough: true,
-                                       no_intra_emphasis: true)
-
-    html = markdown.render(text)
-
+    html = simple_text_to_html(text.to_s)
     safe_html = sanitize(html,
-                         tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del img],
-                         attributes: %w[href target rel src alt loading])
-
-    # Scrub dangerous src attributes (only allow http, https, and relative paths)
-    safe_html = safe_html.gsub(/<img\s[^>]*src\s*=\s*"([^"]*)"[^>]*>/i) do |match|
-      src = Regexp.last_match(1)
-      if src.match?(%r{\A(https?://|/)}) && !src.match?(/\Ajavascript:/i)
-        # Add step-markdown-image class and loading=lazy for valid images
-        match.sub("<img", '<img class="step-markdown-image" loading="lazy"')
-      else
-        "" # Strip images with dangerous src values
-      end
-    end.html_safe
-
-    content_tag(:div, safe_html, class: "step-markdown-content")
+                         tags: %w[p br strong em b i ul ol li h1 h2 h3 h4 h5 h6 a code pre table thead tbody tr th td hr blockquote del],
+                         attributes: %w[href target rel])
+    content_tag(:div, safe_html, class: "prose prose-sm dark:prose-invert max-w-none")
   end
 
   # Render glassmorphism card with block content
@@ -76,6 +51,13 @@ module ApplicationHelper
   end
 
   private
+
+  # Minimal text-to-HTML: wraps plain text paragraphs in <p> tags.
+  # Temporary bridge until all callers use Action Text.
+  def simple_text_to_html(text)
+    return text if text.match?(/<[a-z][\s\S]*>/i) # Already HTML
+    text.split(/\n{2,}/).map { |para| "<p>#{ERB::Util.html_escape(para.strip)}</p>" }.join
+  end
 
   def build_tree_nodes(parents, all_groups)
     parents.map do |parent|

@@ -155,16 +155,14 @@
             Description
             <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
           </label>
-          <%= render partial: "shared/markdown_editor", locals: {
-            name: "workflow[steps][][description]",
-            value: step_field(step, 'description'),
-            placeholder: "Add a brief description of this step...",
-            rows: 2,
-            extra_data: {
-              step_form_target: "field",
-              variable_autocomplete_target: "input"
-            }
-          } %>
+          <textarea
+            name="workflow[steps][][description]"
+            placeholder="Add a brief description of this step..."
+            rows="2"
+            class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400 transition-colors text-sm"
+            data-step-form-target="field"
+            data-variable-autocomplete-target="input"
+          ><%= step_field(step, 'description') %></textarea>
         </div>
 
         <%# Type-Specific Fields %>

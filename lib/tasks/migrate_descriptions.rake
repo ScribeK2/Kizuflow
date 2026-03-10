@@ -1,7 +1,11 @@
 namespace :descriptions do
   desc "Migrate workflow descriptions from plain text markdown to Action Text"
   task migrate: :environment do
-    require "redcarpet"
+    begin
+      require "redcarpet"
+    rescue LoadError
+      abort "ERROR: redcarpet gem is required for this migration. Add it temporarily: gem 'redcarpet' and bundle install."
+    end
 
     renderer = Redcarpet::Render::HTML.new(hard_wrap: true, link_attributes: { target: "_blank", rel: "noopener" })
     markdown = Redcarpet::Markdown.new(renderer,

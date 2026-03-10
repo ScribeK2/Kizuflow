@@ -88,6 +88,4 @@ Rails.application.routes.draw do
     get "analytics", to: "analytics#index", as: :analytics
   end
 
-  # Markdown preview (AJAX endpoint for editor)
-  post 'markdown/preview', to: 'markdown#preview', as: :markdown_preview
 end

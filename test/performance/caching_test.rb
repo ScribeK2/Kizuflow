@@ -20,12 +20,7 @@ class CachingTest < ActiveSupport::TestCase
       "Fingerprinted assets should be cached for 1 year")
   end
 
-  test "Redcarpet renderer is instantiated per-call for thread safety" do
-    refute defined?(Workflow::MARKDOWN_RENDERER),
-      "Workflow should NOT have a shared MARKDOWN_RENDERER constant (thread-unsafe)"
-  end
-
-  test "description_text returns plain text from markdown" do
+  test "description_text returns plain text from Action Text" do
     workflows = seed_performance_data[:workflows].first(50)
 
     assert_completes_within(1.0) do

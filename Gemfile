@@ -30,8 +30,6 @@ gem "rack-attack"
 # PDF generation
 gem "prawn"
 
-# Markdown rendering (kept temporarily for data migration from markdown to HTML)
-gem "redcarpet"
 
 # Error tracking and performance monitoring (production)
 gem "sentry-rails"
