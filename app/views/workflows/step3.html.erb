@@ -35,14 +35,14 @@
           <div>
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Steps:</span>
             <span class="text-sm text-gray-900 dark:text-gray-100 ml-2">
-              <%= @workflow.workflow_steps.size %> step(s)
+              <%= @workflow.steps.size %> step(s)
             </span>
           </div>
         </div>
       </div>
 
       <!-- Validation Summary -->
-      <% steps = @workflow.workflow_steps.order(:position) %>
+      <% steps = @workflow.steps.order(:position) %>
       <% has_steps = steps.size > 0 %>
       <% all_have_titles = steps.all? { |s| s.title.present? && s.title.to_s.strip.present? } %>
       <% all_pass = has_steps && all_have_titles %>
@@ -73,7 +73,7 @@
       </div>
 
       <!-- Interactive Flowchart Preview -->
-      <% if @workflow.workflow_steps.any? %>
+      <% if @workflow.steps.any? %>
         <div class="solid-card overflow-hidden animate-fade-in-up"
              data-controller="wizard-flow-preview"
              data-wizard-flow-preview-workflow-id-value="<%= @workflow.id %>">

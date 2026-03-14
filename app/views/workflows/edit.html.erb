@@ -143,7 +143,7 @@
       <div id="list-editor-container">
 
       <%# Two-Column Layout: Sidebar + Main Content (Sprint 3) %>
-      <% ar_steps = @workflow.workflow_steps.order(:position) %>
+      <% ar_steps = @workflow.steps.order(:position) %>
       <% has_sidebar = ar_steps.any? && ar_steps.size > 3 %>
       <div style="display: grid; grid-template-columns: <%= has_sidebar ? '280px 1fr' : '1fr' %>; gap: 1.5rem; width: 100%;">
         <%# Step Outline Sidebar (shown for workflows with >3 steps) %>

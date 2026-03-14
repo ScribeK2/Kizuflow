@@ -15,7 +15,7 @@ class StepsController < ApplicationController
   def new
     step_type = params[:step_type] || "action"
     step_class = step_class_for(step_type)
-    position = @workflow.workflow_steps.maximum(:position).to_i + 1
+    position = @workflow.steps.maximum(:position).to_i + 1
 
     @step = step_class.new(workflow: @workflow, position: position, title: "")
 
@@ -35,7 +35,7 @@ class StepsController < ApplicationController
   def create
     step_type = step_params[:type] || params[:step_type] || "action"
     step_class = step_class_for(step_type)
-    position = @workflow.workflow_steps.maximum(:position).to_i + 1
+    position = @workflow.steps.maximum(:position).to_i + 1
 
     @step = step_class.new(permitted_step_params.merge(workflow: @workflow, position: position))
 
@@ -113,7 +113,7 @@ class StepsController < ApplicationController
     Step.transaction do
       @step.update!(position: new_position)
       # Reindex siblings to prevent gaps
-      @workflow.workflow_steps.unscoped
+      @workflow.steps.unscoped
         .where(workflow_id: @workflow.id)
         .where.not(id: @step.id)
         .order(:position)
@@ -136,7 +136,7 @@ class StepsController < ApplicationController
   end
 
   def set_step
-    @step = @workflow.workflow_steps.unscoped.find(params[:id])
+    @step = @workflow.steps.unscoped.find(params[:id])
   end
 
   def ensure_can_edit!

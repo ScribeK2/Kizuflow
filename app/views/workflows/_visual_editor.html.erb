@@ -11,7 +11,7 @@
 
   <%# Hidden inputs for form submission (kept for list mode fallback) %>
   <input type="hidden" name="workflow[visual_editor_steps_json]" data-visual-editor-target="stepsInput" value="">
-  <input type="hidden" name="workflow[start_node_uuid]" data-visual-editor-target="startNodeInput" value="<%= workflow.start_step&.uuid || workflow.workflow_steps.first&.uuid %>">
+  <input type="hidden" name="workflow[start_node_uuid]" data-visual-editor-target="startNodeInput" value="<%= workflow.start_step&.uuid || workflow.steps.first&.uuid %>">
 
   <%# Toolbar %>
   <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 rounded-t-lg">

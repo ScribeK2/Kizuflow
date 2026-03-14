@@ -26,12 +26,12 @@ module WorkflowNormalization
     variable_names = []
 
     # Get variables from question steps
-    workflow_steps.where(type: "Steps::Question").where.not(variable_name: [nil, ""]).each do |step|
+    steps.where(type: "Steps::Question").where.not(variable_name: [nil, ""]).each do |step|
       variable_names << step.variable_name
     end
 
     # Get variables from action step output_fields
-    workflow_steps.where(type: "Steps::Action").each do |step|
+    steps.where(type: "Steps::Action").each do |step|
       next unless step.output_fields.present? && step.output_fields.is_a?(Array)
 
       step.output_fields.each do |output_field|

@@ -14,7 +14,7 @@ module WorkflowStepValidation
 
   # Validate workflow size limits to prevent DoS and ensure performance
   def validate_workflow_size
-    step_count = workflow_steps.size
+    step_count = steps.size
 
     if step_count > self.class::MAX_STEPS
       errors.add(:steps, "Workflow cannot exceed #{self.class::MAX_STEPS} steps (currently #{step_count})")

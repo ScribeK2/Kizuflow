@@ -58,13 +58,13 @@ module StepHelper
 
   # Get steps from a workflow for display purposes
   def workflow_display_steps(workflow)
-    workflow.workflow_steps.includes(:transitions)
+    workflow.steps.includes(:transitions)
   end
 
   # Serialize AR steps to JSON-compatible array for the visual editor.
   # Returns the same shape that VisualEditorService expects.
   def serialize_steps_for_editor(workflow)
-    steps = workflow.workflow_steps
+    steps = workflow.steps
     steps = steps.includes(:transitions) if steps.respond_to?(:includes)
     steps.map do |s|
       data = {

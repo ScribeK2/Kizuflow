@@ -14,10 +14,10 @@ class Workflow < ApplicationRecord
   has_many :scenarios, dependent: :destroy
 
   # ActiveRecord step associations (parallel to JSONB during migration)
-  # IMPORTANT: nullify_start_step must run BEFORE dependent :destroy on workflow_steps
+  # IMPORTANT: nullify_start_step must run BEFORE dependent :destroy on steps
   # to avoid circular FK constraint (workflows.start_step_id → steps.id)
   before_destroy :nullify_start_step, prepend: true
-  has_many :workflow_steps, class_name: "Step", dependent: :destroy
+  has_many :steps, class_name: "Step", dependent: :destroy
   belongs_to :start_step, class_name: "Step", optional: true
   has_rich_text :description
 
@@ -27,7 +27,7 @@ class Workflow < ApplicationRecord
 
   # Find workflows that reference a given workflow as a sub-flow step (via AR steps)
   def self.referencing_as_subflow(target_workflow_id)
-    joins(:workflow_steps).where(steps: { type: "Steps::SubFlow", sub_flow_workflow_id: target_workflow_id })
+    joins(:steps).where(steps: { type: "Steps::SubFlow", sub_flow_workflow_id: target_workflow_id })
   end
 
   # Steps stored as JSON - automatically serialized/deserialized
@@ -229,14 +229,14 @@ class Workflow < ApplicationRecord
   # Find a step by its UUID
   def find_step_by_uuid(uuid)
     return nil unless uuid.present?
-    workflow_steps.find_by(uuid: uuid)
+    steps.find_by(uuid: uuid)
   end
 
   # Find a step by its title (case-insensitive fallback)
   def find_step_by_title(title)
     return nil unless title.present?
-    workflow_steps.find_by(title: title) ||
-      workflow_steps.where("LOWER(title) = ?", title.downcase).first
+    steps.find_by(title: title) ||
+      steps.where("LOWER(title) = ?", title.downcase).first
   end
 
   # Resolve a step reference (UUID or title) to a UUID
@@ -255,7 +255,7 @@ class Workflow < ApplicationRecord
 
   # Get step options for select dropdowns
   def step_options_for_select
-    workflow_steps.map.with_index do |step, index|
+    steps.map.with_index do |step, index|
       next nil unless step.title.present?
       {
         id: step.uuid,
@@ -270,7 +270,7 @@ class Workflow < ApplicationRecord
 
   # Count steps by type, returns hash like { 'question' => 3, 'action' => 2, ... }
   def step_type_counts
-    workflow_steps.group(:type).count.transform_keys { |k| k.demodulize.underscore }
+    steps.group(:type).count.transform_keys { |k| k.demodulize.underscore }
   end
 
   # Returns the most common step type in this workflow
@@ -280,7 +280,7 @@ class Workflow < ApplicationRecord
 
   # Get variables with their metadata (answer type, options) for condition builders
   def variables_with_metadata
-    workflow_steps.where(type: "Steps::Question").where.not(variable_name: [nil, ""]).map do |step|
+    steps.where(type: "Steps::Question").where.not(variable_name: [nil, ""]).map do |step|
       {
         name: step.variable_name,
         title: step.title,
@@ -307,22 +307,22 @@ class Workflow < ApplicationRecord
 
   # Get steps as a hash keyed by UUID for graph-based operations
   def graph_steps
-    workflow_steps.includes(:transitions).index_by(&:uuid)
+    steps.includes(:transitions).index_by(&:uuid)
   end
 
   # Get the starting node for graph traversal
   def start_node
-    start_step || workflow_steps.first
+    start_step || steps.first
   end
 
   # Get all terminal steps (no outgoing transitions)
   def terminal_nodes
-    workflow_steps.left_joins(:transitions).where(transitions: { id: nil })
+    steps.left_joins(:transitions).where(transitions: { id: nil })
   end
 
   # Get sub-flow steps
   def subflow_steps
-    workflow_steps.where(type: "Steps::SubFlow")
+    steps.where(type: "Steps::SubFlow")
   end
 
   # Get all workflow IDs referenced as sub-flows
@@ -332,7 +332,7 @@ class Workflow < ApplicationRecord
 
   # Check if this workflow has any sub-flow steps
   def has_subflow_steps?
-    workflow_steps.where(type: "Steps::SubFlow").exists?
+    steps.where(type: "Steps::SubFlow").exists?
   end
 
   # Convert workflow to template format
@@ -348,7 +348,7 @@ class Workflow < ApplicationRecord
 
   # Serialize AR steps for template export
   def serialize_steps_for_template
-    workflow_steps.includes(:transitions).order(:position).map do |step|
+    steps.includes(:transitions).order(:position).map do |step|
       data = {
         "type" => step.step_type,
         "title" => step.title,
@@ -394,7 +394,7 @@ class Workflow < ApplicationRecord
     update_column(:start_step_id, nil) if start_step_id.present?
     # Delete all transitions and Action Text records referencing this workflow's steps
     # to avoid FK constraint violations during cascading step deletion
-    step_ids = workflow_steps.unscoped.where(workflow_id: id).pluck(:id)
+    step_ids = steps.unscoped.where(workflow_id: id).pluck(:id)
     if step_ids.any?
       Transition.where(step_id: step_ids).or(Transition.where(target_step_id: step_ids)).delete_all
       ActionText::RichText.where(record_type: "Step", record_id: step_ids).delete_all
@@ -404,10 +404,10 @@ class Workflow < ApplicationRecord
   # Validate graph structure (only in graph mode)
   # Uses GraphValidator service for comprehensive checks via AR steps
   def validate_graph_structure
-    return unless graph_mode? && workflow_steps.any?
+    return unless graph_mode? && steps.any?
 
     graph_steps_hash = {}
-    workflow_steps.includes(:transitions).each do |step|
+    steps.includes(:transitions).each do |step|
       graph_steps_hash[step.uuid] = {
         "id" => step.uuid,
         "type" => step.type.demodulize.underscore,
@@ -416,7 +416,7 @@ class Workflow < ApplicationRecord
       }
     end
 
-    start_uuid = start_step&.uuid || workflow_steps.first&.uuid
+    start_uuid = start_step&.uuid || steps.first&.uuid
     validator = GraphValidator.new(graph_steps_hash, start_uuid)
 
     unless validator.valid?
@@ -428,7 +428,7 @@ class Workflow < ApplicationRecord
 
   # Validate sub-flow step references (using AR steps)
   def validate_subflow_steps
-    sf_steps = workflow_steps.where(type: "Steps::SubFlow")
+    sf_steps = steps.where(type: "Steps::SubFlow")
     return unless sf_steps.any?
 
     # Batch-load all target workflows to avoid N+1 queries

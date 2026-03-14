@@ -16,7 +16,7 @@ class WorkflowPublisher
   end
 
   def publish
-    return Result.new(version: nil, error: "Workflow has no steps") unless @workflow.workflow_steps.any?
+    return Result.new(version: nil, error: "Workflow has no steps") unless @workflow.steps.any?
 
     # Validate graph structure before publishing
     validate_ar_graph! if @workflow.graph_mode?
@@ -57,7 +57,7 @@ class WorkflowPublisher
 
   # Build steps snapshot from AR Step records
   def build_ar_steps_snapshot
-    @workflow.workflow_steps.includes(:transitions).map do |step|
+    @workflow.steps.includes(:transitions).map do |step|
       data = {
         "id" => step.uuid,
         "type" => step.type.demodulize.underscore,
@@ -110,7 +110,7 @@ class WorkflowPublisher
   # Validate graph structure from AR steps
   def validate_ar_graph!
     graph_steps = {}
-    @workflow.workflow_steps.includes(:transitions).each do |step|
+    @workflow.steps.includes(:transitions).each do |step|
       step_hash = {
         "id" => step.uuid,
         "type" => step.type.demodulize.underscore,
@@ -120,7 +120,7 @@ class WorkflowPublisher
       graph_steps[step.uuid] = step_hash
     end
 
-    start_uuid = @workflow.start_step&.uuid || @workflow.workflow_steps.first&.uuid
+    start_uuid = @workflow.start_step&.uuid || @workflow.steps.first&.uuid
     validator = GraphValidator.new(graph_steps, start_uuid)
 
     unless validator.valid?

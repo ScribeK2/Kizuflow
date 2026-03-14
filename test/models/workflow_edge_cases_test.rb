@@ -50,7 +50,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     assert_predicate workflow, :valid?
     assert workflow.save
-    assert_empty workflow.workflow_steps
+    assert_empty workflow.steps
   end
 
   test "workflow can be created with no steps" do
@@ -61,7 +61,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     assert_predicate workflow, :valid?
     assert workflow.save
-    assert_equal 0, workflow.workflow_steps.count
+    assert_equal 0, workflow.steps.count
   end
 
   # ==========================================================================
@@ -77,7 +77,7 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
 
     workflow.reload
     assert_predicate workflow, :valid?, "Expected workflow with 200 steps to be valid, got errors: #{workflow.errors.full_messages}"
-    assert_equal 200, workflow.workflow_steps.count
+    assert_equal 200, workflow.steps.count
   end
 
   test "workflow rejects exceeding max steps (201)" do

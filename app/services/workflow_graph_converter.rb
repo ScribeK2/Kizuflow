@@ -28,7 +28,7 @@ class WorkflowGraphConverter
   def convert
     @errors = []
 
-    steps = workflow.workflow_steps.order(:position).to_a
+    steps = workflow.steps.order(:position).to_a
     return false if steps.empty?
     return true if workflow.graph_mode?
 
@@ -58,7 +58,7 @@ class WorkflowGraphConverter
   def valid_for_conversion?
     @errors = []
 
-    steps = workflow.workflow_steps.order(:position).to_a
+    steps = workflow.steps.order(:position).to_a
     return false if steps.empty?
     return true if workflow.graph_mode?
 

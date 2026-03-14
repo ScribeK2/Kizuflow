@@ -56,9 +56,9 @@ class WorkflowTest < ActiveSupport::TestCase
     Steps::Question.create!(workflow: workflow, position: 0, title: "Question 1", question: "What is your name?")
     Steps::Action.create!(workflow: workflow, position: 1, title: "Action 1")
 
-    assert_equal 2, workflow.workflow_steps.count
-    assert_equal "Steps::Question", workflow.workflow_steps.first.type
-    assert_equal "Action 1", workflow.workflow_steps.last.title
+    assert_equal 2, workflow.steps.count
+    assert_equal "Steps::Question", workflow.steps.first.type
+    assert_equal "Action 1", workflow.steps.last.title
   end
 
   test "recent scope should order by created_at desc" do

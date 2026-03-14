@@ -129,7 +129,7 @@ class WorkflowChannel < ApplicationCable::Channel
     step_updates.each do |update|
       next unless update.is_a?(Hash) && update["uuid"].present?
 
-      step = workflow.workflow_steps.unscoped.find_by(uuid: update["uuid"], workflow_id: workflow.id)
+      step = workflow.steps.unscoped.find_by(uuid: update["uuid"], workflow_id: workflow.id)
       next unless step
 
       attrs = (update["attributes"] || {}).slice(

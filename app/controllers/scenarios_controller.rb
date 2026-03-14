@@ -173,7 +173,7 @@ class ScenariosController < ApplicationController
         step = @workflow.find_step_by_uuid(path_entry['step_uuid'])
       elsif path_entry['step_index'].present?
         idx = path_entry['step_index'].to_i
-        step = @workflow.workflow_steps.find_by(position: idx) if idx >= 0
+        step = @workflow.steps.find_by(position: idx) if idx >= 0
       end
 
       next unless step.is_a?(Steps::Question)
@@ -211,7 +211,7 @@ class ScenariosController < ApplicationController
       next unless path_entry['answer'].present?
 
       entry_step_index = path_entry['step_index'].to_i
-      ordered_steps = @workflow.workflow_steps.order(:position)
+      ordered_steps = @workflow.steps.order(:position)
       next unless entry_step_index >= 0 && entry_step_index < ordered_steps.size
 
       step = ordered_steps[entry_step_index]
@@ -225,7 +225,7 @@ class ScenariosController < ApplicationController
     end
 
     next_step_index = target_step_index.to_i + 1
-    total_steps = @workflow.workflow_steps.size
+    total_steps = @workflow.steps.size
     if next_step_index >= total_steps
       @scenario.status = 'completed'
       @scenario.current_step_index = total_steps

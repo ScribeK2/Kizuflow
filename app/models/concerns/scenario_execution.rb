@@ -19,7 +19,7 @@ module ScenarioExecution
     current_idx = 0
     iteration_count = 0
 
-    ordered_steps = workflow.workflow_steps.to_a
+    ordered_steps = workflow.steps.to_a
 
     while current_idx < ordered_steps.length
       step = ordered_steps[current_idx]

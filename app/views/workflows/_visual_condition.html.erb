@@ -43,7 +43,7 @@
           <% workflow.variables.each do |var| %>
             <%
               # Find the question step for this variable to get answer type
-              step = workflow.workflow_steps.find_by(variable_name: var)
+              step = workflow.steps.find_by(variable_name: var)
               answer_type = step&.answer_type || 'text'
               options = step&.options || []
               step_title = step&.title || var

@@ -47,7 +47,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     @workflow.reload
-    assert_equal 2, @workflow.workflow_steps.count
+    assert_equal 2, @workflow.steps.count
     assert_equal "uuid-1", @workflow.start_step.uuid
   end
 
@@ -109,7 +109,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
     }, as: :json
 
     assert_response :success
-    assert_equal 1, @workflow.workflow_steps.reload.count
+    assert_equal 1, @workflow.steps.reload.count
     assert_nil Step.find_by(id: step2.id)
   end
 
@@ -162,7 +162,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
     }, as: :json
 
     assert_response :conflict
-    assert_equal 0, @workflow.workflow_steps.reload.count
+    assert_equal 0, @workflow.steps.reload.count
   end
 
   test "sync_steps handles empty steps array" do
@@ -178,7 +178,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
     }, as: :json
 
     assert_response :success
-    assert_equal 0, @workflow.workflow_steps.reload.count
+    assert_equal 0, @workflow.steps.reload.count
     assert_nil @workflow.reload.start_step_id
   end
 
@@ -247,7 +247,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     @workflow.reload
-    assert_equal 3, @workflow.workflow_steps.count
+    assert_equal 3, @workflow.steps.count
     start = @workflow.start_step
     assert_equal "Start", start.title
     assert_equal 2, start.transitions.count

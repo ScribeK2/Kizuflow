@@ -17,7 +17,7 @@ module ScenariosHelper
     if workflow.graph_mode?
       "Step #{current}"
     else
-      total = workflow.workflow_steps.size
+      total = workflow.steps.size
       "Step #{current} of #{total}"
     end
   end

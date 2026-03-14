@@ -49,7 +49,7 @@ class StepResolver
   # Find the start step for this workflow
   # @return [Step, nil]
   def start_step
-    @workflow.start_step || @workflow.workflow_steps.first
+    @workflow.start_step || @workflow.steps.first
   end
 
   # Check if a step is a terminal node
@@ -110,7 +110,7 @@ class StepResolver
                          end
 
       if condition_result
-        target = @workflow.workflow_steps.unscoped.find_by(uuid: jump_next_step_id)
+        target = @workflow.steps.unscoped.find_by(uuid: jump_next_step_id)
         return target if target
       end
     end

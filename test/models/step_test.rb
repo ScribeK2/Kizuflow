@@ -56,9 +56,9 @@ class StepTest < ActiveSupport::TestCase
     assert_respond_to step, :incoming_transitions
   end
 
-  test "workflow has_many workflow_steps ordered by position" do
+  test "workflow has_many steps ordered by position" do
     s2 = Step.create!(workflow: @workflow, type: "Steps::Action", uuid: SecureRandom.uuid, position: 1, title: "Second")
     s1 = Step.create!(workflow: @workflow, type: "Steps::Question", uuid: SecureRandom.uuid, position: 0, title: "First", question: "Q?")
-    assert_equal ["First", "Second"], @workflow.workflow_steps.reload.map(&:title)
+    assert_equal ["First", "Second"], @workflow.steps.reload.map(&:title)
   end
 end

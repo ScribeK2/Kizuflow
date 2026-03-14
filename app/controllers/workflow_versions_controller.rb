@@ -33,7 +33,7 @@ class WorkflowVersionsController < ApplicationController
 
   def restore_ar_steps_from_snapshot(steps_snapshot, start_node_uuid)
     # Clear existing AR steps
-    @workflow.workflow_steps.destroy_all
+    @workflow.steps.destroy_all
     @workflow.update_column(:start_step_id, nil)
 
     return if steps_snapshot.blank?

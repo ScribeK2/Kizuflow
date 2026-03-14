@@ -39,7 +39,7 @@ class WorkflowsController < ApplicationController
             description: w.description_text&.truncate(100),
             status: w.status,
             graph_mode: w.graph_mode?,
-            step_count: w.workflow_steps.size
+            step_count: w.steps.size
           }
         end
         render json: workflows_data
@@ -182,7 +182,7 @@ class WorkflowsController < ApplicationController
 
     begin
       Workflow.transaction do
-        existing_steps = @workflow.workflow_steps.unscoped
+        existing_steps = @workflow.steps.unscoped
           .where(workflow_id: @workflow.id)
           .includes(:transitions, :incoming_transitions)
           .index_by(&:uuid)
@@ -267,6 +267,7 @@ class WorkflowsController < ApplicationController
           @workflow.update_column(:start_step_id, nil)
         end
 
+        @workflow.reload
         @workflow.touch
       end
 
@@ -285,7 +286,7 @@ class WorkflowsController < ApplicationController
     # Build comprehensive export data including Graph Mode fields
     # Use AR steps if available, otherwise fall back to JSONB
     steps_data = serialize_ar_steps_for_export(@workflow)
-    start_uuid = @workflow.start_step&.uuid || @workflow.workflow_steps.first&.uuid
+    start_uuid = @workflow.start_step&.uuid || @workflow.steps.first&.uuid
 
     export_data = {
       title: @workflow.title,
@@ -315,7 +316,7 @@ class WorkflowsController < ApplicationController
     pdf.text "Mode: #{mode_text}", size: 10, style: :italic
     pdf.move_down 20
 
-    export_pdf_ar_steps(pdf) if @workflow.workflow_steps.any?
+    export_pdf_ar_steps(pdf) if @workflow.steps.any?
 
     send_data pdf.render, filename: "#{@workflow.title.parameterize}.pdf", type: "application/pdf"
   end
@@ -344,7 +345,7 @@ class WorkflowsController < ApplicationController
 
   # Sprint 3: Render step HTML for dynamic step creation
   # Supports both legacy JSONB mode and new ActiveRecord Step mode.
-  # When workflow has AR steps (workflow_steps.any?), creates an AR Step record.
+  # When workflow has AR steps (steps.any?), creates an AR Step record.
   # Otherwise falls back to building a JSONB hash for backward compatibility.
   def render_step
     Rails.logger.debug { "[render_step] Params: #{params.inspect}" }
@@ -365,9 +366,9 @@ class WorkflowsController < ApplicationController
     Rails.logger.debug { "[render_step] step_type=#{step_type}, step_index=#{step_index}, step_data=#{step_data.inspect}" }
 
     # Try AR path if workflow has migrated steps
-    if @workflow.workflow_steps.loaded? ? @workflow.workflow_steps.any? : @workflow.workflow_steps.exists?
+    if @workflow.steps.loaded? ? @workflow.steps.any? : @workflow.steps.exists?
       step_class = step_class_for(step_type)
-      position = @workflow.workflow_steps.maximum(:position).to_i + 1
+      position = @workflow.steps.maximum(:position).to_i + 1
       attrs = { workflow: @workflow, position: position, title: step_data[:title] || "" }
 
       case step_type
@@ -641,14 +642,14 @@ class WorkflowsController < ApplicationController
     end
 
     # Validate that workflow has at least one step
-    unless @workflow.workflow_steps.any?
+    unless @workflow.steps.any?
       @workflow.errors.add(:base, "Workflow must have at least one step")
       render :step3, status: :unprocessable_content
       return
     end
 
     # Validate all steps have required fields
-    @workflow.workflow_steps.order(:position).each do |step|
+    @workflow.steps.order(:position).each do |step|
       unless step.title.present?
         @workflow.errors.add(:steps, "Step #{step.position + 1}: Step title is required")
       end
@@ -683,11 +684,11 @@ class WorkflowsController < ApplicationController
   # Generate sample variable values for preview interpolation
   # This creates realistic sample data so users can see what interpolated text looks like
   def generate_sample_variables(workflow)
-    return {} unless workflow&.workflow_steps&.any?
+    return {} unless workflow&.steps&.any?
 
     sample_vars = {}
 
-    workflow.workflow_steps.each do |step|
+    workflow.steps.each do |step|
       # Get variables from question steps
       if step.is_a?(Steps::Question) && step.variable_name.present?
         sample_vars[step.variable_name] = case step.answer_type
@@ -743,7 +744,7 @@ class WorkflowsController < ApplicationController
   def create_ar_steps_from_params(incoming_steps, start_uuid = nil)
     Workflow.transaction do
       # Remove existing steps (wizard replaces all steps)
-      @workflow.workflow_steps.destroy_all
+      @workflow.steps.destroy_all
 
       step_records = {}
       incoming_steps.each_with_index do |step_data, index|
@@ -820,7 +821,7 @@ class WorkflowsController < ApplicationController
 
   # Serialize AR steps to JSONB-compatible format for export
   def serialize_ar_steps_for_export(workflow)
-    workflow.workflow_steps.includes(:transitions).map do |step|
+    workflow.steps.includes(:transitions).map do |step|
       data = {
         "id" => step.uuid,
         "type" => step.type.demodulize.underscore,
@@ -876,7 +877,7 @@ class WorkflowsController < ApplicationController
 
   # PDF export for AR steps
   def export_pdf_ar_steps(pdf)
-    @workflow.workflow_steps.includes(:transitions).each_with_index do |step, index|
+    @workflow.steps.includes(:transitions).each_with_index do |step, index|
       step_type = step.type.demodulize.capitalize
       pdf.text "#{index + 1}. #{step.title} [#{step_type}]", size: 14, style: :bold
 

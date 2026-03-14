@@ -45,7 +45,7 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
 
   test "publish fails for workflow with no steps" do
     sign_in @editor
-    @workflow.workflow_steps.destroy_all
+    @workflow.steps.destroy_all
 
     assert_no_difference "WorkflowVersion.count" do
       post publish_workflow_path(@workflow)
@@ -82,7 +82,7 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
     sign_in @editor
     WorkflowPublisher.publish(@workflow, @editor)
     # Change the workflow steps
-    @workflow.workflow_steps.destroy_all
+    @workflow.steps.destroy_all
     Steps::Action.create!(workflow: @workflow, position: 0, title: "Changed")
     version = @workflow.versions.last # version 1 (oldest)
 
@@ -90,6 +90,6 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to edit_workflow_path(@workflow)
     @workflow.reload
-    assert_equal "Q1", @workflow.workflow_steps.order(:position).first.title
+    assert_equal "Q1", @workflow.steps.order(:position).first.title
   end
 end

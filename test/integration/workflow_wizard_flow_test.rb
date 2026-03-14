@@ -73,9 +73,9 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     assert_match(/step3/, request.path)
 
     draft_workflow.reload
-    assert_equal 2, draft_workflow.workflow_steps.count
+    assert_equal 2, draft_workflow.steps.count
 
-    question_step = draft_workflow.workflow_steps.find_by(type: "Steps::Question")
+    question_step = draft_workflow.steps.find_by(type: "Steps::Question")
     assert_equal "customer_name", question_step.variable_name
 
     # Step 4: Complete Step 3 - Publish workflow
@@ -127,7 +127,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     }
 
     draft.reload
-    question_step = draft.workflow_steps.find_by(type: "Steps::Question")
+    question_step = draft.steps.find_by(type: "Steps::Question")
     # After AR step recreation, variable_name may not be preserved if not in submission
     # This is expected behavior — the wizard now recreates steps from params
     assert_not_nil question_step

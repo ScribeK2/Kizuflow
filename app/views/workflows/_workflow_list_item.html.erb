@@ -44,7 +44,7 @@
               <%= workflow.description_text.presence || "No description" %>
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              <span><%= pluralize(workflow.workflow_steps.size, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago</span>
+              <span><%= pluralize(workflow.steps.size, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago</span>
             </div>
           </div>
         </div>

@@ -19,7 +19,8 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
     )
     Steps::Question.create!(workflow: @workflow, position: 0, uuid: "q1", title: "Name Question", question: "What is your name?", variable_name: "customer_name", answer_type: "text")
     Steps::Question.create!(workflow: @workflow, position: 1, uuid: "q2", title: "Interpolated Question", question: "Hello {{customer_name}}, what is your issue?", variable_name: "issue", answer_type: "text")
-    Steps::Action.create!(workflow: @workflow, position: 2, uuid: "a1", title: "Interpolated Action", action_type: "Notification")
+    action_step = Steps::Action.create!(workflow: @workflow, position: 2, uuid: "a1", title: "Interpolated Action", action_type: "Notification")
+    action_step.update!(instructions: "Send email to {{customer_name}} about {{issue}}")
     Steps::Action.create!(workflow: @workflow, position: 3, uuid: "a2", title: "Action with Output Fields", action_type: "Status Update", output_fields: [
       { "name" => "status", "value" => "resolved" },
       { "name" => "assigned_to", "value" => "{{customer_name}}" }

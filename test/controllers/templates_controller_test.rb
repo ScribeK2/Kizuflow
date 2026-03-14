@@ -81,7 +81,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_workflow_path(workflow)
     assert_includes workflow.title, @template.name
     # Verify AR steps were created from template data
-    assert_equal @template.workflow_data.length, workflow.workflow_steps.count
+    assert_equal @template.workflow_data.length, workflow.steps.count
   end
 
   # Authorization Tests
@@ -175,7 +175,7 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     end
 
     workflow = Workflow.last
-    step_types = workflow.workflow_steps.map(&:step_type)
+    step_types = workflow.steps.map(&:step_type)
 
     assert_includes step_types, "question"
     assert_includes step_types, "message"
@@ -218,6 +218,6 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     workflow = Workflow.last
     assert workflow.graph_mode?
     assert_equal start_uuid, workflow.start_step&.uuid
-    assert_equal 2, workflow.workflow_steps.count
+    assert_equal 2, workflow.steps.count
   end
 end

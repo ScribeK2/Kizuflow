@@ -82,13 +82,13 @@
         <%
           # Create a workflow-like object for the visual editor partial
           start_uuid = @template.start_node_uuid || @template.workflow_data&.first&.dig("id")
-          template_workflow_struct = Struct.new(:id, :workflow_steps, :start_step, keyword_init: true) do
+          template_workflow_struct = Struct.new(:id, :steps, :start_step, keyword_init: true) do
             def graph_mode? = true
           end
           fake_start = start_uuid ? Struct.new(:uuid).new(start_uuid) : nil
           template_as_workflow = template_workflow_struct.new(
             id: @template.id,
-            workflow_steps: [],
+            steps: [],
             start_step: fake_start
           )
         %>

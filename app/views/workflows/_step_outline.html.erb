@@ -10,7 +10,7 @@
   - show_by_default: Whether to show the sidebar by default (optional, default: true for >5 steps)
 %>
 
-<% step_count = workflow&.workflow_steps&.size.to_i %>
+<% step_count = workflow&.steps&.size.to_i %>
 <% show_by_default = local_assigns.fetch(:show_by_default, step_count > 5) %>
 
 <div data-controller="step-outline"
@@ -53,7 +53,7 @@
     <div data-step-outline-target="stepList"
          class="flex-1 overflow-y-auto p-2 space-y-1">
       <% if step_count > 0 %>
-        <% workflow.workflow_steps.order(:position).each_with_index do |step, index| %>
+        <% workflow.steps.order(:position).each_with_index do |step, index| %>
           <%
             step_type = step_field(step, 'type')
             step_title = step.title.presence || "Untitled #{step_type&.titleize}"

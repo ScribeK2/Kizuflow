@@ -102,7 +102,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     @workflow.reload
 
     assert_equal "Updated Title", @workflow.title
-    assert_equal 1, @workflow.workflow_steps.count
+    assert_equal 1, @workflow.steps.count
   end
 
   test "should update workflow with is_public flag" do

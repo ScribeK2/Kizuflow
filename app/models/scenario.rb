@@ -68,12 +68,12 @@ class Scenario < ApplicationRecord
   # Get the current step (works for both linear and graph mode)
   # Returns an AR Step object or nil
   def current_step
-    return nil unless workflow&.workflow_steps&.any?
+    return nil unless workflow&.steps&.any?
 
     if graph_mode? && current_node_uuid.present?
-      workflow.workflow_steps.find_by(uuid: current_node_uuid)
+      workflow.steps.find_by(uuid: current_node_uuid)
     else
-      workflow.workflow_steps.find_by(position: current_step_index)
+      workflow.steps.find_by(position: current_step_index)
     end
   end
 
@@ -96,13 +96,13 @@ class Scenario < ApplicationRecord
     return true if completed?
     return true if stopped?
     return false if awaiting_subflow?
-    return true unless workflow&.workflow_steps&.any?
+    return true unless workflow&.steps&.any?
 
     if graph_mode?
       # In graph mode, complete when no current node or current node is nil
       current_node_uuid.nil? && !active?
     else
-      current_step_index >= workflow.workflow_steps.count
+      current_step_index >= workflow.steps.count
     end
   end
 
@@ -384,7 +384,7 @@ class Scenario < ApplicationRecord
 
     # Initialize child's starting position
     if target_workflow.graph_mode?
-      start_uuid = target_workflow.start_step&.uuid || target_workflow.workflow_steps.first&.uuid
+      start_uuid = target_workflow.start_step&.uuid || target_workflow.steps.first&.uuid
       child_scenario.update!(current_node_uuid: start_uuid)
     end
 
@@ -414,7 +414,7 @@ class Scenario < ApplicationRecord
       self.results ||= {}
 
       # Get variable mapping from the sub-flow step
-      resume_step = workflow.workflow_steps.find_by(uuid: resume_node_uuid)
+      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
       variable_mapping = resume_step&.variable_mapping || {}
       if variable_mapping.is_a?(String)
         variable_mapping = begin
@@ -449,7 +449,7 @@ class Scenario < ApplicationRecord
 
     if graph_mode?
       resolver = StepResolver.new(workflow)
-      resume_step = workflow.workflow_steps.find_by(uuid: resume_node_uuid)
+      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
       next_step = resolver.resolve_next_after_subflow(resume_step, self.results) if resume_step
       next_uuid = next_step.is_a?(Step) ? next_step.uuid : nil
 
@@ -463,7 +463,7 @@ class Scenario < ApplicationRecord
       end
     else
       # Linear mode: advance past the sub-flow step
-      resume_step = workflow.workflow_steps.find_by(uuid: resume_node_uuid)
+      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
       if resume_step
         self.current_step_index = resume_step.position + 1
       end
@@ -536,7 +536,7 @@ class Scenario < ApplicationRecord
           # Terminal node that's not a sub-flow - will complete after processing
         end
       end
-    elsif current_step_index >= workflow.workflow_steps.count
+    elsif current_step_index >= workflow.steps.count
       record_completion("completed") unless outcome.present?
       self.status = 'completed'
     end
@@ -570,7 +570,7 @@ class Scenario < ApplicationRecord
 
       next unless condition_result
 
-      target_step = workflow.workflow_steps.find_by(uuid: jump_next_step_id)
+      target_step = workflow.steps.find_by(uuid: jump_next_step_id)
       if target_step
         return target_step.position
       end
@@ -617,7 +617,7 @@ class Scenario < ApplicationRecord
   # Find an AR step by UUID
   def find_step_by_uuid(uuid)
     return nil unless uuid.present?
-    workflow.workflow_steps.find_by(uuid: uuid)
+    workflow.steps.find_by(uuid: uuid)
   end
 
   # Find an AR step by title
@@ -625,11 +625,11 @@ class Scenario < ApplicationRecord
     return nil unless title.present?
 
     # Exact match first
-    step = workflow.workflow_steps.find_by(title: title)
+    step = workflow.steps.find_by(title: title)
     return step if step
 
     # Case-insensitive fallback
-    workflow.workflow_steps.where("LOWER(title) = ?", title.downcase).first
+    workflow.steps.where("LOWER(title) = ?", title.downcase).first
   end
 
   # Resolve a step reference (UUID or title) to an AR Step

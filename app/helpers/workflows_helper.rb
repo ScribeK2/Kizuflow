@@ -162,9 +162,9 @@ module WorkflowsHelper
   # Get step options for a select dropdown
   # Returns an array of [display_name, value] pairs
   def step_options_for_select(workflow, exclude_step_id: nil)
-    return [] unless workflow&.workflow_steps&.any?
+    return [] unless workflow&.steps&.any?
 
-    workflow.workflow_steps.order(:position).map.with_index do |step, index|
+    workflow.steps.order(:position).map.with_index do |step, index|
       next nil unless step.title.present?
       next nil if exclude_step_id && step.uuid == exclude_step_id
 
@@ -204,7 +204,7 @@ module WorkflowsHelper
   # Renders small colored dots representing the composition of step types in a workflow.
   # Groups steps by type and shows up to 4 dots per type. Returns nil if no steps.
   def step_type_composition_dots(workflow)
-    return nil unless workflow.workflow_steps.any?
+    return nil unless workflow.steps.any?
 
     dot_colors = {
       'question' => 'bg-blue-500',

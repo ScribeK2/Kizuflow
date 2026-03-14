@@ -140,7 +140,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
     assert_predicate imported, :graph_mode?
     assert_equal "Imported Graph Workflow", imported.title
-    assert_equal 2, imported.workflow_steps.count
+    assert_equal 2, imported.steps.count
     assert_equal "imported-step-1", imported.start_step&.uuid
   end
 
@@ -168,12 +168,12 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     assert_predicate imported, :graph_mode?, "Imported workflow should be in graph mode"
 
     # Check that steps have UUIDs
-    imported.workflow_steps.each do |step|
+    imported.steps.each do |step|
       assert_predicate step.uuid, :present?, "Step should have a UUID"
     end
 
     # Check that non-terminal steps have transitions
-    q1_step = imported.workflow_steps.find_by(title: 'Q1')
+    q1_step = imported.steps.find_by(title: 'Q1')
 
     assert_predicate q1_step.transitions, :present?, "Question step should have transitions"
   end
@@ -212,7 +212,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    converted_step = imported.workflow_steps.find_by(title: 'Check Name')
+    converted_step = imported.steps.find_by(title: 'Check Name')
 
     # Decision type should be auto-converted to question during import
     assert_instance_of Steps::Question, converted_step, "Decision should be auto-converted to question"
@@ -281,7 +281,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
     assert_predicate imported, :graph_mode?
     assert_equal "CSV Import Test", imported.title
-    assert_equal 3, imported.workflow_steps.reload.count
+    assert_equal 3, imported.steps.reload.count
   end
 
   # ============================================================================
@@ -407,6 +407,6 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     imported = Workflow.last
 
     assert_predicate imported, :graph_mode?, "Should be imported as graph mode"
-    assert imported.workflow_steps.all? { |s| s.uuid.present? }, "All steps should have UUIDs"
+    assert imported.steps.all? { |s| s.uuid.present? }, "All steps should have UUIDs"
   end
 end

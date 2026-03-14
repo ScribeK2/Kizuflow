@@ -25,7 +25,7 @@ class WorkflowPublishingIntegrationTest < ActionDispatch::IntegrationTest
     v1_id = @workflow.published_version.id
 
     # 2. Edit workflow (simulates builder changes)
-    @workflow.workflow_steps.destroy_all
+    @workflow.steps.destroy_all
     Steps::Action.create!(workflow: @workflow, position: 0, title: "New Action")
 
     # 3. Published version is still v1 with old steps
@@ -50,7 +50,7 @@ class WorkflowPublishingIntegrationTest < ActionDispatch::IntegrationTest
     post restore_workflow_version_path(@workflow, v1)
     assert_redirected_to edit_workflow_path(@workflow)
     @workflow.reload
-    assert_equal "Q1", @workflow.workflow_steps.order(:position).first.title
+    assert_equal "Q1", @workflow.steps.order(:position).first.title
 
     # 7. published_version is still v2 (restore only changes draft, not published)
     assert_equal 2, @workflow.published_version.version_number

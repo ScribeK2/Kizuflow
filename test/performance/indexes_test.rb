@@ -21,7 +21,7 @@ class IndexesTest < ActiveSupport::TestCase
 
   test "steps_count column exists and is accurate" do
     workflow = @data[:workflows].first
-    expected = workflow.workflow_steps.count
+    expected = workflow.steps.count
     assert_equal expected, workflow.steps_count,
       "steps_count should match actual AR steps count"
   end
