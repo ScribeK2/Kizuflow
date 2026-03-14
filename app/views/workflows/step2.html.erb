@@ -49,6 +49,7 @@
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
                data-workflow-builder-graph-mode-value="<%= @workflow.graph_mode? %>"
                data-workflow-builder-debug-value="<%= Rails.env.development? %>"
+               data-workflow-builder-wizard-next-url-value="<%= step3_workflow_path(@workflow) %>"
                data-variable-autocomplete-workflow-id-value="<%= @workflow.id %>"
                id="workflow-builder-container">
 
@@ -204,7 +205,7 @@
     </div><%# end list-editor-container %>
 
     <% if @workflow.graph_mode? %>
-      <%= render partial: "visual_editor", locals: { workflow: @workflow } %>
+      <%= render partial: "visual_editor", locals: { workflow: @workflow, wizard_next_url: step3_workflow_path(@workflow) } %>
     <% end %>
 
     <%# Navigation Buttons (always visible, outside mode containers) %>

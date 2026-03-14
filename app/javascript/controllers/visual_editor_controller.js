@@ -22,7 +22,8 @@ export default class extends Controller {
   static values = {
     workflowId: Number,
     lockVersion: Number,
-    mode: { type: String, default: "visual" }
+    mode: { type: String, default: "visual" },
+    wizardNextUrl: { type: String, default: "" }
   }
 
   connect() {
@@ -185,6 +186,12 @@ export default class extends Controller {
 
         const lockInput = this.element.closest("form")?.querySelector("input[name='workflow[lock_version]']")
         if (lockInput) lockInput.value = data.lock_version
+
+        // In wizard mode, redirect to the next step instead of staying on the page
+        if (this.wizardNextUrlValue) {
+          window.location.href = this.wizardNextUrlValue
+          return
+        }
 
         this.showFlash("Workflow saved successfully.", "success")
       } else if (response.status === 409) {

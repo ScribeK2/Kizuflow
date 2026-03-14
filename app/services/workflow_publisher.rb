@@ -36,7 +36,7 @@ class WorkflowPublisher
         changelog: @changelog
       )
 
-      @workflow.update!(published_version: version)
+      @workflow.update!(published_version: version, status: "published")
     end
 
     Result.new(version:, error: nil)

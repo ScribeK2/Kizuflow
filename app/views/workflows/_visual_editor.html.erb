@@ -2,7 +2,9 @@
      class="hidden"
      data-controller="visual-editor"
      data-visual-editor-workflow-id-value="<%= workflow.id %>"
-     data-visual-editor-lock-version-value="<%= workflow.respond_to?(:lock_version) ? workflow.lock_version : 0 %>">
+     data-visual-editor-lock-version-value="<%= workflow.respond_to?(:lock_version) ? workflow.lock_version : 0 %>"
+     <% if local_assigns[:wizard_next_url] %>data-visual-editor-wizard-next-url-value="<%= wizard_next_url %>"<% end %>
+     >
 
   <%# Steps data for JS parsing %>
   <script type="application/json" data-visual-editor-target="stepsData">

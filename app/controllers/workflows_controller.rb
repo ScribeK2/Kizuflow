@@ -48,6 +48,7 @@ class WorkflowsController < ApplicationController
   end
 
   def show
+    eager_load_steps
     preload_subflow_targets
   end
 
@@ -85,6 +86,7 @@ class WorkflowsController < ApplicationController
     # Eager load groups to prevent N+1 queries
     @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
     @selected_group_ids = @workflow.group_ids
+    eager_load_steps
     preload_subflow_targets
   end
 
@@ -381,7 +383,8 @@ class WorkflowsController < ApplicationController
     end
 
     step = step_class.new(attrs)
-    step.save! # Persist so it gets a UUID and ID
+    step.uuid ||= SecureRandom.uuid # Ensure UUID is set (before_validation is skipped below)
+    step.save!(validate: false) # Skip validations — placeholder step, user fills in details via form
 
     # Set rich text after save
     case step_type
@@ -551,6 +554,7 @@ class WorkflowsController < ApplicationController
   def step2
     # Load draft workflow for step 2 (add steps)
     # Steps will be managed via the existing workflow-builder controller
+    eager_load_steps
   end
 
   def update_step2
@@ -588,6 +592,7 @@ class WorkflowsController < ApplicationController
   def step3
     # Load draft workflow for step 3 (review and launch)
     # Preview will be shown here
+    eager_load_steps
   end
 
   def create_from_draft
@@ -694,6 +699,20 @@ class WorkflowsController < ApplicationController
 
   def set_workflow
     @workflow = Workflow.find(params[:id])
+  end
+
+  # Eager load steps with rich text associations and transitions to prevent N+1 queries.
+  # Rich text associations are defined on specific STI subclasses, so we preload per-type.
+  def eager_load_steps
+    steps = @workflow.steps.includes(transitions: :target_step).to_a
+
+    { rich_text_instructions: Steps::Action,
+      rich_text_content: Steps::Message,
+      rich_text_notes: Steps::Escalate }.each do |assoc, klass|
+      typed = steps.select { |s| s.is_a?(klass) }
+      next if typed.empty?
+      ActiveRecord::Associations::Preloader.new(records: typed, associations: [assoc]).call
+    end
   end
 
   # Preload all workflows referenced by sub-flow steps to avoid N+1 queries in partials

@@ -17,6 +17,7 @@ pin "lexxy", to: "lexxy.js"
 # Third-party libraries (vendored locally for reliability)
 pin "sortablejs", to: "sortablejs.js"
 pin "fuse.js", to: "fuse.js"
+pin "spark-md5", to: "spark-md5.js"
 pin "leader-line", to: "leader-line.min.js"
 pin "dagre", to: "dagre.js"
 

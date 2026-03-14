@@ -21,12 +21,9 @@
   </div>
   
   <%# Modal Dialog - Centered %>
-  <div data-branch-template-selector-target="panel" 
-       class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-       onclick="if(event.target === this) arguments[0].stopPropagation()">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto"
-         onclick="event.stopPropagation()"
-         onmousedown="event.stopPropagation()">
+  <div data-branch-template-selector-target="panel"
+       class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto">
       <div class="flex items-start justify-between p-4 border-b border-gray-200">
         <div>
           <h4 class="text-lg font-semibold text-gray-900">Branch Templates</h4>

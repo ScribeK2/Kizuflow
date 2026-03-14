@@ -127,9 +127,6 @@
                 </span>
               </div>
             </div>
-            <%= form_with url: stop_scenario_path(@scenario), method: :post, data: { turbo_confirm: "Are you sure you want to stop this workflow? You can't continue after stopping." } do |form| %>
-              <%= form.submit "Stop Workflow", class: "px-3 py-1.5 text-xs font-medium text-red-500/70 dark:text-red-400/60 hover:text-red-600 dark:hover:text-red-400 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-200 dark:hover:border-red-800/40 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" %>
-            <% end %>
           </div>
 
           <% unless stype == 'message' %>

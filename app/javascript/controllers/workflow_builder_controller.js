@@ -19,7 +19,9 @@ export default class extends Controller {
   static targets = ["container"]
   static values = {
     workflowId: Number,
-    debug: { type: Boolean, default: false }
+    debug: { type: Boolean, default: false },
+    graphMode: { type: Boolean, default: false },
+    wizardNextUrl: { type: String, default: "" }
   }
 
   static STEP_DEFAULTS = {
@@ -54,7 +56,9 @@ export default class extends Controller {
       e.preventDefault()
       const success = await this.saveToServer()
       if (success) {
-        window.location.href = `/workflows/${workflowId}`
+        // In wizard mode, redirect to the next wizard step instead of show page
+        const nextUrl = this.wizardNextUrlValue
+        window.location.href = nextUrl || `/workflows/${workflowId}`
       }
     }
     const form = this.element.closest("form")

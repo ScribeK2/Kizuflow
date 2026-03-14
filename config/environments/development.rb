@@ -86,14 +86,16 @@ Rails.application.configure do
     # Log to bullet.log file
     Bullet.bullet_logger = true
 
-    # Show in browser console
-    Bullet.console = true
+    # Bullet.console and Bullet.add_footer inject inline <script> tags that are
+    # blocked by the nonce-based CSP policy, generating false CSP violation errors.
+    # Use bullet.log and rails log instead.
+    Bullet.console = false
 
     # Add to Rails log
     Bullet.rails_logger = true
 
-    # Add footer to HTML pages showing Bullet warnings
-    Bullet.add_footer = true
+    # Disabled: injects inline scripts blocked by CSP nonce policy
+    Bullet.add_footer = false
 
     # Raise errors in development (set to false if too aggressive)
     Bullet.raise = false
