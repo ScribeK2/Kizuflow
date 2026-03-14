@@ -25,7 +25,7 @@
 - **Drag-and-drop ordering** with inline step creation and collapsible cards
 - **Two editing modes** — Linear (sequential list) and Graph Mode (visual node editor with connections via dagre/leader-line)
 - **Sub-flow support** — Call other workflows as reusable sub-routines with circular reference detection
-- **Markdown content** — Rich text editing with toolbar and live preview (Redcarpet)
+- **Rich text content** — Action Text editor (Lexxy/Lexical) for step instructions, messages, and notes
 - **Multi-branch decisions** — Visual condition builder with presets and variable autocomplete
 - **Autosave and optimistic locking** — Concurrent editing protection via `lock_version`
 
@@ -77,7 +77,7 @@
 | **Real-time** | Action Cable (Redis in production, in-memory in dev) |
 | **Auth** | Devise with lockable accounts |
 | **PDF** | Prawn |
-| **Markdown** | Redcarpet |
+| **Rich Text** | Action Text + Lexxy (Lexical-based editor) |
 | **JS (vendored)** | SortableJS, Fuse.js, dagre, leader-line, spark-md5 |
 | **Monitoring** | Sentry (sentry-rails) |
 | **Security** | Rack::Attack, Brakeman, Bullet (N+1 detection) |
