@@ -24,11 +24,7 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
     post workflows_path, params: {
       workflow: {
         title: "Grouped Workflow",
-        description: "A workflow in a group",
-        group_ids: [group.id],
-        steps: [
-          { type: "question", title: "Question 1", question: "What is your name?" }
-        ]
+        group_ids: [group.id]
       }
     }
 
@@ -68,11 +64,7 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
 
     post workflows_path, params: {
       workflow: {
-        title: "Default Workflow",
-        description: "Should go to Uncategorized",
-        steps: [
-          { type: "question", title: "Question", question: "What?" }
-        ]
+        title: "Default Workflow"
       }
     }
 

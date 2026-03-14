@@ -46,7 +46,7 @@
                       <%= truncate(workflow.description_text.presence || "No description", length: 100) %>
                     </div>
                     <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      <%= pluralize(workflow.steps&.length || 0, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
+                      <%= pluralize(workflow.workflow_steps.size, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
                     </div>
                   </div>
                 </div>
@@ -74,4 +74,3 @@
     </div>
   <% end %>
 </div>
-

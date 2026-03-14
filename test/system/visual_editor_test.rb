@@ -11,27 +11,22 @@ class VisualEditorTest < ApplicationSystemTestCase
 
     @graph_workflow = Workflow.create!(
       title: "Visual Editor Test Workflow",
-      description: "Graph mode workflow for visual editor tests",
       user: @editor,
       status: "draft",
-      graph_mode: true,
-      start_node_uuid: "ve-test-0001",
-      steps: [
-        { "id" => "ve-test-0001", "type" => "question", "title" => "First Question", "question" => "What?", "answer_type" => "yes_no", "transitions" => [{ "target_uuid" => "ve-test-0002", "condition" => "yes", "label" => "Yes" }] },
-        { "id" => "ve-test-0002", "type" => "action", "title" => "Do Something", "action_type" => "Instruction", "instructions" => "Do it", "transitions" => [] }
-      ]
+      graph_mode: true
     )
+    step1 = Steps::Question.create!(workflow: @graph_workflow, position: 0, uuid: "ve-test-0001", title: "First Question", question: "What?", answer_type: "yes_no")
+    step2 = Steps::Action.create!(workflow: @graph_workflow, position: 1, uuid: "ve-test-0002", title: "Do Something", action_type: "Instruction")
+    Transition.create!(step: step1, target_step: step2, condition: "yes", label: "Yes", position: 0)
+    @graph_workflow.update!(start_step: step1)
 
     @linear_workflow = Workflow.create!(
       title: "Linear Workflow",
-      description: "Non-graph workflow",
       user: @editor,
       status: "draft",
-      graph_mode: false,
-      steps: [
-        { "id" => SecureRandom.uuid, "type" => "question", "title" => "Q1", "question" => "Yes?", "answer_type" => "yes_no" }
-      ]
+      graph_mode: false
     )
+    Steps::Question.create!(workflow: @linear_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "Yes?", answer_type: "yes_no")
 
     sign_in_as @editor
   end

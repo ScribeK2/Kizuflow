@@ -27,11 +27,8 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
     # Assign @editor to @group only
     UserGroup.create!(user: @editor, group: @group)
 
-    @workflow = Workflow.create!(
-      title: "Test Workflow",
-      user: @editor,
-      steps: [{ type: "action", title: "Step 1", instructions: "Do it" }]
-    )
+    @workflow = Workflow.create!(title: "Test Workflow", user: @editor)
+    Steps::Action.create!(workflow: @workflow, position: 0, uuid: SecureRandom.uuid, title: "Step 1")
 
     GroupWorkflow.create!(group: @group, workflow: @workflow)
 
@@ -67,12 +64,8 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "editor cannot move another user's private workflow" do
-    other_workflow = Workflow.create!(
-      title: "Other's Workflow",
-      user: @other_editor,
-      is_public: false,
-      steps: [{ type: "action", title: "Step 1", instructions: "Do it" }]
-    )
+    other_workflow = Workflow.create!(title: "Other's Workflow", user: @other_editor, is_public: false)
+    Steps::Action.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Step 1")
     GroupWorkflow.create!(group: @group, workflow: other_workflow)
 
     patch move_workflow_folder_path, params: {

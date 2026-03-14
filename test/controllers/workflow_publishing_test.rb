@@ -14,14 +14,11 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "user"
     )
-    @step_uuid = SecureRandom.uuid
     @workflow = Workflow.create!(
       title: "Publishable Workflow",
-      user: @editor,
-      steps: [
-        { "id" => @step_uuid, "type" => "question", "title" => "Q1", "question" => "What?" }
-      ]
+      user: @editor
     )
+    @q1_step = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q1", question: "What?")
   end
 
   test "editor can publish their own workflow" do
@@ -48,7 +45,7 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
 
   test "publish fails for workflow with no steps" do
     sign_in @editor
-    @workflow.update_columns(steps: nil)
+    @workflow.workflow_steps.destroy_all
 
     assert_no_difference "WorkflowVersion.count" do
       post publish_workflow_path(@workflow)
@@ -84,15 +81,15 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
   test "editor can restore a version" do
     sign_in @editor
     WorkflowPublisher.publish(@workflow, @editor)
-    # Change the workflow
-    new_uuid = SecureRandom.uuid
-    @workflow.update!(steps: [{ "id" => new_uuid, "type" => "action", "title" => "Changed" }])
+    # Change the workflow steps
+    @workflow.workflow_steps.destroy_all
+    Steps::Action.create!(workflow: @workflow, position: 0, title: "Changed")
     version = @workflow.versions.last # version 1 (oldest)
 
     post restore_workflow_version_path(@workflow, version)
 
     assert_redirected_to edit_workflow_path(@workflow)
     @workflow.reload
-    assert_equal "Q1", @workflow.steps.first["title"]
+    assert_equal "Q1", @workflow.workflow_steps.order(:position).first.title
   end
 end

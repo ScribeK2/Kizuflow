@@ -88,19 +88,19 @@
               Steps can connect to any other step, not just the next one in sequence.
             </p>
             <% if @workflow.graph_mode? %>
-              <%= form.hidden_field :start_node_uuid %>
+              <input type="hidden" name="workflow[start_node_uuid]" value="<%= @workflow.start_step&.uuid %>">
             <% end %>
           </div>
         <% else %>
           <%# Hidden fields to preserve graph_mode and start_node_uuid when toggle is hidden %>
           <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
           <% if @workflow.graph_mode? %>
-            <%= form.hidden_field :start_node_uuid %>
+            <input type="hidden" name="workflow[start_node_uuid]" value="<%= @workflow.start_step&.uuid %>">
           <% end %>
         <% end %>
       <% end %>
 
-      <% if @workflow.steps&.any? { |s| s['_import_incomplete'] } %>
+      <% if false # TODO: check AR step import_incomplete flag after migration %>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4">
           <div class="flex items-start">
             <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +143,8 @@
       <div id="list-editor-container">
 
       <%# Two-Column Layout: Sidebar + Main Content (Sprint 3) %>
-      <% has_sidebar = @workflow.steps.present? && @workflow.steps.length > 3 %>
+      <% ar_steps = @workflow.workflow_steps.order(:position) %>
+      <% has_sidebar = ar_steps.any? && ar_steps.size > 3 %>
       <div style="display: grid; grid-template-columns: <%= has_sidebar ? '280px 1fr' : '1fr' %>; gap: 1.5rem; width: 100%;">
         <%# Step Outline Sidebar (shown for workflows with >3 steps) %>
         <% if has_sidebar %>
@@ -164,9 +165,9 @@
             <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Workflow Steps
-                <% if @workflow.steps.present? %>
+                <% if ar_steps.any? %>
                   <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                    (<%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %>)
+                    (<%= ar_steps.size %> step<%= ar_steps.size != 1 ? 's' : '' %>)
                   </span>
                 <% end %>
               </label>
@@ -236,7 +237,7 @@
             </div>
 
             <%# Expand/Collapse All Controls (Sprint 2) %>
-            <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
+            <% if ar_steps.any? && ar_steps.size > 3 %>
               <div class="flex justify-end gap-2 mb-3" data-controller="step-controls">
                 <button type="button"
                         data-action="click->step-controls#expandAll"
@@ -254,16 +255,16 @@
 
             <%# Steps Container %>
             <div data-workflow-builder-target="container" class="space-y-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-slate-50 dark:bg-slate-800/50">
-              <% if @workflow.steps.present? %>
+              <% if ar_steps.any? %>
                 <%# Inline step creator at the beginning %>
                 <%= render partial: "inline_step_creator", locals: { after_index: -1 } %>
 
-                <% @workflow.steps.each_with_index do |step, index| %>
+                <% ar_steps.each_with_index do |step, index| %>
                   <%= render partial: "step_item", locals: {
                     step: step,
                     index: index,
                     workflow: @workflow,
-                    expanded: @workflow.steps.length <= 5 || index == @workflow.steps.length - 1
+                    expanded: ar_steps.size <= 5 || index == ar_steps.size - 1
                   } %>
 
                   <%# Inline step creator after each step %>

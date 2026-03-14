@@ -41,9 +41,9 @@
     <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Workflow Steps</h2>
     </div>
-    <% if @workflow.steps.present? && @workflow.steps.any? %>
+    <% if @workflow.workflow_steps.any? %>
       <div class="p-6 space-y-4">
-        <% @workflow.steps.each_with_index do |step, index| %>
+        <% @workflow.workflow_steps.order(:position).each_with_index do |step, index| %>
           <div class="backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.01] animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
@@ -51,20 +51,17 @@
                   <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 text-white text-sm font-semibold mr-3 flex-shrink-0">
                     <%= index + 1 %>
                   </span>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= step['title'] %></h3>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100"><%= step.title %></h3>
                   <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                    <%= step['type'] %>
+                    <%= step.step_type %>
                   </span>
                 </div>
-                <% if step['description'].present? %>
-                  <p class="text-gray-600 dark:text-gray-300 ml-11"><%= step['description'] %></p>
+                <% if step.is_a?(Steps::Question) && step.question.present? %>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step.question %></p>
                 <% end %>
-                <% if step['type'] == 'question' && step['question'].present? %>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 ml-11 mt-1">Q: <%= step['question'] %></p>
-                <% end %>
-                <% if step['type'] == 'action' && step['instructions'].present? %>
+                <% if step.is_a?(Steps::Action) && step.instructions.present? %>
                   <div class="ml-11 mt-2 text-sm text-gray-600 dark:text-gray-300">
-                    <strong>Instructions:</strong> <%= step['instructions'] %>
+                    <strong>Instructions:</strong> <%= step.instructions %>
                   </div>
                 <% end %>
               </div>
@@ -82,4 +79,3 @@
     <% end %>
   </div>
 </div>
-

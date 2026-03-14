@@ -10,9 +10,9 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
     )
     @workflow = Workflow.create!(
       title: "Concurrent Test",
-      user: @user,
-      steps: [{ "type" => "question", "title" => "Step 1", "question" => "Initial?" }]
+      user: @user
     )
+    Steps::Question.create!(workflow: @workflow, position: 0, title: "Step 1", question: "Initial?")
   end
 
   test "lock_version increments on save" do
@@ -46,19 +46,15 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
     end
   end
 
-  test "concurrent step modifications are protected" do
+  test "concurrent workflow modifications are protected by optimistic locking" do
     workflow1 = Workflow.find(@workflow.id)
     workflow2 = Workflow.find(@workflow.id)
 
-    # First user adds a step
-    steps1 = workflow1.steps.dup
-    steps1 << { "type" => "action", "title" => "Step from user 1", "instructions" => "Do thing 1" }
-    workflow1.update!(steps: steps1)
+    # First user updates the workflow title
+    workflow1.update!(title: "Updated by user 1")
 
-    # Second user tries to add a step (based on stale data)
-    steps2 = workflow2.steps.dup # This is the OLD steps array
-    steps2 << { "type" => "action", "title" => "Step from user 2", "instructions" => "Do thing 2" }
-    workflow2.steps = steps2
+    # Second user tries to update (based on stale lock_version)
+    workflow2.title = "Updated by user 2"
 
     # This should raise an error because lock_version mismatches
     assert_raises(ActiveRecord::StaleObjectError) do
@@ -68,8 +64,7 @@ class WorkflowConcurrencyTest < ActiveSupport::TestCase
     # Reload to verify only the first update succeeded
     @workflow.reload
 
-    assert_equal 2, @workflow.steps.length # 1 original + 1 from user 1
-    assert_equal "Step from user 1", @workflow.steps.last["title"]
+    assert_equal "Updated by user 1", @workflow.title
   end
 
   test "reload resets lock_version for retry" do

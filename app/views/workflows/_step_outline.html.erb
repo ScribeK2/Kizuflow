@@ -10,8 +10,8 @@
   - show_by_default: Whether to show the sidebar by default (optional, default: true for >5 steps)
 %>
 
-<% show_by_default = local_assigns.fetch(:show_by_default, workflow&.steps&.length.to_i > 5) %>
-<% step_count = workflow&.steps&.length.to_i %>
+<% step_count = workflow&.workflow_steps&.size.to_i %>
+<% show_by_default = local_assigns.fetch(:show_by_default, step_count > 5) %>
 
 <div data-controller="step-outline"
      class="step-outline-sidebar">
@@ -52,17 +52,17 @@
     <%# Step List %>
     <div data-step-outline-target="stepList"
          class="flex-1 overflow-y-auto p-2 space-y-1">
-      <% if workflow&.steps.present? %>
-        <% workflow.steps.each_with_index do |step, index| %>
+      <% if step_count > 0 %>
+        <% workflow.workflow_steps.order(:position).each_with_index do |step, index| %>
           <%
-            step_type = step['type']&.to_s&.downcase
-            step_title = step['title'].presence || "Untitled #{step_type&.titleize}"
-            step_id = step['id'] || "step-#{index}"
+            step_type = step_field(step, 'type')
+            step_title = step.title.presence || "Untitled #{step_type&.titleize}"
+            step_id = step.uuid || "step-#{index}"
 
             # Check for incomplete steps
             has_warning = case step_type
-              when 'question' then step['question'].blank?
-              when 'action' then step['instructions'].blank?
+              when 'question' then step.respond_to?(:question) && step.question.blank?
+              when 'action' then step.respond_to?(:instructions) && step.instructions.blank?
               else false
             end
 
@@ -113,7 +113,7 @@
 
     <%# Empty State %>
     <div data-step-outline-target="emptyState"
-         class="<%= workflow&.steps.present? ? 'hidden' : '' %> flex-1 flex flex-col items-center justify-center p-4 text-center">
+         class="<%= step_count > 0 ? 'hidden' : '' %> flex-1 flex flex-col items-center justify-center p-4 text-center">
       <svg class="w-10 h-10 text-gray-300 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
       </svg>

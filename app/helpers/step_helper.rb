@@ -56,19 +56,17 @@ module StepHelper
     end
   end
 
-  # Get steps from a workflow, preferring AR steps over JSONB
+  # Get steps from a workflow for display purposes
   def workflow_display_steps(workflow)
-    if workflow.workflow_steps.any?
-      workflow.workflow_steps.includes(:transitions)
-    else
-      workflow.steps || []
-    end
+    workflow.workflow_steps.includes(:transitions)
   end
 
   # Serialize AR steps to JSON-compatible array for the visual editor.
   # Returns the same shape that VisualEditorService expects.
   def serialize_steps_for_editor(workflow)
-    workflow.workflow_steps.includes(:transitions, :rich_text_instructions, :rich_text_content, :rich_text_notes).map do |s|
+    steps = workflow.workflow_steps
+    steps = steps.includes(:transitions) if steps.respond_to?(:includes)
+    steps.map do |s|
       data = {
         "id" => s.uuid,
         "type" => s.type.demodulize.underscore,

@@ -13,43 +13,33 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
       title: "Graph Mode Workflow",
       description: "A workflow in graph mode",
       user: @editor,
-      graph_mode: true,
-      start_node_uuid: "step-1-uuid",
-      steps: [
-        {
-          'id' => 'step-1-uuid',
-          'type' => 'question',
-          'title' => 'Get Name',
-          'question' => 'What is your name?',
-          'answer_type' => 'text',
-          'variable_name' => 'customer_name',
-          'transitions' => [{ 'target_uuid' => 'step-2-uuid' }]
-        },
-        {
-          'id' => 'step-2-uuid',
-          'type' => 'question',
-          'title' => 'Check Name',
-          'question' => 'Does customer have a name?',
-          'transitions' => [
-            { 'target_uuid' => 'step-3-uuid', 'condition' => "customer_name != ''", 'label' => 'Has name' },
-            { 'target_uuid' => 'step-4-uuid', 'condition' => "customer_name == ''", 'label' => 'No name' }
-          ]
-        },
-        {
-          'id' => 'step-3-uuid',
-          'type' => 'action',
-          'title' => 'Welcome',
-          'instructions' => 'Welcome the customer',
-          'transitions' => []
-        },
-        {
-          'id' => 'step-4-uuid',
-          'type' => 'resolve',
-          'title' => 'Exit',
-          'resolution_type' => 'cancelled'
-        }
-      ]
+      graph_mode: true
     )
+
+    step1 = Steps::Question.create!(
+      workflow: @graph_workflow, uuid: "step-1-uuid", position: 0,
+      title: "Get Name", question: "What is your name?",
+      answer_type: "text", variable_name: "customer_name"
+    )
+    step2 = Steps::Question.create!(
+      workflow: @graph_workflow, uuid: "step-2-uuid", position: 1,
+      title: "Check Name", question: "Does customer have a name?"
+    )
+    step3 = Steps::Action.create!(
+      workflow: @graph_workflow, uuid: "step-3-uuid", position: 2,
+      title: "Welcome"
+    )
+    step3.update!(instructions: "Welcome the customer")
+    step4 = Steps::Resolve.create!(
+      workflow: @graph_workflow, uuid: "step-4-uuid", position: 3,
+      title: "Exit", resolution_type: "cancelled"
+    )
+
+    Transition.create!(step: step1, target_step: step2, position: 0)
+    Transition.create!(step: step2, target_step: step3, condition: "customer_name != ''", label: "Has name", position: 0)
+    Transition.create!(step: step2, target_step: step4, condition: "customer_name == ''", label: "No name", position: 1)
+
+    @graph_workflow.update_column(:start_step_id, step1.id)
 
     sign_in @editor
   end
@@ -150,8 +140,8 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
     assert_predicate imported, :graph_mode?
     assert_equal "Imported Graph Workflow", imported.title
-    assert_equal 2, imported.steps.length
-    assert_equal "imported-step-1", imported.start_node_uuid
+    assert_equal 2, imported.workflow_steps.count
+    assert_equal "imported-step-1", imported.start_step&.uuid
   end
 
   test "import JSON without graph mode converts to graph mode" do
@@ -177,15 +167,15 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
     assert_predicate imported, :graph_mode?, "Imported workflow should be in graph mode"
 
-    # Check that steps have IDs
-    imported.steps.each do |step|
-      assert_predicate step['id'], :present?, "Step should have an ID"
+    # Check that steps have UUIDs
+    imported.workflow_steps.each do |step|
+      assert_predicate step.uuid, :present?, "Step should have a UUID"
     end
 
     # Check that non-terminal steps have transitions
-    q1_step = imported.steps.find { |s| s['title'] == 'Q1' }
+    q1_step = imported.workflow_steps.find_by(title: 'Q1')
 
-    assert_predicate q1_step['transitions'], :present?, "Question step should have transitions"
+    assert_predicate q1_step.transitions, :present?, "Question step should have transitions"
   end
 
   test "import JSON with legacy branches converts to transitions" do
@@ -222,11 +212,10 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     end
 
     imported = Workflow.last
-    converted_step = imported.steps.find { |s| s['title'] == 'Check Name' }
+    converted_step = imported.workflow_steps.find_by(title: 'Check Name')
 
     # Decision type should be auto-converted to question during import
-    assert_equal 'question', converted_step['type'], "Decision should be auto-converted to question"
-    assert converted_step['_import_converted'], "Should be flagged as converted"
+    assert_instance_of Steps::Question, converted_step, "Decision should be auto-converted to question"
   end
 
   # ============================================================================
@@ -292,7 +281,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
 
     assert_predicate imported, :graph_mode?
     assert_equal "CSV Import Test", imported.title
-    assert_equal 3, imported.steps.length
+    assert_equal 3, imported.workflow_steps.reload.count
   end
 
   # ============================================================================
@@ -418,6 +407,6 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     imported = Workflow.last
 
     assert_predicate imported, :graph_mode?, "Should be imported as graph mode"
-    assert imported.steps.all? { |s| s['id'].present? }, "All steps should have IDs"
+    assert imported.workflow_steps.all? { |s| s.uuid.present? }, "All steps should have UUIDs"
   end
 end

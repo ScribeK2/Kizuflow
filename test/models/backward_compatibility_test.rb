@@ -86,11 +86,8 @@ class BackwardCompatibilityTest < ActiveSupport::TestCase
   end
 
   test "workflows should default to Uncategorized if no groups selected during creation" do
-    workflow = Workflow.create!(
-      title: "New Workflow",
-      user: @user,
-      steps: [{ type: "question", title: "Question", question: "What?" }]
-    )
+    workflow = Workflow.create!(title: "New Workflow", user: @user)
+    Steps::Question.create!(workflow: workflow, position: 0, uuid: SecureRandom.uuid, title: "Question", question: "What?")
 
     assert_predicate workflow.groups, :any?
     assert_equal "Uncategorized", workflow.primary_group.name

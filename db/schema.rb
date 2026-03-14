@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_09_213711) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_13_182246) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -227,16 +227,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_213711) do
 
   create_table "workflows", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.text "description"
     t.datetime "draft_expires_at"
     t.boolean "graph_mode", default: false, null: false
     t.boolean "is_public", default: false, null: false
     t.integer "lock_version", default: 0, null: false
     t.integer "published_version_id"
-    t.string "start_node_uuid"
     t.integer "start_step_id"
     t.string "status", default: "published", null: false
-    t.json "steps"
     t.integer "steps_count", default: 0, null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false

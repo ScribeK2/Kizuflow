@@ -10,18 +10,17 @@ class WorkflowVersionTest < ActiveSupport::TestCase
     @workflow = Workflow.create!(
       title: "Version Test Workflow",
       user: @user,
-      steps: [
-        { "id" => SecureRandom.uuid, "type" => "question", "title" => "Q1", "question" => "What?" }
-      ],
       graph_mode: false
     )
+    @q1_step = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q1", question: "What?")
   end
 
   test "valid with all required attributes" do
+    snapshot = [{ "id" => @q1_step.uuid, "type" => "question", "title" => "Q1", "question" => "What?" }]
     version = WorkflowVersion.new(
       workflow: @workflow,
       version_number: 1,
-      steps_snapshot: @workflow.steps,
+      steps_snapshot: snapshot,
       metadata_snapshot: { "title" => @workflow.title, "graph_mode" => @workflow.graph_mode },
       published_by: @user,
       published_at: Time.current
@@ -78,10 +77,11 @@ class WorkflowVersionTest < ActiveSupport::TestCase
   end
 
   test "version_number must be unique per workflow" do
+    snapshot = [{ "id" => @q1_step.uuid, "type" => "question", "title" => "Q1", "question" => "What?" }]
     WorkflowVersion.create!(
       workflow: @workflow,
       version_number: 1,
-      steps_snapshot: @workflow.steps,
+      steps_snapshot: snapshot,
       metadata_snapshot: {},
       published_by: @user,
       published_at: Time.current
@@ -89,7 +89,7 @@ class WorkflowVersionTest < ActiveSupport::TestCase
     duplicate = WorkflowVersion.new(
       workflow: @workflow,
       version_number: 1,
-      steps_snapshot: @workflow.steps,
+      steps_snapshot: snapshot,
       metadata_snapshot: {},
       published_by: @user,
       published_at: Time.current
@@ -101,8 +101,7 @@ class WorkflowVersionTest < ActiveSupport::TestCase
   test "different workflows can have the same version_number" do
     other_workflow = Workflow.create!(
       title: "Other Workflow",
-      user: @user,
-      steps: []
+      user: @user
     )
     WorkflowVersion.create!(
       workflow: @workflow,
@@ -124,17 +123,17 @@ class WorkflowVersionTest < ActiveSupport::TestCase
   end
 
   test "stores steps_snapshot as deep copy" do
-    original_steps = @workflow.steps.deep_dup
+    snapshot = [{ "id" => @q1_step.uuid, "type" => "question", "title" => "Q1", "question" => "What?" }]
     version = WorkflowVersion.create!(
       workflow: @workflow,
       version_number: 1,
-      steps_snapshot: original_steps,
+      steps_snapshot: snapshot,
       metadata_snapshot: {},
       published_by: @user,
       published_at: Time.current
     )
     # Modify original workflow steps
-    @workflow.update!(steps: [{ "id" => SecureRandom.uuid, "type" => "action", "title" => "Changed" }])
+    @q1_step.update!(title: "Changed")
     # Version snapshot should be unchanged
     version.reload
     assert_equal "question", version.steps_snapshot.first["type"]

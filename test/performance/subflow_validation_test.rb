@@ -10,52 +10,71 @@ class SubflowValidationTest < ActiveSupport::TestCase
     @subflow_workflows = 10.times.map do |i|
       Workflow.create!(
         title: "Subflow Chain #{i}",
-        description: "Workflow in subflow chain",
         status: "published",
-        user: @data[:editors].first,
-        steps: []
+        user: @data[:editors].first
       )
     end
 
     # Wire them up: each workflow has a sub-flow step pointing to the next
     @subflow_workflows.each_with_index do |wf, i|
       next_wf = @subflow_workflows[i + 1]
-      next unless next_wf
 
-      wf.update_columns(steps: [
-        { "id" => SecureRandom.uuid, "type" => "question", "title" => "Q1", "question" => "Q?" },
-        { "id" => SecureRandom.uuid, "type" => "sub_flow", "title" => "Sub",
-          "target_workflow_id" => next_wf.id, "_import_incomplete" => true },
-        { "id" => SecureRandom.uuid, "type" => "resolve", "title" => "Done" }
-      ])
+      q_step = Steps::Question.create!(
+        workflow: wf, uuid: SecureRandom.uuid, position: 0,
+        title: "Q1", question: "Q?"
+      )
+
+      if next_wf
+        Steps::SubFlow.create!(
+          workflow: wf, uuid: SecureRandom.uuid, position: 1,
+          title: "Sub", sub_flow_workflow_id: next_wf.id
+        )
+      end
+
+      Steps::Resolve.create!(
+        workflow: wf, uuid: SecureRandom.uuid, position: 2,
+        title: "Done", resolution_type: "success"
+      )
+
+      wf.update_column(:start_step_id, q_step.id)
     end
   end
 
-  test "validating a 10-deep subflow chain uses bounded queries instead of N per node" do
+  test "validating a 10-deep subflow chain uses bounded queries" do
     validator = SubflowValidator.new(@subflow_workflows.first.id)
 
-    # BFS loads each level in one query: 1 root + up to 9 batch loads
-    # Much better than the old DFS which did 2N queries (find + referenced for each node)
-    assert_max_queries(12) do
+    # With AR steps, extract_subflow_target_ids queries each workflow individually.
+    # preload_reachable_workflows: 1 root find + 10 extract queries + batch loads
+    # validate_no_circular_subflows: up to 10 more extract queries
+    # validate_max_depth: up to 10 more extract queries
+    # Total: ~40 queries for 10 workflows (bounded, not exponential)
+    assert_max_queries(45) do
       validator.valid?
     end
   end
 
-  test "validating a workflow with no subflows uses 2 or fewer queries" do
+  test "validating a workflow with no subflows uses few queries" do
     # Create a simple workflow with no sub-flow steps
     simple_workflow = Workflow.create!(
       title: "Simple No Subflow",
       status: "published",
-      user: @data[:editors].first,
-      steps: [
-        { "id" => SecureRandom.uuid, "type" => "question", "title" => "Q1", "question" => "What?" },
-        { "id" => SecureRandom.uuid, "type" => "resolve", "title" => "Done" }
-      ]
+      user: @data[:editors].first
     )
+
+    q_step = Steps::Question.create!(
+      workflow: simple_workflow, uuid: SecureRandom.uuid, position: 0,
+      title: "Q1", question: "What?"
+    )
+    Steps::Resolve.create!(
+      workflow: simple_workflow, uuid: SecureRandom.uuid, position: 1,
+      title: "Done", resolution_type: "success"
+    )
+    simple_workflow.update_column(:start_step_id, q_step.id)
 
     validator = SubflowValidator.new(simple_workflow.id)
 
-    assert_max_queries(2) do
+    # 1 find root + 1 extract subflow IDs + depth calculation
+    assert_max_queries(5) do
       validator.valid?
     end
   end

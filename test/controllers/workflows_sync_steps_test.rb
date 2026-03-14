@@ -95,6 +95,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
       workflow: @workflow, uuid: "uuid-2", title: "Remove", position: 1
     )
     @workflow.update_column(:start_step_id, step1.id)
+    @workflow.reload
 
     steps_json = [
       { id: "uuid-1", type: "question", title: "Keep", question: "Q?",
@@ -168,6 +169,7 @@ class WorkflowsSyncStepsTest < ActionDispatch::IntegrationTest
     Steps::Action.create!(
       workflow: @workflow, uuid: "uuid-1", title: "Existing", position: 0
     )
+    @workflow.reload
 
     patch sync_steps_workflow_path(@workflow), params: {
       steps: [],

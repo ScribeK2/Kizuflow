@@ -10,14 +10,12 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     )
     @workflow = Workflow.create!(
       title: "Builder Test Workflow",
-      description: "Used for system tests",
-      user: @editor,
-      steps: [
-        { "id" => SecureRandom.uuid, "type" => "question", "title" => "Step One", "question" => "First?", "answer_type" => "yes_no", "variable_name" => "first" },
-        { "id" => SecureRandom.uuid, "type" => "action",   "title" => "Step Two", "action_type" => "Instruction", "instructions" => "Do this" },
-        { "id" => SecureRandom.uuid, "type" => "message", "title" => "Step Three", "content" => "Check!" }
-      ]
+      user: @editor
     )
+    Steps::Question.create!(workflow: @workflow, position: 0, uuid: SecureRandom.uuid, title: "Step One", question: "First?", answer_type: "yes_no", variable_name: "first")
+    Steps::Action.create!(workflow: @workflow, position: 1, uuid: SecureRandom.uuid, title: "Step Two", action_type: "Instruction")
+    Steps::Message.create!(workflow: @workflow, position: 2, uuid: SecureRandom.uuid, title: "Step Three")
+
     sign_in_as @editor
   end
 

@@ -10,8 +10,7 @@ class RenderStepTest < ActionDispatch::IntegrationTest
     @workflow = Workflow.create!(
       title: "Test Workflow for Render Step",
       user: @user,
-      status: "draft",
-      steps: []
+      status: "draft"
     )
     sign_in @user
   end

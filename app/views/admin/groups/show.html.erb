@@ -65,7 +65,7 @@
                   <% end %>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                  by <%= workflow.user.email %> • <%= pluralize(workflow.steps&.length || 0, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
+                  by <%= workflow.user.email %> • <%= pluralize(workflow.workflow_steps.size, "step") %> • Created <%= time_ago_in_words(workflow.created_at) %> ago
                 </p>
               </div>
             </div>

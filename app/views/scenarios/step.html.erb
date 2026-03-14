@@ -69,7 +69,7 @@
             <% end %>
           </div>
         </div>
-        <% total_steps = @workflow.steps&.length || 0 %>
+        <% total_steps = @workflow.workflow_steps.count %>
         <% completed_steps = @scenario.execution_path&.length || 0 %>
         <% progress_pct = total_steps > 0 ? ((completed_steps.to_f / total_steps) * 100).round : 0 %>
         <div class="px-6 pb-4">

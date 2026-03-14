@@ -8,14 +8,11 @@ class WorkflowPublishingIntegrationTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    @step_uuid = SecureRandom.uuid
     @workflow = Workflow.create!(
       title: "Integration Workflow",
-      user: @editor,
-      steps: [
-        { "id" => @step_uuid, "type" => "question", "title" => "Q1", "question" => "What?" }
-      ]
+      user: @editor
     )
+    @q1_step = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q1", question: "What?")
     sign_in @editor
   end
 
@@ -28,10 +25,8 @@ class WorkflowPublishingIntegrationTest < ActionDispatch::IntegrationTest
     v1_id = @workflow.published_version.id
 
     # 2. Edit workflow (simulates builder changes)
-    new_uuid = SecureRandom.uuid
-    @workflow.update!(steps: [
-      { "id" => new_uuid, "type" => "action", "title" => "New Action" }
-    ])
+    @workflow.workflow_steps.destroy_all
+    Steps::Action.create!(workflow: @workflow, position: 0, title: "New Action")
 
     # 3. Published version is still v1 with old steps
     @workflow.reload
@@ -55,7 +50,7 @@ class WorkflowPublishingIntegrationTest < ActionDispatch::IntegrationTest
     post restore_workflow_version_path(@workflow, v1)
     assert_redirected_to edit_workflow_path(@workflow)
     @workflow.reload
-    assert_equal "Q1", @workflow.steps.first["title"]
+    assert_equal "Q1", @workflow.workflow_steps.order(:position).first.title
 
     # 7. published_version is still v2 (restore only changes draft, not published)
     assert_equal 2, @workflow.published_version.version_number

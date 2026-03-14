@@ -526,12 +526,20 @@ class WorkflowParsersTest < ActiveSupport::TestCase
   def create_published_workflow(title:, user: nil)
     user ||= User.create!(email: "subflow-test-#{SecureRandom.hex(4)}@example.com",
                           password: 'password123!', role: 'user')
-    Workflow.create!(
+    workflow = Workflow.create!(
       title: title,
       user: user,
-      status: 'published',
-      steps: [{ 'id' => SecureRandom.uuid, 'type' => 'action', 'title' => 'Step 1', 'instructions' => 'Do it' }]
+      status: 'published'
     )
+    step = Steps::Action.create!(
+      workflow: workflow,
+      uuid: SecureRandom.uuid,
+      position: 0,
+      title: 'Step 1'
+    )
+    step.update!(instructions: 'Do it')
+    workflow.update_column(:start_step_id, step.id)
+    workflow
   end
 
   test "resolve_subflow_titles resolves exact title match" do
@@ -636,11 +644,16 @@ class WorkflowParsersTest < ActiveSupport::TestCase
 
   test "resolve_subflow_titles excludes draft workflows from matching" do
     user = User.create!(email: "draft-test@example.com", password: 'password123!', role: 'user')
-    Workflow.create!(
+    draft_workflow = Workflow.create!(
       title: "Draft Only Workflow",
       user: user,
-      status: 'draft',
-      steps: [{ 'id' => SecureRandom.uuid, 'type' => 'action', 'title' => 'Step 1', 'instructions' => 'Do it' }]
+      status: 'draft'
+    )
+    Steps::Action.create!(
+      workflow: draft_workflow,
+      uuid: SecureRandom.uuid,
+      position: 0,
+      title: 'Step 1'
     )
 
     content = {

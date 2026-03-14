@@ -67,9 +67,10 @@ module PerformanceHelper
         title: "Performance Test Workflow #{i}",
         description: "Description for workflow #{i} with enough text to be realistic for rendering and search tests.",
         status: i < 180 ? "published" : "draft",
-        user: creator,
-        steps: build_sample_steps(i)
+        user: creator
       )
+      create_sample_ar_steps(w, i)
+      w.reload
       # Assign to 1-2 groups
       group = all_groups[i % all_groups.size]
       GroupWorkflow.create!(group: group, workflow: w, is_primary: true) unless w.groups.include?(group)
@@ -85,28 +86,51 @@ module PerformanceHelper
 
   private
 
-  def build_sample_steps(workflow_index)
+  STEP_CLASSES = {
+    "question" => Steps::Question,
+    "action" => Steps::Action,
+    "sub_flow" => Steps::SubFlow,
+    "message" => Steps::Message,
+    "resolve" => Steps::Resolve,
+    "escalate" => Steps::Escalate
+  }.freeze
+
+  def create_sample_ar_steps(workflow, workflow_index)
     step_count = 3 + (workflow_index % 8) # 3-10 steps per workflow
-    step_count.times.map do |i|
-      step_type = %w[question action sub_flow message resolve escalate][i % 6]
-      {
-        "id" => SecureRandom.uuid,
-        "type" => step_type,
-        "title" => "Step #{i + 1} of workflow #{workflow_index}",
-        "description" => "Instructions for step #{i + 1}"
-      }.tap do |step|
-        case step_type
-        when "question"
-          step["question"] = "What is the answer for step #{i + 1}?"
-          step["answer_type"] = "text"
-          step["variable_name"] = "var_#{workflow_index}_#{i}"
-        when "action"
-          step["instructions"] = "Perform action #{i + 1}"
-        when "sub_flow"
-          # Leave target_workflow_id blank to avoid validation issues
-          step["_import_incomplete"] = true
-        end
+    step_types = %w[question action sub_flow message resolve escalate]
+    first_step = nil
+
+    step_count.times do |i|
+      step_type = step_types[i % step_types.size]
+      step_class = STEP_CLASSES[step_type]
+
+      attrs = {
+        workflow: workflow,
+        uuid: SecureRandom.uuid,
+        position: i,
+        title: "Step #{i + 1} of workflow #{workflow_index}"
+      }
+
+      case step_type
+      when "question"
+        attrs[:question] = "What is the answer for step #{i + 1}?"
+        attrs[:answer_type] = "text"
+        attrs[:variable_name] = "var_#{workflow_index}_#{i}"
+      when "resolve"
+        attrs[:resolution_type] = "success"
       end
+
+      # Sub-flow steps without target are saved without validation
+      if step_type == "sub_flow"
+        step = step_class.new(attrs)
+        step.save!(validate: false)
+      else
+        step = step_class.create!(attrs)
+      end
+
+      first_step ||= step
     end
+
+    workflow.update_column(:start_step_id, first_step.id) if first_step
   end
 end

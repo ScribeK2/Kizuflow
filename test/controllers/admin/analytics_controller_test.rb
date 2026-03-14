@@ -20,13 +20,8 @@ class Admin::AnalyticsControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "user"
     )
-    @workflow = Workflow.create!(
-      title: "Analytics Test Workflow",
-      user: @admin,
-      steps: [
-        { "id" => "s1", "type" => "question", "title" => "Q1", "question" => "Test?" }
-      ]
-    )
+    @workflow = Workflow.create!(title: "Analytics Test Workflow", user: @admin)
+    Steps::Question.create!(workflow: @workflow, position: 0, uuid: "s1", title: "Q1", question: "Test?")
   end
 
   test "admin can access analytics page" do

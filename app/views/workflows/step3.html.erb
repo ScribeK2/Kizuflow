@@ -35,16 +35,16 @@
           <div>
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Steps:</span>
             <span class="text-sm text-gray-900 dark:text-gray-100 ml-2">
-              <%= @workflow.steps&.length || 0 %> step(s)
+              <%= @workflow.workflow_steps.size %> step(s)
             </span>
           </div>
         </div>
       </div>
 
       <!-- Validation Summary -->
-      <% steps = @workflow.steps || [] %>
-      <% has_steps = steps.length > 0 %>
-      <% all_have_titles = steps.all? { |s| s.is_a?(Hash) && s['title'].present? && s['title'].to_s.strip.present? } %>
+      <% steps = @workflow.workflow_steps.order(:position) %>
+      <% has_steps = steps.size > 0 %>
+      <% all_have_titles = steps.all? { |s| s.title.present? && s.title.to_s.strip.present? } %>
       <% all_pass = has_steps && all_have_titles %>
       <div class="rounded-lg p-4 border <%= all_pass ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30' %>">
         <h3 class="text-sm font-semibold <%= all_pass ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' %> mb-2">Validation Summary</h3>
@@ -52,7 +52,7 @@
           <li class="flex items-center gap-2">
             <% if has_steps %>
               <span class="text-emerald-600 dark:text-emerald-400">&#10003;</span>
-              <span class="text-gray-700 dark:text-gray-300">Workflow has steps (<%= steps.length %>)</span>
+              <span class="text-gray-700 dark:text-gray-300">Workflow has steps (<%= steps.size %>)</span>
             <% else %>
               <span class="text-red-500 dark:text-red-400">&#10007;</span>
               <span class="text-gray-700 dark:text-gray-300">Workflow has no steps</span>
@@ -73,12 +73,12 @@
       </div>
 
       <!-- Interactive Flowchart Preview -->
-      <% if @workflow.steps.present? %>
+      <% if @workflow.workflow_steps.any? %>
         <div class="solid-card overflow-hidden animate-fade-in-up"
              data-controller="wizard-flow-preview"
              data-wizard-flow-preview-workflow-id-value="<%= @workflow.id %>">
           <script type="application/json" data-wizard-flow-preview-steps-data="<%= @workflow.id %>">
-            <%= raw json_escape(@workflow.steps.to_json) %>
+            <%= raw json_escape(serialize_steps_for_editor(@workflow).to_json) %>
           </script>
           <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Workflow Flowchart</h3>

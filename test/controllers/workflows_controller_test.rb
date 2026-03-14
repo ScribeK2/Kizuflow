@@ -24,16 +24,16 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     @workflow = Workflow.create!(
       title: "Test Workflow",
       description: "A test workflow",
-      user: @editor,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
+      user: @editor
     )
+    Steps::Question.create!(workflow: @workflow, position: 0, title: "Question 1", question: "What is your name?")
     @public_workflow = Workflow.create!(
       title: "Public Workflow",
       description: "A public workflow",
       user: @editor,
-      is_public: true,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
+      is_public: true
     )
+    Steps::Question.create!(workflow: @public_workflow, position: 0, title: "Question 1", question: "What is your name?")
     sign_in @editor
   end
 
@@ -61,10 +61,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
       post workflows_path, params: {
         workflow: {
           title: "New Workflow",
-          description: "New description",
-          steps: [
-            { type: "question", title: "Question 1", question: "What is your name?", description: "First question" }
-          ]
+          description: "New description"
         }
       }
     end
@@ -94,21 +91,18 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated description", @workflow.description.to_plain_text
   end
 
-  test "should update workflow with steps" do
+  test "should update workflow with title" do
     patch workflow_path(@workflow), params: {
       workflow: {
-        title: "Updated Title",
-        steps: [
-          { type: "question", title: "New Question", question: "What is your name?", index: 0 },
-          { type: "action", title: "New Action", index: 1 }
-        ]
+        title: "Updated Title"
       }
     }
 
     assert_redirected_to workflow_path(@workflow)
     @workflow.reload
 
-    assert_equal 2, @workflow.steps.length
+    assert_equal "Updated Title", @workflow.title
+    assert_equal 1, @workflow.workflow_steps.count
   end
 
   test "should update workflow with is_public flag" do
@@ -384,10 +378,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
         workflow: {
           title: "New Workflow",
           description: "New description",
-          group_ids: [group.id],
-          steps: [
-            { type: "question", title: "Question 1", question: "What is your name?" }
-          ]
+          group_ids: [group.id]
         }
       }
     end

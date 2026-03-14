@@ -36,7 +36,7 @@
     <%# Two-Column Layout: Sidebar + Main Content (Sprint 3) %>
     <div class="flex gap-6">
       <%# Step Outline Sidebar (shown for workflows with >3 steps) %>
-      <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
+      <% if @workflow.workflow_steps.any? && @workflow.workflow_steps.size > 3 %>
         <div class="hidden lg:block flex-shrink-0 sticky top-24 self-start">
           <%= render partial: "step_outline", locals: { workflow: @workflow } %>
         </div>
@@ -56,9 +56,9 @@
             <div class="flex flex-wrap justify-between items-center gap-4 mb-4" data-floating-step-adder-target="sentinel">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Workflow Steps
-                <% if @workflow.steps.present? %>
+                <% if @workflow.workflow_steps.any? %>
                   <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                    (<%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %>)
+                    (<%= @workflow.workflow_steps.size %> step<%= @workflow.workflow_steps.size != 1 ? 's' : '' %>)
                   </span>
                 <% end %>
               </label>
@@ -128,7 +128,7 @@
             </div>
 
             <%# Expand/Collapse All Controls (Sprint 2) %>
-            <% if @workflow.steps.present? && @workflow.steps.length > 3 %>
+            <% if @workflow.workflow_steps.any? && @workflow.workflow_steps.size > 3 %>
               <div class="flex justify-end gap-2 mb-3" data-controller="step-controls">
                 <button type="button"
                         data-action="click->step-controls#expandAll"
@@ -146,16 +146,16 @@
 
             <%# Steps Container %>
             <div data-workflow-builder-target="container" class="space-y-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-white/20 dark:bg-gray-800/20">
-              <% if @workflow.steps.present? %>
+              <% if @workflow.workflow_steps.any? %>
                 <%# Inline step creator at the beginning %>
                 <%= render partial: "inline_step_creator", locals: { after_index: -1 } %>
 
-                <% @workflow.steps.each_with_index do |step, index| %>
+                <% @workflow.workflow_steps.order(:position).each_with_index do |step, index| %>
                   <%= render partial: "step_item", locals: {
                     step: step,
                     index: index,
                     workflow: @workflow,
-                    expanded: @workflow.steps.length <= 5 || index == @workflow.steps.length - 1
+                    expanded: @workflow.workflow_steps.size <= 5 || index == @workflow.workflow_steps.size - 1
                   } %>
 
                   <%# Inline step creator after each step %>
@@ -218,9 +218,9 @@
       <% end %>
 
       <div class="flex items-center gap-3">
-        <% if @workflow.steps.present? %>
+        <% if @workflow.workflow_steps.any? %>
           <span class="text-sm text-gray-500 dark:text-gray-400">
-            <%= @workflow.steps.length %> step<%= @workflow.steps.length != 1 ? 's' : '' %> added
+            <%= @workflow.workflow_steps.size %> step<%= @workflow.workflow_steps.size != 1 ? 's' : '' %> added
           </span>
         <% end %>
 

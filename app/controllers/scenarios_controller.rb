@@ -211,22 +211,24 @@ class ScenariosController < ApplicationController
       next unless path_entry['answer'].present?
 
       entry_step_index = path_entry['step_index'].to_i
-      next unless entry_step_index >= 0 && entry_step_index < @workflow.steps.length
+      ordered_steps = @workflow.workflow_steps.order(:position)
+      next unless entry_step_index >= 0 && entry_step_index < ordered_steps.size
 
-      step = @workflow.steps[entry_step_index]
-      next unless step && step['type'] == 'question'
+      step = ordered_steps[entry_step_index]
+      next unless step.is_a?(Steps::Question)
 
-      input_key = step['variable_name'].presence || entry_step_index.to_s
+      input_key = step.variable_name.presence || entry_step_index.to_s
       @scenario.inputs[input_key] = path_entry['answer']
-      @scenario.inputs[step['title']] = path_entry['answer']
-      @scenario.results[step['title']] = path_entry['answer']
-      @scenario.results[step['variable_name']] = path_entry['answer'] if step['variable_name'].present?
+      @scenario.inputs[step.title] = path_entry['answer']
+      @scenario.results[step.title] = path_entry['answer']
+      @scenario.results[step.variable_name] = path_entry['answer'] if step.variable_name.present?
     end
 
     next_step_index = target_step_index.to_i + 1
-    if next_step_index >= @workflow.steps.length
+    total_steps = @workflow.workflow_steps.size
+    if next_step_index >= total_steps
       @scenario.status = 'completed'
-      @scenario.current_step_index = @workflow.steps.length
+      @scenario.current_step_index = total_steps
     else
       @scenario.current_step_index = next_step_index
     end

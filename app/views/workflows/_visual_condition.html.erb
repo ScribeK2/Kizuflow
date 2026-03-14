@@ -41,12 +41,12 @@
         <%# Options will be populated by JavaScript from form data %>
         <% if defined?(workflow) && workflow&.variables&.any? %>
           <% workflow.variables.each do |var| %>
-            <% 
+            <%
               # Find the question step for this variable to get answer type
-              step = workflow.steps&.find { |s| s['variable_name'] == var }
-              answer_type = step&.dig('answer_type') || 'text'
-              options = step&.dig('options') || []
-              step_title = step&.dig('title') || var
+              step = workflow.workflow_steps.find_by(variable_name: var)
+              answer_type = step&.answer_type || 'text'
+              options = step&.options || []
+              step_title = step&.title || var
             %>
             <option value="<%= var %>" 
                     data-answer-type="<%= answer_type %>"

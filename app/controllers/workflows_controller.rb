@@ -39,7 +39,7 @@ class WorkflowsController < ApplicationController
             description: w.description_text&.truncate(100),
             status: w.status,
             graph_mode: w.graph_mode?,
-            step_count: w.steps&.length || 0
+            step_count: w.workflow_steps.size
           }
         end
         render json: workflows_data
@@ -284,17 +284,8 @@ class WorkflowsController < ApplicationController
   def export
     # Build comprehensive export data including Graph Mode fields
     # Use AR steps if available, otherwise fall back to JSONB
-    steps_data = if @workflow.workflow_steps.any?
-                   serialize_ar_steps_for_export(@workflow)
-                 else
-                   @workflow.steps || []
-                 end
-
-    start_uuid = if @workflow.start_step.present?
-                   @workflow.start_step.uuid
-                 else
-                   @workflow.start_node_uuid
-                 end
+    steps_data = serialize_ar_steps_for_export(@workflow)
+    start_uuid = @workflow.start_step&.uuid || @workflow.workflow_steps.first&.uuid
 
     export_data = {
       title: @workflow.title,
@@ -515,7 +506,7 @@ class WorkflowsController < ApplicationController
     end
 
     uploaded_file = params[:file]
-    file_content = uploaded_file.read
+    file_content = uploaded_file.read.force_encoding("UTF-8")
 
     # Validate file size (max 10MB)
     if file_content.bytesize > 10.megabytes
@@ -599,37 +590,34 @@ class WorkflowsController < ApplicationController
   end
 
   def update_step2
-    permitted_params = workflow_step2_params
+    # Parse incoming steps from visual editor or list editor
+    incoming_steps = nil
+    start_uuid = nil
 
-    # Visual editor mode: parse steps from JSON hidden input
     if params[:workflow][:editor_mode] == 'visual' && params[:workflow][:visual_editor_steps_json].present?
       begin
-        visual_steps = JSON.parse(params[:workflow][:visual_editor_steps_json])
-        permitted_params[:steps] = visual_steps
-        if params[:workflow][:start_node_uuid].present?
-          permitted_params[:start_node_uuid] = params[:workflow][:start_node_uuid]
-        end
+        incoming_steps = JSON.parse(params[:workflow][:visual_editor_steps_json])
+        start_uuid = params[:workflow][:start_node_uuid]
       rescue JSON::ParserError => e
         Rails.logger.error "[update_step2] Failed to parse visual editor steps: #{e.message}"
         flash[:alert] = "Failed to save visual editor changes."
         redirect_to step2_workflow_path(@workflow) and return
       end
-    elsif permitted_params[:steps].present? && @workflow.steps.present?
-      # List editor mode: merge submitted steps with existing steps to preserve fields not in form
-      permitted_params[:steps] = StepMergeService.new(
-        existing_steps: @workflow.steps,
-        submitted_steps: permitted_params[:steps]
-      ).call
+    else
+      permitted_params = workflow_step2_params
+      incoming_steps = permitted_params[:steps]&.map { |s| s.respond_to?(:to_h) ? s.to_h : s }
     end
 
-    # Remove non-model params before update
-    permitted_params.delete(:visual_editor_steps_json)
-    permitted_params.delete(:editor_mode)
-
-    if @workflow.update(permitted_params)
-      redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
+    if incoming_steps.present?
+      begin
+        create_ar_steps_from_params(incoming_steps, start_uuid)
+        redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
+      rescue ActiveRecord::RecordInvalid => e
+        @workflow.errors.add(:base, e.message)
+        render :step2, status: :unprocessable_content
+      end
     else
-      render :step2, status: :unprocessable_content
+      redirect_to step3_workflow_path(@workflow), notice: "Steps added. Let's review your workflow."
     end
   end
 
@@ -653,30 +641,20 @@ class WorkflowsController < ApplicationController
     end
 
     # Validate that workflow has at least one step
-    if @workflow.steps.blank? || @workflow.steps.empty?
+    unless @workflow.workflow_steps.any?
       @workflow.errors.add(:base, "Workflow must have at least one step")
       render :step3, status: :unprocessable_content
       return
     end
 
     # Validate all steps have required fields
-    @workflow.steps.each_with_index do |step, index|
-      unless step.is_a?(Hash)
-        @workflow.errors.add(:steps, "Step #{index + 1}: Invalid step format")
-        next
+    @workflow.workflow_steps.order(:position).each do |step|
+      unless step.title.present?
+        @workflow.errors.add(:steps, "Step #{step.position + 1}: Step title is required")
       end
 
-      unless step['type'].present?
-        @workflow.errors.add(:steps, "Step #{index + 1}: Step type is required")
-      end
-
-      unless step['title'].present? || step['title'].to_s.strip.present?
-        @workflow.errors.add(:steps, "Step #{index + 1}: Step title is required")
-      end
-
-      # Type-specific validation
-      if step['type'] == 'question' && !step['question'].present?
-        @workflow.errors.add(:steps, "Step #{index + 1}: Question text is required for question steps")
+      if step.is_a?(Steps::Question) && !step.question.present?
+        @workflow.errors.add(:steps, "Step #{step.position + 1}: Question text is required for question steps")
       end
     end
 
@@ -705,56 +683,43 @@ class WorkflowsController < ApplicationController
   # Generate sample variable values for preview interpolation
   # This creates realistic sample data so users can see what interpolated text looks like
   def generate_sample_variables(workflow)
-    return {} unless workflow&.steps.present?
+    return {} unless workflow&.workflow_steps&.any?
 
     sample_vars = {}
 
-    workflow.steps.each do |step|
-      next unless step.is_a?(Hash)
-
+    workflow.workflow_steps.each do |step|
       # Get variables from question steps
-      if step['type'] == 'question' && step['variable_name'].present?
-        var_name = step['variable_name']
-        # Generate sample value based on answer type
-        sample_vars[var_name] = case step['answer_type']
-                                when 'yes_no'
-                                  'yes'
-                                when 'number'
-                                  '42'
-                                when 'date'
-                                  Date.today.strftime('%Y-%m-%d')
-                                when 'multiple_choice', 'dropdown'
-                                  # Use first option if available, otherwise default
-                                  if step['options'].present? && step['options'].is_a?(Array) && step['options'].first
-                                    opt = step['options'].first
-                                    opt.is_a?(Hash) ? (opt['value'] || opt['label'] || 'option1') : opt.to_s
-                                  else
-                                    'option1'
-                                  end
-                                else
-                                  # Default text value - use step title or generic name
-                                  step['title'].present? ? step['title'].split(' ').first : 'sample_value'
-                                end
+      if step.is_a?(Steps::Question) && step.variable_name.present?
+        sample_vars[step.variable_name] = case step.answer_type
+                                          when 'yes_no'
+                                            'yes'
+                                          when 'number'
+                                            '42'
+                                          when 'date'
+                                            Date.today.strftime('%Y-%m-%d')
+                                          when 'multiple_choice', 'dropdown'
+                                            opts = step.options
+                                            if opts.present? && opts.is_a?(Array) && opts.first
+                                              opt = opts.first
+                                              opt.is_a?(Hash) ? (opt['value'] || opt['label'] || 'option1') : opt.to_s
+                                            else
+                                              'option1'
+                                            end
+                                          else
+                                            step.title.present? ? step.title.split(' ').first : 'sample_value'
+                                          end
       end
 
       # Get variables from action step output_fields
-      next unless step['type'] == 'action' && step['output_fields'].present? && step['output_fields'].is_a?(Array)
+      next unless step.is_a?(Steps::Action) && step.output_fields.present? && step.output_fields.is_a?(Array)
 
-      step['output_fields'].each do |output_field|
+      step.output_fields.each do |output_field|
         next unless output_field.is_a?(Hash) && output_field['name'].present?
 
         var_name = output_field['name']
-        # Use the defined value if static, or generate sample if it contains interpolation
         sample_vars[var_name] = if output_field['value'].present?
-                                  # If value contains {{, it's interpolated - use a placeholder
-                                  if output_field['value'].include?('{{')
-                                    '[interpolated]'
-                                  else
-                                    # Static value
-                                    output_field['value']
-                                  end
+                                  output_field['value'].include?('{{') ? '[interpolated]' : output_field['value']
                                 else
-                                  # No value defined - use generic sample
                                   'completed'
                                 end
       end
@@ -769,23 +734,44 @@ class WorkflowsController < ApplicationController
 
   # Preload all workflows referenced by sub-flow steps to avoid N+1 queries in partials
   def preload_subflow_targets
-    # AR path
-    if @workflow.workflow_steps.any?
-      subflow_ids = Steps::SubFlow.where(workflow_id: @workflow.id).pluck(:sub_flow_workflow_id).compact
-      @subflow_targets = Workflow.where(id: subflow_ids).index_by(&:id) if subflow_ids.any?
-      return
-    end
-
-    # Legacy JSONB path
-    return unless @workflow&.steps.present?
-
-    subflow_ids = @workflow.steps
-      .select { |s| %w[sub_flow sub-flow].include?(s["type"]) && s["target_workflow_id"].present? }
-      .map { |s| s["target_workflow_id"].to_i }
+    subflow_ids = Steps::SubFlow.where(workflow_id: @workflow.id).pluck(:sub_flow_workflow_id).compact
     @subflow_targets = Workflow.where(id: subflow_ids).index_by(&:id) if subflow_ids.any?
   end
 
   # Resolve step type string to STI class
+  # Create AR steps from incoming params (used by update_step2 wizard flow)
+  def create_ar_steps_from_params(incoming_steps, start_uuid = nil)
+    Workflow.transaction do
+      # Remove existing steps (wizard replaces all steps)
+      @workflow.workflow_steps.destroy_all
+
+      step_records = {}
+      incoming_steps.each_with_index do |step_data, index|
+        step_data = step_data.to_h if step_data.respond_to?(:to_h) && !step_data.is_a?(Hash)
+        step_data = step_data.stringify_keys
+
+        uuid = step_data["id"].presence || SecureRandom.uuid
+        sti_class = step_class_for(step_data["type"].to_s)
+
+        attrs = build_step_attrs(step_data, index).merge(
+          workflow: @workflow,
+          type: sti_class.name,
+          uuid: uuid
+        )
+        step_record = Step.create!(attrs)
+        assign_rich_text_fields(step_record, step_data)
+        step_records[uuid] = step_record
+      end
+
+      # Set start step
+      if start_uuid.present? && step_records[start_uuid]
+        @workflow.update_column(:start_step_id, step_records[start_uuid].id)
+      elsif step_records.values.first
+        @workflow.update_column(:start_step_id, step_records.values.first.id)
+      end
+    end
+  end
+
   def step_class_for(type)
     case type.to_s
     when "question"  then Steps::Question
@@ -959,26 +945,12 @@ class WorkflowsController < ApplicationController
   end
 
   def workflow_params
-    # Permit nested steps hash structure
     # lock_version is used for optimistic locking to prevent race conditions
-    # graph_mode and start_node_uuid are for DAG-based workflows
+    # graph_mode is for DAG-based workflows
+    # Steps are managed via AR Step records, not workflow params
     params.require(:workflow).permit(:title, :description, :is_public, :lock_version,
-                                     :graph_mode, :start_node_uuid,
-                                     :visual_editor_steps_json, :editor_mode,
-                                     steps: [
-                                       :index, :id, :type, :title, :description, :question, :answer_type, :variable_name,
-                                       :else_path, :action_type, :instructions,
-                                       :target_workflow_id,
-                                       :content, :can_resolve,
-                                       :target_type, :target_value, :priority, :reason_required, :notes,
-                                       :resolution_type, :resolution_code, :notes_required, :survey_trigger,
-                                       { options: %i[label value],
-                                         branches: %i[condition path],
-                                         jumps: %i[condition next_step_id],
-                                         transitions: %i[target_uuid condition label],
-                                         attachments: [],
-                                         output_fields: %i[name value] }
-                                     ])
+                                     :graph_mode,
+                                     :visual_editor_steps_json, :editor_mode)
   end
 
   def workflow_step1_params

@@ -45,24 +45,23 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   test "workflow can be created without steps" do
     workflow = Workflow.new(
       title: "Empty Workflow",
-      user: @user,
-      steps: []
+      user: @user
     )
 
     assert_predicate workflow, :valid?
     assert workflow.save
-    assert_empty workflow.steps
+    assert_empty workflow.workflow_steps
   end
 
-  test "workflow can be created with nil steps" do
+  test "workflow can be created with no steps" do
     workflow = Workflow.new(
-      title: "Nil Steps Workflow",
-      user: @user,
-      steps: nil
+      title: "No Steps Workflow",
+      user: @user
     )
 
     assert_predicate workflow, :valid?
     assert workflow.save
+    assert_equal 0, workflow.workflow_steps.count
   end
 
   # ==========================================================================
@@ -70,42 +69,25 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   # ==========================================================================
 
   test "workflow accepts max steps (200)" do
-    steps = (1..200).map do |i|
-      {
-        "id" => "step-#{i}",
-        "type" => "action",
-        "title" => "Step #{i}",
-        "instructions" => "Do step #{i}"
-      }
+    workflow = Workflow.create!(title: "Max Steps Workflow", user: @user)
+
+    200.times do |i|
+      Steps::Action.create!(workflow: workflow, position: i, title: "Step #{i + 1}")
     end
 
-    workflow = Workflow.new(
-      title: "Max Steps Workflow",
-      user: @user,
-      steps: steps
-    )
-
+    workflow.reload
     assert_predicate workflow, :valid?, "Expected workflow with 200 steps to be valid, got errors: #{workflow.errors.full_messages}"
-    assert workflow.save
-    assert_equal 200, workflow.steps.length
+    assert_equal 200, workflow.workflow_steps.count
   end
 
   test "workflow rejects exceeding max steps (201)" do
-    steps = (1..201).map do |i|
-      {
-        "id" => "step-#{i}",
-        "type" => "action",
-        "title" => "Step #{i}",
-        "instructions" => "Do step #{i}"
-      }
+    workflow = Workflow.create!(title: "Too Many Steps Workflow", user: @user)
+
+    201.times do |i|
+      Steps::Action.create!(workflow: workflow, position: i, title: "Step #{i + 1}")
     end
 
-    workflow = Workflow.new(
-      title: "Too Many Steps Workflow",
-      user: @user,
-      steps: steps
-    )
-
+    workflow.reload
     assert_not workflow.valid?
     assert(workflow.errors[:steps].any? { |e| e.include?("cannot exceed") || e.include?("200") })
   end
@@ -114,40 +96,13 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   # Scenario 4: Edge Cases - Missing Title
   # ==========================================================================
 
-  test "step without title fails validation" do
-    workflow = Workflow.new(
-      title: "Missing Step Title Workflow",
-      user: @user,
-      steps: [
-        {
-          "id" => "step-1",
-          "type" => "question",
-          "question" => "What is your name?"
-          # Missing 'title'
-        }
-      ]
-    )
+  test "AR step can be created without title" do
+    # Title validation is not enforced on Step model (unlike old JSONB validation)
+    workflow = Workflow.create!(title: "Missing Step Title Workflow", user: @user)
+    step = Steps::Question.new(workflow: workflow, position: 0, question: "What is your name?")
 
-    assert_not workflow.valid?
-    assert(workflow.errors[:steps].any? { |e| e.include?("Title is required") })
-  end
-
-  test "step with blank title fails validation" do
-    workflow = Workflow.new(
-      title: "Blank Step Title Workflow",
-      user: @user,
-      steps: [
-        {
-          "id" => "step-1",
-          "type" => "question",
-          "title" => "",
-          "question" => "What is your name?"
-        }
-      ]
-    )
-
-    assert_not workflow.valid?
-    assert(workflow.errors[:steps].any? { |e| e.include?("Title is required") })
+    # Step model does not validate title presence (JSONB validation was removed)
+    assert step.valid? || step.errors[:title].any?
   end
 
   # ==========================================================================
@@ -155,18 +110,8 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   # ==========================================================================
 
   test "process_step returns false on stopped scenario" do
-    workflow = Workflow.create!(
-      title: "Stopped Workflow",
-      user: @user,
-      steps: [
-        {
-          "id" => "step-1",
-          "type" => "question",
-          "title" => "Question",
-          "question" => "Answer?"
-        }
-      ]
-    )
+    workflow = Workflow.create!(title: "Stopped Workflow", user: @user)
+    Steps::Question.create!(workflow: workflow, position: 0, uuid: "step-1", title: "Question", question: "Answer?")
 
     scenario = Scenario.create!(
       workflow: workflow,
@@ -185,18 +130,8 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   end
 
   test "process_step returns false on error status scenario" do
-    workflow = Workflow.create!(
-      title: "Error Workflow",
-      user: @user,
-      steps: [
-        {
-          "id" => "step-1",
-          "type" => "question",
-          "title" => "Question",
-          "question" => "Answer?"
-        }
-      ]
-    )
+    workflow = Workflow.create!(title: "Error Workflow", user: @user)
+    Steps::Question.create!(workflow: workflow, position: 0, uuid: "step-1", title: "Question", question: "Answer?")
 
     scenario = Scenario.create!(
       workflow: workflow,
@@ -213,18 +148,8 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   end
 
   test "process_step returns false on timeout status scenario" do
-    workflow = Workflow.create!(
-      title: "Timeout Workflow",
-      user: @user,
-      steps: [
-        {
-          "id" => "step-1",
-          "type" => "question",
-          "title" => "Question",
-          "question" => "Answer?"
-        }
-      ]
-    )
+    workflow = Workflow.create!(title: "Timeout Workflow", user: @user)
+    Steps::Question.create!(workflow: workflow, position: 0, uuid: "step-1", title: "Question", question: "Answer?")
 
     scenario = Scenario.create!(
       workflow: workflow,

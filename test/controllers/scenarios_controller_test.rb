@@ -9,14 +9,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    @workflow = Workflow.create!(
-      title: "Test Workflow",
-      description: "A test workflow",
-      user: @user,
-      steps: [
-        { type: "question", title: "Question 1", question: "What is your name?" }
-      ]
-    )
+    @workflow = Workflow.create!(title: "Test Workflow", user: @user)
+    Steps::Question.create!(workflow: @workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
     sign_in @user
   end
 
@@ -57,12 +51,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "admin"
     )
-    workflow = Workflow.create!(
-      title: "Any Workflow",
-      user: @user,
-      is_public: false,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
-    )
+    workflow = Workflow.create!(title: "Any Workflow", user: @user, is_public: false)
+    Steps::Question.create!(workflow: workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
     sign_in admin
 
     get new_workflow_scenario_path(workflow)
@@ -77,18 +67,10 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    own_workflow = Workflow.create!(
-      title: "My Workflow",
-      user: editor,
-      is_public: false,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
-    )
-    public_workflow = Workflow.create!(
-      title: "Public Workflow",
-      user: @user,
-      is_public: true,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
-    )
+    own_workflow = Workflow.create!(title: "My Workflow", user: editor, is_public: false)
+    Steps::Question.create!(workflow: own_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
+    public_workflow = Workflow.create!(title: "Public Workflow", user: @user, is_public: true)
+    Steps::Question.create!(workflow: public_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
     sign_in editor
 
     get new_workflow_scenario_path(own_workflow)
@@ -107,12 +89,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    private_workflow = Workflow.create!(
-      title: "Private Workflow",
-      user: @user,
-      is_public: false,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
-    )
+    private_workflow = Workflow.create!(title: "Private Workflow", user: @user, is_public: false)
+    Steps::Question.create!(workflow: private_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
     sign_in editor
 
     get new_workflow_scenario_path(private_workflow)
@@ -128,12 +106,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "user"
     )
-    public_workflow = Workflow.create!(
-      title: "Public Workflow",
-      user: @user,
-      is_public: true,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
-    )
+    public_workflow = Workflow.create!(title: "Public Workflow", user: @user, is_public: true)
+    Steps::Question.create!(workflow: public_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
     sign_in regular_user
 
     get new_workflow_scenario_path(public_workflow)
@@ -148,12 +122,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "user"
     )
-    private_workflow = Workflow.create!(
-      title: "Private Workflow",
-      user: @user,
-      is_public: false,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
-    )
+    private_workflow = Workflow.create!(title: "Private Workflow", user: @user, is_public: false)
+    Steps::Question.create!(workflow: private_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
     sign_in regular_user
 
     get new_workflow_scenario_path(private_workflow)
@@ -170,12 +140,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(
-      title: "Other Workflow",
-      user: other_user,
-      is_public: true,
-      steps: [{ type: "question", title: "Q1", question: "What?" }]
-    )
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
       user: other_user,
@@ -196,12 +162,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(
-      title: "Other Workflow",
-      user: other_user,
-      is_public: true,
-      steps: [{ type: "question", title: "Q1", question: "What?" }]
-    )
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
       user: other_user,
@@ -222,12 +184,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(
-      title: "Other Workflow",
-      user: other_user,
-      is_public: true,
-      steps: [{ type: "question", title: "Q1", question: "What?" }]
-    )
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
       user: other_user,
@@ -248,12 +206,8 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(
-      title: "Other Workflow",
-      user: other_user,
-      is_public: true,
-      steps: [{ type: "question", title: "Q1", question: "What?" }]
-    )
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
       user: other_user,

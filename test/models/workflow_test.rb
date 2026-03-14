@@ -12,9 +12,8 @@ class WorkflowTest < ActiveSupport::TestCase
   test "should create workflow with valid attributes" do
     workflow = Workflow.new(
       title: "Test Workflow",
-      description: "A test workflow",
-      user: @user,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
+
+      user: @user
     )
 
     assert_predicate workflow, :valid?
@@ -23,7 +22,7 @@ class WorkflowTest < ActiveSupport::TestCase
 
   test "should not create workflow without title" do
     workflow = Workflow.new(
-      description: "A test workflow",
+
       user: @user
     )
 
@@ -33,8 +32,7 @@ class WorkflowTest < ActiveSupport::TestCase
 
   test "should not create workflow without user" do
     workflow = Workflow.new(
-      title: "Test Workflow",
-      description: "A test workflow"
+      title: "Test Workflow"
     )
 
     assert_not workflow.valid?
@@ -50,21 +48,17 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_equal @user, workflow.user
   end
 
-  test "should store steps as JSON" do
-    steps = [
-      { type: "question", title: "Question 1", description: "First question", question: "What is your name?" },
-      { type: "action", title: "Action 1", instructions: "Check the answer" }
-    ]
+  test "should store steps as AR records" do
     workflow = Workflow.create!(
       title: "Test Workflow",
-      user: @user,
-      steps: steps
+      user: @user
     )
+    Steps::Question.create!(workflow: workflow, position: 0, title: "Question 1", question: "What is your name?")
+    Steps::Action.create!(workflow: workflow, position: 1, title: "Action 1")
 
-    # JSON stores keys as strings, not symbols
-    assert_equal 2, workflow.steps.length
-    assert_equal "question", workflow.steps.first["type"]
-    assert_equal "Action 1", workflow.steps.last["title"]
+    assert_equal 2, workflow.workflow_steps.count
+    assert_equal "Steps::Question", workflow.workflow_steps.first.type
+    assert_equal "Action 1", workflow.workflow_steps.last.title
   end
 
   test "recent scope should order by created_at desc" do

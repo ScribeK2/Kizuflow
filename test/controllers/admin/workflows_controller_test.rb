@@ -18,9 +18,9 @@ class Admin::WorkflowsControllerTest < ActionDispatch::IntegrationTest
       title: "Test Workflow",
       description: "A test workflow",
       user: @editor,
-      is_public: false,
-      steps: [{ type: "question", title: "Question 1", question: "What is your name?" }]
+      is_public: false
     )
+    Steps::Question.create!(workflow: @workflow, position: 0, title: "Question 1", question: "What is your name?")
   end
 
   test "admin should be able to access workflow management" do

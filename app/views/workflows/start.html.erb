@@ -19,7 +19,7 @@
           <svg class="w-5 h-5 mr-2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
-          <span><%= pluralize(@workflow.steps&.length || 0, "step") %></span>
+          <span><%= pluralize(@workflow.workflow_steps.size, "step") %></span>
         </div>
         <% if @workflow.is_public? %>
           <div class="flex items-center">
@@ -55,34 +55,35 @@
   </div>
 
   <!-- Workflow Steps Preview -->
-  <% if @workflow.steps.present? && @workflow.steps.any? %>
+  <% ar_steps = @workflow.workflow_steps.order(:position) %>
+  <% if ar_steps.any? %>
     <div class="mt-8 animate-fade-in-up" style="animation-delay: 0.3s;">
       <div class="solid-card overflow-hidden">
         <div class="px-6 py-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Workflow Steps (<%= @workflow.steps.length %> total)
+            Workflow Steps (<%= ar_steps.size %> total)
           </h3>
         </div>
         <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
           <div class="border-l-2 border-slate-200 dark:border-slate-700 ml-4" role="list">
             <div class="space-y-3 pl-4">
-              <% @workflow.steps.each_with_index do |step, index| %>
+              <% ar_steps.each_with_index do |step, index| %>
                 <div class="flex items-start space-x-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50" role="listitem">
                   <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-600 dark:bg-slate-500 text-white text-sm font-semibold flex-shrink-0">
                     <%= index + 1 %>
                   </span>
                   <div class="flex-1 min-w-0">
                     <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      <span class="inline-flex items-center gap-1"><%= step_type_svg_icon(step['type'], css_classes: "w-4 h-4 inline-block") %> <%= step['title'] %></span>
+                      <span class="inline-flex items-center gap-1"><%= step_type_svg_icon(step.step_type, css_classes: "w-4 h-4 inline-block") %> <%= step.title %></span>
                     </h4>
-                    <% snippet = step['question'] || step['content'] || step['instructions'] || step['description'] %>
+                    <% snippet = step.try(:question) || step.try(:content)&.to_s || step.try(:instructions)&.to_s %>
                     <% if snippet.present? %>
                       <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none">
-                        <%= render_step_markdown(truncate(snippet, length: 200, escape: false)) %>
+                        <%= truncate(strip_tags(snippet.to_s), length: 200) %>
                       </div>
                     <% end %>
-                    <span class="<%= step_type_badge_classes(step['type']) %> mt-2">
-                      <%= step_type_label(step['type']) %>
+                    <span class="<%= step_type_badge_classes(step.step_type) %> mt-2">
+                      <%= step_type_label(step.step_type) %>
                     </span>
                   </div>
                 </div>

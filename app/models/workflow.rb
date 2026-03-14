@@ -149,10 +149,15 @@ class Workflow < ApplicationRecord
     search_term = "%#{query.strip}%"
 
     title_matches = case_insensitive_like('title', search_term)
-    desc_matches = case_insensitive_like('description', search_term)
+
+    # Search Action Text description via rich text join
+    desc_ids = ActionText::RichText
+      .where(record_type: "Workflow", name: "description")
+      .where("body LIKE ?", search_term)
+      .select(:record_id)
 
     where(id: title_matches.select(:id))
-      .or(where(id: desc_matches.select(:id)))
+      .or(where(id: desc_ids))
   }
 
   # Helper method to get description as plain text
