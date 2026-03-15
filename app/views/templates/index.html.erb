@@ -1,22 +1,18 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="page-content">
   <!-- Header Section -->
-  <div class="mb-8 animate-fade-in">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-      Templates
-    </h1>
-    <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-      Browse and use pre-built workflow templates.
-    </p>
+  <div class="mb-4">
+    <h1>Templates</h1>
+    <p class="text-sm mt-1">Browse and use pre-built workflow templates.</p>
   </div>
 
   <!-- Search Section -->
-  <div class="mb-6 solid-card p-4 animate-fade-in-up">
+  <div class="card card__body mb-4">
     <%= form_with url: templates_path, method: :get, local: true, class: "flex gap-2" do |form| %>
       <%= hidden_field_tag :category, params[:category] if params[:category].present? %>
-      <%= form.text_field :search, value: params[:search], placeholder: "Search templates...", class: "flex-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:focus:ring-emerald-500/30 focus:border-emerald-500 dark:focus:border-emerald-500 transition-colors" %>
-      <%= form.submit "Search", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 btn-press" %>
+      <%= form.text_field :search, value: params[:search], placeholder: "Search templates...", class: "form-input flex-1" %>
+      <%= form.submit "Search", class: "btn btn--secondary" %>
       <% if params[:search].present? || params[:category].present? %>
-        <%= link_to "Clear", templates_path, class: "bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" %>
+        <%= link_to "Clear", templates_path, class: "btn btn--plain" %>
       <% end %>
     <% end %>
   </div>
@@ -24,84 +20,60 @@
   <!-- Category Filter Chips -->
   <% categories = @categories %>
   <% if categories.any? %>
-    <div class="flex flex-wrap gap-2 mb-6 animate-fade-in-up">
+    <div class="flex flex-wrap gap-2 mb-4">
       <%= link_to "All", templates_path(search: params[:search]),
-          class: "px-3 py-1.5 rounded-full text-sm font-medium transition-colors #{params[:category].blank? ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}",
+          class: "badge #{params[:category].blank? ? 'badge--active' : ''}",
           data: { turbo_action: "replace" } %>
       <% categories.each do |cat| %>
         <%= link_to cat.titleize, templates_path(category: cat, search: params[:search]),
-            class: "px-3 py-1.5 rounded-full text-sm font-medium transition-colors #{params[:category] == cat ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}",
+            class: "badge #{params[:category] == cat ? 'badge--active' : ''}",
             data: { turbo_action: "replace" } %>
       <% end %>
     </div>
   <% end %>
 
   <% if @templates.any? %>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <% @templates.each_with_index do |template, index| %>
+    <div class="template-grid">
+      <% @templates.each do |template| %>
         <%
           steps_count = template.workflow_data&.length || 0
-          border_color = case template.category
-            when 'troubleshooting' then 'border-t-blue-500'
-            when 'account-management' then 'border-t-emerald-500'
-            when 'complaints-retention' then 'border-t-purple-500'
-            when 'sales-onboarding' then 'border-t-amber-500'
-            when 'training' then 'border-t-teal-500'
-            when 'onboarding', 'post-onboarding' then 'border-t-amber-500'
-            when 'customer-service' then 'border-t-purple-500'
-            when 'custom' then 'border-t-cyan-500'
-            else 'border-t-slate-400'
-          end
         %>
-        <div class="solid-card flex flex-col h-full overflow-hidden hover-lift border-t-4 <%= border_color %> <%= steps_count == 0 ? 'opacity-60' : '' %> animate-fade-in-up" style="animation-delay: <%= index * 0.05 %>s;">
-          <div class="p-6 flex flex-col h-full min-w-0" style="min-height: 280px;">
-            <div class="flex items-start justify-between mb-2 gap-2 flex-shrink-0">
-              <h3 class="text-lg font-semibold flex-1 min-w-0 break-words line-clamp-2">
-                <%= link_to template.name, template_path(template), class: "text-gray-900 dark:text-gray-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" %>
+        <div class="card template-card <%= steps_count == 0 ? 'is-disabled' : '' %>">
+          <div class="card__body flex flex-col h-full">
+            <div class="flex items-start justify-between mb-2 gap-2">
+              <h3 class="font-semibold flex-1 min-w-0">
+                <%= link_to template.name, template_path(template) %>
               </h3>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
-                <%= template.category&.titleize %>
-              </span>
+              <span class="badge flex-shrink-0"><%= template.category&.titleize %></span>
             </div>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 flex-shrink-0 line-clamp-3"><%= truncate(template.description || "", length: 100) %></p>
+            <p class="text-sm mb-4 flex-1"><%= truncate(template.description || "", length: 100) %></p>
 
-            <div class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-4 flex-shrink-0">
-              <span><%= pluralize(steps_count, "step") %></span>
-              <div class="flex gap-0.5">
-                <% [5, 10, 15, 20].each do |threshold| %>
-                  <div class="w-1.5 h-1.5 rounded-full <%= steps_count >= threshold ? 'bg-slate-400 dark:bg-slate-500' : 'bg-slate-200 dark:bg-slate-700' %>"></div>
-                <% end %>
-              </div>
-            </div>
+            <p class="text-xs mb-4"><%= pluralize(steps_count, "step") %></p>
 
             <% if steps_count == 0 %>
-              <div class="flex-1 flex items-center justify-center">
-                <p class="text-xs text-slate-400 dark:text-slate-500 italic">No steps yet</p>
-              </div>
+              <p class="text-xs italic text-center mb-4">No steps yet</p>
             <% end %>
 
-            <div class="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button"
-                        data-controller="template-preview"
-                        data-template-preview-template-id-value="<%= template.id %>"
-                        data-action="click->template-preview#open"
-                        class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors btn-press">
-                  Preview
-                </button>
-                <%= button_to "Use Template", use_template_path(template), method: :post, class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 btn-press" %>
-              </div>
+            <div class="card__footer mt-auto pt-3 grid grid-cols-2 gap-2">
+              <button type="button"
+                      data-controller="template-preview"
+                      data-template-preview-template-id-value="<%= template.id %>"
+                      data-action="click->template-preview#open"
+                      class="btn btn--secondary btn--sm">
+                Preview
+              </button>
+              <%= button_to "Use Template", use_template_path(template), method: :post, class: "btn btn--primary btn--sm" %>
             </div>
           </div>
         </div>
       <% end %>
     </div>
   <% else %>
-    <div class="solid-card p-12 text-center animate-fade-in-up">
-      <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="empty-state">
+      <svg class="empty-state__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
       </svg>
-      <p class="mt-4 text-gray-500 dark:text-gray-400">No templates found.</p>
+      <p class="empty-state__text">No templates found.</p>
     </div>
   <% end %>
 </div>
@@ -110,4 +82,3 @@
 <% if @templates.any? %>
   <%= render partial: "preview_modal", locals: { templates: @templates } %>
 <% end %>
-
