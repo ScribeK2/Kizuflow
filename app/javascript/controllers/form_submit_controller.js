@@ -6,6 +6,6 @@ export default class extends Controller {
   submit() {
     this.submitTarget.disabled = true
     this.submitTarget.value = "Starting..."
-    this.submitTarget.classList.add("opacity-75", "cursor-wait")
+    this.submitTarget.classList.add("is-disabled")
   }
 }

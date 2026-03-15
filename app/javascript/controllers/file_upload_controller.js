@@ -20,14 +20,12 @@ export default class extends Controller {
 
   dragOver(event) {
     event.preventDefault()
-    this.dropZoneTarget.classList.add("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20")
-    this.dropZoneTarget.classList.remove("border-gray-300", "dark:border-gray-600")
+    this.dropZoneTarget.classList.add("is-dragover")
   }
 
   dragLeave(event) {
     event.preventDefault()
-    this.dropZoneTarget.classList.remove("border-blue-500", "bg-blue-50", "dark:bg-blue-900/20")
-    this.dropZoneTarget.classList.add("border-gray-300", "dark:border-gray-600")
+    this.dropZoneTarget.classList.remove("is-dragover")
   }
 
   drop(event) {
@@ -55,15 +53,15 @@ export default class extends Controller {
 
   clearFile() {
     this.fileInputTarget.value = ""
-    this.emptyStateTarget.classList.remove("hidden")
-    this.fileSelectedTarget.classList.add("hidden")
+    this.emptyStateTarget.classList.remove("is-hidden")
+    this.fileSelectedTarget.classList.add("is-hidden")
   }
 
   showFileSelected(file) {
     this.fileNameTarget.textContent = file.name
     this.fileSizeTarget.textContent = this.formatFileSize(file.size)
-    this.emptyStateTarget.classList.add("hidden")
-    this.fileSelectedTarget.classList.remove("hidden")
+    this.emptyStateTarget.classList.add("is-hidden")
+    this.fileSelectedTarget.classList.remove("is-hidden")
   }
 
   formatFileSize(bytes) {

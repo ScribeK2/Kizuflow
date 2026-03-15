@@ -342,7 +342,7 @@ export default class extends Controller {
       }
       
       // Show the modal
-      this.conflictModalTarget.classList.remove("hidden")
+      this.conflictModalTarget.classList.remove("is-hidden")
     } else {
       // Fallback to browser alert/confirm
       const shouldRefresh = confirm(
@@ -371,7 +371,7 @@ export default class extends Controller {
       // Just dismiss the conflict notification (user will manually handle)
       this.hasConflict = false
       if (this.hasConflictModalTarget) {
-        this.conflictModalTarget.classList.add("hidden")
+        this.conflictModalTarget.classList.add("is-hidden")
       }
       this.updateStatus("ready", "Ready to save")
     }
@@ -397,30 +397,30 @@ export default class extends Controller {
     this.statusTarget.textContent = message
 
     // Update status classes
-    this.statusTarget.className = "text-sm font-medium "
+    this.statusTarget.className = "autosave-status"
 
     switch(status) {
       case "saving":
-        this.statusTarget.className += "text-yellow-600"
+        this.statusTarget.className += " status--saving"
         break
       case "saved":
-        this.statusTarget.className += "text-green-600"
+        this.statusTarget.className += " status--saved"
         break
       case "error":
-        this.statusTarget.className += "text-red-600"
+        this.statusTarget.className += " status--error"
         break
       case "conflict":
-        this.statusTarget.className += "text-red-600"
+        this.statusTarget.className += " status--conflict"
         break
       default:
-        this.statusTarget.className += "text-gray-600"
+        this.statusTarget.className += " status--ready"
     }
   }
 
   updateConflictStatus(message) {
     if (!this.hasStatusTarget) return
 
-    this.statusTarget.className = "text-sm font-medium text-red-600 inline-flex items-center gap-1"
+    this.statusTarget.className = "autosave-status status--conflict"
     this.statusTarget.innerHTML = `${renderIcon(UI_ICON_PATHS.warning, "w-4 h-4")} ${this.escapeHtml(message)}`
   }
 

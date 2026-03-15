@@ -7,12 +7,12 @@ export default class extends Controller {
   toggle() {
     if (this.inputTarget.type === "password") {
       this.inputTarget.type = "text"
-      this.showIconTarget.classList.add("hidden")
-      this.hideIconTarget.classList.remove("hidden")
+      this.showIconTarget.classList.add("is-hidden")
+      this.hideIconTarget.classList.remove("is-hidden")
     } else {
       this.inputTarget.type = "password"
-      this.showIconTarget.classList.remove("hidden")
-      this.hideIconTarget.classList.add("hidden")
+      this.showIconTarget.classList.remove("is-hidden")
+      this.hideIconTarget.classList.add("is-hidden")
     }
   }
 }

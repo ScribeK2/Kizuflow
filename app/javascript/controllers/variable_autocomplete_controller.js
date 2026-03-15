@@ -121,7 +121,7 @@ export default class extends Controller {
   handleKeydown(event) {
     if (!this.dropdown || !this.dropdownContainer) return
     
-    const selectedItem = this.dropdownContainer.querySelector(".variable-item.selected")
+    const selectedItem = this.dropdownContainer.querySelector(".variable-item.is-selected")
     
     switch (event.key) {
       case "ArrowDown":
@@ -169,12 +169,12 @@ export default class extends Controller {
     
     // Create dropdown container
     this.dropdownContainer = document.createElement("div")
-    this.dropdownContainer.className = "variable-autocomplete-dropdown absolute z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+    this.dropdownContainer.className = "variable-autocomplete-dropdown"
     
     // Create variable list
     this.filteredVariables.forEach((variable, index) => {
       const item = document.createElement("div")
-      item.className = `variable-item px-3 py-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 text-sm ${index === 0 ? 'selected' : ''}`
+      item.className = `variable-item${index === 0 ? ' is-selected' : ''}`
       item.dataset.variable = variable
       item.textContent = variable
       item.addEventListener("click", () => {
@@ -219,17 +219,17 @@ export default class extends Controller {
     if (!this.dropdownContainer) return
     
     const items = this.dropdownContainer.querySelectorAll(".variable-item")
-    const selected = this.dropdownContainer.querySelector(".variable-item.selected")
+    const selected = this.dropdownContainer.querySelector(".variable-item.is-selected")
     
     if (selected) {
-      selected.classList.remove("selected")
+      selected.classList.remove("is-selected")
       const next = selected.nextElementSibling
       if (next) {
-        next.classList.add("selected")
+        next.classList.add("is-selected")
         next.scrollIntoView({ block: "nearest" })
       }
     } else if (items.length > 0) {
-      items[0].classList.add("selected")
+      items[0].classList.add("is-selected")
     }
   }
 
@@ -237,17 +237,17 @@ export default class extends Controller {
     if (!this.dropdownContainer) return
     
     const items = this.dropdownContainer.querySelectorAll(".variable-item")
-    const selected = this.dropdownContainer.querySelector(".variable-item.selected")
+    const selected = this.dropdownContainer.querySelector(".variable-item.is-selected")
     
     if (selected) {
-      selected.classList.remove("selected")
+      selected.classList.remove("is-selected")
       const prev = selected.previousElementSibling
       if (prev) {
-        prev.classList.add("selected")
+        prev.classList.add("is-selected")
         prev.scrollIntoView({ block: "nearest" })
       }
     } else if (items.length > 0) {
-      items[items.length - 1].classList.add("selected")
+      items[items.length - 1].classList.add("is-selected")
     }
   }
 

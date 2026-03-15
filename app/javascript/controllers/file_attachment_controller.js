@@ -209,12 +209,12 @@ export default class extends Controller {
 
   renderAttachmentItem(signedId, fileName) {
     const itemHtml = `
-      <div class="flex items-center justify-between p-2 bg-gray-50 rounded border" data-attachment-id="${signedId}">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-700" data-file-name="${signedId}">${this.escapeHtml(fileName)}</span>
+      <div class="attachment-item" data-attachment-id="${signedId}">
+        <div class="attachment-item__info">
+          <span class="attachment-item__name" data-file-name="${signedId}">${this.escapeHtml(fileName)}</span>
         </div>
-        <button type="button" 
-                class="text-red-500 hover:text-red-700 text-sm"
+        <button type="button"
+                class="btn btn--negative btn--sm"
                 data-action="click->file-attachment#removeAttachment"
                 data-attachment-id="${signedId}">
           Remove

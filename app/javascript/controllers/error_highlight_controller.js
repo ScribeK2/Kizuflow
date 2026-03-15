@@ -33,13 +33,8 @@ export default class extends Controller {
   }
 
   applyErrorStyling(field) {
-    // Add error border styling
-    field.classList.add("border-red-500", "dark:border-red-400")
-    field.classList.remove("border-gray-300", "dark:border-gray-600")
-
-    // Add error ring on focus
-    field.classList.add("focus:ring-red-500", "focus:border-red-500")
-    field.classList.remove("focus:ring-blue-500", "focus:border-blue-500")
+    // Add error styling
+    field.classList.add("is-invalid")
 
     // Add error indicator icon if input field
     if (field.tagName === "INPUT" || field.tagName === "TEXTAREA") {
@@ -51,25 +46,24 @@ export default class extends Controller {
     const wrapper = field.parentElement
     if (!wrapper || wrapper.classList.contains("error-icon-added")) return
 
-    wrapper.classList.add("relative", "error-icon-added")
+    wrapper.classList.add("error-icon-wrapper", "error-icon-added")
 
     const icon = document.createElement("div")
-    icon.className = "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+    icon.className = "error-icon"
     icon.innerHTML = `
-      <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="error-icon__svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
     `
     wrapper.appendChild(icon)
 
-    // Adjust input padding to make room for icon
-    field.classList.add("pr-10")
+    // CSS handles padding for the icon via .is-invalid or error-icon-wrapper styles
   }
 
   scrollToFirstError() {
     // First try to scroll to an error field
     const firstErrorField = this.element.querySelector(
-      "[data-error-field].border-red-500, .border-red-500[data-error-field]"
+      "[data-error-field].is-invalid"
     )
 
     if (firstErrorField) {
