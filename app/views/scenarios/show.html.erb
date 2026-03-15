@@ -1,10 +1,10 @@
 <div class="page-content">
   <%# === Header Section === %>
-  <div class="mb-4">
+  <div class="page-header-section">
     <div class="scenario-header">
       <div>
         <p class="text-xs font-semibold uppercase tracking-widest mb-1">Scenario</p>
-        <h1>Scenario Results</h1>
+        <h1 class="page-header-section__title">Scenario Results</h1>
         <% if @scenario.complete? && !@scenario.stopped? %>
           <%
             path = @scenario.execution_path || []
@@ -197,7 +197,7 @@
           <div class="card__body" role="list">
             <% @scenario.execution_path.each_with_index do |path_item, index| %>
               <% step_type = path_item['step_type'] || path_item['type'] %>
-              <div class="card card--<%= step_type %> mb-2 pl-4 py-2"
+              <div class="exec-step exec-step--<%= step_type %> mb-2"
                    role="listitem"
                    aria-label="Step <%= index + 1 %>: <%= path_item['step_title'] %> - <%= step_type %>"
                    data-scenario-results-target="item">

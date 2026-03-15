@@ -7,7 +7,10 @@
   flex-direction: column;
 }
 
-.page-content {
+/* Only the layout-level .page-content gets the fixed-nav offset.
+   Many view templates also use .page-content as a wrapper — those
+   nested instances must NOT add extra padding. */
+.page-body > .page-content {
   padding-top: 4rem; /* height of fixed nav */
   min-height: 100vh;
   flex: 1;
