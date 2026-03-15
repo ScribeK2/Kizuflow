@@ -13,10 +13,10 @@ export default class extends Controller {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
 
     if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
-      document.documentElement.classList.add("dark")
+      document.documentElement.dataset.theme = "dark"
       this.updateIcons(true)
     } else {
-      document.documentElement.classList.remove("dark")
+      document.documentElement.dataset.theme = "light"
       this.updateIcons(false)
     }
   }
@@ -28,7 +28,7 @@ export default class extends Controller {
     // Suppress all CSS transitions for an instant theme switch
     this.disableTransitions()
 
-    if (document.documentElement.classList.contains("dark")) {
+    if (document.documentElement.dataset.theme === "dark") {
       this.enableLightMode()
     } else {
       this.enableDarkMode()
@@ -43,13 +43,13 @@ export default class extends Controller {
   }
 
   enableDarkMode() {
-    document.documentElement.classList.add("dark")
+    document.documentElement.dataset.theme = "dark"
     localStorage.setItem("theme", "dark")
     this.updateIcons(true)
   }
 
   enableLightMode() {
-    document.documentElement.classList.remove("dark")
+    document.documentElement.dataset.theme = "light"
     localStorage.setItem("theme", "light")
     this.updateIcons(false)
   }
@@ -57,11 +57,11 @@ export default class extends Controller {
   updateIcons(isDark) {
     if (this.hasSunIconTarget && this.hasMoonIconTarget) {
       if (isDark) {
-        this.sunIconTarget.classList.remove("hidden")
-        this.moonIconTarget.classList.add("hidden")
+        this.sunIconTarget.classList.remove("is-hidden")
+        this.moonIconTarget.classList.add("is-hidden")
       } else {
-        this.sunIconTarget.classList.add("hidden")
-        this.moonIconTarget.classList.remove("hidden")
+        this.sunIconTarget.classList.add("is-hidden")
+        this.moonIconTarget.classList.remove("is-hidden")
       }
     }
   }
