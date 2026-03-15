@@ -1,1 +1,155 @@
-/* buttons.css — Kizuflow Design System */
+/* buttons.css — Button components */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  background: var(--color-link);
+  color: oklch(1 0 0);
+  border-color: var(--color-link);
+}
+
+.btn--primary:hover {
+  background: oklch(0.48 0.2 260);
+}
+
+[data-theme="dark"] .btn--primary {
+  background: oklch(0.5 0.18 260);
+}
+
+[data-theme="dark"] .btn--primary:hover {
+  background: oklch(0.55 0.18 260);
+}
+
+.btn--secondary {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+.btn--secondary:hover {
+  background: var(--color-canvas-raised);
+  border-color: var(--color-ink-muted);
+}
+
+.btn--plain {
+  background: transparent;
+  color: var(--color-ink-subtle);
+  border-color: transparent;
+  padding: 0.375rem 0.75rem;
+}
+
+.btn--plain:hover {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink);
+}
+
+.btn--negative {
+  background: var(--color-negative);
+  color: oklch(1 0 0);
+  border-color: var(--color-negative);
+}
+
+.btn--negative:hover {
+  background: oklch(0.48 0.22 25);
+}
+
+[data-theme="dark"] .btn--negative:hover {
+  background: oklch(0.6 0.18 25);
+}
+
+.btn--positive {
+  background: var(--color-positive);
+  color: oklch(1 0 0);
+  border-color: var(--color-positive);
+}
+
+.btn--positive:hover {
+  background: oklch(0.53 0.19 145);
+}
+
+[data-theme="dark"] .btn--positive:hover {
+  background: oklch(0.6 0.16 145);
+}
+
+.btn--circle {
+  padding: 0.5rem;
+  border-radius: var(--radius-full);
+  aspect-ratio: 1;
+}
+
+.btn--sm {
+  padding: 0.25rem 0.625rem;
+  font-size: var(--text-xs);
+}
+
+.btn--lg {
+  padding: 0.625rem 1.25rem;
+  font-size: var(--text-base);
+}
+
+.btn.is-disabled,
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn.is-loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.is-loading::after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid oklch(1 0 0 / 0.3);
+  border-top-color: oklch(1 0 0);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Button group */
+.btn-group {
+  display: inline-flex;
+}
+
+.btn-group .btn {
+  border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.btn-group .btn:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.btn-group .btn + .btn {
+  margin-left: -1px;
+}
