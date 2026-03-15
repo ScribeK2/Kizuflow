@@ -1,35 +1,31 @@
-<!-- Solid Card Partial -->
+<!-- Card Partial -->
 <%
-  # Default classes for the card
-  card_classes = "solid-card p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-fade-in-up"
+  card_classes = "card animate-fade-in-up"
   card_classes += " #{local_assigns[:class]}" if local_assigns[:class]
-
-  # Optional 3D effect
-  card_classes += " transform perspective-1000 hover:rotateY-12" if local_assigns[:with_3d]
 %>
 
 <div class="<%= card_classes %>" <%= "data-controller='#{local_assigns[:controller]}'" if local_assigns[:controller] %>>
   <% if local_assigns[:title] || local_assigns[:icon] %>
-    <div class="flex items-center mb-4">
+    <div class="card__header">
       <% if local_assigns[:icon] %>
-        <div class="flex-shrink-0 mr-3 text-slate-600 dark:text-slate-400">
+        <div class="flex-shrink-0 mr-3">
           <%= raw icon %>
         </div>
       <% end %>
       <% if local_assigns[:title] %>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+        <h3 class="font-bold">
           <%= title %>
         </h3>
       <% end %>
     </div>
   <% end %>
 
-  <div class="<%= local_assigns[:content_class] || '' %>">
+  <div class="card__body <%= local_assigns[:content_class] || '' %>">
     <%= local_assigns[:content].html_safe if local_assigns[:content] %>
   </div>
 
   <% if local_assigns[:footer] %>
-    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+    <div class="card__footer">
       <%= footer %>
     </div>
   <% end %>

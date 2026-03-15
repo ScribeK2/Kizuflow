@@ -1,23 +1,18 @@
-<!-- Solid Modal Partial -->
+<!-- Modal Partial -->
 <%
   modal_id = local_assigns[:id] || "modal"
-  modal_classes = "solid-modal p-6 max-w-lg w-full mx-4 animate-scale-in"
-  modal_classes += " #{local_assigns[:class]}" if local_assigns[:class]
-
-  size_classes = {
-    sm: "max-w-md",
-    md: "max-w-lg",
-    lg: "max-w-2xl",
-    xl: "max-w-4xl",
-    full: "max-w-full"
-  }
-  modal_classes += " #{size_classes[local_assigns[:size]&.to_sym] || size_classes[:md]}"
+  size_class = case local_assigns[:size]&.to_sym
+               when :sm   then "dialog--sm"
+               when :lg   then "dialog--lg"
+               else ""
+               end
+  extra_class = local_assigns[:class] || ""
 %>
 
 <!-- Modal Backdrop -->
 <div
   id="<%= modal_id %>-backdrop"
-  class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 animate-fade-in"
+  class="dialog-overlay animate-fade-in"
   data-controller="modal"
   data-modal-target="backdrop"
   data-action="click->modal#close"
@@ -25,26 +20,26 @@
 >
   <!-- Modal Content -->
   <div
-    class="<%= modal_classes %>"
+    class="dialog <%= size_class %> <%= extra_class %> animate-scale-in"
     data-modal-target="content"
     data-action="click->modal#stop"
   >
     <!-- Modal Header -->
     <% if local_assigns[:title] || local_assigns[:show_close] != false %>
-      <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+      <div class="dialog__header">
         <% if local_assigns[:title] %>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 class="dialog__title">
             <%= title %>
           </h2>
         <% end %>
         <% if local_assigns[:show_close] != false %>
           <button
             type="button"
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 hover:scale-110"
+            class="dialog__close"
             data-action="click->modal#close"
             aria-label="Close modal"
           >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
@@ -53,13 +48,13 @@
     <% end %>
 
     <!-- Modal Body -->
-    <div class="<%= local_assigns[:body_class] || '' %>">
+    <div class="dialog__body <%= local_assigns[:body_class] || '' %>">
       <%= yield %>
     </div>
 
     <!-- Modal Footer -->
     <% if local_assigns[:footer] %>
-      <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-3">
+      <div class="dialog__footer">
         <%= footer %>
       </div>
     <% end %>

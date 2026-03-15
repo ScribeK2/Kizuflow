@@ -8,28 +8,28 @@
 
 <%# Type-specific styling %>
 <%
-  type_colors = {
-    'question' => { icon: '?', color: 'text-slate-600 dark:text-slate-400', badge: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
-    'action' => { icon: '!', color: 'text-slate-600 dark:text-slate-400', badge: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
-    'sub_flow' => { icon: '↪', color: 'text-indigo-600 dark:text-indigo-400', badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-    'message' => { icon: 'i', color: 'text-cyan-600 dark:text-cyan-400', badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
-    'escalate' => { icon: '↑', color: 'text-orange-600 dark:text-orange-400', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
-    'resolve' => { icon: '✓', color: 'text-green-600 dark:text-green-400', badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' }
+  type_icons = {
+    'question' => '?',
+    'action' => '!',
+    'sub_flow' => '↪',
+    'message' => 'i',
+    'escalate' => '↑',
+    'resolve' => '✓'
   }
-  type_style = type_colors[step_type.to_s] || { icon: '#', color: 'text-gray-600 dark:text-gray-400', badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }
+  type_icon = type_icons[step_type.to_s] || '#'
 %>
 
-<div class="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 last:border-b-0 transition-colors">
+<div class="flex items-start gap-3 p-3 border-b last:border-b-0 transition-colors" style="border-color: var(--border-color-subtle);">
   <div class="flex-shrink-0 mt-0.5">
-    <span class="<%= type_style[:color] %> text-lg font-bold"><%= type_style[:icon] %></span>
+    <span class="badge badge--<%= step_type.to_s.tr('_', '-') %> font-bold"><%= type_icon %></span>
   </div>
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2 mb-1">
-      <span class="font-medium text-gray-900 dark:text-gray-100"><%= step_title %></span>
-      <span class="text-xs px-2 py-0.5 rounded <%= type_style[:badge] %>"><%= step_type.to_s.capitalize %></span>
+      <span class="font-medium"><%= step_title %></span>
+      <span class="badge badge--<%= step_type.to_s.tr('_', '-') %>"><%= step_type.to_s.capitalize %></span>
     </div>
     <% if step_preview.present? %>
-      <p class="text-xs text-gray-600 dark:text-gray-400 truncate"><%= step_preview %></p>
+      <p class="text-xs truncate" style="color: var(--text-muted);"><%= step_preview %></p>
     <% end %>
   </div>
 </div>
