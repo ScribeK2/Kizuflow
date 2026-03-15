@@ -1,8 +1,8 @@
 <% sample_variables = local_assigns.fetch(:sample_variables, {}) %>
-<div class="preview-pane bg-gray-50 border rounded-lg p-4" data-controller="image-lightbox">
-  <h4 class="text-sm font-semibold text-gray-700 mb-2">Live Preview</h4>
+<div class="preview-pane card p-4" data-controller="image-lightbox">
+  <h4 class="text-sm font-semibold mb-2">Live Preview</h4>
   <% if sample_variables.present? %>
-    <p class="text-xs text-gray-500 mb-2 italic">Showing preview with sample variable values</p>
+    <p class="form-hint italic mb-2">Showing preview with sample variable values</p>
   <% end %>
 
   <%# Preview pane receives either AR Step objects or hashes from preview endpoint %>
@@ -12,50 +12,50 @@
     <% sdesc = step.is_a?(Step) ? step.try(:description).to_s : step["description"] %>
     <% case stype %>
     <% when "question" %>
-      <div class="space-y-3">
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
         <% if stitle.present? %>
-          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
+          <h5 class="font-medium"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
         <% end %>
 
         <% if sdesc.present? %>
-          <div class="text-sm text-gray-600"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
+          <div class="text-sm"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
         <% end %>
 
         <% question_text = step.is_a?(Step) ? step.question : step["question"] %>
         <% if question_text.present? %>
-          <p class="font-medium text-gray-800"><%= VariableInterpolator.interpolate(question_text, sample_variables) %></p>
+          <p class="font-medium"><%= VariableInterpolator.interpolate(question_text, sample_variables) %></p>
         <% end %>
 
         <!-- Preview based on answer type -->
         <% answer_type = step.is_a?(Step) ? step.answer_type : step["answer_type"] %>
         <% options = step.is_a?(Step) ? step.options : step["options"] %>
-        <div class="mt-3">
+        <div class="mt-2">
           <% case answer_type %>
           <% when "text" %>
             <input type="text"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                   class="form-input w-full"
                    placeholder="Your answer..."
                    disabled />
           <% when "yes_no" %>
             <div class="flex gap-2">
-              <button class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors" disabled>Yes</button>
-              <button class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors" disabled>No</button>
+              <button class="btn btn--positive" disabled>Yes</button>
+              <button class="btn btn--negative" disabled>No</button>
             </div>
           <% when "multiple_choice" %>
-            <div class="space-y-2">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
               <% if options.present? && options.is_a?(Array) %>
                 <% options.each do |option| %>
-                  <label class="flex items-center gap-2 p-2 border rounded-md hover:bg-gray-100 cursor-not-allowed">
-                    <input type="radio" name="preview_<%= index %>" disabled class="cursor-not-allowed" />
+                  <label class="flex items-center gap-2 p-2 card rounded-md" style="cursor: not-allowed;">
+                    <input type="radio" name="preview_<%= index %>" disabled style="cursor: not-allowed;" />
                     <span class="text-sm"><%= option["label"] || option["value"] || "Option" %></span>
                   </label>
                 <% end %>
               <% else %>
-                <p class="text-xs text-gray-500 italic">No options defined yet</p>
+                <p class="form-hint italic">No options defined yet</p>
               <% end %>
             </div>
           <% when "dropdown" %>
-            <select class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white" disabled>
+            <select class="form-select w-full" disabled>
               <option>Select an option</option>
               <% if options.present? && options.is_a?(Array) %>
                 <% options.each do |option| %>
@@ -65,119 +65,119 @@
             </select>
           <% when "date" %>
             <input type="date"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                   class="form-input w-full"
                    disabled />
           <% when "number" %>
             <input type="number"
-                   class="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                   class="form-input w-full"
                    placeholder="Enter a number"
                    disabled />
           <% when "file" %>
-            <div class="border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
-              <p class="text-sm text-gray-500 inline-flex items-center gap-1"><%= ui_svg_icon('paperclip', css_classes: "w-4 h-4") %> File Upload</p>
+            <div class="file-dropzone text-center">
+              <p class="text-sm inline-flex items-center gap-1"><%= ui_svg_icon('paperclip', css_classes: "icon icon--sm") %> File Upload</p>
               <input type="file" class="mt-2" disabled />
             </div>
           <% else %>
-            <p class="text-xs text-gray-500 italic">Select an answer type to see preview</p>
+            <p class="form-hint italic">Select an answer type to see preview</p>
           <% end %>
         </div>
 
         <% var_name = step.is_a?(Step) ? step.variable_name : step["variable_name"] %>
         <% if var_name.present? %>
-          <div class="mt-2 text-xs text-gray-500">
-            <span class="font-mono bg-gray-200 px-2 py-1 rounded">Variable: <%= var_name %></span>
+          <div class="mt-2">
+            <code class="badge">Variable: <%= var_name %></code>
           </div>
         <% end %>
       </div>
 
     <% when "action" %>
-      <div class="space-y-2">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <% if stitle.present? %>
-          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
+          <h5 class="font-medium"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
         <% end %>
 
         <% if sdesc.present? %>
-          <div class="text-sm text-gray-600"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
+          <div class="text-sm"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
         <% end %>
 
         <% action_type = step.is_a?(Step) ? step.action_type : step["action_type"] %>
         <% if action_type.present? %>
-          <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+          <div class="badge badge--action">
             <%= action_type.humanize %>
           </div>
         <% end %>
 
         <% if step.is_a?(Step) %>
           <% if step.instructions.present? %>
-            <div class="mt-2 p-3 bg-white border rounded-md">
-              <div class="text-sm text-gray-700"><%= render_step_content(step, 'instructions', sample_variables) %></div>
+            <div class="mt-2 p-3 card rounded-md">
+              <div class="text-sm"><%= render_step_content(step, 'instructions', sample_variables) %></div>
             </div>
           <% end %>
         <% else %>
           <% if step["instructions"].present? %>
-            <div class="mt-2 p-3 bg-white border rounded-md">
-              <div class="text-sm text-gray-700"><%= VariableInterpolator.interpolate(step["instructions"], sample_variables) %></div>
+            <div class="mt-2 p-3 card rounded-md">
+              <div class="text-sm"><%= VariableInterpolator.interpolate(step["instructions"], sample_variables) %></div>
             </div>
           <% end %>
         <% end %>
       </div>
 
     <% when "message" %>
-      <div class="space-y-2">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <% if stitle.present? %>
-          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
+          <h5 class="font-medium"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
         <% end %>
 
         <% if sdesc.present? %>
-          <div class="text-sm text-gray-600"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
+          <div class="text-sm"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
         <% end %>
 
-        <div class="mt-3 p-3 bg-cyan-50 border border-cyan-200 rounded-md">
+        <div class="mt-2 p-3 card card--message rounded-md">
           <div class="flex items-start gap-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 text-cyan-700 text-xs font-bold flex-shrink-0">i</span>
+            <span class="step-card__number flex-shrink-0 step-card__number--message">i</span>
             <div class="flex-1">
               <% content_val = step.is_a?(Step) ? step.content : step["content"] %>
               <% if content_val.present? %>
                 <% if step.is_a?(Step) %>
-                  <div class="text-sm text-cyan-800"><%= render_step_content(step, 'content', sample_variables) %></div>
+                  <div class="text-sm"><%= render_step_content(step, 'content', sample_variables) %></div>
                 <% else %>
-                  <div class="text-sm text-cyan-800"><%= VariableInterpolator.interpolate(content_val, sample_variables) %></div>
+                  <div class="text-sm"><%= VariableInterpolator.interpolate(content_val, sample_variables) %></div>
                 <% end %>
               <% else %>
-                <p class="text-sm text-cyan-600 italic">No message content yet</p>
+                <p class="text-sm italic">No message content yet</p>
               <% end %>
             </div>
           </div>
         </div>
 
-        <p class="text-xs text-gray-500 mt-2">
+        <p class="form-hint mt-2">
           <span class="font-medium">Auto-advances</span> - This message will be displayed and the workflow continues automatically.
         </p>
       </div>
 
     <% when "escalate" %>
-      <div class="space-y-2">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <% if stitle.present? %>
-          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
+          <h5 class="font-medium"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
         <% end %>
 
         <% if sdesc.present? %>
-          <div class="text-sm text-gray-600"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
+          <div class="text-sm"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
         <% end %>
 
-        <div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+        <div class="mt-2 p-3 card card--escalate rounded-md">
           <div class="flex items-center gap-2 mb-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">↑</span>
-            <span class="font-medium text-orange-800">Escalation</span>
+            <span class="step-card__number step-card__number--escalate">↑</span>
+            <span class="font-medium">Escalation</span>
           </div>
 
-          <div class="space-y-1 text-sm">
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;" class="text-sm">
             <% target_type = step.is_a?(Step) ? step.target_type : step["target_type"] %>
             <% target_value = step.is_a?(Step) ? step.target_value : step["target_value"] %>
             <% if target_type.present? || target_value.present? %>
               <div class="flex items-center gap-2">
-                <span class="text-orange-600">Target:</span>
-                <span class="font-medium text-orange-800">
+                <span>Target:</span>
+                <span class="font-medium">
                   <%= target_type&.titleize %><%= " - #{target_value}" if target_value.present? %>
                 </span>
               </div>
@@ -186,30 +186,22 @@
             <% priority = step.is_a?(Step) ? step.priority : step["priority"] %>
             <% if priority.present? %>
               <div class="flex items-center gap-2">
-                <span class="text-orange-600">Priority:</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                  <%= case priority
-                      when 'urgent' then 'bg-red-100 text-red-800'
-                      when 'high' then 'bg-orange-100 text-orange-800'
-                      when 'normal' then 'bg-blue-100 text-blue-800'
-                      else 'bg-gray-100 text-gray-800'
-                      end %>">
-                  <%= priority.titleize %>
-                </span>
+                <span>Priority:</span>
+                <span class="badge"><%= priority.titleize %></span>
               </div>
             <% end %>
 
             <% reason_req = step.is_a?(Step) ? step.reason_required : step["reason_required"] %>
             <% if reason_req == true || reason_req == "true" %>
-              <p class="text-xs text-orange-600 mt-2">Reason required from CSR</p>
+              <p class="form-hint mt-2">Reason required from CSR</p>
             <% end %>
 
             <% if step.is_a?(Step) && step.notes.present? %>
-              <div class="mt-2 p-2 bg-white border border-orange-100 rounded text-sm text-gray-700">
+              <div class="mt-2 p-2 card rounded text-sm">
                 <%= render_step_content(step, 'notes', sample_variables) %>
               </div>
             <% elsif step.is_a?(Hash) && step["notes"].present? %>
-              <div class="mt-2 p-2 bg-white border border-orange-100 rounded text-sm text-gray-700">
+              <div class="mt-2 p-2 card rounded text-sm">
                 <%= VariableInterpolator.interpolate(step["notes"], sample_variables) %>
               </div>
             <% end %>
@@ -218,34 +210,34 @@
       </div>
 
     <% when "resolve" %>
-      <div class="space-y-2">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <% if stitle.present? %>
-          <h5 class="font-medium text-gray-900"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
+          <h5 class="font-medium"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
         <% end %>
 
         <% if sdesc.present? %>
-          <div class="text-sm text-gray-600"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
+          <div class="text-sm"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
         <% end %>
 
-        <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+        <div class="mt-2 p-3 card card--resolve rounded-md">
           <div class="flex items-center gap-2 mb-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold">✓</span>
-            <span class="font-medium text-green-800">Resolution</span>
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Terminal</span>
+            <span class="step-card__number step-card__number--resolve">✓</span>
+            <span class="font-medium">Resolution</span>
+            <span class="badge">Terminal</span>
           </div>
 
-          <div class="space-y-1 text-sm">
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;" class="text-sm">
             <% res_type = step.is_a?(Step) ? step.resolution_type : step["resolution_type"] %>
             <div class="flex items-center gap-2">
-              <span class="text-green-600">Type:</span>
-              <span class="font-medium text-green-800"><%= (res_type || "success").titleize %></span>
+              <span>Type:</span>
+              <span class="font-medium"><%= (res_type || "success").titleize %></span>
             </div>
 
             <% res_code = step.is_a?(Step) ? step.resolution_code : step["resolution_code"] %>
             <% if res_code.present? %>
               <div class="flex items-center gap-2">
-                <span class="text-green-600">Code:</span>
-                <code class="text-xs bg-green-100 px-2 py-0.5 rounded"><%= res_code %></code>
+                <span>Code:</span>
+                <code class="badge"><%= res_code %></code>
               </div>
             <% end %>
 
@@ -253,24 +245,24 @@
             <% survey = step.is_a?(Step) ? step.survey_trigger : step["survey_trigger"] %>
             <div class="flex flex-wrap gap-2 mt-2">
               <% if notes_req == true || notes_req == "true" %>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">Notes required</span>
+                <span class="badge">Notes required</span>
               <% end %>
               <% if survey == true || survey == "true" %>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Survey trigger</span>
+                <span class="badge">Survey trigger</span>
               <% end %>
             </div>
           </div>
         </div>
 
-        <p class="text-xs text-gray-500 mt-2">
+        <p class="form-hint mt-2">
           <span class="font-medium">Terminal step</span> - Workflow ends here with resolution metadata.
         </p>
       </div>
 
     <% else %>
-      <p class="text-sm text-gray-500">Select a step type to see preview</p>
+      <p class="text-sm">Select a step type to see preview</p>
     <% end %>
   <% else %>
-    <p class="text-sm text-gray-500 text-center py-4">Start filling in the form to see a live preview</p>
+    <p class="text-sm text-center py-4">Start filling in the form to see a live preview</p>
   <% end %>
 </div>
