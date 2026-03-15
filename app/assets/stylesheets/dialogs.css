@@ -1,1 +1,81 @@
-/* dialogs.css — Kizuflow Design System */
+/* dialogs.css — Dialog and modal components */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0 0 0 / 0.5);
+  padding: 1rem;
+}
+
+.dialog {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog--lg {
+  max-width: 48rem;
+}
+
+.dialog--sm {
+  max-width: 24rem;
+}
+
+.dialog__header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog__title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.dialog__close {
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.dialog__close:hover {
+  color: var(--color-ink);
+  background: var(--color-canvas-raised);
+}
+
+.dialog__body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog__footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.dialog.is-hidden {
+  display: none;
+}
