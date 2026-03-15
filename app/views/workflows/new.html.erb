@@ -1,37 +1,33 @@
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <div class="mb-8 animate-fade-in">
-    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">New Workflow</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-400">Create a new workflow by adding steps below.</p>
+<div class="page-content">
+  <div class="mb-6">
+    <h1 class="page-title">New Workflow</h1>
+    <p class="text-sm mt-1">Create a new workflow by adding steps below.</p>
   </div>
 
-  <%= form_with model: @workflow, local: true, class: "solid-card overflow-hidden animate-fade-in-up" do |form| %>
+  <%= form_with model: @workflow, local: true, class: "card" do |form| %>
     <% if @workflow.errors.any? %>
-      <div class="mx-6 mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-4">
-        <div class="flex">
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
-              <%= pluralize(@workflow.errors.count, "error") %> prohibited this workflow from being saved:
-            </h3>
-            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
-              <ul class="list-disc pl-5 space-y-1">
-                <% @workflow.errors.full_messages.each do |message| %>
-                  <li><%= message %></li>
-                <% end %>
-              </ul>
-            </div>
-          </div>
+      <div class="card__body">
+        <div class="alert alert--error">
+          <h3 class="font-medium mb-1">
+            <%= pluralize(@workflow.errors.count, "error") %> prohibited this workflow from being saved:
+          </h3>
+          <ul class="list-disc" style="padding-left: 1.25rem;">
+            <% @workflow.errors.full_messages.each do |message| %>
+              <li class="text-sm"><%= message %></li>
+            <% end %>
+          </ul>
         </div>
       </div>
     <% end %>
 
-    <div class="p-6 space-y-6">
-      <div>
-        <%= form.label :title, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
-        <%= form.text_field :title, class: "mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-slate-500 dark:focus:border-slate-400 transition-colors" %>
+    <div class="card__body" style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div class="form-group">
+        <%= form.label :title, class: "form-label" %>
+        <%= form.text_field :title, class: "form-input" %>
       </div>
 
-      <div>
-        <%= form.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1" %>
+      <div class="form-group">
+        <%= form.label :description, class: "form-label" %>
         <%= form.rich_text_area :description %>
       </div>
 
@@ -41,38 +37,33 @@
 
       <%# Graph Mode Toggle - Hidden when graph mode is the default %>
       <% if show_graph_mode_toggle? %>
-        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <%= form.check_box :graph_mode, class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded", id: "workflow_graph_mode", data: { action: "change->workflow-builder#toggleGraphMode" } %>
-              <%= form.label :graph_mode, class: "ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300" do %>
-                Enable Graph Mode
-                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
-                  Beta
-                </span>
-              <% end %>
-            </div>
+        <div class="card card--muted p-4">
+          <div class="flex items-center gap-2">
+            <%= form.check_box :graph_mode, class: "form-checkbox", id: "workflow_graph_mode", data: { action: "change->workflow-builder#toggleGraphMode" } %>
+            <%= form.label :graph_mode, class: "form-label mb-0" do %>
+              Enable Graph Mode
+              <span class="badge ml-1">Beta</span>
+            <% end %>
           </div>
-          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <p class="form-hint mt-2">
             Graph mode enables advanced DAG-based workflows with complex branching, sub-flows, and visual connection editing.
           </p>
         </div>
       <% else %>
-        <%# Hidden field to preserve graph_mode value when toggle is hidden %>
         <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
       <% end %>
 
       <div data-controller="workflow-builder" id="workflow-builder-container" data-workflow-builder-graph-mode-value="false" data-workflow-builder-debug-value="<%= Rails.env.development? %>">
         <div class="flex justify-between items-center mb-4">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Steps</label>
-          <div class="flex space-x-2">
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Question</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Action</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="message" class="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Message</button>
-            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="sub_flow" data-step-type="sub_flow" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">Add Sub-flow</button>
+          <label class="form-label mb-0">Workflow Steps</label>
+          <div class="flex gap-2" style="flex-wrap: wrap;">
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="question" class="btn btn--secondary btn--sm">Add Question</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="action" class="btn btn--positive btn--sm">Add Action</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="message" class="btn btn--sm" style="background: var(--color-cyan-500); color: #fff;">Add Message</button>
+            <button type="button" data-action="click->workflow-builder#addStep" data-workflow-builder-type-param="sub_flow" data-step-type="sub_flow" class="btn btn--sm" style="background: var(--color-indigo-500); color: #fff;">Add Sub-flow</button>
           </div>
         </div>
-        <div data-workflow-builder-target="container" class="space-y-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 min-h-[200px] bg-slate-50 dark:bg-slate-800/50">
+        <div data-workflow-builder-target="container" class="wf-steps-container">
           <!-- Steps will be added here dynamically -->
         </div>
       </div>
@@ -91,9 +82,9 @@
         }
       </script>
 
-      <div class="flex justify-end space-x-3">
-        <%= link_to "Cancel", workflows_path, class: "bg-slate-100 dark:bg-slate-700 py-2 px-4 border border-slate-200 dark:border-slate-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105" %>
-        <%= form.submit "Create Workflow", class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105" %>
+      <div class="flex justify-end gap-3">
+        <%= link_to "Cancel", workflows_path, class: "btn btn--plain" %>
+        <%= form.submit "Create Workflow", class: "btn btn--primary" %>
       </div>
     </div>
   <% end %>

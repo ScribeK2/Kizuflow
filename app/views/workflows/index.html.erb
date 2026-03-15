@@ -1,38 +1,36 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="page-content">
   <!-- Header Section -->
-  <div class="mb-8 flex justify-between items-center animate-fade-in">
+  <div class="wf-page-header">
     <div>
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-        Workflows
-      </h1>
+      <h1 class="wf-page-header__title">Workflows</h1>
       <% if @selected_group.present? %>
         <!-- Breadcrumb -->
-        <nav class="mt-2 flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-          <%= link_to "Workflows", workflows_path, class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
+        <nav class="wf-breadcrumb">
+          <%= link_to "Workflows", workflows_path %>
           <span>/</span>
           <% begin %>
             <% ancestors = @selected_group.ancestors rescue [] %>
             <% ancestors.reverse.each do |ancestor| %>
-              <%= link_to ancestor.name, workflows_path(group_id: ancestor.id), class: "hover:text-gray-700 dark:hover:text-gray-300 transition-colors" %>
+              <%= link_to ancestor.name, workflows_path(group_id: ancestor.id) %>
               <span>/</span>
             <% end %>
           <% rescue => e %>
             <% Rails.logger.error "Error rendering breadcrumb: #{e.message}" %>
           <% end %>
-          <span class="text-gray-900 dark:text-gray-100 font-medium"><%= @selected_group.name %></span>
+          <span class="font-medium"><%= @selected_group.name %></span>
         </nav>
       <% end %>
     </div>
     <% if current_user&.can_create_workflows? %>
-      <div class="flex space-x-3">
-        <%= link_to import_workflows_path, class: "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center" do %>
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="wf-page-header__actions">
+        <%= link_to import_workflows_path, class: "btn btn--secondary btn--sm" do %>
+          <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           Import
         <% end %>
-        <%= button_to start_wizard_workflows_path, method: :post, class: "bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 inline-flex items-center", form_class: "inline", aria: { label: "Create a new workflow" } do %>
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <%= button_to start_wizard_workflows_path, method: :post, class: "btn btn--primary btn--sm", form_class: "inline", aria: { label: "Create a new workflow" } do %>
+          <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           New Workflow
@@ -42,34 +40,34 @@
   </div>
 
   <!-- Two-Column Layout: Sidebar + Main Content -->
-  <div class="flex flex-col md:flex-row gap-6">
+  <div class="wf-layout">
     <!-- Sidebar -->
-    <div class="w-full md:w-64 flex-shrink-0">
+    <div class="group-sidebar-wrapper">
       <%= render partial: "workflows/group_sidebar" %>
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 min-w-0">
+    <div class="wf-content">
       <!-- Search Bar -->
-      <div class="mb-6 animate-fade-in-up">
-        <%= form_with url: workflows_path, method: :get, local: true, class: "solid-card overflow-hidden p-4", data: { controller: "workflow-search" } do |form| %>
+      <div class="wf-search mb-4">
+        <%= form_with url: workflows_path, method: :get, local: true, class: "card", data: { controller: "workflow-search" } do |form| %>
           <%= hidden_field_tag :group_id, params[:group_id] if params[:group_id].present? %>
-          <div class="flex items-center space-x-3">
+          <div class="card__body flex items-center gap-3">
             <div class="flex-1 relative">
-              <div class="absolute top-1/2 left-0 pl-3 -translate-y-1/2 pointer-events-none z-10">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="absolute" style="top: 50%; left: 0.75rem; transform: translateY(-50%); pointer-events: none;">
+                <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
               <%= form.text_field :search,
                   value: @search_query,
                   placeholder: @selected_group ? "Search workflows in #{@selected_group.name}..." : "Search workflows by title or description...",
-                  class: "block w-full pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 dark:focus:ring-emerald-500/30 dark:focus:border-emerald-500 transition-all duration-200",
-                  style: "padding-left: 3rem;" %>
+                  class: "form-input",
+                  style: "padding-left: 2.5rem;" %>
             </div>
             <% if @search_query.present? %>
-              <%= link_to workflows_path(group_id: params[:group_id]), class: "px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-slate-100 dark:bg-slate-700 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-105 inline-flex items-center" do %>
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <%= link_to workflows_path(group_id: params[:group_id]), class: "btn btn--plain btn--sm" do %>
+                <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
                 Clear
@@ -80,9 +78,9 @@
       </div>
 
       <!-- Status Filter Tabs + Sort Controls -->
-      <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fade-in-up">
-        <%# Status filter segmented control %>
-        <div class="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+      <div class="flex items-center justify-between gap-3 mb-4" style="flex-wrap: wrap;">
+        <%# Status filter tabs %>
+        <div class="wf-status-tabs">
           <%
             filter_tabs = [
               { key: 'all', label: 'All' },
@@ -93,7 +91,7 @@
           <% filter_tabs.each do |tab| %>
             <% active = @status_filter == tab[:key] %>
             <%= link_to workflows_path(status: tab[:key], search: params[:search], group_id: params[:group_id], sort: params[:sort]),
-                        class: "px-4 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 #{active ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}",
+                        class: "wf-status-tabs__tab #{active ? 'is-active' : ''}",
                         data: { turbo_action: "replace" } do %>
               <%= tab[:label] %>
             <% end %>
@@ -110,7 +108,7 @@
         %>
         <select data-controller="sort-select"
                 data-action="change->sort-select#navigate"
-                class="text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 transition-colors cursor-pointer">
+                class="form-select" style="width: auto;">
           <% sort_options.each do |opt| %>
             <option value="<%= workflows_path(sort: opt[:key], status: params[:status], search: params[:search], group_id: params[:group_id]) %>"
                     <%= 'selected' if @sort_by == opt[:key] %>>
@@ -123,7 +121,7 @@
       <!-- Workflows List -->
       <% if @selected_group.present? && @folders.present? && @folders.any? %>
         <%# Folder accordion view when a group is selected and has folders %>
-        <div class="space-y-3 animate-fade-in-up">
+        <div class="space-y-3">
           <% @folders.each do |folder| %>
             <% folder_workflows = @workflows_by_folder&.dig(folder.id) || Workflow.none %>
             <%= render partial: "workflows/folder_accordion", locals: { folder: folder, workflows: folder_workflows, selected_group: @selected_group } %>
@@ -131,26 +129,27 @@
 
           <%# Uncategorized folder (always last, virtual) %>
           <% if @uncategorized_workflows.present? && @uncategorized_workflows.any? %>
-            <details class="group solid-card overflow-hidden mb-3" data-controller="folder-accordion" open>
-              <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors list-none [&::-webkit-details-marker]:hidden"
+            <details class="folder-accordion" data-controller="folder-accordion" open>
+              <summary class="folder-accordion__header"
                        data-action="toggle->folder-accordion#toggle">
-                <div class="flex items-center space-x-3">
-                  <svg class="w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform duration-200 rotate-90"
+                <div class="flex items-center gap-3">
+                  <svg class="icon icon--xs"
                        data-folder-accordion-target="chevron"
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                       style="transform: rotate(90deg);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
-                  <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
                   </svg>
-                  <span class="font-semibold text-slate-500 dark:text-slate-400 italic">Uncategorized</span>
+                  <span class="font-semibold" style="font-style: italic;">Uncategorized</span>
                 </div>
-                <span class="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-full">
+                <span class="badge">
                   <%= pluralize(@uncategorized_workflows.size, "workflow") %>
                 </span>
               </summary>
-              <div class="border-t border-slate-200 dark:border-slate-700">
-                <ul class="divide-y divide-slate-100 dark:divide-slate-700/50">
+              <div class="folder-accordion__body">
+                <ul>
                   <% @uncategorized_workflows.each_with_index do |workflow, index| %>
                     <%= render partial: "workflows/workflow_list_item", locals: { workflow: workflow, index: index } %>
                   <% end %>
@@ -161,8 +160,8 @@
         </div>
       <% elsif @workflows_paginated.any? %>
         <%# Flat list view (no group selected or group has no folders) %>
-        <div class="solid-card overflow-hidden animate-fade-in-up">
-          <ul class="divide-y divide-slate-200 dark:divide-slate-700">
+        <div class="card">
+          <ul>
             <% @workflows_paginated.each_with_index do |workflow, index| %>
               <%= render partial: 'workflows/workflow_list_item', locals: { workflow: workflow, index: index } %>
             <% end %>
@@ -171,31 +170,31 @@
 
         <%# Pagination controls %>
         <% if @total_pages > 1 %>
-          <nav class="flex items-center justify-center gap-2 mt-8" aria-label="Pagination">
+          <nav class="flex items-center justify-center gap-2 mt-6" aria-label="Pagination">
             <% if @page > 1 %>
-              <%= link_to url_for(page: @page - 1, status: params[:status], search: params[:search], group_id: params[:group_id], sort: params[:sort]), class: "px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-400" do %>
+              <%= link_to url_for(page: @page - 1, status: params[:status], search: params[:search], group_id: params[:group_id], sort: params[:sort]), class: "btn btn--plain btn--sm" do %>
                 &larr; Previous
               <% end %>
             <% end %>
 
             <% (1..@total_pages).each do |p| %>
-              <%= link_to p, url_for(page: p, status: params[:status], search: params[:search], group_id: params[:group_id], sort: params[:sort]), class: "px-3 py-2 text-sm rounded-lg transition-colors #{p == @page ? 'bg-emerald-500 text-white font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'}" %>
+              <%= link_to p, url_for(page: p, status: params[:status], search: params[:search], group_id: params[:group_id], sort: params[:sort]), class: "btn #{p == @page ? 'btn--primary' : 'btn--plain'} btn--sm" %>
             <% end %>
 
             <% if @page < @total_pages %>
-              <%= link_to url_for(page: @page + 1, status: params[:status], search: params[:search], group_id: params[:group_id], sort: params[:sort]), class: "px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-400" do %>
+              <%= link_to url_for(page: @page + 1, status: params[:status], search: params[:search], group_id: params[:group_id], sort: params[:sort]), class: "btn btn--plain btn--sm" do %>
                 Next &rarr;
               <% end %>
             <% end %>
           </nav>
         <% end %>
       <% else %>
-        <div class="solid-card p-12 text-center animate-fade-in-up">
-          <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="card p-8 text-center">
+          <svg class="icon icon--xl mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No workflows</h3>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <h3 class="font-semibold mb-2">No workflows</h3>
+          <p class="text-sm">
             <% if @search_query.present? %>
               No workflows found matching "<%= @search_query %>"<% if @selected_group %> in <%= @selected_group.name %><% end %>.
             <% elsif @selected_group.present? %>
@@ -205,9 +204,9 @@
             <% end %>
           </p>
           <% if current_user&.can_create_workflows? %>
-            <div class="mt-6">
-              <%= button_to start_wizard_workflows_path, method: :post, class: "inline-flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800", form_class: "inline", aria: { label: "Create a new workflow" } do %>
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mt-4">
+              <%= button_to start_wizard_workflows_path, method: :post, class: "btn btn--primary btn--sm", form_class: "inline", aria: { label: "Create a new workflow" } do %>
+                <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 New Workflow
