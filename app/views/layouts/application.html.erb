@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="h-full" data-controller="dark-mode">
+<html data-controller="dark-mode">
   <head>
     <title>Flows - Workflow Builder</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -13,7 +13,7 @@
         const savedTheme = localStorage.getItem("theme");
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
-          document.documentElement.classList.add("dark");
+          document.documentElement.dataset.theme = "dark";
         }
       })();
     </script>
@@ -22,13 +22,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
-    <!-- Google Fonts - Plus Jakarta Sans -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "lexxy", "data-turbo-track": "reload" %>
 
     <!-- Importmap for ES modules -->
@@ -37,12 +31,12 @@
     <%= yield :head if content_for?(:head) %>
   </head>
 
-  <body class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans antialiased">
+  <body class="page-body">
     <!-- Navigation Bar -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
+    <nav class="page-header">
+      <div class="page-header__inner">
+        <div class="page-header__row">
+          <div class="nav__brand">
             <div class="flex-shrink-0 flex items-center">
               <%= link_to root_path, class: "inline-flex items-center gap-2 group hover:scale-105 transition-transform duration-300" do %>
                 <svg class="w-7 h-7 text-slate-400 dark:text-slate-300 group-hover:rotate-12 transition-transform duration-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -55,11 +49,11 @@
                 <span class="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">Flows</span>
               <% end %>
             </div>
-            <div class="hidden sm:ml-8 sm:flex sm:space-x-6">
-              <%= link_to "Dashboard", root_path, class: "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 #{current_page?(root_path) ? 'border-emerald-500 text-slate-900 dark:text-white font-semibold' : 'border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}" %>
-              <%= link_to "Workflows", workflows_path, class: "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 #{current_page?(workflows_path) ? 'border-emerald-500 text-slate-900 dark:text-white font-semibold' : 'border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}" %>
+            <div class="nav__links">
+              <%= link_to "Dashboard", root_path, class: "nav-item #{current_page?(root_path) ? 'is-active' : ''}" %>
+              <%= link_to "Workflows", workflows_path, class: "nav-item #{current_page?(workflows_path) ? 'is-active' : ''}" %>
               <% if current_user&.can_create_workflows? %>
-                <%= link_to "Templates", templates_path, class: "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 #{current_page?(templates_path) ? 'border-emerald-500 text-slate-900 dark:text-white font-semibold' : 'border-transparent text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}" %>
+                <%= link_to "Templates", templates_path, class: "nav-item #{current_page?(templates_path) ? 'is-active' : ''}" %>
               <% end %>
             </div>
           </div>
@@ -68,15 +62,15 @@
             <button
               type="button"
               data-action="click->dark-mode#toggle"
-              class="p-2 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+              class="dark-mode-toggle"
               aria-label="Toggle dark mode"
             >
               <!-- Sun Icon (shown in dark mode to switch to light) -->
-              <svg data-dark-mode-target="sunIcon" class="w-5 h-5 text-yellow-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg data-dark-mode-target="sunIcon" class="icon icon--sm is-hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
               </svg>
               <!-- Moon Icon (shown in light mode to switch to dark) -->
-              <svg data-dark-mode-target="moonIcon" class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg data-dark-mode-target="moonIcon" class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
               </svg>
             </button>
@@ -89,7 +83,7 @@
                   data-action="click->dropdown#toggle"
                   aria-expanded="false"
                   aria-haspopup="true"
-                  class="flex items-center justify-center w-9 h-9 rounded-lg <%= current_user.avatar_color_class %> text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-300 dark:focus:ring-offset-slate-800"
+                  class="avatar-btn <%= current_user.avatar_color_class %>"
                   title="<%= current_user.display_label %>"
                 >
                   <%= current_user.avatar_initial %>
@@ -98,13 +92,13 @@
                 <!-- Dropdown Menu -->
                 <div
                   data-dropdown-target="menu"
-                  class="hidden absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-slate-800 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 opacity-0 scale-95 transition-all duration-150 ease-out z-50"
+                  class="dropdown__menu is-hidden"
                   role="menu"
                 >
                   <!-- User Info Header -->
-                  <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+                  <div class="dropdown__header">
                     <p class="text-sm font-semibold text-gray-900 dark:text-white truncate"><%= current_user.display_label %></p>
-                    <span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full <%= current_user.avatar_role_badge_classes %>">
+                    <span class="badge <%= current_user.avatar_role_badge_classes %>">
                       <%= current_user.role.capitalize %>
                     </span>
                   </div>
@@ -112,7 +106,7 @@
                   <!-- Menu Links -->
                   <div class="py-1">
                     <% if current_user.can_access_admin? %>
-                      <%= link_to admin_root_path, class: "flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150", role: "menuitem" do %>
+                      <%= link_to admin_root_path, class: "dropdown__item", role: "menuitem" do %>
                         <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
                           <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -121,7 +115,7 @@
                       <% end %>
                     <% end %>
 
-                    <%= link_to edit_user_registration_path, class: "flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150", role: "menuitem" do %>
+                    <%= link_to edit_user_registration_path, class: "dropdown__item", role: "menuitem" do %>
                       <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                       </svg>
@@ -130,8 +124,8 @@
                   </div>
 
                   <!-- Sign Out -->
-                  <div class="border-t border-slate-100 dark:border-slate-700 py-1">
-                    <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150", role: "menuitem" do %>
+                  <div class="dropdown__divider">
+                    <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "dropdown__item", role: "menuitem" do %>
                       <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                       </svg>
@@ -141,8 +135,8 @@
                 </div>
               </div>
             <% else %>
-              <%= link_to "Sign in", new_user_session_path, class: "text-gray-700 dark:text-gray-300 hover:text-slate-600 dark:hover:text-slate-400 px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200 hover:bg-slate-100 dark:hover:bg-slate-700" %>
-              <%= link_to "Sign up", new_user_registration_path, class: "bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800" %>
+              <%= link_to "Sign in", new_user_session_path, class: "btn btn--plain" %>
+              <%= link_to "Sign up", new_user_registration_path, class: "btn btn--primary" %>
             <% end %>
           </div>
         </div>
@@ -150,33 +144,33 @@
     </nav>
 
     <!-- Main Content with top padding for fixed nav -->
-    <div class="pt-16 min-h-screen">
+    <div class="page-content">
       <!-- Flash Messages -->
       <% if notice %>
-        <div class="fixed top-20 right-4 z-40 animate-slide-in-right cursor-pointer max-w-md"
+        <div class="flash flash--notice animate-slide-in-right"
              data-controller="alert"
              data-alert-duration-value="5000"
              data-action="click->alert#dismiss">
-          <div class="relative bg-emerald-500 dark:bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg overflow-hidden" role="alert">
+          <div class="flash__body" role="alert">
             <span class="block sm:inline font-medium text-sm"><%= notice %></span>
-            <div class="absolute bottom-0 left-0 h-0.5 bg-white/40 rounded-b-xl animate-shrink" data-alert-target="progress"></div>
+            <div class="flash__progress animate-shrink" data-alert-target="progress"></div>
           </div>
         </div>
       <% end %>
 
       <% if alert %>
-        <div class="fixed top-20 right-4 z-40 animate-slide-in-right cursor-pointer max-w-md"
+        <div class="flash flash--alert animate-slide-in-right"
              data-controller="alert"
              data-alert-duration-value="5000"
              data-action="click->alert#dismiss">
-          <div class="relative bg-red-500 dark:bg-red-600 text-white px-6 py-3 rounded-xl shadow-lg overflow-hidden" role="alert">
+          <div class="flash__body" role="alert">
             <span class="block sm:inline font-medium text-sm"><%= alert %></span>
-            <div class="absolute bottom-0 left-0 h-0.5 bg-white/40 rounded-b-xl animate-shrink" data-alert-target="progress"></div>
+            <div class="flash__progress animate-shrink" data-alert-target="progress"></div>
           </div>
         </div>
       <% end %>
 
-      <main class="max-w-7xl mx-auto py-8 pb-16 px-4 sm:px-6 lg:px-8 animate-fade-in-up">
+      <main class="page-main animate-fade-in-up">
         <%= yield %>
       </main>
     </div>
