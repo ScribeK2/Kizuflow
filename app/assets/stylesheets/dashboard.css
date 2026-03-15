@@ -1,1 +1,212 @@
-/* dashboard.css — Kizuflow Design System */
+/* dashboard.css — Dashboard page module styles */
+
+/* ============================================================================
+   Quick Actions Row
+   ============================================================================ */
+
+.dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+/* ============================================================================
+   Stat Cards Grid
+   ============================================================================ */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-card__value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1;
+}
+
+.stat-card__label {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: 0.25rem;
+}
+
+.stat-card__sub {
+  font-size: var(--text-xs);
+  margin-top: 0.25rem;
+}
+
+.stat-card__icon {
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Dashboard Two-Column Layout
+   ============================================================================ */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* ============================================================================
+   Recent Workflows List
+   ============================================================================ */
+
+.workflow-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  transition: background 0.15s ease;
+}
+
+.workflow-list-item:hover {
+  background: var(--color-canvas-raised);
+}
+
+.workflow-list-item__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 1rem;
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+}
+
+.workflow-list-item__title {
+  font-weight: 600;
+  color: var(--color-ink);
+  font-size: var(--text-base);
+  transition: color 0.15s ease;
+}
+
+.workflow-list-item__title:hover {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.workflow-list-item__meta {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: 0.125rem;
+}
+
+.workflow-list-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+/* ============================================================================
+   Recent Activity Feed
+   ============================================================================ */
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  transition: background 0.15s ease;
+}
+
+.activity-item:hover {
+  background: var(--color-canvas-raised);
+}
+
+.activity-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.activity-dot--completed { background: var(--color-positive); }
+.activity-dot--active    { background: var(--color-link); }
+.activity-dot--stopped   { background: var(--color-ink-muted); }
+.activity-dot--error     { background: var(--color-negative); }
+.activity-dot--default   { background: var(--color-warning); }
+
+.activity-item__title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-item__meta {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-top: 0.125rem;
+}
+
+/* ============================================================================
+   Section Separator
+   ============================================================================ */
+
+.dashboard-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin-bottom: 2.5rem;
+}
+
+/* ============================================================================
+   Dashboard Empty States
+   ============================================================================ */
+
+.dashboard-empty {
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.dashboard-empty__icon {
+  color: var(--color-ink-muted);
+  margin-inline: auto;
+  opacity: 0.5;
+}
+
+.dashboard-empty__title {
+  margin-top: 1rem;
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.dashboard-empty__text {
+  margin-top: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}

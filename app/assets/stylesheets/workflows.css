@@ -1,1 +1,397 @@
-/* workflows.css — Kizuflow Design System */
+/* workflows.css — Workflow list, detail, editor, and import page styles */
+
+/* ============================================================================
+   Page Header with Actions
+   ============================================================================ */
+
+.workflows-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.workflows-header__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Two-Column Layout: Sidebar + Content
+   ============================================================================ */
+
+.workflows-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .workflows-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.workflows-sidebar {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .workflows-sidebar {
+    width: 16rem;
+  }
+}
+
+.workflows-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================================
+   Group Sidebar
+   ============================================================================ */
+
+.group-sidebar {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.group-sidebar__header {
+  padding: 0.75rem 1rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.group-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-left: 2px solid transparent;
+}
+
+.group-sidebar__item:hover {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.group-sidebar__item.is-active {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink);
+  border-left-color: var(--color-positive);
+  font-weight: 500;
+}
+
+.group-sidebar__count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0.125rem 0.5rem;
+}
+
+/* ============================================================================
+   Folder Accordion
+   ============================================================================ */
+
+.folder-accordion {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.folder-accordion__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+  list-style: none;
+}
+
+.folder-accordion__summary::-webkit-details-marker {
+  display: none;
+}
+
+.folder-accordion__summary:hover {
+  background: var(--color-canvas-raised);
+}
+
+.folder-accordion__chevron {
+  color: var(--color-ink-muted);
+  transition: transform 0.2s ease;
+}
+
+.folder-accordion[open] .folder-accordion__chevron {
+  transform: rotate(90deg);
+}
+
+.folder-accordion__name {
+  font-weight: 600;
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.folder-accordion__badge {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0.25rem 0.625rem;
+}
+
+/* ============================================================================
+   Status Filter Tabs (segmented control)
+   ============================================================================ */
+
+.status-filter {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-canvas-raised);
+  border-radius: var(--radius-lg);
+  padding: 0.25rem;
+  border: 1px solid var(--color-border);
+}
+
+.status-filter__tab {
+  padding: 0.375rem 1rem;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-subtle);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.status-filter__tab:hover {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.status-filter__tab.is-active {
+  background: var(--color-ink);
+  color: var(--color-canvas);
+}
+
+/* ============================================================================
+   Workflow List Item (in card)
+   ============================================================================ */
+
+.wf-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  transition: background 0.15s ease;
+}
+
+.wf-list-item:hover {
+  background: var(--color-canvas-raised);
+}
+
+.wf-list-item__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.wf-list-item__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink);
+  transition: color 0.15s ease;
+  text-decoration: none;
+}
+
+.wf-list-item__title:hover {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.wf-list-item__meta {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: 0.125rem;
+}
+
+.wf-list-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+/* ============================================================================
+   Publishing State Indicators
+   ============================================================================ */
+
+.publish-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+}
+
+.publish-state--draft {
+  background: oklch(0.95 0.05 75);
+  color: oklch(0.45 0.1 75);
+  border: 1px solid oklch(0.85 0.08 75);
+}
+
+.publish-state--published {
+  background: oklch(0.95 0.05 145);
+  color: oklch(0.4 0.15 145);
+  border: 1px solid oklch(0.85 0.1 145);
+}
+
+[data-theme="dark"] .publish-state--draft {
+  background: oklch(0.25 0.03 75);
+  color: oklch(0.7 0.08 75);
+  border-color: oklch(0.35 0.04 75);
+}
+
+[data-theme="dark"] .publish-state--published {
+  background: oklch(0.2 0.05 145);
+  color: oklch(0.7 0.14 145);
+  border-color: oklch(0.3 0.08 145);
+}
+
+/* ============================================================================
+   Breadcrumb Navigation (workflow index with group selected)
+   ============================================================================ */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: 0.5rem;
+}
+
+.breadcrumb__link {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb__link:hover {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.breadcrumb__current {
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.breadcrumb__separator {
+  color: var(--color-border);
+}
+
+/* ============================================================================
+   Search Bar
+   ============================================================================ */
+
+.workflow-search {
+  position: relative;
+  flex: 1;
+}
+
+.workflow-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-ink-muted);
+  z-index: 1;
+}
+
+.workflow-search__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.workflow-search__input:focus {
+  border-color: var(--color-positive);
+  box-shadow: 0 0 0 3px oklch(0.6 0.19 145 / 0.15);
+}
+
+.workflow-search__input::placeholder {
+  color: var(--color-ink-muted);
+}
+
+/* ============================================================================
+   Pagination Controls
+   ============================================================================ */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.pagination__link {
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+  border-radius: var(--radius);
+  color: var(--color-ink-subtle);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pagination__link:hover {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.pagination__link.is-active {
+  background: var(--color-positive);
+  color: oklch(1 0 0);
+  font-weight: 600;
+}

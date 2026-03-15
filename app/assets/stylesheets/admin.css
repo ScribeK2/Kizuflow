@@ -1,1 +1,263 @@
-/* admin.css — Kizuflow Design System */
+/* admin.css — Admin panel module styles */
+
+/* ============================================================================
+   Admin Quick Action Grid
+   ============================================================================ */
+
+.admin-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .admin-actions {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.admin-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+  background: var(--color-ink);
+  color: var(--color-canvas);
+}
+
+.admin-action-btn:hover {
+  background: var(--color-ink-subtle);
+  color: var(--color-canvas);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+   Admin Stats Grid
+   ============================================================================ */
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 768px) {
+  .admin-stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ============================================================================
+   Admin Two-Column Layout (for Recent Users/Workflows)
+   ============================================================================ */
+
+.admin-recent-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .admin-recent-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+   Admin User Row
+   ============================================================================ */
+
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  transition: background 0.15s ease;
+}
+
+.admin-user-row:hover {
+  background: var(--color-canvas-raised);
+}
+
+.admin-user-row__email {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-row__meta {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-top: 0.125rem;
+}
+
+/* ============================================================================
+   Admin Role Badge variants
+   ============================================================================ */
+
+.admin-role-badge {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.admin-role-badge--admin {
+  background: oklch(0.93 0.07 145);
+  color: oklch(0.4 0.15 145);
+}
+
+.admin-role-badge--editor {
+  background: oklch(0.93 0.07 260);
+  color: oklch(0.4 0.18 260);
+}
+
+.admin-role-badge--user {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink-subtle);
+  border: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .admin-role-badge--admin {
+  background: oklch(0.22 0.06 145);
+  color: oklch(0.7 0.14 145);
+}
+
+[data-theme="dark"] .admin-role-badge--editor {
+  background: oklch(0.22 0.06 260);
+  color: oklch(0.7 0.16 260);
+}
+
+[data-theme="dark"] .admin-role-badge--user {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink-subtle);
+}
+
+/* ============================================================================
+   Admin Table Styles (users list, group tree)
+   ============================================================================ */
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.admin-table th {
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-canvas-raised);
+}
+
+.admin-table td {
+  padding: 0.875rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-ink);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: var(--color-canvas-raised);
+}
+
+/* ============================================================================
+   Group Tree (nested indentation)
+   ============================================================================ */
+
+.group-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  transition: background 0.15s ease;
+}
+
+.group-tree-item:hover {
+  background: var(--color-canvas-raised);
+}
+
+.group-tree-item__indent {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  border-left: 2px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
+  border-bottom-left-radius: 2px;
+}
+
+.group-tree-item__name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.group-tree-item__count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+/* ============================================================================
+   Admin Analytics Page
+   ============================================================================ */
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.analytics-table th {
+  padding: 0.625rem 1rem;
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.analytics-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-ink);
+}
+
+.analytics-table tbody tr:hover td {
+  background: var(--color-canvas-raised);
+}
+
+/* ============================================================================
+   Admin Empty State
+   ============================================================================ */
+
+.admin-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--color-ink-muted);
+}

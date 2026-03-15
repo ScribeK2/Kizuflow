@@ -1,1 +1,245 @@
-/* auth.css — Kizuflow Design System */
+/* auth.css — Authentication page styles (Devise) */
+
+/* ============================================================================
+   Auth Card
+   Centered card wrapping all Devise forms (sign in, sign up, reset password)
+   ============================================================================ */
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.auth-card__header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.auth-card__title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--color-ink);
+}
+
+.auth-card__subtitle {
+  margin-top: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+/* ============================================================================
+   Auth Form Layout
+   ============================================================================ */
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.auth-form__label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-subtle);
+}
+
+.auth-form__input {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.auth-form__input:hover {
+  border-color: var(--color-ink-muted);
+}
+
+.auth-form__input:focus {
+  border-color: var(--color-link);
+  box-shadow: 0 0 0 3px oklch(0.55 0.2 260 / 0.15);
+}
+
+.auth-form__input::placeholder {
+  color: var(--color-ink-muted);
+}
+
+/* Password field wrapper (for toggle button) */
+.auth-form__password-wrap {
+  position: relative;
+}
+
+.auth-form__password-wrap .auth-form__input {
+  padding-right: 2.75rem;
+}
+
+.auth-form__password-toggle {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  padding-inline: 0.75rem;
+  display: flex;
+  align-items: center;
+  color: var(--color-ink-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.auth-form__password-toggle:hover {
+  color: var(--color-ink-subtle);
+}
+
+/* Remember me checkbox row */
+.auth-form__checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-form__checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  accent-color: var(--color-link);
+}
+
+.auth-form__checkbox-label {
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+
+/* Submit button (full-width) */
+.auth-form__submit {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--color-ink);
+  color: var(--color-canvas);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.auth-form__submit:hover {
+  box-shadow: var(--shadow-lg);
+  transform: scale(1.01);
+}
+
+.auth-form__submit:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   Auth Links Section (below form — links to other Devise pages)
+   ============================================================================ */
+
+.auth-links {
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.auth-links a {
+  font-size: var(--text-sm);
+  color: var(--color-link);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   Auth Illustration (workflow diagram shown on auth pages)
+   ============================================================================ */
+
+.auth-illustration {
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.auth-illustration svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Flow path lines in illustration */
+.flow-path {
+  stroke: oklch(0.85 0.01 75);
+  fill: none;
+}
+
+.flow-path-reverse {
+  stroke: oklch(0.85 0.01 75);
+  fill: none;
+}
+
+[data-theme="dark"] .flow-path,
+[data-theme="dark"] .flow-path-reverse {
+  stroke: oklch(0.35 0.01 75);
+}
+
+/* ============================================================================
+   Auth Error Messages
+   ============================================================================ */
+
+.auth-errors {
+  background: oklch(0.96 0.04 25);
+  border: 1px solid oklch(0.85 0.08 25);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.auth-errors__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: oklch(0.4 0.18 25);
+  margin-bottom: 0.5rem;
+}
+
+.auth-errors__list {
+  list-style: disc;
+  padding-left: 1.25rem;
+  font-size: var(--text-sm);
+  color: oklch(0.45 0.15 25);
+}
+
+[data-theme="dark"] .auth-errors {
+  background: oklch(0.22 0.05 25);
+  border-color: oklch(0.32 0.08 25);
+}
+
+[data-theme="dark"] .auth-errors__title {
+  color: oklch(0.75 0.14 25);
+}
+
+[data-theme="dark"] .auth-errors__list {
+  color: oklch(0.7 0.12 25);
+}
