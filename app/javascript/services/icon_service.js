@@ -49,7 +49,7 @@ export const ANSWER_ICON_PATHS = {
  * @param {string} [classes="w-5 h-5"] - CSS classes for the <svg> element
  * @returns {string} HTML string for the inline SVG
  */
-export function renderIcon(pathData, classes = "w-5 h-5") {
+export function renderIcon(pathData, classes = "icon") {
   if (!pathData) return ""
 
   // Split multi-subpath strings: each subpath starts with "M"
@@ -68,7 +68,7 @@ export function renderIcon(pathData, classes = "w-5 h-5") {
  * @param {string} [classes="w-5 h-5"] - CSS classes
  * @returns {string} HTML string
  */
-export function renderStepIcon(type, classes = "w-5 h-5") {
+export function renderStepIcon(type, classes = "icon") {
   const pathData = STEP_ICON_PATHS[type] || STEP_ICON_PATHS.default
   return renderIcon(pathData, classes)
 }

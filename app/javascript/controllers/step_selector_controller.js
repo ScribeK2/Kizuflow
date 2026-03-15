@@ -269,7 +269,7 @@ export default class extends Controller {
 
     this.buttonTarget.innerHTML = `
       <div class="step-selector__selected">
-        <span class="step-selector__icon step-selector__icon--${step.type}">${renderStepIcon(step.type, "w-4 h-4")}</span>
+        <span class="step-selector__icon step-selector__icon--${step.type}">${renderStepIcon(step.type, "icon icon--sm")}</span>
         <span class="step-selector__title">${this.escapeHtml(step.title)}</span>
         <span class="step-selector__type">${this.escapeHtml(step.type)}</span>
       </div>
@@ -341,7 +341,7 @@ export default class extends Controller {
                 data-step-selector-target="option">
           <div class="step-selector__option-inner">
             <div class="step-selector__option-icon">
-              <span class="step-selector__icon step-selector__icon--${step.type}">${renderStepIcon(step.type, "w-5 h-5")}</span>
+              <span class="step-selector__icon step-selector__icon--${step.type}">${renderStepIcon(step.type, "icon")}</span>
             </div>
             <div class="step-selector__option-content">
               <div class="step-selector__option-header">

@@ -421,7 +421,7 @@ export default class extends Controller {
     if (!this.hasStatusTarget) return
 
     this.statusTarget.className = "autosave-status status--conflict"
-    this.statusTarget.innerHTML = `${renderIcon(UI_ICON_PATHS.warning, "w-4 h-4")} ${this.escapeHtml(message)}`
+    this.statusTarget.innerHTML = `${renderIcon(UI_ICON_PATHS.warning, "icon icon--sm")} ${this.escapeHtml(message)}`
   }
 
   escapeHtml(text) {

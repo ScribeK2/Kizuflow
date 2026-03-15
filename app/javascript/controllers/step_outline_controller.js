@@ -64,12 +64,12 @@ export default class extends Controller {
             ${index + 1}
           </span>
           <span class="step-outline-item__icon" title="${step.type}">
-            ${renderStepIcon(step.type, "w-4 h-4")}
+            ${renderStepIcon(step.type, "icon icon--sm")}
           </span>
           <span class="step-outline-item__title">
             ${this.escapeHtml(step.title || `Untitled ${step.type || 'step'}`)}
           </span>
-          ${step.hasWarning ? `<span class="step-outline-item__warning" title="Incomplete">${renderIcon(UI_ICON_PATHS.warning, "w-4 h-4")}</span>` : ''}
+          ${step.hasWarning ? `<span class="step-outline-item__warning" title="Incomplete">${renderIcon(UI_ICON_PATHS.warning, "icon icon--sm")}</span>` : ''}
         </div>
       </button>
     `).join("")

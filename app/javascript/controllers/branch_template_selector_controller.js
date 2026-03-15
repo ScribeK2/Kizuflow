@@ -158,8 +158,8 @@ export default class extends Controller {
   resolveTemplateIcon(iconKey) {
     const allPaths = { ...UI_ICON_PATHS, ...ANSWER_ICON_PATHS }
     const pathData = allPaths[iconKey]
-    if (pathData) return renderIcon(pathData, "w-5 h-5")
-    return renderIcon(UI_ICON_PATHS.lightbulb, "w-5 h-5")
+    if (pathData) return renderIcon(pathData, "icon")
+    return renderIcon(UI_ICON_PATHS.lightbulb, "icon")
   }
 
   renderTemplateCard(template) {
