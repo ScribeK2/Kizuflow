@@ -1,1 +1,25 @@
-/* tooltips.css — Kizuflow Design System */
+/* tooltips.css — Tooltip components */
+
+.tooltip {
+  position: absolute;
+  z-index: var(--z-tooltip);
+  padding: 0.375rem 0.75rem;
+  background: var(--color-ink);
+  color: var(--color-canvas);
+  font-size: var(--text-xs);
+  border-radius: var(--radius);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow);
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--color-ink);
+}

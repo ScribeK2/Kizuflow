@@ -1,1 +1,37 @@
-/* pagination.css — Kizuflow Design System */
+/* pagination.css — Pagination components */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+
+.pagination__item:hover {
+  background: var(--color-canvas-raised);
+  color: var(--color-ink);
+}
+
+.pagination__item.is-active {
+  background: var(--color-link);
+  color: oklch(1 0 0);
+  font-weight: 600;
+}
+
+.pagination__item.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
