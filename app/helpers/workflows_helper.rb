@@ -39,12 +39,12 @@ module WorkflowsHelper
   }.freeze
 
   STEP_TYPE_BADGE_CLASSES = {
-    'question' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-    'action' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    'message' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    'sub_flow' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
-    'escalate' => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-    'resolve' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+    'question' => 'badge--question',
+    'action' => 'badge--action',
+    'message' => 'badge--message',
+    'sub_flow' => 'badge--sub-flow',
+    'escalate' => 'badge--escalate',
+    'resolve' => 'badge--resolve'
   }.freeze
 
   ANSWER_TYPE_LABELS = {
@@ -61,13 +61,13 @@ module WorkflowsHelper
   end
 
   # Get an inline SVG icon for a step type
-  def step_type_svg_icon(type, css_classes: "w-5 h-5")
+  def step_type_svg_icon(type, css_classes: "icon")
     path_data = STEP_TYPE_SVG_PATHS[type] || DEFAULT_STEP_SVG_PATH
     render_svg_icon(path_data, css_classes: css_classes)
   end
 
   # Get an inline SVG icon for a UI element
-  def ui_svg_icon(name, css_classes: "w-5 h-5")
+  def ui_svg_icon(name, css_classes: "icon")
     path_data = UI_SVG_PATHS[name.to_s]
     return "" unless path_data
 
@@ -77,7 +77,7 @@ module WorkflowsHelper
   private
 
   # Render an inline SVG from path data (handles multi-subpath icons)
-  def render_svg_icon(path_data, css_classes: "w-5 h-5")
+  def render_svg_icon(path_data, css_classes: "icon")
     sub_paths = path_data.split(/(?= M)/).map(&:strip)
     path_elements = sub_paths.map do |d|
       tag.path(d: d, 'stroke-linecap': "round", 'stroke-linejoin': "round", 'stroke-width': "2")
@@ -95,9 +95,8 @@ module WorkflowsHelper
 
   # Get CSS classes for a step type badge
   def step_type_badge_classes(type)
-    base = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-    color = STEP_TYPE_BADGE_CLASSES[type] || 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'
-    "#{base} #{color}"
+    modifier = STEP_TYPE_BADGE_CLASSES[type] || 'badge--default'
+    "badge #{modifier}"
   end
 
   # ============================================================================
@@ -141,9 +140,9 @@ module WorkflowsHelper
   # Get CSS classes for the condition display
   def condition_display_classes(condition)
     if condition.present?
-      "text-sm font-mono text-gray-900 dark:text-gray-100"
+      "text-sm font-medium"
     else
-      "text-sm text-gray-400 dark:text-gray-500 italic"
+      "text-sm is-disabled"
     end
   end
 
@@ -206,13 +205,13 @@ module WorkflowsHelper
   def step_type_composition_dots(workflow)
     return nil unless workflow.steps.any?
 
-    dot_colors = {
-      'question' => 'bg-blue-500',
-      'action' => 'bg-emerald-500',
-      'message' => 'bg-cyan-500',
-      'escalate' => 'bg-red-500',
-      'resolve' => 'bg-green-500',
-      'sub_flow' => 'bg-indigo-500'
+    dot_modifiers = {
+      'question' => 'dot--question',
+      'action' => 'dot--action',
+      'message' => 'dot--message',
+      'escalate' => 'dot--escalate',
+      'resolve' => 'dot--resolve',
+      'sub_flow' => 'dot--sub-flow'
     }
 
     dot_labels = {
@@ -229,11 +228,11 @@ module WorkflowsHelper
     return nil if type_counts.empty?
 
     dots = type_counts.flat_map do |type, count|
-      color = dot_colors[type] || 'bg-slate-400'
+      modifier = dot_modifiers[type] || 'dot--default'
       label = dot_labels[type] || type&.titleize || 'Step'
       visible_count = [count, 2].min
       visible_count.times.map do
-        content_tag(:span, '', class: "inline-block w-2 h-2 rounded-full #{color}", title: "#{label} (#{count})")
+        content_tag(:span, '', class: "dot #{modifier}", title: "#{label} (#{count})")
       end
     end
 

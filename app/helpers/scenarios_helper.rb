@@ -4,7 +4,7 @@ module ScenariosHelper
 
     link_to step_scenario_path(scenario, back: true),
             class: "scenario-btn-cancel" do
-      raw('<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>') + "Back"
+      raw('<svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>') + "Back"
     end
   end
 
@@ -26,12 +26,12 @@ module ScenariosHelper
   # number badge for current/future, with a small step type icon.
   def scenario_stepper_step_content(path_item, index, is_completed, is_current)
     step_type = path_item['step_type'] || path_item['type']
-    type_icon = step_type.present? ? step_type_svg_icon(step_type, css_classes: "w-3.5 h-3.5 inline mr-0.5 flex-shrink-0") : ""
+    type_icon = step_type.present? ? step_type_svg_icon(step_type, css_classes: "icon icon--xs inline flex-shrink-0") : ""
 
     if is_completed
       checkmark = tag.svg(
         tag.path(d: "M5 13l4 4L19 7", 'stroke-linecap': "round", 'stroke-linejoin': "round", 'stroke-width': "2"),
-        class: "w-3.5 h-3.5 inline mr-0.5 flex-shrink-0",
+        class: "icon icon--xs inline flex-shrink-0",
         fill: "none",
         stroke: "currentColor",
         viewBox: "0 0 24 24",
@@ -45,38 +45,38 @@ module ScenariosHelper
 
   # CSS classes for the step number badge based on step type.
   STEP_NUMBER_CLASSES = {
-    'question' => 'bg-blue-600 text-white dark:bg-blue-500',
-    'action' => 'bg-amber-500 text-white dark:bg-amber-500',
-    'message' => 'bg-purple-600 text-white dark:bg-purple-500',
-    'sub_flow' => 'bg-indigo-600 text-white dark:bg-indigo-500',
-    'escalate' => 'bg-orange-500 text-white dark:bg-orange-500',
-    'resolve' => 'bg-emerald-500 text-white dark:bg-emerald-500'
+    'question' => 'badge badge--question',
+    'action' => 'badge badge--action',
+    'message' => 'badge badge--message',
+    'sub_flow' => 'badge badge--sub-flow',
+    'escalate' => 'badge badge--escalate',
+    'resolve' => 'badge badge--resolve'
   }.freeze
 
   def scenario_step_number_classes(step_type)
-    STEP_NUMBER_CLASSES[step_type] || 'bg-slate-600 text-white dark:bg-slate-500'
+    STEP_NUMBER_CLASSES[step_type] || 'badge'
   end
 
   # CSS classes for a stepper pill based on its state and step type.
   STEPPER_TYPE_CLASSES = {
-    'question' => 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40',
-    'action' => 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40',
-    'message' => 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40',
-    'sub_flow' => 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40',
-    'escalate' => 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40',
-    'resolve' => 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+    'question' => 'stepper-pill--question',
+    'action' => 'stepper-pill--action',
+    'message' => 'stepper-pill--message',
+    'sub_flow' => 'stepper-pill--sub-flow',
+    'escalate' => 'stepper-pill--escalate',
+    'resolve' => 'stepper-pill--resolve'
   }.freeze
 
   def scenario_stepper_classes(is_completed, is_current, step_type = nil)
-    base = "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap cursor-pointer"
+    base = "stepper-pill"
 
     if is_current
-      "#{base} bg-blue-500 text-white shadow-md ring-2 ring-blue-300 dark:ring-blue-400"
+      "#{base} stepper-pill--current"
     elsif is_completed
-      type_classes = STEPPER_TYPE_CLASSES[step_type] || 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800/80'
-      "#{base} #{type_classes}"
+      modifier = STEPPER_TYPE_CLASSES[step_type] || 'stepper-pill--completed'
+      "#{base} #{modifier}"
     else
-      "#{base} bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800/80"
+      "#{base} stepper-pill--pending"
     end
   end
 

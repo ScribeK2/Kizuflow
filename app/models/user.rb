@@ -58,15 +58,15 @@ class User < ApplicationRecord
   end
 
   AVATAR_COLORS = {
-    'admin' => 'bg-emerald-500',
-    'editor' => 'bg-blue-500',
-    'regular' => 'bg-slate-500'
+    'admin' => 'avatar--admin',
+    'editor' => 'avatar--editor',
+    'regular' => 'avatar--regular'
   }.freeze
 
   AVATAR_BADGE_CLASSES = {
-    'admin' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    'editor' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    'regular' => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+    'admin' => 'badge--admin',
+    'editor' => 'badge--editor',
+    'regular' => 'badge--regular'
   }.freeze
 
   def avatar_color_class
