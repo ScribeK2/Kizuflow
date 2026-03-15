@@ -450,6 +450,23 @@
    Template Card (branch template selector)
    ============================================================================ */
 
+/* Outer card wrapper */
+.template-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  background: var(--color-canvas);
+  transition: border-color 0.15s ease;
+}
+
+.template-card:hover {
+  border-color: var(--color-link);
+}
+
+[data-theme="dark"] .template-card {
+  background: var(--color-canvas-raised);
+}
+
 .template-card__icon {
   color: var(--color-ink-subtle);
 }

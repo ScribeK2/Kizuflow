@@ -91,7 +91,7 @@ export default class extends Controller {
     
     // Update header styles
     if (this.hasHeaderTarget) {
-      this.headerTarget.classList.toggle("rounded-b-lg", !this.expandedValue)
+      this.headerTarget.classList.toggle("is-last-visible", !this.expandedValue)
     }
   }
 

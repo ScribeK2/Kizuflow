@@ -168,7 +168,7 @@ export default class extends Controller {
     const requiresVariable = template.requiresVariable && !this.variableValue
 
     return `
-      <div class="border rounded-lg p-3 bg-white hover:border-purple-300 transition-all ${requiresVariable ? 'opacity-60' : ''}">
+      <div class="template-card ${requiresVariable ? 'is-disabled' : ''}">
         <div class="flex items-start gap-2 mb-2">
           <span class="template-card__icon">${this.resolveTemplateIcon(template.icon)}</span>
           <div class="flex-1">
@@ -180,7 +180,7 @@ export default class extends Controller {
         <div class="mt-2 flex items-center justify-between">
           <span class="template-card__branches">${branchesCount} branch${branchesCount !== 'N' && branchesCount !== 1 ? 'es' : ''}</span>
           <button type="button"
-                  class="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 ${requiresVariable ? 'opacity-50 cursor-not-allowed' : ''}"
+                  class="btn btn--primary btn--sm ${requiresVariable ? 'is-disabled' : ''}"
                   data-template-id="${template.id}"
                   data-action="click->branch-template-selector#selectTemplate"
                   onclick="console.log('Button clicked via onclick:', '${template.id}'); return false;">

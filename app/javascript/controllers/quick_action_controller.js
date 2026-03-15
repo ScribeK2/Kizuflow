@@ -81,7 +81,7 @@ export default class extends Controller {
     
     this.buttonsContainerTarget.innerHTML = this.quickActions.map(action => `
       <button type="button"
-              class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+              class="quick-action-btn"
               style="background-color: #f8fafc; color: #475569; border-color: #e2e8f0;"
               onmouseover="this.style.backgroundColor='#f1f5f9'"
               onmouseout="this.style.backgroundColor='#f8fafc'"

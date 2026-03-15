@@ -550,7 +550,7 @@ export default class extends Controller {
       }
       
       // Update step number display in collapsible header
-      const stepNumber = stepItem.querySelector(".step-number, .rounded-full.bg-white\\/20")
+      const stepNumber = stepItem.querySelector(".step-number, .step-card__number")
       if (stepNumber) {
         stepNumber.textContent = index + 1
       }
