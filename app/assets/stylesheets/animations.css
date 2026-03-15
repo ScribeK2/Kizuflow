@@ -1,1 +1,78 @@
-/* animations.css — Kizuflow Design System */
+/* animations.css — Keyframes and transition utilities */
+
+/* Entrance animations */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Progress and pulse animations */
+@keyframes shrinkWidth {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Editor-specific animations */
+@keyframes flowPulse {
+  0% { stroke-dashoffset: 200; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes nodeAppear {
+  0% { opacity: 0; transform: scale(0); }
+  60% { transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Scenario radio card animation */
+@keyframes radioDotPop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+/* Named animation classes */
+.animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+.animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out; }
+.animate-scale-in { animation: scaleIn 0.2s ease-out; }
+.animate-shrink { animation: shrinkWidth 5s linear forwards; }
+.animate-subtle-pulse { animation: subtlePulse 2s ease-in-out infinite; }
+.animate-pulse-slow { animation: subtlePulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* Interaction utilities (migrated from Tailwind @utility) */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px -2px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.06);
+}
+
+.btn-press {
+  transition: transform 0.1s ease;
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
