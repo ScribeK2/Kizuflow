@@ -6,10 +6,4 @@ if ! command -v foreman &> /dev/null; then
   gem install foreman
 fi
 
-# Build Tailwind CSS once before starting so app/assets/builds/tailwind.css exists
-# on first page load. Otherwise the browser may request /assets/tailwind.css before
-# the watch process has written it, get a 404, and cache it — so styles never load.
-echo "Building Tailwind CSS..."
-bin/rails tailwindcss:build
-
 exec foreman start -f Procfile.dev "$@"
