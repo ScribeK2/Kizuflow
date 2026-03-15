@@ -28,7 +28,7 @@ class RenderStepTest < ActionDispatch::IntegrationTest
     }, as: :json
 
     assert_response :success
-    assert_includes response.body, 'step-item'
+    assert_includes response.body, 'step-card'
     assert_includes response.body, 'data-step-index'
     assert_includes response.body, 'collapsible-step'
   end
@@ -41,7 +41,7 @@ class RenderStepTest < ActionDispatch::IntegrationTest
     }, as: :json
 
     assert_response :success
-    assert_includes response.body, 'step-item'
+    assert_includes response.body, 'step-card'
     assert_includes response.body, 'data-controller="step-form collapsible-step"'
   end
 
@@ -53,7 +53,7 @@ class RenderStepTest < ActionDispatch::IntegrationTest
     }, as: :json
 
     assert_response :success
-    assert_includes response.body, 'step-item'
+    assert_includes response.body, 'step-card'
     assert_includes response.body, 'message'
   end
 end

@@ -342,34 +342,34 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "John Doe", user.display_name
   end
 
-  test "avatar_color_class returns slate for user role" do
+  test "avatar_color_class returns semantic class for user role" do
     user = User.new(role: "user")
-    assert_equal "bg-slate-500", user.avatar_color_class
+    assert_equal "avatar--regular", user.avatar_color_class
   end
 
-  test "avatar_color_class returns blue for editor role" do
+  test "avatar_color_class returns semantic class for editor role" do
     user = User.new(role: "editor")
-    assert_equal "bg-blue-500", user.avatar_color_class
+    assert_equal "avatar--editor", user.avatar_color_class
   end
 
-  test "avatar_color_class returns emerald for admin role" do
+  test "avatar_color_class returns semantic class for admin role" do
     user = User.new(role: "admin")
-    assert_equal "bg-emerald-500", user.avatar_color_class
+    assert_equal "avatar--admin", user.avatar_color_class
   end
 
-  test "avatar_role_badge_classes returns slate classes for user role" do
+  test "avatar_role_badge_classes returns semantic class for user role" do
     user = User.new(role: "user")
-    assert_equal "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400", user.avatar_role_badge_classes
+    assert_equal "badge--regular", user.avatar_role_badge_classes
   end
 
-  test "avatar_role_badge_classes returns blue classes for editor role" do
+  test "avatar_role_badge_classes returns semantic class for editor role" do
     user = User.new(role: "editor")
-    assert_equal "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", user.avatar_role_badge_classes
+    assert_equal "badge--editor", user.avatar_role_badge_classes
   end
 
-  test "avatar_role_badge_classes returns emerald classes for admin role" do
+  test "avatar_role_badge_classes returns semantic class for admin role" do
     user = User.new(role: "admin")
-    assert_equal "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", user.avatar_role_badge_classes
+    assert_equal "badge--admin", user.avatar_role_badge_classes
   end
 
   test "user model responds to lockable attributes" do

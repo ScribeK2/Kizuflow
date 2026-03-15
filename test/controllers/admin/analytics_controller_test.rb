@@ -50,7 +50,7 @@ class Admin::AnalyticsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     get admin_analytics_path
 
-    assert_select ".solid-card", minimum: 4
+    assert_select ".stat-card", minimum: 4
   end
 
   test "analytics page filters by date range" do

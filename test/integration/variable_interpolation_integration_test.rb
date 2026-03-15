@@ -93,8 +93,8 @@ class VariableInterpolationIntegrationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    # Should show interpolated instructions
-    assert_select ".text-amber-900", text: /Send email to Bob about password reset/
+    # Should show interpolated instructions within the step content box
+    assert_select ".step-content-box--action", text: /Send email to Bob about password reset/
   end
 
   test "action step title and description interpolation" do
