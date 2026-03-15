@@ -78,7 +78,7 @@ export default class extends Controller {
 
     // Intercept form submission — save via sync_steps API when visual editor is active
     this.boundFormSubmit = (e) => {
-      if (this.element.classList.contains("hidden")) {
+      if (this.element.classList.contains("is-hidden")) {
         // Visual editor is hidden (list mode active), let form submit normally
         this.syncHiddenInputs()
         this.service.dirty = false
@@ -116,13 +116,13 @@ export default class extends Controller {
     const steps = this.service.stepsForRenderer()
 
     if (steps.length === 0) {
-      if (this.hasEmptyStateTarget) this.emptyStateTarget.classList.remove("hidden")
+      if (this.hasEmptyStateTarget) this.emptyStateTarget.classList.remove("is-hidden")
       if (this.hasCanvasContentTarget) this.canvasContentTarget.innerHTML = ""
       this.updateStepCount(0)
       return
     }
 
-    if (this.hasEmptyStateTarget) this.emptyStateTarget.classList.add("hidden")
+    if (this.hasEmptyStateTarget) this.emptyStateTarget.classList.add("is-hidden")
 
     // Renderer output is built from escapeHtml-protected internal methods
     const html = this.renderer.render(steps)
@@ -210,12 +210,12 @@ export default class extends Controller {
     const statusEl = document.querySelector("[data-autosave-target='status']")
     if (statusEl) {
       statusEl.textContent = message
-      statusEl.classList.toggle("text-green-600", type === "success")
-      statusEl.classList.toggle("text-red-600", type === "error")
+      statusEl.classList.toggle("status--success", type === "success")
+      statusEl.classList.toggle("status--error", type === "error")
 
       setTimeout(() => {
         statusEl.textContent = "Ready to save"
-        statusEl.classList.remove("text-green-600", "text-red-600")
+        statusEl.classList.remove("status--success", "status--error")
       }, 3000)
     }
   }
@@ -306,9 +306,9 @@ export default class extends Controller {
       const card = node.querySelector(":scope > div")
       if (!card) return
       if (node.dataset.stepId === this.selectedStepId) {
-        card.classList.add("ring-2", "ring-blue-500", "ring-offset-2")
+        card.classList.add("is-selected")
       } else {
-        card.classList.remove("ring-2", "ring-blue-500", "ring-offset-2")
+        card.classList.remove("is-selected")
       }
     })
   }
@@ -320,9 +320,9 @@ export default class extends Controller {
       const card = node.querySelector(":scope > div")
       if (!card) return
       if (orphanIds.includes(node.dataset.stepId)) {
-        card.classList.add("ring-2", "ring-amber-400", "ring-offset-1")
+        card.classList.add("is-orphan")
       } else {
-        card.classList.remove("ring-2", "ring-amber-400", "ring-offset-1")
+        card.classList.remove("is-orphan")
       }
     })
   }
@@ -429,7 +429,7 @@ export default class extends Controller {
     if (e.key === "Escape") {
       if (this.isConnecting) {
         this.cancelConnection()
-      } else if (this.hasStepModalTarget && !this.stepModalTarget.classList.contains("hidden")) {
+      } else if (this.hasStepModalTarget && !this.stepModalTarget.classList.contains("is-hidden")) {
         this.closeModal()
       } else {
         this.hideConditionPopover()
@@ -499,8 +499,7 @@ export default class extends Controller {
     if (this.hasCanvasContentTarget) {
       this.canvasContentTarget.querySelectorAll(".input-port").forEach(port => {
         if (port.dataset.stepId !== fromStepId) {
-          port.classList.remove("opacity-0")
-          port.classList.add("opacity-100", "bg-green-400", "scale-125")
+          port.classList.add("is-connection-target")
         }
       })
     }
@@ -533,8 +532,7 @@ export default class extends Controller {
     // Reset port highlights
     if (this.hasCanvasContentTarget) {
       this.canvasContentTarget.querySelectorAll(".input-port").forEach(port => {
-        port.classList.add("opacity-0")
-        port.classList.remove("opacity-100", "bg-green-400", "scale-125")
+        port.classList.remove("is-connection-target")
       })
     }
 
@@ -571,8 +569,7 @@ export default class extends Controller {
     // Reset port highlights
     if (this.hasCanvasContentTarget) {
       this.canvasContentTarget.querySelectorAll(".input-port").forEach(port => {
-        port.classList.add("opacity-0")
-        port.classList.remove("opacity-100", "bg-green-400", "scale-125")
+        port.classList.remove("is-connection-target")
       })
     }
   }
@@ -592,7 +589,7 @@ export default class extends Controller {
     presets.forEach(preset => {
       const btn = document.createElement("button")
       btn.type = "button"
-      btn.className = "w-full text-left px-3 py-1.5 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      btn.className = "condition-preset-btn"
       btn.dataset.action = "click->visual-editor#applyConditionPreset"
       btn.dataset.fromId = fromId
       btn.dataset.toId = toId
@@ -604,12 +601,12 @@ export default class extends Controller {
 
     this.conditionPopoverTarget.style.left = `${e.clientX}px`
     this.conditionPopoverTarget.style.top = `${e.clientY}px`
-    this.conditionPopoverTarget.classList.remove("hidden")
+    this.conditionPopoverTarget.classList.remove("is-hidden")
   }
 
   hideConditionPopover() {
     if (this.hasConditionPopoverTarget) {
-      this.conditionPopoverTarget.classList.add("hidden")
+      this.conditionPopoverTarget.classList.add("is-hidden")
     }
   }
 
@@ -669,13 +666,13 @@ export default class extends Controller {
     }
 
     if (this.hasStepModalTarget) {
-      this.stepModalTarget.classList.remove("hidden")
+      this.stepModalTarget.classList.remove("is-hidden")
     }
   }
 
   closeModal() {
     if (this.hasStepModalTarget) {
-      this.stepModalTarget.classList.add("hidden")
+      this.stepModalTarget.classList.add("is-hidden")
     }
     this.editingStepId = null
   }
@@ -754,7 +751,7 @@ export default class extends Controller {
   // Build modal form using safe DOM methods (no innerHTML with user data)
   buildStepFormDOM(step, container) {
     const wrapper = document.createElement("div")
-    wrapper.className = "space-y-4"
+    wrapper.className = "form-stack"
 
     // Title field
     wrapper.appendChild(this.createTextField("Title", "step-title", step.title || ""))
@@ -806,8 +803,9 @@ export default class extends Controller {
 
   createTextField(label, name, value) {
     const div = document.createElement("div")
+    div.className = "form-group"
     const lbl = document.createElement("label")
-    lbl.className = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+    lbl.className = "form-label"
     lbl.textContent = label
     div.appendChild(lbl)
 
@@ -815,15 +813,16 @@ export default class extends Controller {
     input.type = "text"
     input.name = name
     input.value = value
-    input.className = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    input.className = "form-input"
     div.appendChild(input)
     return div
   }
 
   createTextareaField(label, name, value, rows) {
     const div = document.createElement("div")
+    div.className = "form-group"
     const lbl = document.createElement("label")
-    lbl.className = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+    lbl.className = "form-label"
     lbl.textContent = label
     div.appendChild(lbl)
 
@@ -832,21 +831,22 @@ export default class extends Controller {
     textarea.rows = rows
     textarea.value = value
     textarea.textContent = value
-    textarea.className = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    textarea.className = "form-textarea"
     div.appendChild(textarea)
     return div
   }
 
   createSelectField(label, name, selectedValue, options) {
     const div = document.createElement("div")
+    div.className = "form-group"
     const lbl = document.createElement("label")
-    lbl.className = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+    lbl.className = "form-label"
     lbl.textContent = label
     div.appendChild(lbl)
 
     const select = document.createElement("select")
     select.name = name
-    select.className = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    select.className = "form-select"
 
     options.forEach(opt => {
       const option = document.createElement("option")
@@ -863,17 +863,17 @@ export default class extends Controller {
   createCheckboxField(label, name, checked) {
     const div = document.createElement("div")
     const lbl = document.createElement("label")
-    lbl.className = "flex items-center cursor-pointer"
+    lbl.className = "form-checkbox-label"
 
     const input = document.createElement("input")
     input.type = "checkbox"
     input.name = name
     input.checked = !!checked
-    input.className = "h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+    input.className = "form-checkbox"
     lbl.appendChild(input)
 
     const span = document.createElement("span")
-    span.className = "ml-2 text-sm text-gray-700 dark:text-gray-300"
+    span.className = "form-checkbox-text"
     span.textContent = label
     lbl.appendChild(span)
 
