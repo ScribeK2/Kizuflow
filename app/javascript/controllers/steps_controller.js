@@ -9,16 +9,16 @@ export default class extends Controller {
     const stepIndex = this.stepTargets.length
     
     const stepHtml = `
-      <div class="step-item border rounded p-4 mb-4" data-step-target="step" data-step-index="${stepIndex}">
-        <div class="flex items-center justify-between mb-2">
-          <span class="drag-handle cursor-move text-gray-500">☰</span>
-          <button type="button" data-action="click->steps#removeStep" class="text-red-500 hover:text-red-700">Remove</button>
+      <div class="step-item" data-step-target="step" data-step-index="${stepIndex}">
+        <div class="step-item__header">
+          <span class="drag-handle">☰</span>
+          <button type="button" data-action="click->steps#removeStep" class="btn btn--negative btn--sm">Remove</button>
         </div>
         <input type="hidden" name="workflow[steps][][index]" value="${stepIndex}">
         <input type="hidden" name="workflow[steps][][type]" value="${stepType}">
-        <div class="space-y-2">
-          <input type="text" name="workflow[steps][][title]" placeholder="Step title" class="w-full border rounded px-3 py-2" required>
-          <textarea name="workflow[steps][][description]" placeholder="Step description" class="w-full border rounded px-3 py-2" rows="2"></textarea>
+        <div class="form-stack">
+          <input type="text" name="workflow[steps][][title]" placeholder="Step title" class="form-input" required>
+          <textarea name="workflow[steps][][description]" placeholder="Step description" class="form-textarea" rows="2"></textarea>
         </div>
       </div>
     `

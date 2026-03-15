@@ -51,7 +51,7 @@ export default class extends Controller {
 
       // Check if visual editor is handling submission
       const visualEditor = document.getElementById("visual-editor-container")
-      if (visualEditor && !visualEditor.classList.contains("hidden")) return
+      if (visualEditor && !visualEditor.classList.contains("is-hidden")) return
 
       e.preventDefault()
       const success = await this.saveToServer()
@@ -435,9 +435,9 @@ export default class extends Controller {
         stepElement.scrollIntoView({ behavior: "smooth", block: "center" })
 
         // Highlight the new step briefly
-        stepElement.classList.add("ring-2", "ring-blue-500", "ring-offset-2")
+        stepElement.classList.add("is-selected")
         setTimeout(() => {
-          stepElement.classList.remove("ring-2", "ring-blue-500", "ring-offset-2")
+          stepElement.classList.remove("is-selected")
         }, 1500)
       }
     } finally {
@@ -447,8 +447,7 @@ export default class extends Controller {
 
   setLoading(isLoading) {
     if (this.hasContainerTarget) {
-      this.containerTarget.classList.toggle('opacity-50', isLoading)
-      this.containerTarget.classList.toggle('pointer-events-none', isLoading)
+      this.containerTarget.classList.toggle('is-disabled', isLoading)
     }
     const addButtons = this.element.querySelectorAll('[data-action*="addStepDirect"], [data-action*="addStep"]')
     addButtons.forEach(btn => { btn.disabled = isLoading })
@@ -804,10 +803,10 @@ export default class extends Controller {
     const statusEl = document.querySelector("[data-autosave-target='status']")
     if (statusEl) {
       statusEl.textContent = message
-      statusEl.classList.add("text-red-600")
+      statusEl.classList.add("status--error")
       setTimeout(() => {
         statusEl.textContent = "Ready to save"
-        statusEl.classList.remove("text-red-600")
+        statusEl.classList.remove("status--error")
       }, 3000)
     }
   }
