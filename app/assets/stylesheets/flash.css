@@ -1,1 +1,51 @@
-/* flash.css — Kizuflow Design System */
+/* flash.css — Flash message components */
+
+.flash {
+  position: fixed;
+  top: 5rem;
+  right: 1rem;
+  z-index: var(--z-toast);
+  max-width: 28rem;
+  animation: slideInRight 0.3s ease-out;
+  cursor: pointer;
+}
+
+.flash__body {
+  position: relative;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  color: oklch(1 0 0);
+}
+
+.flash--notice .flash__body {
+  background: var(--color-positive);
+}
+
+.flash--alert .flash__body {
+  background: var(--color-negative);
+}
+
+[data-theme="dark"] .flash--notice .flash__body {
+  background: oklch(0.5 0.16 145);
+}
+
+[data-theme="dark"] .flash--alert .flash__body {
+  background: oklch(0.5 0.18 25);
+}
+
+.flash__text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.flash__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: oklch(1 0 0 / 0.4);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  animation: shrinkWidth 5s linear forwards;
+}
