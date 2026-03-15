@@ -1,3 +1,4 @@
+@layer modules {
 /* admin.css — Admin panel module styles */
 
 /* ============================================================================
@@ -287,6 +288,157 @@
   color: oklch(0.45 0.12 75);
 }
 
+/* ============================================================================
+   Admin Grid (action buttons row + two-column recent activity)
+   ============================================================================ */
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .admin-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* When admin-grid is used for the two-column recent section (no btn children),
+   override to 2 columns at medium breakpoint */
+.admin-grid:has(> .admin-recent) {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .admin-grid:has(> .admin-recent) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+   Admin Recent Card (Recent Users / Recent Workflows)
+   ============================================================================ */
+
+.admin-recent {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.admin-recent:hover {
+  box-shadow: var(--shadow);
+}
+
+.admin-recent__item {
+  padding: 0.875rem 1.5rem;
+  transition: background 0.15s ease;
+}
+
+.admin-recent__item:hover {
+  background: var(--color-canvas-raised);
+}
+
+.admin-recent__item + .admin-recent__item {
+  border-top: 1px solid var(--color-border);
+}
+
+/* ============================================================================
+   Admin Workflow Icon (in admin workflows list)
+   ============================================================================ */
+
+.admin-wf-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-ink-subtle);
+}
+
+/* ============================================================================
+   Admin Group List (checkbox tree in modals)
+   ============================================================================ */
+
+.admin-group-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem;
+}
+
+/* ============================================================================
+   Stat Card Icon Color (teal/green accent)
+   ============================================================================ */
+
+.stat-card .icon {
+  color: oklch(0.6 0.16 175);
+}
+
+[data-theme="dark"] .stat-card .icon {
+  color: oklch(0.7 0.14 175);
+}
+
+/* ============================================================================
+   Workflow List Item Dividers (in admin card context)
+   ============================================================================ */
+
+.card > .wf-list-item + .wf-list-item,
+.card li.wf-list-item + li.wf-list-item {
+  border-top: 1px solid var(--color-border);
+}
+
+/* ============================================================================
+   Group Tree (admin groups index)
+   ============================================================================ */
+
+.group-tree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.group-tree__node {
+  list-style: none;
+}
+
+.group-tree__indent {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-ink-subtle);
+  transition: color 0.15s ease, transform 0.2s ease;
+}
+
+.group-toggle:hover {
+  color: var(--color-ink);
+}
+
+/* ============================================================================
+   Group Checkbox Item (modal group assignment tree)
+   ============================================================================ */
+
+.group-checkbox-item {
+  display: flex;
+  flex-direction: column;
+}
+
 [data-theme="dark"] .admin-info-box--info {
   background: oklch(0.2 0.04 260);
   border-color: oklch(0.3 0.08 260);
@@ -297,4 +449,149 @@
   background: oklch(0.2 0.04 75);
   border-color: oklch(0.3 0.1 75);
   color: oklch(0.8 0.1 75);
+}
+
+/* ============================================================================
+   Admin Step Number (workflow show page step list)
+   ============================================================================ */
+
+.admin-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-ink-subtle);
+}
+
+/* ============================================================================
+   Analytics Bar (progress/distribution bars)
+   ============================================================================ */
+
+.analytics-bar-track {
+  flex: 1;
+  height: 0.5rem;
+  background: var(--color-canvas-raised);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.analytics-bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.analytics-bar--default {
+  background: oklch(0.6 0.16 260);
+}
+
+.analytics-bar--resolved {
+  background: oklch(0.6 0.19 145);
+}
+
+.analytics-bar--completed {
+  background: oklch(0.6 0.19 145);
+}
+
+.analytics-bar--escalated {
+  background: oklch(0.65 0.18 75);
+}
+
+.analytics-bar--error {
+  background: oklch(0.6 0.2 25);
+}
+
+.analytics-bar--muted {
+  background: var(--color-ink-muted);
+}
+
+[data-theme="dark"] .analytics-bar--default {
+  background: oklch(0.5 0.14 260);
+}
+
+[data-theme="dark"] .analytics-bar--resolved,
+[data-theme="dark"] .analytics-bar--completed {
+  background: oklch(0.5 0.16 145);
+}
+
+[data-theme="dark"] .analytics-bar--escalated {
+  background: oklch(0.55 0.16 75);
+}
+
+[data-theme="dark"] .analytics-bar--error {
+  background: oklch(0.5 0.18 25);
+}
+
+/* ============================================================================
+   Prose (rich text content display)
+   ============================================================================ */
+
+.prose {
+  color: var(--color-ink);
+  line-height: 1.65;
+}
+
+.prose p { margin-bottom: 0.75rem; }
+.prose p:last-child { margin-bottom: 0; }
+.prose ul, .prose ol { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+.prose li { margin-bottom: 0.25rem; }
+.prose a { color: var(--color-link); text-decoration: underline; }
+.prose strong { font-weight: 600; }
+
+.prose-sm {
+  font-size: var(--text-sm);
+}
+
+/* ============================================================================
+   Admin Page Header Layout
+   ============================================================================ */
+
+.admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.admin-page-header__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-page-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-page-header__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  flex-shrink: 0;
+}
+
+/* Admin step card layout */
+.admin-step-layout {
+  display: flex;
+  align-items: flex-start;
+}
+
+.admin-step-layout__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-step-layout__title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
 }

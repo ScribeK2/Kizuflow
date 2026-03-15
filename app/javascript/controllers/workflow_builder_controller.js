@@ -49,9 +49,12 @@ export default class extends Controller {
       const workflowId = this.workflowIdValue || getWorkflowIdFromForm(this.element)
       if (!workflowId) return // New workflow, let form submit normally
 
-      // Check if visual editor is handling submission
+      // Defer to visual editor when it is active — it handles its own save
       const visualEditor = document.getElementById("visual-editor-container")
-      if (visualEditor && !visualEditor.classList.contains("is-hidden")) return
+      if (visualEditor && !visualEditor.classList.contains("is-hidden")) {
+        // Visual editor's own submit handler will take over
+        return
+      }
 
       e.preventDefault()
       const success = await this.saveToServer()
@@ -598,8 +601,8 @@ export default class extends Controller {
     if (!this.hasContainerTarget) return
 
     // Find and remove the empty state div (contains "No steps yet" text)
-    const emptyState = this.containerTarget.querySelector('.text-center.py-12')
-    if (emptyState && emptyState.textContent.includes('No steps yet')) {
+    const emptyState = this.containerTarget.querySelector('[data-empty-state]')
+    if (emptyState) {
       emptyState.remove()
     }
   }

@@ -28,10 +28,8 @@ export default class extends Controller {
       return // Already set up
     }
     
-    // Ensure element is relative positioned
-    if (!this.element.classList.contains("relative")) {
-      this.element.classList.add("relative")
-    }
+    // Ensure element is relative positioned for dropdown
+    this.element.style.position = "relative"
     
     // Create search input
     const searchInput = document.createElement("input")
@@ -182,7 +180,7 @@ export default class extends Controller {
   }
 
   highlightNextOption() {
-    const visibleOptions = Array.from(this.optionTargets).filter(opt => !opt.classList.contains("hidden"))
+    const visibleOptions = Array.from(this.optionTargets).filter(opt => !opt.classList.contains("is-hidden"))
     const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains("is-highlighted"))
     
     visibleOptions.forEach(opt => opt.classList.remove("is-highlighted"))
@@ -197,7 +195,7 @@ export default class extends Controller {
   }
 
   highlightPreviousOption() {
-    const visibleOptions = Array.from(this.optionTargets).filter(opt => !opt.classList.contains("hidden"))
+    const visibleOptions = Array.from(this.optionTargets).filter(opt => !opt.classList.contains("is-hidden"))
     const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains("is-highlighted"))
     
     visibleOptions.forEach(opt => opt.classList.remove("is-highlighted"))

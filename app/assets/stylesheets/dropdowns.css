@@ -1,3 +1,4 @@
+@layer components {
 /* dropdowns.css — Dropdown menu components */
 
 .dropdown {
@@ -55,4 +56,5 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
 }

@@ -1,3 +1,4 @@
+@layer components {
 /* icons.css — Icon sizing and alignment */
 
 .icon {
@@ -33,4 +34,5 @@
 .icon--xl {
   width: 2rem;
   height: 2rem;
+}
 }

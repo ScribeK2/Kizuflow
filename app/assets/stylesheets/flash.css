@@ -1,3 +1,4 @@
+@layer components {
 /* flash.css — Flash message components */
 
 .flash {
@@ -48,4 +49,41 @@
   background: oklch(1 0 0 / 0.4);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   animation: shrinkWidth 5s linear forwards;
+}
+
+/* ============================================================================
+   Toast Notifications (JS-generated collaboration notifications)
+   ============================================================================ */
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: var(--z-toast);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: oklch(1 0 0);
+  box-shadow: var(--shadow-lg);
+  animation: slideInRight 0.3s ease-out;
+  max-width: 24rem;
+}
+
+.toast--info {
+  background: var(--color-link);
+}
+
+.toast--success {
+  background: var(--color-positive);
+}
+
+.toast--warning {
+  background: var(--color-warning);
+  color: var(--color-ink);
+}
+
+.toast--error {
+  background: var(--color-negative);
+}
 }

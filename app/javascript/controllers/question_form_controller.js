@@ -18,7 +18,7 @@ export default class extends Controller {
     }
 
     // Initialize Sortable for options list if visible
-    if (this.hasOptionsListTarget && !this.optionsListTarget.classList.contains('hidden')) {
+    if (this.hasOptionsListTarget && !this.optionsListTarget.classList.contains('is-hidden')) {
       this.initializeSortable()
     }
   }
@@ -36,7 +36,7 @@ export default class extends Controller {
       this.sortable = new Sortable(this.optionsListTarget, {
         handle: '.drag-handle',
         animation: 150,
-        ghostClass: 'opacity-50',
+        ghostClass: 'is-dragging',
         onEnd: () => this.handleReorder()
       })
     } catch (error) {
@@ -93,13 +93,13 @@ export default class extends Controller {
     // Show/hide options container based on answer type
     if (this.hasOptionsContainerTarget) {
       if (typesWithOptions.includes(answerType)) {
-        this.optionsContainerTarget.classList.remove('hidden')
+        this.optionsContainerTarget.classList.remove('is-hidden')
         // Initialize Sortable if not already initialized
         if (!this.sortable && this.hasOptionsListTarget) {
           setTimeout(() => this.initializeSortable(), 100)
         }
       } else {
-        this.optionsContainerTarget.classList.add('hidden')
+        this.optionsContainerTarget.classList.add('is-hidden')
         // Destroy Sortable when hidden
         if (this.sortable) {
           this.sortable.destroy()
@@ -139,20 +139,20 @@ export default class extends Controller {
     if (!this.hasOptionsListTarget) return
     
     const optionHtml = `
-      <div class="flex gap-2 items-center option-item">
+      <div class="option-item">
         <span class="drag-handle" title="Drag to reorder">☰</span>
-        <input type="text" 
-               name="workflow[steps][][options][][label]" 
-               placeholder="Option label" 
-               class="flex-1 border rounded px-2 py-1 text-sm min-w-0"
+        <input type="text"
+               name="workflow[steps][][options][][label]"
+               placeholder="Option label"
+               class="form-input flex-1"
                data-step-form-target="field">
-        <input type="text" 
-               name="workflow[steps][][options][][value]" 
-               placeholder="Option value" 
-               class="flex-1 border rounded px-2 py-1 text-sm min-w-0"
+        <input type="text"
+               name="workflow[steps][][options][][value]"
+               placeholder="Option value"
+               class="form-input flex-1"
                data-step-form-target="field">
-        <button type="button" 
-                class="btn btn--negative btn--sm"
+        <button type="button"
+                class="btn btn--negative btn--sm flex-shrink-0"
                 data-action="click->question-form#removeOption">
           Remove
         </button>

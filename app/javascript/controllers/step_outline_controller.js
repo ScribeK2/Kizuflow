@@ -52,27 +52,49 @@ export default class extends Controller {
     
     this.hideEmptyState()
     
-    // Render step list
-    this.stepListTarget.innerHTML = steps.map((step, index) => `
-      <button type="button"
+    // Step type hue mapping (matches --hue-* tokens in _global.css)
+    const typeHues = {
+      question: 'var(--hue-question)',
+      action: 'var(--hue-action)',
+      sub_flow: 'var(--hue-subflow)',
+      message: 'var(--hue-message)',
+      escalate: 'var(--hue-escalate)',
+      resolve: 'var(--hue-resolve)'
+    }
+
+    const typeIcons = {
+      question: '?',
+      action: '!',
+      sub_flow: '\u21A9',
+      message: 'i',
+      escalate: '\u2191',
+      resolve: '\u2713'
+    }
+
+    // Build outline items using semantic classes that match the ERB-rendered markup.
+    // All values are escaped via this.escapeHtml() — no raw user input is interpolated.
+    this.stepListTarget.innerHTML = steps.map((step, index) => {
+      const stepHue = typeHues[step.type] || '245'
+      const typeIcon = typeIcons[step.type] || '#'
+      const escapedTitle = this.escapeHtml(step.title || `Untitled ${step.type || 'step'}`)
+      const escapedType = this.escapeHtml(step.type || '')
+      const escapedId = this.escapeHtml(step.id || '')
+      return `<button type="button"
               class="step-outline-item${step.isActive ? ' is-active' : ''}"
               data-action="click->step-outline#scrollToStep"
               data-step-index="${index}"
-              data-step-id="${step.id}">
-        <div class="step-outline-item__inner">
-          <span class="step-outline-item__number step-outline-item__number--${step.type || 'default'}">
-            ${index + 1}
-          </span>
-          <span class="step-outline-item__icon" title="${step.type}">
-            ${renderStepIcon(step.type, "icon icon--sm")}
-          </span>
-          <span class="step-outline-item__title">
-            ${this.escapeHtml(step.title || `Untitled ${step.type || 'step'}`)}
-          </span>
-          ${step.hasWarning ? `<span class="step-outline-item__warning" title="Incomplete">${renderIcon(UI_ICON_PATHS.warning, "icon icon--sm")}</span>` : ''}
+              data-step-id="${escapedId}">
+        <div class="flex items-center gap-2">
+          <span class="step-outline__number flex-shrink-0"
+                style="--step-hue: ${stepHue};">${index + 1}</span>
+          <span class="step-outline__type-icon flex-shrink-0"
+                style="--step-hue: ${stepHue};"
+                title="${escapedType}">${typeIcon}</span>
+          <span class="flex-1 text-sm truncate">${escapedTitle}</span>
+          ${step.hasWarning ? '<span class="flex-shrink-0" title="Incomplete" style="color: var(--color-warning);">\u26A0</span>' : ''}
         </div>
-      </button>
-    `).join("")
+      </button>`
+    }).join("")
     
     // Update step count
     this.updateStepCount(steps.length)

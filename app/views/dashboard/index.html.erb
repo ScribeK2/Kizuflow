@@ -1,15 +1,15 @@
 <div class="dashboard-layout">
   <%# -- A. Personalized Header -- %>
-  <div class="mb-8 animate-fade-in">
-    <h1 class="text-xl font-bold">Dashboard</h1>
-    <p class="mt-1">
+  <div class="page-header-section animate-fade-in">
+    <h1 class="page-header-section__title">Dashboard</h1>
+    <p class="page-header-section__subtitle">
       Welcome back, <span class="font-medium"><%= current_user.display_label %></span>
     </p>
   </div>
 
   <%# -- B. Quick Actions Row (editors/admins only) -- %>
   <% if current_user&.can_create_workflows? %>
-    <div class="flex flex-wrap gap-3 mb-8 animate-fade-in">
+    <div class="dashboard-actions animate-fade-in">
       <%= button_to start_wizard_workflows_path, method: :post, class: "btn btn--primary", form_class: "inline", aria: { label: "Create a new workflow" } do %>
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -29,9 +29,11 @@
   <div class="stat-grid">
     <%# Card 1: Total Workflows %>
     <div class="stat-card animate-fade-in-up hover-lift" style="animation-delay: 0.1s;" aria-label="Total workflows: <%= @workflow_count %>">
-      <p class="stat-card__value"><%= @workflow_count %></p>
-      <p class="stat-card__label">Total Workflows</p>
-      <div class="stat-card__detail">
+      <div>
+        <p class="stat-card__value"><%= @workflow_count %></p>
+        <p class="stat-card__label">Total Workflows</p>
+      </div>
+      <div class="stat-card__icon">
         <svg class="icon icon--xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
@@ -40,46 +42,56 @@
 
     <%# Card 2: Published %>
     <div class="stat-card animate-fade-in-up hover-lift" style="animation-delay: 0.15s;" aria-label="Published workflows: <%= @published_count %>">
-      <p class="stat-card__value"><%= @published_count %></p>
-      <p class="stat-card__label">Published</p>
-      <% if @draft_count > 0 %>
-        <p class="stat-card__detail"><%= @draft_count %> draft<%= @draft_count == 1 ? "" : "s" %></p>
-      <% end %>
-      <svg class="icon icon--xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+      <div>
+        <p class="stat-card__value"><%= @published_count %></p>
+        <p class="stat-card__label">Published</p>
+        <% if @draft_count > 0 %>
+          <p class="stat-card__detail"><%= @draft_count %> draft<%= @draft_count == 1 ? "" : "s" %></p>
+        <% end %>
+      </div>
+      <div class="stat-card__icon">
+        <svg class="icon icon--xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
     </div>
 
     <%# Card 3: Scenarios Run %>
     <div class="stat-card animate-fade-in-up hover-lift" style="animation-delay: 0.2s;" aria-label="Scenarios run: <%= @scenario_total %>">
-      <p class="stat-card__value"><%= @scenario_total %></p>
-      <p class="stat-card__label">Scenarios Run</p>
-      <% if @scenario_active > 0 %>
-        <p class="stat-card__detail flex items-center gap-1">
-          <span class="status-dot" style="background: var(--color-positive);" aria-hidden="true"></span>
-          <%= @scenario_active %> active
-        </p>
-      <% end %>
-      <svg class="icon icon--xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+      <div>
+        <p class="stat-card__value"><%= @scenario_total %></p>
+        <p class="stat-card__label">Scenarios Run</p>
+        <% if @scenario_active > 0 %>
+          <p class="stat-card__detail">
+            <span class="status-dot" style="background: var(--color-positive);" aria-hidden="true"></span>
+            <%= @scenario_active %> active
+          </p>
+        <% end %>
+      </div>
+      <div class="stat-card__icon">
+        <svg class="icon icon--xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
     </div>
 
     <%# Card 4: Completion Rate %>
     <div class="stat-card animate-fade-in-up hover-lift" style="animation-delay: 0.25s;" aria-label="Scenario completion rate: <%= @scenario_completion_rate %>%">
-      <p class="stat-card__value"><%= @scenario_completion_rate %>%</p>
-      <p class="stat-card__label">Completion Rate</p>
-      <% if @scenario_total > 0 %>
-        <p class="stat-card__detail"><%= @scenario_completed %> of <%= @scenario_total %></p>
-      <% end %>
-      <div class="relative" style="width: 3rem; height: 3rem;">
-        <svg class="w-full h-full" style="transform: rotate(-90deg);" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" r="20" fill="none" stroke-width="3" style="stroke: var(--border-color);" />
-          <circle cx="24" cy="24" r="20" fill="none" stroke-width="3" style="stroke: var(--color-success);" stroke-linecap="round" stroke-dasharray="<%= (125.66).round(2) %>" stroke-dashoffset="<%= (125.66 * (1 - @scenario_completion_rate / 100.0)).round(2) %>" />
+      <div>
+        <p class="stat-card__value"><%= @scenario_completion_rate %>%</p>
+        <p class="stat-card__label">Completion Rate</p>
+        <% if @scenario_total > 0 %>
+          <p class="stat-card__detail"><%= @scenario_completed %> of <%= @scenario_total %></p>
+        <% end %>
+      </div>
+      <div class="stat-card__progress">
+        <svg class="stat-card__progress-svg" viewBox="0 0 48 48">
+          <circle class="stat-card__progress-track" cx="24" cy="24" r="20" fill="none" stroke-width="3" />
+          <circle class="stat-card__progress-fill" cx="24" cy="24" r="20" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="<%= (125.66).round(2) %>" stroke-dashoffset="<%= (125.66 * (1 - @scenario_completion_rate / 100.0)).round(2) %>" />
         </svg>
-        <div class="absolute inset-0 flex items-center justify-center">
-          <svg class="icon icon--sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: var(--color-success);">
+        <div class="stat-card__progress-icon">
+          <svg class="icon icon--sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -88,16 +100,16 @@
   </div>
 
   <%# -- D. Section Separator -- %>
-  <hr class="my-8" style="border-color: var(--border-color);">
+  <hr class="dashboard-divider">
 
   <%# -- E. Two-Column Content -- %>
-  <div class="flex gap-6 flex-wrap">
+  <div class="dashboard-grid">
     <%# Left: Recent Workflows (2/3) %>
-    <div class="recent-section flex-1 animate-fade-in-up" style="animation-delay: 0.3s; min-width: 0;">
+    <div class="recent-section animate-fade-in-up" style="animation-delay: 0.3s;">
       <div class="recent-section__header">
         <div>
           <h2 class="recent-section__title">Recent Workflows</h2>
-          <p class="text-sm" style="color: var(--text-muted);">Your most recently created workflows</p>
+          <p class="recent-section__subtitle">Your most recently created workflows</p>
         </div>
         <%= link_to "View all", workflows_path, class: "btn btn--plain btn--sm", aria: { label: "View all workflows" } %>
       </div>
@@ -114,7 +126,7 @@
                   Created <%= time_ago_in_words(workflow.created_at) %> ago
                 </div>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="wf-list-item__actions">
                 <%= link_to start_workflow_path(workflow), class: "btn btn--positive btn--sm", aria: { label: "Start scenario for #{workflow.title}" } do %>
                   <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -142,8 +154,8 @@
             </div>
             <h3 class="empty-state__title">No workflows yet</h3>
             <% if current_user&.can_create_workflows? %>
-              <p class="empty-state__text">Get started by creating your first workflow or browsing templates.</p>
-              <div class="flex items-center justify-center gap-3 mt-4">
+              <p class="empty-state__message">Get started by creating your first workflow or browsing templates.</p>
+              <div class="empty-state__actions">
                 <%= button_to start_wizard_workflows_path, method: :post, class: "btn btn--primary btn--sm", form_class: "inline", aria: { label: "Create your first workflow" } do %>
                   <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -155,7 +167,7 @@
                 <% end %>
               </div>
             <% else %>
-              <p class="empty-state__text">Browse public workflows or templates to get started.</p>
+              <p class="empty-state__message">Browse public workflows or templates to get started.</p>
             <% end %>
           </div>
         <% end %>
@@ -163,11 +175,11 @@
     </div>
 
     <%# Right: Recent Activity / Scenarios (1/3) %>
-    <div class="recent-section animate-fade-in-up" style="animation-delay: 0.35s; width: 20rem; flex-shrink: 0;">
+    <div class="recent-section animate-fade-in-up" style="animation-delay: 0.35s;">
       <div class="recent-section__header">
         <div>
           <h2 class="recent-section__title">Recent Activity</h2>
-          <p class="text-sm" style="color: var(--text-muted);">Your latest scenarios</p>
+          <p class="recent-section__subtitle">Your latest scenarios</p>
         </div>
       </div>
       <div class="activity-feed">
@@ -177,9 +189,9 @@
             <% if workflow %>
               <%= link_to scenario_path(scenario), class: "activity-feed__item", aria: { label: "View scenario for #{workflow.title}" } do %>
                 <div class="activity-feed__dot activity-feed__dot--<%= scenario.status %>" aria-hidden="true"></div>
-                <div class="flex-1 min-w-0">
+                <div class="activity-feed__body">
                   <p class="font-medium truncate"><%= workflow.title %></p>
-                  <p class="text-xs" style="color: var(--text-muted);">
+                  <p class="activity-feed__meta">
                     <%= scenario.status.capitalize %> &middot; <%= time_ago_in_words(scenario.created_at) %> ago
                   </p>
                 </div>
@@ -187,9 +199,9 @@
             <% else %>
               <div class="activity-feed__item">
                 <div class="activity-feed__dot" aria-hidden="true"></div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm italic truncate" style="color: var(--text-muted);">Deleted workflow</p>
-                  <p class="text-xs" style="color: var(--text-muted);">
+                <div class="activity-feed__body">
+                  <p class="text-sm italic truncate" style="color: var(--color-ink-muted);">Deleted workflow</p>
+                  <p class="activity-feed__meta">
                     <%= scenario.status.capitalize %> &middot; <%= time_ago_in_words(scenario.created_at) %> ago
                   </p>
                 </div>
@@ -204,7 +216,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p class="empty-state__text">Start a workflow to see your activity here</p>
+            <p class="empty-state__message">Start a workflow to see your activity here</p>
           </div>
         <% end %>
       </div>

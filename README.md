@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Ruby_on_Rails-8.1-cc0000?logo=rubyonrails" alt="Rails 8.1">
   <img src="https://img.shields.io/badge/Ruby-4.0-cc342d?logo=ruby" alt="Ruby 4.0">
   <img src="https://img.shields.io/badge/Hotwire-Turbo_+_Stimulus-5200ff" alt="Hotwire">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06b6d4?logo=tailwindcss" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/Vanilla_CSS-OKLCH_%2B_%40layer-4f46e5" alt="Vanilla CSS">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
 </p>
 
@@ -72,7 +72,7 @@
 |-------|-----------|
 | **Framework** | Ruby on Rails 8.1 (#nobuild — no Node.js required) |
 | **Frontend** | Hotwire (Turbo + Stimulus), 60+ Stimulus controllers |
-| **Styling** | Tailwind CSS (standalone CLI via tailwindcss-rails) |
+| **Styling** | Vanilla CSS (@layer cascade, OKLCH design tokens, Propshaft) |
 | **Database** | SQLite (dev/test), PostgreSQL (production) |
 | **Real-time** | Action Cable (Redis in production, in-memory in dev) |
 | **Auth** | Devise with lockable accounts |
@@ -90,7 +90,7 @@
 - Bundler
 - SQLite3 (development) or PostgreSQL (production)
 
-No Node.js required — uses Rails' importmap-rails for JS and tailwindcss-rails standalone CLI for styles.
+No Node.js required — uses Rails' importmap-rails for JS and Propshaft for vanilla CSS (no build step).
 
 ## Installation
 
@@ -102,7 +102,7 @@ bundle install
 # Setup database
 rails db:create db:migrate db:seed
 
-# Start development server (includes Tailwind watch)
+# Start development server
 bin/dev
 ```
 

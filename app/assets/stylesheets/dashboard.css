@@ -1,4 +1,36 @@
-/* dashboard.css — Dashboard page module styles */
+@layer modules {
+/* dashboard.css — Dashboard page module styles (HEY Calm + Fizzy Vibrant) */
+
+/* ============================================================================
+   Dashboard Layout
+   ============================================================================ */
+
+.dashboard-layout {
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+/* ============================================================================
+   Dashboard Header
+   ============================================================================ */
+
+.dashboard-header {
+  margin-bottom: var(--space-10);
+}
+
+.dashboard-header__title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+}
+
+.dashboard-header__subtitle {
+  font-size: var(--text-base);
+  color: var(--color-ink-subtle);
+  margin-top: var(--space-1);
+}
 
 /* ============================================================================
    Quick Actions Row
@@ -7,8 +39,8 @@
 .dashboard-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-10);
 }
 
 /* ============================================================================
@@ -18,8 +50,8 @@
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  gap: var(--space-5);
+  margin-bottom: var(--space-10);
 }
 
 @media (min-width: 640px) {
@@ -34,22 +66,56 @@
   }
 }
 
+/* ============================================================================
+   Stat Card
+   ============================================================================ */
+
+.stat-card {
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow);
+}
+
 .stat-card__value {
-  font-size: 1.875rem;
+  font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--color-ink);
   line-height: 1;
+  letter-spacing: var(--letter-spacing-tight);
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-card__label {
   font-size: var(--text-sm);
   color: var(--color-ink-muted);
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 .stat-card__sub {
   font-size: var(--text-xs);
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
+}
+
+.stat-card__detail {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-top: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .stat-card__icon {
@@ -58,13 +124,38 @@
 }
 
 /* ============================================================================
-   Dashboard Two-Column Layout
+   Hover Lift
+   ============================================================================ */
+
+.hover-lift {
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================================================================
+   Dashboard Divider
+   ============================================================================ */
+
+.dashboard-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin-block: var(--space-10);
+}
+
+/* ============================================================================
+   Two-Column Content Grid
    ============================================================================ */
 
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: var(--space-6);
 }
 
 @media (min-width: 1024px) {
@@ -74,19 +165,114 @@
 }
 
 /* ============================================================================
-   Recent Workflows List
+   Recent Section (Recent Workflows, Recent Activity cards)
+   ============================================================================ */
+
+.recent-section {
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.recent-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.recent-section__title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.recent-section__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: var(--space-1);
+}
+
+/* ============================================================================
+   Workflow List Inside Recent Section
+   ============================================================================ */
+
+.wf-list {
+  /* Container for list items */
+}
+
+.wf-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.wf-list-item:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wf-list-item:hover {
+  background: var(--color-canvas-alt);
+}
+
+.wf-list-item__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.wf-list-item__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.wf-list-item__title a {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.wf-list-item__title a:hover {
+  color: var(--color-primary);
+}
+
+.wf-list-item__meta {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: var(--space-1);
+}
+
+.wf-list-item__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Legacy Workflow List Item (for existing markup)
    ============================================================================ */
 
 .workflow-list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.5rem;
-  transition: background 0.15s ease;
+  padding: var(--space-4) var(--space-6);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .workflow-list-item:hover {
-  background: var(--color-canvas-raised);
+  background: var(--color-canvas-alt);
 }
 
 .workflow-list-item__icon {
@@ -97,8 +283,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 1rem;
-  background: var(--color-canvas-raised);
+  margin-right: var(--space-4);
+  background: var(--color-canvas-alt);
   border: 1px solid var(--color-border);
 }
 
@@ -106,11 +292,11 @@
   font-weight: 600;
   color: var(--color-ink);
   font-size: var(--text-base);
-  transition: color 0.15s ease;
+  transition: color var(--duration-fast) var(--ease-out);
 }
 
 .workflow-list-item__title:hover {
-  color: var(--color-link);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -123,25 +309,63 @@
 .workflow-list-item__actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-shrink: 0;
-  margin-left: 1rem;
+  margin-left: var(--space-4);
 }
 
 /* ============================================================================
-   Recent Activity Feed
+   Activity Feed (right column)
    ============================================================================ */
 
+.activity-feed {
+  /* Container for activity items */
+}
+
+.activity-feed__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.activity-feed__item:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-feed__item:hover {
+  background: var(--color-canvas-alt);
+  text-decoration: none;
+}
+
+.activity-feed__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  margin-top: 0.375rem;
+  background: var(--color-ink-muted);
+}
+
+.activity-feed__dot--completed { background: var(--color-positive); }
+.activity-feed__dot--active    { background: var(--color-primary); }
+.activity-feed__dot--stopped   { background: var(--color-ink-muted); }
+.activity-feed__dot--error     { background: var(--color-negative); }
+
+/* Legacy activity item classes */
 .activity-item {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  transition: background 0.15s ease;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .activity-item:hover {
-  background: var(--color-canvas-raised);
+  background: var(--color-canvas-alt);
 }
 
 .activity-dot {
@@ -149,11 +373,11 @@
   height: 0.625rem;
   border-radius: var(--radius-full);
   flex-shrink: 0;
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 .activity-dot--completed { background: var(--color-positive); }
-.activity-dot--active    { background: var(--color-link); }
+.activity-dot--active    { background: var(--color-primary); }
 .activity-dot--stopped   { background: var(--color-ink-muted); }
 .activity-dot--error     { background: var(--color-negative); }
 .activity-dot--default   { background: var(--color-warning); }
@@ -174,21 +398,11 @@
 }
 
 /* ============================================================================
-   Section Separator
-   ============================================================================ */
-
-.dashboard-divider {
-  border: none;
-  border-top: 1px solid var(--color-border);
-  margin-bottom: 2.5rem;
-}
-
-/* ============================================================================
    Dashboard Empty States
    ============================================================================ */
 
 .dashboard-empty {
-  padding: 4rem 1.5rem;
+  padding: var(--space-16) var(--space-6);
   text-align: center;
 }
 
@@ -199,14 +413,69 @@
 }
 
 .dashboard-empty__title {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   font-size: var(--text-lg);
   font-weight: 500;
   color: var(--color-ink);
 }
 
 .dashboard-empty__text {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   font-size: var(--text-sm);
   color: var(--color-ink-muted);
+}
+
+/* ============================================================================
+   Completion Rate Circular Progress
+   ============================================================================ */
+
+.stat-card__progress {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+}
+
+.stat-card__progress-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.stat-card__progress-track {
+  stroke: var(--color-border);
+}
+
+.stat-card__progress-fill {
+  stroke: var(--color-positive);
+}
+
+.stat-card__progress-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-positive);
+}
+
+/* Activity feed item body */
+.activity-feed__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-feed__meta {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+/* Empty state actions row */
+.empty-state__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
 }

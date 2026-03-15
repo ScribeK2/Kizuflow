@@ -1,3 +1,4 @@
+@layer components {
 /* dialogs.css — Dialog and modal components */
 
 .dialog-overlay {
@@ -20,6 +21,12 @@
   max-width: 32rem;
   max-height: 90vh;
   overflow: hidden;
+}
+
+/* Use flex layout only when dialog is open — preserves native
+   dialog:not([open]) { display: none } behavior */
+.dialog[open],
+.dialog:not(dialog) {
   display: flex;
   flex-direction: column;
 }
@@ -78,4 +85,5 @@
 
 .dialog.is-hidden {
   display: none;
+}
 }

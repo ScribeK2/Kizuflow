@@ -1,3 +1,4 @@
+@layer modules {
 /* layout.css — Page structure */
 
 .page-body {
@@ -30,6 +31,25 @@
   }
 }
 
+/* Shared page header — consistent title + spacing across all top-level pages */
+.page-header-section {
+  margin-bottom: var(--space-8);
+}
+
+.page-header-section__title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+}
+
+.page-header-section__subtitle {
+  font-size: var(--text-base);
+  color: var(--color-ink-subtle);
+  margin-top: var(--space-1);
+}
+
 /* Auth-specific layout */
 .auth-page {
   padding-top: 4rem;
@@ -45,4 +65,5 @@
   .auth-page {
     padding-inline: 1.5rem;
   }
+}
 }

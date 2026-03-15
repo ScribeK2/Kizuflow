@@ -46,7 +46,7 @@
   <input type="hidden" name="workflow[steps][][answer_type]" value="<%= step['answer_type'] %>" data-question-form-target="hiddenAnswerType">
 
   <%# Options container for multiple_choice and dropdown - moved inside controller scope %>
-  <div class="mt-4 <%= 'hidden' unless ['multiple_choice', 'dropdown'].include?(step['answer_type']) %>"
+  <div class="mt-4 <%= 'is-hidden' unless ['multiple_choice', 'dropdown'].include?(step['answer_type']) %>"
        data-question-form-target="optionsContainer">
     <label class="form-label">Options</label>
     <div data-question-form-target="optionsList" style="display: flex; flex-direction: column; gap: 0.5rem;">

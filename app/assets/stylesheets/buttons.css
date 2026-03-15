@@ -1,112 +1,143 @@
-/* buttons.css — Button components */
+@layer components {
+/* buttons.css — Button components (HEY Calm + Fizzy Vibrant) */
 
 .btn {
+  --btn-bg: transparent;
+  --btn-text: var(--color-ink);
+  --btn-border: var(--color-border);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius);
   font-size: var(--text-sm);
   font-weight: 500;
-  line-height: 1.5;
+  line-height: var(--line-height-tight);
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .btn:focus-visible {
   outline: var(--focus-ring);
-  outline-offset: 2px;
+  outline-offset: var(--focus-ring-offset);
 }
 
+.btn:active:not(:disabled):not(.is-disabled) {
+  transform: scale(0.98);
+}
+
+/* ─── Primary ─── */
 .btn--primary {
-  background: var(--color-link);
-  color: oklch(1 0 0);
-  border-color: var(--color-link);
+  --btn-bg: var(--color-primary);
+  --btn-text: oklch(1 0 0);
+  --btn-border: var(--color-primary);
 }
 
 .btn--primary:hover {
-  background: oklch(0.48 0.2 260);
+  --btn-bg: var(--color-primary-hover);
+  --btn-border: var(--color-primary-hover);
 }
 
 [data-theme="dark"] .btn--primary {
-  background: oklch(0.5 0.18 260);
+  --btn-bg: var(--color-primary);
+  --btn-border: var(--color-primary);
 }
 
 [data-theme="dark"] .btn--primary:hover {
-  background: oklch(0.55 0.18 260);
+  --btn-bg: var(--color-primary-hover);
+  --btn-border: var(--color-primary-hover);
 }
 
+/* ─── Secondary ─── */
 .btn--secondary {
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  border-color: var(--color-border);
+  --btn-bg: var(--color-canvas-raised);
+  --btn-text: var(--color-ink);
+  --btn-border: var(--color-border);
 }
 
 .btn--secondary:hover {
-  background: var(--color-canvas-raised);
-  border-color: var(--color-ink-muted);
+  --btn-border: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
+/* ─── Plain / Ghost ─── */
 .btn--plain {
-  background: transparent;
-  color: var(--color-ink-subtle);
-  border-color: transparent;
-  padding: 0.375rem 0.75rem;
+  --btn-bg: transparent;
+  --btn-text: var(--color-ink-subtle);
+  --btn-border: transparent;
+  padding: var(--space-2) var(--space-3);
 }
 
 .btn--plain:hover {
-  background: var(--color-canvas-raised);
-  color: var(--color-ink);
+  --btn-bg: var(--color-canvas-alt);
+  --btn-text: var(--color-ink);
 }
 
+/* ─── Negative / Danger ─── */
 .btn--negative {
-  background: var(--color-negative);
-  color: oklch(1 0 0);
-  border-color: var(--color-negative);
+  --btn-bg: var(--color-negative);
+  --btn-text: oklch(1 0 0);
+  --btn-border: var(--color-negative);
 }
 
 .btn--negative:hover {
-  background: oklch(0.48 0.22 25);
+  --btn-bg: oklch(0.48 0.22 25);
+  --btn-border: oklch(0.48 0.22 25);
 }
 
 [data-theme="dark"] .btn--negative:hover {
-  background: oklch(0.6 0.18 25);
+  --btn-bg: oklch(0.60 0.18 25);
+  --btn-border: oklch(0.60 0.18 25);
 }
 
+/* ─── Positive / Success ─── */
 .btn--positive {
-  background: var(--color-positive);
-  color: oklch(1 0 0);
-  border-color: var(--color-positive);
+  --btn-bg: var(--color-positive);
+  --btn-text: oklch(1 0 0);
+  --btn-border: var(--color-positive);
 }
 
 .btn--positive:hover {
-  background: oklch(0.53 0.19 145);
+  --btn-bg: oklch(0.53 0.19 145);
+  --btn-border: oklch(0.53 0.19 145);
 }
 
 [data-theme="dark"] .btn--positive:hover {
-  background: oklch(0.6 0.16 145);
+  --btn-bg: oklch(0.60 0.16 145);
+  --btn-border: oklch(0.60 0.16 145);
+}
+
+/* ─── Sizes ─── */
+.btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  gap: var(--space-1);
+}
+
+.btn--lg {
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-base);
 }
 
 .btn--circle {
-  padding: 0.5rem;
+  padding: var(--space-2);
   border-radius: var(--radius-full);
   aspect-ratio: 1;
 }
 
-.btn--sm {
-  padding: 0.25rem 0.625rem;
-  font-size: var(--text-xs);
-}
-
-.btn--lg {
-  padding: 0.625rem 1.25rem;
-  font-size: var(--text-base);
-}
-
+/* ─── States ─── */
 .btn.is-disabled,
 .btn:disabled {
   opacity: 0.5;
@@ -125,7 +156,7 @@
   height: 1rem;
   border: 2px solid oklch(1 0 0 / 0.3);
   border-top-color: oklch(1 0 0);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: spin 0.6s linear infinite;
 }
 
@@ -133,7 +164,16 @@
   to { transform: rotate(360deg); }
 }
 
-/* Button group */
+/* ─── Step Type Buttons ─── */
+.btn--step-question  { --btn-bg: oklch(0.50 0.14 var(--hue-question));  --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-question)); }
+.btn--step-action    { --btn-bg: oklch(0.50 0.14 var(--hue-action));    --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-action)); }
+.btn--step-message   { --btn-bg: oklch(0.50 0.14 var(--hue-message));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-message)); }
+.btn--step-escalate  { --btn-bg: oklch(0.55 0.18 var(--hue-escalate));  --btn-text: oklch(1 0 0); --btn-border: oklch(0.55 0.18 var(--hue-escalate)); }
+.btn--step-resolve   { --btn-bg: oklch(0.50 0.14 var(--hue-resolve));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-resolve)); }
+.btn--step-subflow   { --btn-bg: oklch(0.50 0.14 var(--hue-subflow));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-subflow)); }
+.btn--step-sub-flow  { --btn-bg: oklch(0.50 0.14 var(--hue-subflow));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-subflow)); }
+
+/* ─── Button Group ─── */
 .btn-group {
   display: inline-flex;
 }
@@ -152,4 +192,5 @@
 
 .btn-group .btn + .btn {
   margin-left: -1px;
+}
 }

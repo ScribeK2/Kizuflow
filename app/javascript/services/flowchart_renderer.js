@@ -295,9 +295,9 @@ export class FlowchartRenderer {
   // Get step color (hex) - matches step_item header colors
   getStepColor(type) {
     const colors = {
-      question: "#475569",      // slate-600
+      question: "#6366f1",      // indigo-500 (matches --hue-question: 250)
       action: "#10b981",        // emerald-500
-      sub_flow: "#6366f1",      // indigo-500
+      sub_flow: "#8b5cf6",      // violet-500
       message: "#06b6d4",       // cyan-500
       escalate: "#f97316",      // orange-500
       resolve: "#22c55e"        // green-500

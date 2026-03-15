@@ -259,6 +259,40 @@
         </p>
       </div>
 
+    <% when "sub_flow" %>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <% if stitle.present? %>
+          <h5 class="font-medium"><%= VariableInterpolator.interpolate(stitle, sample_variables) %></h5>
+        <% end %>
+
+        <% if sdesc.present? %>
+          <div class="text-sm"><%= VariableInterpolator.interpolate(sdesc, sample_variables) %></div>
+        <% end %>
+
+        <div class="preview-content-box card card--sub-flow">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="badge badge--sub-flow">Sub-flow</span>
+          </div>
+
+          <% target_id = step.is_a?(Step) ? step.target_workflow_id : step["target_workflow_id"] %>
+          <% if target_id.present? %>
+            <% target_wf = Workflow.find_by(id: target_id) %>
+            <% if target_wf %>
+              <p class="text-sm"><strong>Target:</strong> <%= target_wf.title %></p>
+              <p class="form-hint"><%= pluralize(target_wf.steps.count, "step") %></p>
+            <% else %>
+              <p class="text-sm italic">Target workflow not found</p>
+            <% end %>
+          <% else %>
+            <p class="text-sm italic">No target workflow selected</p>
+          <% end %>
+        </div>
+
+        <p class="form-hint mt-2">
+          Execution will jump to the target workflow and return when it completes.
+        </p>
+      </div>
+
     <% else %>
       <p class="text-sm">Select a step type to see preview</p>
     <% end %>

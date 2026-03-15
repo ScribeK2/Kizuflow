@@ -9,7 +9,7 @@ export default class extends Controller {
     this.sortable = Sortable.create(this.element, {
       animation: 150,
       handle: ".cursor-move",
-      ghostClass: "opacity-50",
+      ghostClass: "is-dragging",
       onEnd: this.reorder.bind(this)
     })
   }

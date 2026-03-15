@@ -66,15 +66,16 @@
               else false
             end
 
-            # Type colors using CSS custom properties
-            type_bg_styles = {
-              'question' => 'background-color: #f1f5f9; color: #475569;',
-              'action' => 'background-color: #d1fae5; color: #059669;',
-              'sub_flow' => 'background-color: #e0e7ff; color: #4338ca;',
-              'message' => 'background-color: #cffafe; color: #0891b2;',
-              'escalate' => 'background-color: #ffedd5; color: #ea580c;',
-              'resolve' => 'background-color: #dcfce7; color: #16a34a;'
+            # Type colors using OKLCH hue tokens (rendered via --step-hue)
+            type_hues = {
+              'question' => 'var(--hue-question)',
+              'action' => 'var(--hue-action)',
+              'sub_flow' => 'var(--hue-subflow)',
+              'message' => 'var(--hue-message)',
+              'escalate' => 'var(--hue-escalate)',
+              'resolve' => 'var(--hue-resolve)'
             }
+            step_hue = type_hues[step_type] || '245'
 
             type_icons = {
               'question' => '?',
@@ -92,11 +93,13 @@
                   data-step-index="<%= index %>"
                   data-step-id="<%= step_id %>">
             <div class="flex items-center gap-2">
-              <span class="step-card__number flex-shrink-0"
-                    style="<%= type_bg_styles[step_type] || 'background-color: #f3f4f6; color: #374151;' %>">
+              <span class="step-outline__number flex-shrink-0"
+                    style="--step-hue: <%= step_hue %>;">
                 <%= index + 1 %>
               </span>
-              <span class="flex-shrink-0 font-bold" title="<%= step_type&.titleize %>">
+              <span class="step-outline__type-icon flex-shrink-0"
+                    style="--step-hue: <%= step_hue %>;"
+                    title="<%= step_type&.titleize %>">
                 <%= type_icons[step_type] || '#' %>
               </span>
               <span class="flex-1 text-sm truncate">
@@ -113,7 +116,7 @@
 
     <%# Empty State %>
     <div data-step-outline-target="emptyState"
-         class="<%= step_count > 0 ? 'hidden' : '' %> flex-1 text-center p-4"
+         class="<%= step_count > 0 ? 'is-hidden' : '' %> flex-1 text-center p-4"
          style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <svg class="icon icon--xl mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>

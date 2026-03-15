@@ -190,10 +190,10 @@ export default class extends Controller {
    */
   togglePanel() {
     if (this.hasTemplatePanelTarget) {
-      this.templatePanelTarget.classList.toggle("hidden")
-      
+      this.templatePanelTarget.classList.toggle("is-hidden")
+
       // Focus search input when opening
-      if (!this.templatePanelTarget.classList.contains("hidden") && this.hasSearchInputTarget) {
+      if (!this.templatePanelTarget.classList.contains("is-hidden") && this.hasSearchInputTarget) {
         setTimeout(() => this.searchInputTarget.focus(), 100)
       }
     }
@@ -204,7 +204,7 @@ export default class extends Controller {
    */
   closePanel() {
     if (this.hasTemplatePanelTarget) {
-      this.templatePanelTarget.classList.add("hidden")
+      this.templatePanelTarget.classList.add("is-hidden")
     }
   }
 
@@ -336,7 +336,7 @@ export default class extends Controller {
     if (!content) return
     
     this.previewPanelTarget.textContent = content
-    this.previewPanelTarget.classList.remove("hidden")
+    this.previewPanelTarget.classList.remove("is-hidden")
   }
 
   /**
@@ -344,7 +344,7 @@ export default class extends Controller {
    */
   hidePreview() {
     if (this.hasPreviewPanelTarget) {
-      this.previewPanelTarget.classList.add("hidden")
+      this.previewPanelTarget.classList.add("is-hidden")
     }
   }
 

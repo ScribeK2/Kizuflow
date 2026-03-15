@@ -13,22 +13,21 @@ export default class extends Controller {
     this.applyMode()
   }
 
-  switchToList() {
-    // Check if visual editor has unsaved changes
+  async switchToList() {
     const visualEditor = this.getVisualEditorController()
+
+    // If visual editor has unsaved changes, save them first via sync_steps API
     if (visualEditor && visualEditor.isDirty()) {
-      if (!confirm("You have unsaved changes in the visual editor. Switch to list view anyway?")) {
-        return
+      const shouldSave = confirm("Save visual editor changes before switching to list view?")
+      if (shouldSave) {
+        await visualEditor.saveToServer()
       }
     }
 
-    // Sync visual editor state back to list form if available
-    if (visualEditor) {
-      visualEditor.syncToListForm()
-    }
-
-    this.modeValue = "list"
-    this.applyMode()
+    // Reload the page in list mode so the list editor has fresh server data.
+    // The visual editor saves steps via a separate API (sync_steps), so the
+    // list editor DOM is always stale — a reload is the reliable way to sync.
+    window.location.reload()
   }
 
   switchToVisual() {
@@ -52,15 +51,22 @@ export default class extends Controller {
       this.visualContainer.classList.toggle("is-hidden", isList)
     }
 
+    // In visual mode, the list editor's required fields are hidden and can't be
+    // focused by the browser — this blocks form submission with validation errors.
+    // Disable HTML validation when visual mode is active (visual editor saves via API).
+    const form = this.listContainer?.closest("form")
+    if (form) {
+      if (isList) {
+        form.removeAttribute("novalidate")
+      } else {
+        form.setAttribute("novalidate", "")
+      }
+    }
+
     // Update button styling
     if (this.hasListBtnTarget && this.hasVisualBtnTarget) {
-      if (isList) {
-        this.listBtnTarget.className = "view-mode-btn is-active"
-        this.visualBtnTarget.className = "view-mode-btn"
-      } else {
-        this.listBtnTarget.className = "view-mode-btn"
-        this.visualBtnTarget.className = "view-mode-btn is-active"
-      }
+      this.listBtnTarget.classList.toggle("is-active", isList)
+      this.visualBtnTarget.classList.toggle("is-active", !isList)
     }
 
     // Update hidden mode input

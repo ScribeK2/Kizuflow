@@ -2,7 +2,7 @@
   <!-- Mobile Toggle Button -->
   <button type="button"
           data-action="click->workflow-sidebar#toggle"
-          class="btn btn--plain w-full text-left mb-4 md:hidden">
+          class="btn btn--plain w-full text-left mb-4 group-sidebar__toggle">
     <div class="flex items-center justify-between">
       <span>Groups</span>
       <svg class="icon icon--sm" data-workflow-sidebar-target="toggleIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,13 +12,13 @@
   </button>
 
   <!-- Sidebar Content -->
-  <div class="card hidden md:block" data-workflow-sidebar-target="sidebar">
+  <div class="card group-sidebar__content" data-workflow-sidebar-target="sidebar">
     <div class="card__header">
       <h2 class="font-bold">Groups</h2>
     </div>
 
     <nav class="p-4">
-      <ul style="display: flex; flex-direction: column; gap: 0.25rem;">
+      <ul class="group-sidebar__nav-list">
         <!-- All Workflows Option -->
         <li>
           <%= link_to workflows_path(search: params[:search]),

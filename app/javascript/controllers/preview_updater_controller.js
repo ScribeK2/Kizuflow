@@ -25,6 +25,11 @@ export default class extends Controller {
         this.updatePreview()
       })
 
+      // Rich text editors (Trix/Lexxy) fire trix-change instead of input
+      stepForm.addEventListener("trix-change", () => {
+        this.updatePreview()
+      })
+
       // Also listen for custom workflow-steps-changed event
       stepForm.addEventListener("workflow-steps-changed", () => {
         this.updatePreview()
@@ -130,8 +135,8 @@ export default class extends Controller {
       const actionTypeInput = stepContainer.querySelector("input[name*='[action_type]']")
       stepData.action_type = actionTypeInput ? actionTypeInput.value : ""
 
-      const instructionsInput = stepContainer.querySelector("textarea[name*='[instructions]']")
-      stepData.instructions = instructionsInput ? instructionsInput.value : ""
+      // Rich text area stores content in a hidden input, not a textarea
+      stepData.instructions = this.getRichTextOrPlain(stepContainer, "instructions")
 
       // Extract attachments
       const attachmentsInput = stepContainer.querySelector("input[name*='[attachments]']")
@@ -146,8 +151,8 @@ export default class extends Controller {
       }
 
     } else if (stepData.type === "message") {
-      const contentInput = stepContainer.querySelector("textarea[name*='[content]']")
-      stepData.content = contentInput ? contentInput.value : ""
+      // Rich text area stores content in a hidden input, not a textarea
+      stepData.content = this.getRichTextOrPlain(stepContainer, "content")
 
     } else if (stepData.type === "escalate") {
       const targetTypeInput = stepContainer.querySelector("input[name*='[target_type]']")
@@ -162,8 +167,7 @@ export default class extends Controller {
       const reasonRequiredInput = stepContainer.querySelector("input[name*='[reason_required]'][type='checkbox']")
       stepData.reason_required = reasonRequiredInput ? reasonRequiredInput.checked.toString() : "false"
 
-      const notesInput = stepContainer.querySelector("textarea[name*='[notes]']")
-      stepData.notes = notesInput ? notesInput.value : ""
+      stepData.notes = this.getRichTextOrPlain(stepContainer, "notes")
 
     } else if (stepData.type === "resolve") {
       const resolutionTypeInput = stepContainer.querySelector("input[name*='[resolution_type]']")
@@ -177,8 +181,29 @@ export default class extends Controller {
 
       const surveyTriggerInput = stepContainer.querySelector("input[name*='[survey_trigger]'][type='checkbox']")
       stepData.survey_trigger = surveyTriggerInput ? surveyTriggerInput.checked.toString() : "false"
+
+    } else if (stepData.type === "sub_flow") {
+      const targetWorkflowInput = stepContainer.querySelector("input[name*='[target_workflow_id]']")
+      stepData.target_workflow_id = targetWorkflowInput ? targetWorkflowInput.value : ""
     }
 
     return stepData
+  }
+
+  /**
+   * Extract content from a rich text area (Action Text) or plain textarea.
+   * Rich text areas use a hidden input (set by trix-editor/Lexxy),
+   * while plain fields use a textarea element.
+   */
+  getRichTextOrPlain(container, fieldName) {
+    // Try trix/Lexxy: hidden input set by the rich text editor
+    const hiddenInput = container.querySelector(`input[type="hidden"][name*='[${fieldName}]']`)
+    if (hiddenInput && hiddenInput.value) return hiddenInput.value
+
+    // Fallback: plain textarea
+    const textarea = container.querySelector(`textarea[name*='[${fieldName}]']`)
+    if (textarea) return textarea.value
+
+    return ""
   }
 }

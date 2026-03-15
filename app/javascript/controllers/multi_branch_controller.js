@@ -487,7 +487,7 @@ export default class extends Controller {
     const branchItems = this.branchesContainerTarget.querySelectorAll('.branch-item')
     branchItems.forEach((item, index) => {
       item.setAttribute('data-branch-index', index)
-      const header = item.querySelector('.text-sm.font-medium')
+      const header = item.querySelector('.branch-item__label')
       if (header) {
         header.textContent = `Branch ${index + 1}`
       }

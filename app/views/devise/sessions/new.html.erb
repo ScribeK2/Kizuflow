@@ -12,9 +12,9 @@
 
     <div class="auth-form__field" data-controller="password-toggle">
       <%= f.label :password, class: "form-label" %>
-      <div class="relative">
-        <%= f.password_field :password, autocomplete: "current-password", aria: { required: true }, data: { password_toggle_target: "input" }, class: "form-input" %>
-        <button type="button" data-action="click->password-toggle#toggle" class="btn btn--plain btn--circle absolute" style="right: 0.5rem; top: 50%; transform: translateY(-50%);" aria-label="Toggle password visibility">
+      <div class="auth-form__password-wrap">
+        <%= f.password_field :password, autocomplete: "current-password", aria: { required: true }, data: { password_toggle_target: "input" }, class: "auth-form__input" %>
+        <button type="button" data-action="click->password-toggle#toggle" class="auth-form__password-toggle" aria-label="Toggle password visibility">
           <!-- Eye icon (show password) -->
           <svg data-password-toggle-target="showIcon" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>

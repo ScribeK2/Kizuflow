@@ -1,7 +1,7 @@
 <div class="page-content">
   <%# === Header Section === %>
   <div class="mb-4">
-    <div class="flex items-center justify-between flex-wrap gap-4">
+    <div class="scenario-header">
       <div>
         <p class="text-xs font-semibold uppercase tracking-widest mb-1">Scenario</p>
         <h1>Scenario Results</h1>
@@ -12,7 +12,7 @@
             duration_text = duration_seconds < 60 ? "#{duration_seconds}s" : "#{duration_seconds / 60}m #{duration_seconds % 60}s"
             questions_count = path.count { |p| p['step_type'] == 'question' || p['type'] == 'question' }
           %>
-          <div class="flex flex-wrap gap-2 mt-3">
+          <div class="scenario-stats">
             <span class="badge flex items-center gap-1.5">
               <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <%= duration_text %>
@@ -40,35 +40,35 @@
         <% end %>
       </div>
       <% if @scenario.stopped? %>
-        <div class="badge badge--alert flex items-center gap-2 px-4 py-2" role="status">
+        <div class="badge badge--alert scenario-status-badge" role="status">
           <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
           Workflow Stopped
         </div>
       <% elsif @scenario.timed_out? %>
-        <div class="badge badge--alert flex items-center gap-2 px-4 py-2" role="status">
+        <div class="badge badge--alert scenario-status-badge" role="status">
           <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Timed Out
         </div>
       <% elsif @scenario.errored? %>
-        <div class="badge badge--alert flex items-center gap-2 px-4 py-2" role="status">
+        <div class="badge badge--alert scenario-status-badge" role="status">
           <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Error
         </div>
       <% elsif @scenario.complete? %>
-        <div class="badge badge--published flex items-center gap-2 px-4 py-2" role="status">
+        <div class="badge badge--published scenario-status-badge" role="status">
           <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
           Completed
         </div>
       <% else %>
-        <div class="badge flex items-center gap-2 px-4 py-2" role="status">
+        <div class="badge scenario-status-badge" role="status">
           <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -81,11 +81,11 @@
   <%# === Status Warning Cards === %>
   <% if @scenario.stopped? %>
     <div class="card card--escalate mb-4">
-      <div class="card__body flex items-start gap-3">
+      <div class="card__body scenario-warning__inner">
         <svg class="icon icon--lg flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
-        <div class="flex-1">
+        <div class="scenario-warning__content">
           <h3 class="font-semibold mb-2">Workflow Stopped</h3>
           <p class="text-sm mb-2">
             This workflow was stopped before completion.
@@ -107,11 +107,11 @@
 
   <% if @scenario.timed_out? %>
     <div class="card mb-4">
-      <div class="card__body flex items-start gap-3">
+      <div class="card__body scenario-warning__inner">
         <svg class="icon icon--lg flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <div class="flex-1">
+        <div class="scenario-warning__content">
           <h3 class="font-semibold mb-2">Scenario Timed Out</h3>
           <p class="text-sm mb-2">
             The scenario exceeded the maximum execution time. This usually happens when a workflow contains an infinite loop or overly complex routing logic.
@@ -128,11 +128,11 @@
     </div>
   <% elsif @scenario.errored? %>
     <div class="card mb-4">
-      <div class="card__body flex items-start gap-3">
+      <div class="card__body scenario-warning__inner">
         <svg class="icon icon--lg flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <div class="flex-1">
+        <div class="scenario-warning__content">
           <h3 class="font-semibold mb-2">Scenario Error</h3>
           <p class="text-sm mb-2">
             An error occurred during scenario execution. This may be caused by invalid step configuration or missing references in the workflow.
@@ -175,10 +175,10 @@
     <%# === Panel 1: Execution Path === %>
     <div data-tabs-target="panel">
       <div class="card mb-4" data-controller="scenario-results">
-        <div class="card__header flex items-center justify-between">
+        <div class="card__header scenario-card-header">
           <h2>Execution Path</h2>
           <% if @scenario.execution_path.present? && @scenario.execution_path.length > 1 %>
-            <div class="flex items-center gap-2">
+            <div class="scenario-card-header__actions">
               <button type="button"
                       class="btn btn--plain btn--sm"
                       data-action="click->scenario-results#expandAll">
@@ -202,13 +202,13 @@
                    aria-label="Step <%= index + 1 %>: <%= path_item['step_title'] %> - <%= step_type %>"
                    data-scenario-results-target="item">
                 <button type="button"
-                        class="flex items-center w-full text-left"
+                        class="scenario-exec-toggle"
                         data-action="click->scenario-results#toggle"
                         aria-expanded="false">
                   <span class="scenario-result-badge badge badge--published">
                     <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                   </span>
-                  <div class="flex items-center flex-1 min-w-0">
+                  <div class="scenario-exec-toggle__body">
                     <span class="mr-2 flex-shrink-0">
                       <%= step_type_svg_icon(step_type, css_classes: "w-4 h-4") %>
                     </span>
@@ -286,28 +286,28 @@
             <% if @scenario.results['_escalation'].present? %>
               <% escalation = @scenario.results['_escalation'] %>
               <div class="admin-info-box admin-info-box--warning mb-4">
-                <div class="flex items-start gap-3">
+                <div class="scenario-warning__inner">
                   <svg class="icon icon--sm flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
                   </svg>
-                  <div class="flex-1">
+                  <div class="scenario-warning__content">
                     <h3 class="text-sm font-semibold mb-2">Escalation Details</h3>
                     <dl class="text-sm">
                       <% if escalation['type'].present? %>
-                        <div class="flex">
-                          <dt class="font-medium w-24">Target:</dt>
+                        <div class="scenario-detail-row">
+                          <dt class="scenario-detail-row__label">Target:</dt>
                           <dd><%= escalation['type']&.titleize %><%= " - #{escalation['value']}" if escalation['value'].present? %></dd>
                         </div>
                       <% end %>
                       <% if escalation['priority'].present? && !%w[normal medium].include?(escalation['priority']) %>
-                        <div class="flex">
-                          <dt class="font-medium w-24">Priority:</dt>
+                        <div class="scenario-detail-row">
+                          <dt class="scenario-detail-row__label">Priority:</dt>
                           <dd><%= escalation['priority']&.titleize %></dd>
                         </div>
                       <% end %>
                       <% if escalation['notes'].present? %>
-                        <div class="flex">
-                          <dt class="font-medium w-24">Notes:</dt>
+                        <div class="scenario-detail-row">
+                          <dt class="scenario-detail-row__label">Notes:</dt>
                           <dd><%= escalation['notes'] %></dd>
                         </div>
                       <% end %>
@@ -321,16 +321,16 @@
             <% if @scenario.results['_resolution'].present? %>
               <% resolution = @scenario.results['_resolution'] %>
               <div class="admin-info-box admin-info-box--info mb-4">
-                <div class="flex items-start gap-3">
+                <div class="scenario-warning__inner">
                   <svg class="icon icon--sm flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <div class="flex-1">
+                  <div class="scenario-warning__content">
                     <h3 class="text-sm font-semibold mb-2">Resolution Details</h3>
                     <dl class="text-sm">
                       <% if resolution['type'].present? %>
-                        <div class="flex">
-                          <dt class="font-medium w-24">Type:</dt>
+                        <div class="scenario-detail-row">
+                          <dt class="scenario-detail-row__label">Type:</dt>
                           <dd><%= resolution['type']&.titleize %></dd>
                         </div>
                       <% end %>
@@ -356,13 +356,13 @@
               <% result_groups.each do |group| %>
                 <div class="mb-4">
                   <h3 class="text-sm font-semibold uppercase tracking-wide mb-3"><%= group[:label] %></h3>
-                  <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                  <div class="scenario-results-grid">
                     <% group[:results].each do |key, value| %>
                       <dt class="text-sm font-medium py-1"><%= format_result_key(key) %></dt>
-                      <dd class="text-sm py-1 flex items-center justify-between group" data-controller="clipboard">
+                      <dd class="text-sm py-1 flex items-center justify-between scenario-result__row" data-controller="clipboard">
                         <span data-clipboard-target="source"><%= value.is_a?(Hash) ? value.to_json : value %></span>
                         <button type="button"
-                                class="btn btn--plain btn--sm opacity-0 group-hover:opacity-100 ml-2"
+                                class="btn btn--plain btn--sm scenario-result__copy ml-2"
                                 title="Copy value"
                                 data-action="click->clipboard#copy"
                                 data-clipboard-target="button">
@@ -387,8 +387,8 @@
   </div>
 
   <%# === Footer CTAs === %>
-  <div class="mt-4 flex items-center justify-between flex-wrap gap-3">
-    <div class="flex items-center gap-3">
+  <div class="scenario-footer">
+    <div class="scenario-footer__group">
       <%= link_to workflow_path(@workflow), class: "btn btn--plain flex items-center gap-1.5" do %>
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
         Back to Workflow
@@ -400,7 +400,7 @@
         <% end %>
       <% end %>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="scenario-footer__group">
       <div data-controller="clipboard">
         <span class="is-hidden" data-clipboard-target="source"><%= scenario_url(@scenario) %></span>
         <button type="button"

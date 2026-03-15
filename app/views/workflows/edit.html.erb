@@ -21,7 +21,7 @@
     <% if @conflict_detected %>
       <div class="card__body">
         <div class="alert alert--warning">
-          <div class="flex gap-3">
+          <div class="wf-alert__inner">
             <svg class="icon icon--sm flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -39,7 +39,7 @@
 
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "card__body" } %>
 
-    <div class="card__body" style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <div class="card__body wf-form-stack">
       <div class="form-group">
         <%= form.label :title, class: "form-label" %>
         <%= form.text_field :title, class: "form-input" %>
@@ -55,7 +55,7 @@
       <% end %>
 
       <% if current_user&.can_edit_workflows? %>
-        <div class="flex items-center gap-2">
+        <div class="wf-checkbox-row">
           <%= form.check_box :is_public, class: "form-checkbox" %>
           <%= form.label :is_public, "Make this workflow public (visible to all users)", class: "form-label mb-0" %>
         </div>
@@ -66,8 +66,8 @@
         <%# Graph Mode Toggle - Hidden when graph mode is the default %>
         <% if show_graph_mode_toggle? %>
           <div class="card card--muted p-4 mt-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
+            <div class="wf-graph-mode-row">
+              <div class="wf-checkbox-row">
                 <%= form.check_box :graph_mode, class: "form-checkbox", data: { action: "change->workflow-builder#toggleGraphMode" } %>
                 <%= form.label :graph_mode, class: "form-label mb-0" do %>
                   Enable Graph Mode
@@ -96,7 +96,7 @@
 
       <% if false # TODO: check AR step import_incomplete flag after migration %>
         <div class="alert alert--warning">
-          <div class="flex items-start gap-3">
+          <div class="wf-alert__inner--start">
             <svg class="icon icon--sm flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -137,16 +137,16 @@
       <%# Two-Column Layout: Sidebar + Main Content %>
       <% ar_steps = @workflow.steps.order(:position) %>
       <% has_sidebar = ar_steps.any? && ar_steps.size > 3 %>
-      <div style="display: grid; grid-template-columns: <%= has_sidebar ? '280px 1fr' : '1fr' %>; gap: 1.5rem; width: 100%;">
+      <div class="wf-editor-grid <%= has_sidebar ? 'wf-editor-grid--with-sidebar' : 'wf-editor-grid--single' %>">
         <%# Step Outline Sidebar %>
         <% if has_sidebar %>
-          <div style="position: sticky; top: 6rem; align-self: start; max-height: calc(100vh - 8rem); overflow-y: auto;">
+          <div class="wf-sidebar-sticky">
             <%= render partial: "step_outline", locals: { workflow: @workflow } %>
           </div>
         <% end %>
 
         <%# Main Steps Section %>
-        <div style="min-width: 0;">
+        <div class="min-w-0">
             <div data-controller="workflow-builder variable-autocomplete"
                data-workflow-builder-workflow-id-value="<%= @workflow.id %>"
                data-workflow-builder-debug-value="<%= Rails.env.development? %>"
@@ -154,14 +154,14 @@
                id="workflow-builder-container">
 
             <%# Header with Add Step Buttons %>
-            <div class="flex items-center justify-between gap-4 mb-4" style="flex-wrap: wrap;">
+            <div class="wf-steps-header">
               <label class="form-label mb-0">
                 Workflow Steps
                 <% if ar_steps.any? %>
                   <span class="text-xs ml-2">(<%= ar_steps.size %> step<%= ar_steps.size != 1 ? 's' : '' %>)</span>
                 <% end %>
               </label>
-              <div class="flex gap-2" style="flex-wrap: wrap;">
+              <div class="wf-btn-group">
                 <button type="button" data-action="click->workflow-builder#addStepDirect" data-step-type="question" class="btn btn--secondary btn--sm">Question</button>
 
                 <% if @workflow.graph_mode? %>
@@ -180,7 +180,7 @@
 
             <%# Expand/Collapse All Controls %>
             <% if ar_steps.any? && ar_steps.size > 3 %>
-              <div class="flex justify-end gap-2 mb-3" data-controller="step-controls">
+              <div class="wf-step-controls" data-controller="step-controls">
                 <button type="button" data-action="click->step-controls#expandAll" class="btn btn--plain btn--sm">Expand all</button>
                 <span>|</span>
                 <button type="button" data-action="click->step-controls#collapseAll" class="btn btn--plain btn--sm">Collapse all</button>
@@ -201,7 +201,7 @@
                   <%= render partial: "inline_step_creator", locals: { after_index: index } %>
                 <% end %>
               <% else %>
-                <div class="text-center py-10">
+                <div class="text-center py-10" data-empty-state>
                   <svg class="icon icon--xl mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                   </svg>
@@ -230,11 +230,11 @@
       </div>
 
       <div class="wf-sticky-footer">
-        <div class="flex justify-between items-center gap-3">
+        <div class="wf-sticky-footer__inner">
           <div data-autosave-target="status" class="text-sm font-medium">
             Ready to save
           </div>
-          <div class="flex gap-3">
+          <div class="wf-btn-group">
             <%= link_to "Cancel", workflow_path(@workflow), class: "btn btn--plain" %>
             <button type="button"
                     data-controller="modal-trigger"
@@ -253,13 +253,12 @@
 
 <%# Conflict Resolution Modal %>
 <div id="conflict-modal"
-     class="is-hidden"
-     style="position: fixed; inset: 0; z-index: 50; overflow-y: auto;"
+     class="is-hidden wf-modal-overlay"
      data-autosave-target="conflictModal">
-  <div class="dialog-overlay flex items-center justify-center min-h-screen px-4">
-    <div class="dialog" style="border-color: var(--color-warning-border);">
-      <div class="dialog__header" style="background: var(--color-warning-bg);">
-        <div class="flex items-center gap-4">
+  <div class="dialog-overlay wf-modal-center">
+    <div class="dialog" style="border-color: oklch(0.85 0.1 75);">
+      <div class="dialog__header" style="background: oklch(0.97 0.04 75);">
+        <div class="wf-dialog-header-row">
           <svg class="icon icon--lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -278,16 +277,16 @@
 
         <div class="card card--muted p-4 mb-4">
           <h4 class="font-medium text-sm mb-2">Your options:</h4>
-          <ul class="text-sm" style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <li class="flex items-start gap-2">
+          <ul class="text-sm wf-conflict-options">
+            <li class="wf-conflict-option">
               <span>-</span>
               <span><strong>Refresh</strong> - Load the latest version (your unsaved changes will be lost)</span>
             </li>
-            <li class="flex items-start gap-2">
+            <li class="wf-conflict-option">
               <span>-</span>
               <span><strong>Force Save</strong> - Overwrite with your changes (other user's changes will be lost)</span>
             </li>
-            <li class="flex items-start gap-2">
+            <li class="wf-conflict-option">
               <span>-</span>
               <span><strong>Dismiss</strong> - Continue editing (your next save will include current server version)</span>
             </li>
@@ -311,12 +310,11 @@
 
 <%# Save as Template Modal %>
 <div id="save-template-modal"
-     class="is-hidden"
-     style="position: fixed; inset: 0; z-index: 50; overflow-y: auto;"
+     class="is-hidden wf-modal-overlay"
      data-controller="modal"
      data-modal-target="backdrop"
      data-action="click->modal#backdropClick">
-  <div class="dialog-overlay flex items-center justify-center min-h-screen px-4">
+  <div class="dialog-overlay wf-modal-center">
     <div class="dialog-overlay" style="position: fixed; inset: 0;" data-modal-target="backdrop"></div>
     <div class="dialog" data-modal-target="content">
       <%= form_with url: save_as_template_workflow_path(@workflow), method: :post, local: true do |form| %>
@@ -330,7 +328,7 @@
           </button>
         </div>
 
-        <div class="dialog__body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="dialog__body wf-dialog-stack">
           <div class="form-group">
             <label for="template_name" class="form-label">Template Name</label>
             <%= text_field_tag "template[name]", @workflow.title, id: "template_name", class: "form-input", required: true %>
@@ -354,7 +352,7 @@
             <%= text_area_tag "template[description]", @workflow.description_text, id: "template_description", rows: 3, class: "form-textarea" %>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="wf-checkbox-row">
             <%= hidden_field_tag "template[is_public]", "false" %>
             <%= check_box_tag "template[is_public]", "true", true, id: "template_is_public", class: "form-checkbox" %>
             <label for="template_is_public" class="form-label mb-0">Make this template public</label>

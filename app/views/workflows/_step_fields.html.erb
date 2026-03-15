@@ -11,7 +11,7 @@
 <% elsif step_type == "resolve" %>
   <%= render partial: "resolve_fields", locals: { step: step } %>
 <% elsif step_type.blank? %>
-  <div class="text-sm text-yellow-600 bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+  <div class="alert alert--warning">
     <p class="font-semibold">Step type missing</p>
     <p class="text-xs">This step appears to be incomplete. Please remove and re-add it.</p>
   </div>

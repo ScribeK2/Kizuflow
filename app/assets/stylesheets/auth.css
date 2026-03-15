@@ -1,3 +1,4 @@
+@layer modules {
 /* auth.css — Authentication page styles (Devise) */
 
 /* ============================================================================
@@ -89,9 +90,9 @@
 
 .auth-form__password-toggle {
   position: absolute;
-  inset-block: 0;
-  right: 0;
-  padding-inline: 0.75rem;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   color: var(--color-ink-muted);
@@ -99,10 +100,43 @@
   border: none;
   cursor: pointer;
   transition: color 0.15s ease;
+  padding: 0.25rem;
 }
 
 .auth-form__password-toggle:hover {
   color: var(--color-ink-subtle);
+}
+
+/* Form section footer (action bar with border-top) */
+.auth-form__section-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Password label row (label + hint side by side) */
+.auth-form__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* Account stats row */
+.auth-form__stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+/* Account info row (name + role) */
+.auth-form__info-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 /* Remember me checkbox row */
@@ -182,6 +216,14 @@
 .auth-illustration {
   margin-bottom: 1.5rem;
   opacity: 0.9;
+  width: 18rem;
+  height: auto;
+}
+
+@media (min-width: 640px) {
+  .auth-illustration {
+    width: 20rem;
+  }
 }
 
 .auth-illustration svg {
@@ -242,4 +284,5 @@
 
 [data-theme="dark"] .auth-errors__list {
   color: oklch(0.7 0.12 25);
+}
 }

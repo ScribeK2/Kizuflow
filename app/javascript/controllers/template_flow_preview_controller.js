@@ -127,7 +127,7 @@ export default class extends Controller {
   handleKeyDown(event) {
     // Only handle keyboard shortcuts when this controller's modal is visible
     const modal = this.element.closest('[id^="template-preview-modal-"]')
-    if (!modal || modal.classList.contains('hidden')) return
+    if (!modal || modal.classList.contains('is-hidden')) return
 
     // Check for Ctrl/Cmd + Plus (zoom in)
     if ((event.ctrlKey || event.metaKey) && (event.key === '+' || event.key === '=')) {
@@ -203,7 +203,7 @@ export default class extends Controller {
 
         // Store canvas dimensions for fit-to-screen calculation
         setTimeout(() => {
-          const canvasContent = this.canvasTarget.querySelector('.relative')
+          const canvasContent = this.canvasTarget.querySelector('.flowchart-canvas')
           if (canvasContent) {
             this.canvasWidth = canvasContent.offsetWidth || canvasContent.scrollWidth
             this.canvasHeight = canvasContent.offsetHeight || canvasContent.scrollHeight
@@ -231,7 +231,7 @@ export default class extends Controller {
   // Fit to screen
   fitToScreen() {
     if (!this.hasCanvasTarget || this.canvasWidth === 0 || this.canvasHeight === 0) {
-      const canvasContent = this.canvasTarget.querySelector('.relative')
+      const canvasContent = this.canvasTarget.querySelector('.flowchart-canvas')
       if (canvasContent) {
         this.canvasWidth = canvasContent.offsetWidth || canvasContent.scrollWidth
         this.canvasHeight = canvasContent.offsetHeight || canvasContent.scrollHeight
@@ -254,7 +254,7 @@ export default class extends Controller {
   applyZoom() {
     if (!this.hasCanvasTarget) return
 
-    const canvasContent = this.canvasTarget.querySelector('.relative')
+    const canvasContent = this.canvasTarget.querySelector('.flowchart-canvas')
     if (canvasContent) {
       if (!this.canvasWidth || !this.canvasHeight) {
         this.canvasWidth = canvasContent.offsetWidth || canvasContent.scrollWidth

@@ -35,7 +35,7 @@
   </div>
 
   <% if has_children %>
-    <ul class="children hidden ml-4" style="display: flex; flex-direction: column; gap: 0.25rem; border-left: 2px solid var(--color-border); padding-left: 0.5rem; overflow: hidden;" data-children data-group-id="<%= group.id %>">
+    <ul class="children is-hidden ml-4" style="display: flex; flex-direction: column; gap: 0.25rem; border-left: 2px solid var(--color-border); padding-left: 0.5rem; overflow: hidden;" data-children data-group-id="<%= group.id %>">
       <% group.children.order(:position, :name).each do |child| %>
         <%= render partial: "workflows/group_sidebar_item", locals: { group: child, level: level + 1, selected_group: @selected_group } %>
       <% end %>

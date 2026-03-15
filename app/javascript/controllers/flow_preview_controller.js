@@ -138,7 +138,7 @@ export default class extends Controller {
 
   fitToScreen() {
     if (!this.hasCanvasTarget) return
-    const inner = this.canvasTarget.querySelector(".relative")
+    const inner = this.canvasTarget.querySelector(".flowchart-canvas")
     if (!inner) return
 
     const containerWidth = this.canvasTarget.clientWidth
@@ -157,7 +157,7 @@ export default class extends Controller {
 
   applyZoom() {
     if (!this.hasCanvasTarget) return
-    const inner = this.canvasTarget.querySelector(".relative")
+    const inner = this.canvasTarget.querySelector(".flowchart-canvas")
     if (inner) {
       inner.style.transform = `scale(${this.zoomLevel})`
       inner.style.transformOrigin = "top left"
@@ -169,6 +169,13 @@ export default class extends Controller {
 
   // Parse steps from the form
   parseSteps() {
+    // When visual editor is active, read steps from its service data
+    // instead of the hidden list editor DOM
+    const visualEditor = document.getElementById("visual-editor-container")
+    if (visualEditor && !visualEditor.classList.contains("is-hidden")) {
+      return this.parseStepsFromVisualEditor(visualEditor)
+    }
+
     const steps = []
 
     // Find step items within the workflow builder container
@@ -228,6 +235,45 @@ export default class extends Controller {
     })
 
     return steps
+  }
+
+  parseStepsFromVisualEditor(container) {
+    // Read step data from the visual editor's hidden JSON input
+    const stepsInput = container.querySelector("[data-visual-editor-target='stepsInput']")
+    if (!stepsInput || !stepsInput.value) {
+      // Fall back to the initial stepsData script tag
+      const dataScript = container.querySelector("[data-visual-editor-target='stepsData']")
+      if (dataScript) {
+        try {
+          const rawSteps = JSON.parse(dataScript.textContent)
+          return rawSteps.map((s, i) => ({
+            id: s.id,
+            type: s.type,
+            title: s.title || `Step ${i + 1}`,
+            index: i,
+            transitions: s.transitions || [],
+            isStartNode: s.isStartNode
+          }))
+        } catch (e) {
+          return []
+        }
+      }
+      return []
+    }
+
+    try {
+      const rawSteps = JSON.parse(stepsInput.value)
+      return rawSteps.map((s, i) => ({
+        id: s.id,
+        type: s.type,
+        title: s.title || `Step ${i + 1}`,
+        index: i,
+        transitions: s.transitions || [],
+        isStartNode: s.isStartNode
+      }))
+    } catch (e) {
+      return []
+    }
   }
 
   // Render the flowchart

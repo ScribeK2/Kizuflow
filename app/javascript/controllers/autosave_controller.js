@@ -149,6 +149,13 @@ export default class extends Controller {
       return
     }
 
+    // Don't autosave from list editor when visual editor is active —
+    // the visual editor manages its own saves via sync_steps API
+    const visualEditor = document.getElementById("visual-editor-container")
+    if (visualEditor && !visualEditor.classList.contains("is-hidden")) {
+      return
+    }
+
     console.log("Autosave: Starting autosave...")
     this.updateStatus("saving", "Saving...")
     

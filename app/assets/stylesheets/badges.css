@@ -1,3 +1,4 @@
+@layer components {
 /* badges.css — Badge and avatar components */
 
 .badge {
@@ -127,9 +128,18 @@
 .avatar--regular { background: oklch(0.55 0.02 75); }
 
 /* Step type dots (for composition display) */
+.dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-ink-muted);
+}
+
 .dot--question { background: oklch(0.55 0.2 var(--color-step-question)); }
 .dot--action { background: oklch(0.65 0.18 var(--color-step-action)); }
 .dot--message { background: oklch(0.55 0.18 var(--color-step-message)); }
 .dot--escalate { background: oklch(0.55 0.22 var(--color-step-escalate)); }
 .dot--resolve { background: oklch(0.6 0.19 var(--color-step-resolve)); }
 .dot--sub-flow { background: oklch(0.55 0.18 var(--color-step-subflow)); }
+}

@@ -1,3 +1,4 @@
+@layer components {
 /* tables.css — Table components */
 
 .table {
@@ -43,4 +44,5 @@
 .table-wrap .table th:first-child,
 .table-wrap .table td:first-child {
   padding-left: 1.25rem;
+}
 }

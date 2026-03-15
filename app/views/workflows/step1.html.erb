@@ -1,7 +1,7 @@
-<div class="page-content" style="max-width: 48rem; margin: 0 auto;">
-  <div class="mb-6">
+<div class="wizard-page">
+  <div class="wizard-page__header">
     <h1 class="page-title">Create Workflow</h1>
-    <p class="text-sm mt-1">Step 1 of 3: Name your workflow and assign it to a group.</p>
+    <p class="wizard-page__subtitle">Step 1 of 3: Name your workflow and assign it to a group.</p>
   </div>
 
   <%= render partial: "wizard_progress", locals: { current_step: 1, workflow: @workflow } %>
@@ -26,7 +26,7 @@
   <%= form_with model: @workflow, url: update_step1_workflow_path(@workflow), method: :patch, local: true, data: { turbo: false, controller: "wizard-step1-validation" }, html: { class: "card", style: "overflow: visible;" } do |form| %>
     <%= render partial: "shared/error_messages", locals: { object: @workflow, container_class: "card__body" } %>
 
-    <div class="card__body" style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <div class="card__body wizard-card-body">
       <div class="form-group">
         <%= form.label :title, class: "form-label" %>
         <%= form.text_field :title, maxlength: 100, class: "form-input", placeholder: "Enter workflow title", required: true,
@@ -86,7 +86,7 @@
         <%= form.hidden_field :graph_mode, value: @workflow.graph_mode? %>
       <% end %>
 
-      <div class="flex justify-between items-center pt-4" style="border-top: 1px solid var(--color-border);">
+      <div class="wizard-page__footer">
         <div class="flex items-center gap-3">
           <%= link_to "Cancel", workflows_path, class: "btn btn--plain" %>
           <%= link_to "Browse Templates", templates_path, class: "btn btn--plain btn--sm" %>

@@ -10,12 +10,12 @@ export default class extends Controller {
 
   toggle(event) {
     event.stopPropagation()
-    this.sidebarTarget.classList.toggle("hidden")
-    
+    this.sidebarTarget.classList.toggle("is-hidden")
+
     // Rotate icon (if it's a hamburger menu icon)
     if (this.hasToggleIconTarget) {
       // Toggle between hamburger and X icon
-      const isHidden = this.sidebarTarget.classList.contains("hidden")
+      const isHidden = this.sidebarTarget.classList.contains("is-hidden")
       if (isHidden) {
         this.toggleIconTarget.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />'
       } else {

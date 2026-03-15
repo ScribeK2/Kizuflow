@@ -3,6 +3,7 @@
   <head>
     <title>Flows - Workflow Builder</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="view-transition" content="same-origin">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= action_cable_meta_tag %>
@@ -22,8 +23,15 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
-    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "lexxy", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application",
+          "_global", "reset", "base",
+          "buttons", "forms", "cards", "tables", "badges", "dialogs",
+          "flash", "dropdowns", "tooltips", "pagination", "icons",
+          "layout", "navigation", "dashboard", "workflows", "editor",
+          "steps", "transitions", "scenarios", "admin", "auth",
+          "animations", "utilities", "print",
+          "data-turbo-track": "reload", preload_links_header: false %>
+    <%= stylesheet_link_tag "lexxy", "data-turbo-track": "reload", preload_links_header: false %>
 
     <!-- Importmap for ES modules -->
     <%= javascript_importmap_tags %>
@@ -168,7 +176,7 @@
         </div>
       <% end %>
 
-      <main class="page-main animate-fade-in-up">
+      <main class="page-main">
         <%= yield %>
       </main>
     </div>

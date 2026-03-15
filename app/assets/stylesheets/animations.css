@@ -1,3 +1,4 @@
+@layer utilities {
 /* animations.css — Keyframes and transition utilities */
 
 /* Entrance animations */
@@ -75,4 +76,5 @@
 
 .btn-press:active {
   transform: scale(0.97);
+}
 }

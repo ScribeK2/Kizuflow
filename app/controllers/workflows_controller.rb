@@ -182,6 +182,14 @@ class WorkflowsController < ApplicationController
     incoming_steps = params[:steps] || []
     start_node_uuid = params[:start_node_uuid]
 
+    # Save title/description if provided (visual editor sends these with step data)
+    if params[:title].present?
+      @workflow.title = params[:title]
+    end
+    if params.key?(:description)
+      @workflow.description = params[:description]
+    end
+
     begin
       Workflow.transaction do
         existing_steps = @workflow.steps.unscoped
@@ -1036,7 +1044,9 @@ class WorkflowsController < ApplicationController
       "resolution_type" => step_params[:resolution_type] || "",
       "resolution_code" => step_params[:resolution_code] || "",
       "notes_required" => step_params[:notes_required] || "",
-      "survey_trigger" => step_params[:survey_trigger] || ""
+      "survey_trigger" => step_params[:survey_trigger] || "",
+      # Sub-flow fields
+      "target_workflow_id" => step_params[:target_workflow_id] || ""
     }
   end
 

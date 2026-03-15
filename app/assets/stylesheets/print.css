@@ -1,3 +1,4 @@
+@layer utilities {
 /* print.css — Print-specific overrides */
 
 @media print {
@@ -22,4 +23,5 @@
   .step-palette {
     display: none !important;
   }
+}
 }

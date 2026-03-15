@@ -1,5 +1,5 @@
 <div id="visual-editor-container"
-     class="hidden"
+     class="is-hidden"
      data-controller="visual-editor"
      data-visual-editor-workflow-id-value="<%= workflow.id %>"
      data-visual-editor-lock-version-value="<%= workflow.respond_to?(:lock_version) ? workflow.lock_version : 0 %>"
@@ -78,14 +78,14 @@
 
   <%# Condition popover (for connection presets) %>
   <div data-visual-editor-target="conditionPopover"
-       class="hidden editor-popover" style="position: fixed; z-index: 50; min-width: 200px;">
+       class="is-hidden editor-popover" style="position: fixed; z-index: 50; min-width: 200px;">
     <p class="text-xs font-semibold mb-2" style="text-transform: uppercase; letter-spacing: 0.05em;">Connection Condition</p>
     <div data-visual-editor-target="conditionOptions" style="display: flex; flex-direction: column; gap: 0.25rem;"></div>
   </div>
 
   <%# Step config modal %>
   <div data-visual-editor-target="stepModal"
-       class="hidden dialog-overlay" style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+       class="is-hidden dialog-overlay" style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
     <div class="dialog dialog--md" style="max-height: 80vh; display: flex; flex-direction: column;">
       <%# Modal header %>
       <div class="dialog__header">

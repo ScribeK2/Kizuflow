@@ -10,7 +10,7 @@
 
       <%# Header %>
       <div class="dialog__header">
-        <div class="flex items-center gap-3 min-w-0 flex-1">
+        <div class="template-preview__header-row">
           <h2 class="dialog__title truncate"><%= template.name %></h2>
           <span class="badge flex-shrink-0"><%= template.category&.titleize %></span>
           <span class="text-sm flex-shrink-0"><%= pluralize(template.workflow_data&.length || 0, "step") %></span>
@@ -39,8 +39,8 @@
           </script>
 
           <%# Zoom toolbar %>
-          <div class="px-6 pt-4 flex justify-between items-center">
-            <div class="flex items-center gap-2">
+          <div class="template-preview__toolbar">
+            <div class="template-preview__zoom-controls">
               <button type="button" data-action="click->template-flow-preview#zoomOut" class="btn btn--plain btn--sm" title="Zoom out">
                 <svg class="icon icon--sm" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/></svg>
               </button>

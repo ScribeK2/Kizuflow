@@ -44,6 +44,13 @@ export default class extends Controller {
   toggle(event) {
     event.stopPropagation()
     this.dropdownTarget.classList.toggle("is-hidden")
+
+    // Scroll the dropdown into view when opening
+    if (!this.dropdownTarget.classList.contains("is-hidden")) {
+      requestAnimationFrame(() => {
+        this.dropdownTarget.scrollIntoView({ behavior: "smooth", block: "nearest" })
+      })
+    }
   }
 
   filter(event) {

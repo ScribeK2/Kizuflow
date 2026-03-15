@@ -1,3 +1,4 @@
+@layer modules {
 /* navigation.css — Top navigation bar */
 
 .page-header {
@@ -165,4 +166,5 @@
 .avatar-btn:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
+}
 }

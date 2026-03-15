@@ -11,7 +11,7 @@
 
 <%# Template Panel (Initially Hidden) - relative z-20 ensures it stacks above the Live Preview sticky pane %>
 <div data-instruction-template-target="templatePanel"
-     class="hidden card mb-3" style="overflow: hidden; position: relative; z-index: 20;">
+     class="is-hidden card mb-3" style="overflow: hidden; position: relative; z-index: 20;">
 
   <%# Header %>
   <div class="card__header flex items-center justify-between">
@@ -124,7 +124,7 @@
 
   <%# Preview Panel (Hidden by default) %>
   <div data-instruction-template-target="previewPanel"
-       class="hidden px-4 py-3" style="border-top: 1px solid var(--color-border); background: var(--color-surface-muted);">
+       class="is-hidden px-4 py-3" style="border-top: 1px solid var(--color-border); background: var(--color-canvas-raised);">
     <div class="form-hint mb-1">Preview:</div>
     <pre class="text-sm whitespace-pre-wrap font-mono card p-2 rounded" style="border: 1px solid var(--color-border);"></pre>
   </div>

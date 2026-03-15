@@ -1,3 +1,4 @@
+@layer components {
 /* pagination.css — Pagination components */
 
 .pagination {
@@ -34,4 +35,5 @@
 .pagination__item.is-disabled {
   opacity: 0.4;
   pointer-events: none;
+}
 }

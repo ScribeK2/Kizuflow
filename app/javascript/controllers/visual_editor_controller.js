@@ -155,16 +155,29 @@ export default class extends Controller {
     if (this.hasStartNodeInputTarget) {
       this.startNodeInputTarget.value = this.service.startNodeUuid || ""
     }
+    // Notify flow preview and other listeners that steps changed
+    document.dispatchEvent(new CustomEvent("workflow:updated"))
   }
 
   async saveToServer() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
     const url = `/workflows/${this.workflowIdValue}/sync_steps`
 
+    // Collect title/description from the parent form so they're saved too
+    const form = this.element.closest("form")
+    const titleInput = form?.querySelector("input[name='workflow[title]']")
+    const descField = form?.querySelector("[name='workflow[description]']")
+
+    // Read lock_version from the shared form input — autosave may have updated it
+    const lockInput = form?.querySelector("input[name='workflow[lock_version]']")
+    const currentLockVersion = lockInput ? parseInt(lockInput.value, 10) : this.lockVersionValue
+
     const payload = {
       steps: this.service.steps,
       start_node_uuid: this.service.startNodeUuid,
-      lock_version: this.lockVersionValue
+      lock_version: currentLockVersion,
+      title: titleInput?.value,
+      description: descField?.value
     }
 
     try {
@@ -187,13 +200,14 @@ export default class extends Controller {
         const lockInput = this.element.closest("form")?.querySelector("input[name='workflow[lock_version]']")
         if (lockInput) lockInput.value = data.lock_version
 
-        // In wizard mode, redirect to the next step instead of staying on the page
+        // Redirect after save — wizard goes to next step, edit goes to show page
         if (this.wizardNextUrlValue) {
           window.location.href = this.wizardNextUrlValue
           return
         }
 
-        this.showFlash("Workflow saved successfully.", "success")
+        window.location.href = `/workflows/${this.workflowIdValue}`
+        return
       } else if (response.status === 409) {
         this.showFlash("This workflow was modified by another user. Please refresh and try again.", "error")
       } else {
@@ -725,6 +739,8 @@ export default class extends Controller {
     }
 
     this.service.updateStep(this.editingStepId, data)
+    this.render()
+    this.syncHiddenInputs()
     this.closeModal()
   }
 

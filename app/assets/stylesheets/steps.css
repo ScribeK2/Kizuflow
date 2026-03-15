@@ -1,20 +1,21 @@
-/* steps.css — Step card components for visual editor */
+@layer modules {
+/* steps.css — Step card components for visual editor (HEY Calm + Fizzy Vibrant) */
 
 .step-card {
   position: absolute;
   width: 12.5rem;
   z-index: 10;
   cursor: pointer;
-  transition: transform 0.15s ease;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .step-card__inner {
   border-radius: var(--radius-lg);
-  background: var(--color-canvas);
+  background: var(--color-canvas-raised);
   box-shadow: var(--shadow);
   overflow: hidden;
   border: 1px solid var(--color-border);
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .step-card__inner:hover {
@@ -22,11 +23,11 @@
 }
 
 .step-card__header {
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: oklch(0.5 0.14 var(--step-hue));
+  gap: var(--space-2);
+  background: oklch(0.50 0.14 var(--step-hue));
   color: oklch(1 0 0);
 }
 
@@ -46,12 +47,12 @@
   text-transform: uppercase;
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--letter-spacing-wide);
   opacity: 0.85;
 }
 
 .step-card__body {
-  padding: 0.625rem 0.75rem;
+  padding: var(--space-3) var(--space-3);
 }
 
 .step-card__title {
@@ -67,21 +68,21 @@
 .step-card__hint {
   font-size: var(--text-xs);
   color: var(--color-ink-muted);
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
-/* Step type modifiers (set hue for header) */
-.step-card--question  { --step-hue: var(--color-step-question); }
-.step-card--action    { --step-hue: var(--color-step-action); }
-.step-card--message   { --step-hue: var(--color-step-message); }
-.step-card--escalate  { --step-hue: var(--color-step-escalate); }
-.step-card--resolve   { --step-hue: var(--color-step-resolve); }
-.step-card--sub-flow  { --step-hue: var(--color-step-subflow); }
-.step-card--sub_flow  { --step-hue: var(--color-step-subflow); }
+/* ─── Step Type Modifiers ─── */
+.step-card--question  { --step-hue: var(--hue-question); }
+.step-card--action    { --step-hue: var(--hue-action); }
+.step-card--message   { --step-hue: var(--hue-message); }
+.step-card--escalate  { --step-hue: var(--hue-escalate); }
+.step-card--resolve   { --step-hue: var(--hue-resolve); }
+.step-card--sub-flow  { --step-hue: var(--hue-subflow); }
+.step-card--sub_flow  { --step-hue: var(--hue-subflow); }
 
-/* State classes */
+/* ─── State Classes ─── */
 .step-card.is-selected .step-card__inner {
-  outline: 2px solid var(--color-link);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -100,17 +101,19 @@
   transform: scale(0.98);
 }
 
-/* Connection ports */
+/* ─── Connection Ports ─── */
 .input-port,
 .output-port {
   position: absolute;
   width: 0.75rem;
   height: 0.75rem;
   border-radius: var(--radius-full);
-  border: 2px solid var(--color-canvas);
+  border: 2px solid var(--color-canvas-raised);
   box-shadow: var(--shadow-sm);
   opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
   cursor: crosshair;
   z-index: 15;
 }
@@ -119,14 +122,14 @@
   top: 50%;
   left: -0.375rem;
   transform: translateY(-50%);
-  background: oklch(0.6 0.15 var(--step-hue, 260));
+  background: oklch(0.60 0.15 var(--step-hue, 250));
 }
 
 .output-port {
   bottom: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  background: oklch(0.6 0.15 var(--step-hue, 260));
+  background: oklch(0.60 0.15 var(--step-hue, 250));
 }
 
 .step-card:hover .input-port,
@@ -140,6 +143,7 @@
 }
 
 .output-port.is-visible {
-  background: oklch(0.6 0.19 145);
+  background: oklch(0.60 0.19 145);
   transform: translateX(-50%) scale(1.25);
+}
 }

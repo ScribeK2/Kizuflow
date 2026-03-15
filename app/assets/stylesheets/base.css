@@ -1,3 +1,4 @@
+@layer base {
 /* base.css — Base element styles */
 
 body {
@@ -8,13 +9,76 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* ============================================================================
+   Turbo View Transitions (smooth cross-fade between page navigations)
+   ============================================================================ */
+
+/* Turbo Drive cross-fade: old page fades out, new page fades in */
+::view-transition-old(root) {
+  animation: turbo-fade-out 0.15s ease-out forwards;
+}
+
+::view-transition-new(root) {
+  animation: turbo-fade-in 0.2s ease-out forwards;
+}
+
+@keyframes turbo-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes turbo-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Reduce motion: instant swap, no animation */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   @starting-style Entry Transitions (non-page elements)
+   ============================================================================ */
+
+/* Flash messages: slide in from right on appearance */
+.flash {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s ease-out;
+
+  @starting-style {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+/* Dialogs/modals: scale in when made visible */
+.dialog {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out;
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.25;
   font-weight: 600;
   color: var(--color-ink);
 }
 
-h1 { font-size: var(--text-2xl); }
+h1 { font-size: var(--text-3xl); }
 h2 { font-size: var(--text-xl); }
 h3 { font-size: var(--text-lg); }
 
@@ -52,4 +116,5 @@ kbd {
 
 [data-theme="dark"] ::selection {
   background: oklch(0.7 0.18 260 / 0.3);
+}
 }

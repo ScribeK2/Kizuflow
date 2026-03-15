@@ -216,9 +216,9 @@ export default class extends Controller {
                  class="form-input transition-item__label">
           <button type="button"
                   data-action="click->step-transitions#removeTransition"
-                  class="btn btn--negative btn--icon"
+                  class="btn btn--negative btn--sm"
                   title="Remove connection">
-            <svg class="btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>

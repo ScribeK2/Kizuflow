@@ -1,0 +1,224 @@
+@layer base {
+/* _global.css — Kizuflow Design Tokens (HEY Calm + Fizzy Vibrant) */
+
+:root {
+  /* ─── Spacing Scale ─── */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Legacy spacing aliases */
+  --space-inline: var(--space-4);
+  --space-block: var(--space-4);
+  --space-inline-half: var(--space-2);
+  --space-block-half: var(--space-2);
+  --space-inline-double: var(--space-8);
+  --space-block-double: var(--space-8);
+
+  /* ─── Typography ─── */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+
+  /* ─── OKLCH Palette — Blue-Tinted Neutrals (Light Mode) ─── */
+  --color-ink:           oklch(0.20 0.02 245);
+  --color-ink-subtle:    oklch(0.40 0.01 245);
+  --color-ink-muted:     oklch(0.60 0.01 245);
+  --color-canvas:        oklch(0.985 0.003 245);
+  --color-canvas-alt:    oklch(0.97 0.005 245);
+  --color-canvas-raised: oklch(1.0 0 0);
+  --color-border:        oklch(0.90 0.01 245);
+  --color-border-strong: oklch(0.80 0.015 245);
+
+  /* ─── Accents ─── */
+  --color-primary:       oklch(0.55 0.20 250);
+  --color-primary-hover: oklch(0.48 0.22 250);
+  --color-primary-soft:  oklch(0.93 0.04 250);
+  --color-negative:      oklch(0.55 0.22 25);
+  --color-positive:      oklch(0.60 0.19 145);
+  --color-warning:       oklch(0.70 0.17 80);
+
+  /* Legacy alias */
+  --color-link: var(--color-primary);
+
+  /* ─── Step Type Hues ─── */
+  --hue-question: 250;
+  --hue-action:   145;
+  --hue-message:  290;
+  --hue-escalate:  25;
+  --hue-resolve:  160;
+  --hue-subflow:  310;
+
+  /* Legacy step color aliases */
+  --color-step-question: var(--hue-question);
+  --color-step-action:   var(--hue-action);
+  --color-step-message:  var(--hue-message);
+  --color-step-escalate: var(--hue-escalate);
+  --color-step-resolve:  var(--hue-resolve);
+  --color-step-subflow:  var(--hue-subflow);
+
+  /* ─── Composable Step Colors ─── */
+  --step-bg:     oklch(0.95 0.04 var(--step-hue));
+  --step-border: oklch(0.80 0.10 var(--step-hue));
+  --step-text:   oklch(0.35 0.15 var(--step-hue));
+  --step-dot:    oklch(0.60 0.20 var(--step-hue));
+
+  /* ─── Shadows (Blue-Tinted) ─── */
+  --shadow-sm: 0 1px 2px oklch(0.25 0.02 245 / 0.06);
+  --shadow:    0 2px 8px oklch(0.25 0.02 245 / 0.08);
+  --shadow-lg: 0 8px 24px oklch(0.25 0.02 245 / 0.12);
+  --shadow-xl: 0 16px 48px oklch(0.25 0.02 245 / 0.16);
+
+  /* ─── Borders & Radii ─── */
+  --radius-sm:   0.25rem;
+  --radius:      0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-full: 9999px;
+
+  /* ─── Focus ─── */
+  --focus-ring: 2px solid var(--color-primary);
+  --focus-ring-offset: 2px;
+
+  /* ─── Motion ─── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+
+  /* ─── Z-Index ─── */
+  --z-dropdown: 10;
+  --z-nav: 20;
+  --z-modal: 30;
+  --z-tooltip: 40;
+  --z-toast: 50;
+}
+
+/* ─── Dark Mode ─── */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink:           oklch(0.92 0.01 245);
+  --color-ink-subtle:    oklch(0.72 0.01 245);
+  --color-ink-muted:     oklch(0.50 0.01 245);
+  --color-canvas:        oklch(0.13 0.015 245);
+  --color-canvas-alt:    oklch(0.16 0.012 245);
+  --color-canvas-raised: oklch(0.19 0.01 245);
+  --color-border:        oklch(0.26 0.015 245);
+  --color-border-strong: oklch(0.35 0.02 245);
+  --color-primary:       oklch(0.70 0.18 250);
+  --color-primary-hover: oklch(0.76 0.16 250);
+  --color-primary-soft:  oklch(0.25 0.06 250);
+  --color-negative:      oklch(0.70 0.18 25);
+  --color-positive:      oklch(0.70 0.16 145);
+  --color-warning:       oklch(0.75 0.15 80);
+  --shadow-sm: 0 1px 2px oklch(0.05 0.02 245 / 0.30);
+  --shadow:    0 2px 8px oklch(0.05 0.02 245 / 0.35);
+  --shadow-lg: 0 8px 24px oklch(0.05 0.02 245 / 0.45);
+  --shadow-xl: 0 16px 48px oklch(0.05 0.02 245 / 0.50);
+}
+
+/* ─── System Preference Fallback ─── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-ink:           oklch(0.92 0.01 245);
+    --color-ink-subtle:    oklch(0.72 0.01 245);
+    --color-ink-muted:     oklch(0.50 0.01 245);
+    --color-canvas:        oklch(0.13 0.015 245);
+    --color-canvas-alt:    oklch(0.16 0.012 245);
+    --color-canvas-raised: oklch(0.19 0.01 245);
+    --color-border:        oklch(0.26 0.015 245);
+    --color-border-strong: oklch(0.35 0.02 245);
+    --color-primary:       oklch(0.70 0.18 250);
+    --color-primary-hover: oklch(0.76 0.16 250);
+    --color-primary-soft:  oklch(0.25 0.06 250);
+    --color-negative:      oklch(0.70 0.18 25);
+    --color-positive:      oklch(0.70 0.16 145);
+    --color-warning:       oklch(0.75 0.15 80);
+    --shadow-sm: 0 1px 2px oklch(0.05 0.02 245 / 0.30);
+    --shadow:    0 2px 8px oklch(0.05 0.02 245 / 0.35);
+    --shadow-lg: 0 8px 24px oklch(0.05 0.02 245 / 0.45);
+    --shadow-xl: 0 16px 48px oklch(0.05 0.02 245 / 0.50);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
+}
+}
+
+/* ─── Lexxy Rich Text Editor Dark Mode (unlayered to override Lexxy's unlayered :root) ─── */
+[data-theme="dark"] {
+  --lexxy-color-ink:          oklch(0.92 0.01 245);
+  --lexxy-color-ink-medium:   oklch(0.65 0.01 245);
+  --lexxy-color-ink-light:    oklch(0.50 0.01 245);
+  --lexxy-color-ink-lighter:  oklch(0.30 0.015 245);
+  --lexxy-color-ink-lightest: oklch(0.22 0.01 245);
+  --lexxy-color-ink-inverted: oklch(0.13 0.015 245);
+  --lexxy-color-canvas:       oklch(0.19 0.01 245);
+  --lexxy-color-text:         oklch(0.92 0.01 245);
+  --lexxy-color-text-subtle:  oklch(0.65 0.01 245);
+  --lexxy-color-accent-dark:  oklch(0.70 0.18 250);
+  --lexxy-color-accent-medium:oklch(0.60 0.16 250);
+  --lexxy-color-accent-light: oklch(0.30 0.06 250);
+  --lexxy-color-accent-lightest: oklch(0.25 0.04 250);
+  --lexxy-color-link:         oklch(0.70 0.18 250);
+  --lexxy-color-selected:     oklch(0.25 0.04 250);
+  --lexxy-color-selected-hover: oklch(0.30 0.06 250);
+  --lexxy-color-selected-dark:oklch(0.60 0.16 250);
+  --lexxy-color-code-bg:      oklch(0.16 0.012 245);
+  --lexxy-color-table-header-bg: oklch(0.22 0.01 245);
+  --lexxy-color-table-cell-border: oklch(0.30 0.015 245);
+  --lexxy-shadow: 0 2px 8px oklch(0.05 0.02 245 / 0.40);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --lexxy-color-ink:          oklch(0.92 0.01 245);
+    --lexxy-color-ink-medium:   oklch(0.65 0.01 245);
+    --lexxy-color-ink-light:    oklch(0.50 0.01 245);
+    --lexxy-color-ink-lighter:  oklch(0.30 0.015 245);
+    --lexxy-color-ink-lightest: oklch(0.22 0.01 245);
+    --lexxy-color-ink-inverted: oklch(0.13 0.015 245);
+    --lexxy-color-canvas:       oklch(0.19 0.01 245);
+    --lexxy-color-text:         oklch(0.92 0.01 245);
+    --lexxy-color-text-subtle:  oklch(0.65 0.01 245);
+    --lexxy-color-accent-dark:  oklch(0.70 0.18 250);
+    --lexxy-color-accent-medium:oklch(0.60 0.16 250);
+    --lexxy-color-accent-light: oklch(0.30 0.06 250);
+    --lexxy-color-accent-lightest: oklch(0.25 0.04 250);
+    --lexxy-color-link:         oklch(0.70 0.18 250);
+    --lexxy-color-selected:     oklch(0.25 0.04 250);
+    --lexxy-color-selected-hover: oklch(0.30 0.06 250);
+    --lexxy-color-selected-dark:oklch(0.60 0.16 250);
+    --lexxy-color-code-bg:      oklch(0.16 0.012 245);
+    --lexxy-color-table-header-bg: oklch(0.22 0.01 245);
+    --lexxy-color-table-cell-border: oklch(0.30 0.015 245);
+    --lexxy-shadow: 0 2px 8px oklch(0.05 0.02 245 / 0.40);
+  }
+}

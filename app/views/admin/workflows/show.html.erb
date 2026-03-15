@@ -1,8 +1,8 @@
 <div class="page-content">
   <!-- Header Section -->
-  <div class="mb-4 flex items-start justify-between">
-    <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-3 mb-2">
+  <div class="admin-page-header">
+    <div class="admin-page-header__body">
+      <div class="admin-page-header__title-row">
         <h1><%= @workflow.title %></h1>
         <% if @workflow.is_public? %>
           <span class="badge badge--published">Public</span>
@@ -17,8 +17,8 @@
         </div>
       <% end %>
     </div>
-    <div class="flex gap-2 ml-4 flex-shrink-0">
-      <%= link_to admin_workflows_path, class: "btn btn--secondary flex items-center gap-2" do %>
+    <div class="admin-page-header__actions">
+      <%= link_to admin_workflows_path, class: "btn btn--secondary" do %>
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
@@ -40,12 +40,12 @@
         <% @workflow.steps.order(:position).each_with_index do |step, index| %>
           <div class="card mb-3">
             <div class="card__body">
-              <div class="flex items-start">
+              <div class="admin-step-layout">
                 <span class="admin-step-number mr-3 flex-shrink-0">
                   <%= index + 1 %>
                 </span>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center mb-2">
+                <div class="admin-step-layout__body">
+                  <div class="admin-step-layout__title-row">
                     <h3 class="font-semibold"><%= step.title %></h3>
                     <span class="badge ml-3"><%= step.step_type %></span>
                   </div>

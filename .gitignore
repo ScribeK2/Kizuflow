@@ -85,6 +85,7 @@ spring/*.pid
 
 # Build artifacts
 test-build.js
+/app/assets/builds/
 
 # Cursor IDE
 .cursor/

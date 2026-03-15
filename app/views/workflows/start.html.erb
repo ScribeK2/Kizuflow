@@ -1,6 +1,6 @@
-<div class="page-content" style="max-width: 48rem; margin: 0 auto; padding-bottom: 7rem;">
+<div class="wizard-page" style="padding-bottom: 7rem;">
   <!-- Header Section -->
-  <div class="mb-6 text-center">
+  <div class="wizard-page__header text-center">
     <h1 class="page-title"><%= @workflow.title %></h1>
     <% if @workflow.has_description? %>
       <div class="mt-3 text-left">
@@ -38,7 +38,7 @@
   </div>
 
   <!-- Start Button -->
-  <div class="text-center" style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-surface); border-top: 1px solid var(--color-border); padding: 1rem; z-index: 10;">
+  <div class="text-center" style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-canvas); border-top: 1px solid var(--color-border); padding: 1rem; z-index: 10;">
     <%= form_with url: begin_execution_workflow_path(@workflow), method: :post, local: true,
         class: "inline-block",
         data: { controller: "form-submit", action: "submit->form-submit#submit" } do |form| %>
@@ -47,7 +47,7 @@
           aria: { label: "Start workflow: #{@workflow.title}" },
           class: "btn btn--positive btn--lg" %>
     <% end %>
-    <p class="text-sm mt-2">Begin step-by-step guided execution</p>
+    <p class="text-sm mt-2" style="color: var(--color-ink-muted);">Begin step-by-step guided execution</p>
   </div>
 
   <!-- Workflow Steps Preview -->

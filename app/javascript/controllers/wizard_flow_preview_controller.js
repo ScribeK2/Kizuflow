@@ -113,7 +113,7 @@ export default class extends Controller {
 
   fitToScreen() {
     if (!this.hasCanvasTarget) return
-    const inner = this.canvasTarget.querySelector(".relative")
+    const inner = this.canvasTarget.querySelector(".flowchart-canvas")
     if (!inner) return
 
     const containerWidth = this.canvasTarget.clientWidth
@@ -132,7 +132,7 @@ export default class extends Controller {
 
   applyZoom() {
     if (!this.hasCanvasTarget) return
-    const inner = this.canvasTarget.querySelector(".relative")
+    const inner = this.canvasTarget.querySelector(".flowchart-canvas")
     if (inner) {
       inner.style.transform = `scale(${this.zoomLevel})`
       inner.style.transformOrigin = "top left"

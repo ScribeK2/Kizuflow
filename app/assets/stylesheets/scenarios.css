@@ -1,3 +1,4 @@
+@layer modules {
 /* scenarios.css — Scenario player: radio cards, inputs, button bar */
 
 /* ============================================================================
@@ -501,7 +502,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
+  min-width: 1.75rem;
   height: 1.75rem;
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
@@ -510,7 +511,15 @@
   background: var(--color-canvas-raised);
   color: var(--color-ink-muted);
   flex-shrink: 0;
+  white-space: nowrap;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* When labels are visible (sm+), pill becomes a chip with padding */
+@media (min-width: 640px) {
+  .stepper-pill {
+    padding-inline: 0.5rem;
+  }
 }
 
 .stepper-pill--current {
@@ -650,6 +659,32 @@
    Scenario Result Badge (icon circle in results list)
    ============================================================================ */
 
+/* ============================================================================
+   Responsive Stepper Labels
+   ============================================================================ */
+
+.scenario-stepper__label { display: none; margin-left: 0.5rem; }
+.scenario-stepper__answer { display: none; margin-left: 0.25rem; font-size: var(--text-xs); opacity: 0.75; }
+@media (min-width: 640px) { .scenario-stepper__label { display: inline; } }
+@media (min-width: 768px) { .scenario-stepper__answer { display: inline; } }
+
+/* ============================================================================
+   Scenario Results Grid (categorized results with copy button)
+   ============================================================================ */
+
+.scenario-results-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.scenario-result__row:hover .scenario-result__copy { opacity: 1; }
+
+.scenario-result__copy {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
 .scenario-result-badge {
   display: inline-flex;
   align-items: center;
@@ -659,4 +694,132 @@
   border-radius: var(--radius-full);
   flex-shrink: 0;
   margin-right: 0.75rem;
+}
+
+/* ============================================================================
+   Scenario Page Layout Components
+   ============================================================================ */
+
+/* Header row: title left, status badge right */
+.scenario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Stats badges row */
+.scenario-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Large status badge in header */
+.scenario-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Warning card inner layout (icon + content) */
+.scenario-warning__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.scenario-warning__content {
+  flex: 1;
+}
+
+/* Execution path item toggle button */
+.scenario-exec-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+
+.scenario-exec-toggle__body {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Detail row (key: value in escalation/resolution panels) */
+.scenario-detail-row {
+  display: flex;
+}
+
+.scenario-detail-row__label {
+  font-weight: 500;
+  width: 6rem;
+}
+
+/* Footer CTA bar */
+.scenario-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.scenario-footer__group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Step header (step.html.erb) */
+.scenario-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.scenario-step-header__info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Content box internal layout */
+.scenario-content-layout {
+  display: flex;
+  align-items: flex-start;
+}
+
+.scenario-content-layout--between {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Card header with actions */
+.scenario-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scenario-card-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Button group in button bars */
+.scenario-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 }

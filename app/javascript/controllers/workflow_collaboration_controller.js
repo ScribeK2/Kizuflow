@@ -473,13 +473,12 @@ export default class extends Controller {
 
   showUpdateIndicator(element, user) {
     if (!element) return
-    
+
     // Add visual indicator
-    element.style.transition = "background-color 0.3s"
-    element.style.backgroundColor = "rgba(59, 130, 246, 0.1)" // blue-500 with opacity
-    
+    element.classList.add("is-updated")
+
     setTimeout(() => {
-      element.style.backgroundColor = ""
+      element.classList.remove("is-updated")
     }, 2000)
     
     // Show a toast notification

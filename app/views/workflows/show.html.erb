@@ -1,7 +1,7 @@
 <div class="page-content">
   <!-- Header Section -->
   <div class="wf-page-header mb-6">
-    <div class="flex-1" style="min-width: 0;">
+    <div class="wf-show-step__body">
       <h1 class="wf-page-header__title"><%= @workflow.title %></h1>
       <% if @workflow.has_description? %>
         <div class="mt-2">
@@ -9,7 +9,7 @@
         </div>
       <% end %>
     </div>
-    <div class="wf-page-header__actions" style="flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+    <div class="wf-page-header__actions--col">
       <% if @workflow.can_be_viewed_by?(current_user) %>
         <% if @workflow.is_public? %>
           <span class="badge badge--published">Public Workflow</span>
@@ -20,7 +20,7 @@
               class: "badge" %>
         <% end %>
       <% end %>
-      <div class="flex gap-2" style="flex-wrap: wrap;">
+      <div class="wf-btn-group">
         <% if @workflow.can_be_edited_by?(current_user) %>
           <%= link_to edit_workflow_path(@workflow), class: "btn btn--secondary btn--sm" do %>
             <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,16 +60,16 @@
     </div>
     <% display_steps = workflow_display_steps(@workflow) %>
     <% if display_steps.present? && display_steps.any? %>
-      <div class="card__body" style="display: flex; flex-direction: column; gap: 1rem;">
+      <div class="card__body wf-steps-stack">
         <% display_steps.each_with_index do |step, index| %>
-          <div class="card" data-controller="image-lightbox">
+          <div class="card" data-controller="image-lightbox" data-step-type="<%= step_field(step, 'type') %>">
             <div class="card__body">
-              <div class="flex items-start gap-3">
-                <span class="step-card__number" style="width: 2rem; height: 2rem; flex-shrink: 0;">
+              <div class="wf-show-step">
+                <span class="step-card__number">
                   <%= index + 1 %>
                 </span>
-                <div class="flex-1" style="min-width: 0;">
-                  <div class="flex items-center gap-2 mb-1">
+                <div class="wf-show-step__body">
+                  <div class="wf-show-step__title-row">
                     <h3 class="font-semibold"><%= step_field(step, 'title') %></h3>
                     <span class="badge"><%= step_field(step, 'type') %></span>
                   </div>
@@ -104,7 +104,7 @@
   </div>
 
   <!-- Action Button -->
-  <div class="flex justify-end mt-4">
+  <div class="wf-action-footer">
     <% if current_user&.can_edit_workflows? %>
       <%= link_to new_workflow_scenario_path(@workflow), class: "btn btn--positive" do %>
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -169,15 +169,15 @@ export default class extends Controller {
 
     return `
       <div class="template-card ${requiresVariable ? 'is-disabled' : ''}">
-        <div class="flex items-start gap-2 mb-2">
+        <div class="template-card__header">
           <span class="template-card__icon">${this.resolveTemplateIcon(template.icon)}</span>
-          <div class="flex-1">
+          <div class="template-card__body">
             <h5 class="template-card__name">${this.escapeHtml(template.name)}</h5>
             <p class="template-card__description">${this.escapeHtml(template.description)}</p>
           </div>
         </div>
-        
-        <div class="mt-2 flex items-center justify-between">
+
+        <div class="template-card__footer">
           <span class="template-card__branches">${branchesCount} branch${branchesCount !== 'N' && branchesCount !== 1 ? 'es' : ''}</span>
           <button type="button"
                   class="btn btn--primary btn--sm ${requiresVariable ? 'is-disabled' : ''}"
@@ -259,24 +259,24 @@ export default class extends Controller {
     const ranges = template.customizable.ranges || []
     
     return `
-      <div class="space-y-3">
+      <div class="range-customization">
         ${ranges.map((range, index) => `
-          <div class="flex items-center gap-2">
+          <div class="range-customization__row">
             <label class="range-label">${this.escapeHtml(range.label)}:</label>
             ${range.operator2 ? `
-              <input type="number" 
-                     class="w-20 border rounded px-2 py-1 text-sm"
+              <input type="number"
+                     class="range-customization__input"
                      value="${range.value}"
                      data-range-index="${index}"
                      data-range-field="value">
-              <span class="template-card__branches">to</span>
-              <input type="number" 
-                     class="w-20 border rounded px-2 py-1 text-sm"
+              <span class="range-separator">to</span>
+              <input type="number"
+                     class="range-customization__input"
                      value="${range.value2}"
                      data-range-index="${index}"
                      data-range-field="value2">
             ` : `
-              <select class="w-16 border rounded px-2 py-1 text-sm"
+              <select class="range-customization__select"
                       data-range-index="${index}"
                       data-range-field="operator">
                 <option value=">" ${range.operator === '>' ? 'selected' : ''}>></option>
@@ -284,8 +284,8 @@ export default class extends Controller {
                 <option value="<" ${range.operator === '<' ? 'selected' : ''}><</option>
                 <option value="<=" ${range.operator === '<=' ? 'selected' : ''}><=</option>
               </select>
-              <input type="number" 
-                     class="w-20 border rounded px-2 py-1 text-sm"
+              <input type="number"
+                     class="range-customization__input"
                      value="${range.value}"
                      data-range-index="${index}"
                      data-range-field="value">
