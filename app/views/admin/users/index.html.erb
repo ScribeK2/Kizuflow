@@ -1,4 +1,4 @@
-<div class="page-content">
+<div class="page-content" data-controller="admin-users">
   <!-- Header Section -->
   <div class="mb-4 flex items-center justify-between">
     <div>
@@ -20,7 +20,8 @@
     <div class="card__header flex items-center justify-between">
       <h2>All Users</h2>
       <button type="button"
-              id="bulk-toggle-btn"
+              data-admin-users-target="bulkToggleBtn"
+              data-action="click->admin-users#toggleBulk"
               class="btn btn--secondary btn--sm flex items-center gap-2">
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -34,7 +35,7 @@
           <thead>
             <tr>
               <th class="bulk-select-column" style="display: none;">
-                <input type="checkbox" id="select-all-users" class="form-checkbox">
+                <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox">
               </th>
               <th>Email</th>
               <th>Role</th>
@@ -48,7 +49,7 @@
             <% @users.each do |user| %>
               <tr>
                 <td class="bulk-select-column" style="display: none;">
-                  <input type="checkbox" name="user_ids[]" value="<%= user.id %>" class="user-checkbox form-checkbox">
+                  <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox">
                 </td>
                 <td>
                   <span class="font-medium"><%= user.email %></span>
@@ -83,7 +84,8 @@
                       <%= form.select :role, options_for_select(User.roles.map { |key, _| [key.capitalize, key] }, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
                     <% end %>
                     <button type="button"
-                            class="open-group-modal-btn btn btn--secondary btn--sm flex items-center gap-1"
+                            class="btn btn--secondary btn--sm flex items-center gap-1"
+                            data-action="click->admin-users#openGroupModal"
                             data-modal-id="group-modal-<%= user.id %>"
                             title="Assign groups">
                       <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +94,8 @@
                       Groups
                     </button>
                     <button type="button"
-                            class="reset-password-btn btn btn--sm flex items-center gap-1"
+                            class="btn btn--sm flex items-center gap-1"
+                            data-action="click->admin-users#resetPassword"
                             data-user-id="<%= user.id %>"
                             data-user-email="<%= user.email %>"
                             title="Generate temporary password">
@@ -114,7 +117,6 @@
       </div>
     <% end %>
   </div>
-</div>
 
 <%# Group Assignment Modals %>
 <% @users.each do |user| %>
@@ -131,7 +133,8 @@
             <p class="text-sm font-medium mt-1"><%= user.email %></p>
           </div>
           <button type="button"
-                  class="dialog__close close-group-modal-btn"
+                  class="dialog__close"
+                  data-action="click->admin-users#closeGroupModal"
                   data-modal-id="group-modal-<%= user.id %>">
             <span class="sr-only">Close</span>
             <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,7 +166,8 @@
 
         <div class="dialog__footer">
           <button type="button"
-                  class="close-group-modal-btn btn btn--plain"
+                  class="btn btn--plain"
+                  data-action="click->admin-users#closeGroupModal"
                   data-modal-id="group-modal-<%= user.id %>">
             Cancel
           </button>
@@ -175,17 +179,18 @@
 <% end %>
 
 <%# Bulk Group Assignment Modal %>
-<div id="bulk-group-modal"
+<div data-admin-users-target="bulkModal"
      class="dialog-overlay is-hidden"
      data-controller="modal">
   <div class="dialog"
        data-modal-target="content"
        data-action="click->modal#stop">
-    <%= form_with url: bulk_assign_groups_admin_users_path, method: :patch, local: true do |form| %>
+    <%= form_with url: bulk_assign_groups_admin_users_path, method: :patch, local: true, data: { admin_users_target: "bulkForm" } do |form| %>
       <div class="dialog__header">
         <h3 class="dialog__title">Bulk Assign Groups</h3>
         <button type="button"
-                class="dialog__close close-bulk-modal-btn">
+                class="dialog__close"
+                data-action="click->admin-users#closeBulkModal">
           <span class="sr-only">Close</span>
           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -198,7 +203,7 @@
           Select groups to assign to the selected users. This will replace their existing group assignments.
         </p>
 
-        <div id="selected-users-count" class="text-sm font-medium mb-3">
+        <div data-admin-users-target="selectedCount" class="text-sm font-medium mb-3">
           No users selected
         </div>
 
@@ -220,7 +225,8 @@
 
       <div class="dialog__footer">
         <button type="button"
-                class="close-bulk-modal-btn btn btn--plain">
+                class="btn btn--plain"
+                data-action="click->admin-users#closeBulkModal">
           Cancel
         </button>
         <%= form.submit "Assign to Selected Users", class: "btn btn--primary" %>
@@ -230,7 +236,7 @@
 </div>
 
 <%# Password Reset Modal %>
-<div id="password-reset-modal"
+<div data-admin-users-target="resetModal"
      class="dialog-overlay is-hidden"
      data-controller="modal">
   <div class="dialog"
@@ -239,10 +245,10 @@
     <div class="dialog__header">
       <div>
         <h3 class="dialog__title">Password Reset</h3>
-        <p class="text-sm font-medium mt-1" id="reset-modal-user-email"></p>
+        <p class="text-sm font-medium mt-1" data-admin-users-target="resetEmail"></p>
       </div>
       <button type="button"
-              id="password-reset-modal-close-x"
+              data-action="click->admin-users#closeResetModal"
               class="dialog__close">
         <span class="sr-only">Close</span>
         <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,7 +265,7 @@
           </svg>
           <div class="text-sm">
             <p class="font-semibold mb-1">New Temporary Password Generated</p>
-            <p id="temp-password-display" class="font-mono text-lg mt-2 font-bold">
+            <p data-admin-users-target="tempPasswordDisplay" class="font-mono text-lg mt-2 font-bold">
               Loading...
             </p>
             <p class="mt-2 text-xs">
@@ -289,7 +295,7 @@
 
     <div class="dialog__footer">
       <button type="button"
-              id="password-reset-modal-copy"
+              data-action="click->admin-users#copyPassword"
               class="btn btn--plain flex items-center gap-2">
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -297,7 +303,7 @@
         Copy Password
       </button>
       <button type="button"
-              id="password-reset-modal-done"
+              data-action="click->admin-users#closeResetModal"
               class="btn btn--positive flex items-center gap-2">
         <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -308,228 +314,5 @@
   </div>
 </div>
 
-<script nonce="<%= content_security_policy_nonce %>">
-  let bulkMode = false;
-  let currentTempPassword = '';
+</div>
 
-  function getCSRFToken() {
-    const token = document.querySelector('meta[name="csrf-token"]');
-    return token ? token.getAttribute('content') : '';
-  }
-
-  async function resetUserPassword(userId, userEmail, buttonElement) {
-    if (!confirm('Are you sure you want to generate a temporary password for ' + userEmail + '? They will be able to log in immediately with this password.')) {
-      return;
-    }
-
-    const originalHTML = buttonElement.innerHTML;
-    buttonElement.disabled = true;
-    buttonElement.textContent = 'Generating...';
-
-    try {
-      const csrfToken = getCSRFToken();
-      if (!csrfToken) {
-        throw new Error('CSRF token not found. Please refresh the page.');
-      }
-
-      const response = await fetch('/admin/users/' + userId + '/reset_password', {
-        method: 'POST',
-        headers: {
-          'X-CSRF-Token': csrfToken,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'same-origin'
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Server error: ' + response.status);
-      }
-
-      if (data && data.success && data.password) {
-        currentTempPassword = data.password;
-        document.getElementById('reset-modal-user-email').textContent = data.email || userEmail;
-        document.getElementById('temp-password-display').textContent = data.password;
-        document.getElementById('password-reset-modal').classList.remove('is-hidden');
-      } else {
-        alert('Failed to generate temporary password. Please try again.');
-      }
-    } catch (error) {
-      console.error('Password reset error:', error);
-      alert('An error occurred while generating the temporary password. Please try again.');
-    } finally {
-      buttonElement.disabled = false;
-      buttonElement.innerHTML = originalHTML;
-    }
-  }
-
-  function copyTempPassword(buttonElement) {
-    if (currentTempPassword) {
-      navigator.clipboard.writeText(currentTempPassword).then(function() {
-        const originalText = buttonElement.textContent;
-        buttonElement.textContent = 'Copied!';
-        setTimeout(function() {
-          buttonElement.textContent = originalText;
-        }, 2000);
-      }).catch(function(err) {
-        alert('Failed to copy password. Please copy it manually.');
-        console.error('Failed to copy:', err);
-      });
-    }
-  }
-
-  function toggleBulkMode() {
-    bulkMode = !bulkMode;
-    const columns = document.querySelectorAll('.bulk-select-column');
-    const btn = document.getElementById('bulk-toggle-btn');
-
-    columns.forEach(function(col) {
-      col.style.display = bulkMode ? 'table-cell' : 'none';
-    });
-
-    if (bulkMode) {
-      btn.textContent = 'Cancel Bulk Mode';
-      btn.classList.add('btn--negative');
-    } else {
-      btn.textContent = 'Bulk Assign Groups';
-      btn.classList.remove('btn--negative');
-      document.querySelectorAll('.user-checkbox').forEach(function(cb) { cb.checked = false; });
-      document.getElementById('select-all-users').checked = false;
-      updateSelectedCount();
-    }
-  }
-
-  function toggleAllUsers(checkbox) {
-    document.querySelectorAll('.user-checkbox').forEach(function(cb) {
-      cb.checked = checkbox.checked;
-    });
-    updateSelectedCount();
-  }
-
-  function updateSelectedCount() {
-    const selected = document.querySelectorAll('.user-checkbox:checked').length;
-    const countEl = document.getElementById('selected-users-count');
-    if (countEl) {
-      countEl.textContent = selected > 0 ? (selected + ' user' + (selected > 1 ? 's' : '') + ' selected') : 'No users selected';
-    }
-  }
-
-  function openBulkModal() {
-    const selectedIds = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(function(cb) { return cb.value; });
-    const form = document.querySelector('#bulk-group-modal form');
-    if (form) {
-      form.querySelectorAll('input[name="user_ids[]"]').forEach(function(input) { input.remove(); });
-      selectedIds.forEach(function(id) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'user_ids[]';
-        input.value = id;
-        form.appendChild(input);
-      });
-    }
-    document.getElementById('bulk-group-modal').classList.remove('is-hidden');
-  }
-
-  function attachAdminUserListeners() {
-    const bulkBtn = document.getElementById('bulk-toggle-btn');
-    if (bulkBtn && !bulkBtn.dataset.listenerAttached) {
-      bulkBtn.dataset.listenerAttached = 'true';
-      bulkBtn.addEventListener('click', function() {
-        if (bulkMode && document.querySelectorAll('.user-checkbox:checked').length > 0) {
-          openBulkModal();
-        } else {
-          toggleBulkMode();
-        }
-      });
-    }
-
-    const selectAll = document.getElementById('select-all-users');
-    if (selectAll && !selectAll.dataset.listenerAttached) {
-      selectAll.dataset.listenerAttached = 'true';
-      selectAll.addEventListener('change', function() { toggleAllUsers(this); });
-    }
-
-    document.querySelectorAll('.open-group-modal-btn').forEach(function(btn) {
-      if (btn.dataset.listenerAttached === 'true') return;
-      btn.dataset.listenerAttached = 'true';
-      btn.addEventListener('click', function() {
-        var modal = document.getElementById(btn.dataset.modalId);
-        if (modal) modal.classList.remove('is-hidden');
-      });
-    });
-
-    document.querySelectorAll('.close-group-modal-btn').forEach(function(btn) {
-      if (btn.dataset.listenerAttached === 'true') return;
-      btn.dataset.listenerAttached = 'true';
-      btn.addEventListener('click', function() {
-        var modal = document.getElementById(btn.dataset.modalId);
-        if (modal) modal.classList.add('is-hidden');
-      });
-    });
-
-    document.querySelectorAll('.close-bulk-modal-btn').forEach(function(btn) {
-      if (btn.dataset.listenerAttached === 'true') return;
-      btn.dataset.listenerAttached = 'true';
-      btn.addEventListener('click', function() {
-        document.getElementById('bulk-group-modal').classList.add('is-hidden');
-      });
-    });
-
-    document.querySelectorAll('.user-checkbox').forEach(function(cb) {
-      if (cb.dataset.listenerAttached === 'true') return;
-      cb.dataset.listenerAttached = 'true';
-      cb.addEventListener('change', updateSelectedCount);
-    });
-  }
-
-  function attachResetListeners() {
-    document.querySelectorAll('.reset-password-btn').forEach(function(buttonElement) {
-      if (buttonElement.dataset.listenerAttached === 'true') return;
-      buttonElement.dataset.listenerAttached = 'true';
-      buttonElement.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        resetUserPassword(buttonElement.dataset.userId, buttonElement.dataset.userEmail, buttonElement);
-      });
-    });
-  }
-
-  function attachModalCloseListeners() {
-    const modal = document.getElementById('password-reset-modal');
-    if (!modal) return;
-
-    const closeXBtn = document.getElementById('password-reset-modal-close-x');
-    if (closeXBtn && !closeXBtn.dataset.listenerAttached) {
-      closeXBtn.dataset.listenerAttached = 'true';
-      closeXBtn.addEventListener('click', function() { modal.classList.add('is-hidden'); });
-    }
-
-    const doneBtn = document.getElementById('password-reset-modal-done');
-    if (doneBtn && !doneBtn.dataset.listenerAttached) {
-      doneBtn.dataset.listenerAttached = 'true';
-      doneBtn.addEventListener('click', function() { modal.classList.add('is-hidden'); });
-    }
-
-    const copyBtn = document.getElementById('password-reset-modal-copy');
-    if (copyBtn && !copyBtn.dataset.listenerAttached) {
-      copyBtn.dataset.listenerAttached = 'true';
-      copyBtn.addEventListener('click', function() { copyTempPassword(copyBtn); });
-    }
-  }
-
-  function attachAllListeners() {
-    attachAdminUserListeners();
-    attachResetListeners();
-    attachModalCloseListeners();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachAllListeners);
-  } else {
-    attachAllListeners();
-  }
-
-  document.addEventListener('turbo:load', attachAllListeners);
-</script>
