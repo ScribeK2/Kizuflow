@@ -1,7 +1,7 @@
 class StepsController < ApplicationController
   before_action :set_workflow
   before_action :ensure_can_edit!
-  before_action :set_step, only: %i[show edit update destroy reorder]
+  before_action :set_step, only: %i[show update destroy reorder]
 
   # GET /workflows/:workflow_id/steps/:id
   def show

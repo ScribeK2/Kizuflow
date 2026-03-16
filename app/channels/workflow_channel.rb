@@ -140,13 +140,21 @@ class WorkflowChannel < ApplicationCable::Channel
       )
 
       # Rich text fields need special handling
+      rich_text_updated = false
       %w[instructions content notes].each do |rt_field|
         if update.dig("attributes", rt_field).present?
-          step.send(:"#{rt_field}=", update["attributes"][rt_field]) if step.respond_to?(:"#{rt_field}=")
+          if step.respond_to?(:"#{rt_field}=")
+            step.send(:"#{rt_field}=", update["attributes"][rt_field])
+            rich_text_updated = true
+          end
         end
       end
 
-      step.update!(attrs) if attrs.present?
+      if attrs.present?
+        step.update!(attrs)
+      elsif rich_text_updated
+        step.save!
+      end
     end
   end
 

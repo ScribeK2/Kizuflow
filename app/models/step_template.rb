@@ -44,7 +44,7 @@ class StepTemplate
   end
 
   def self.find(type, key)
-    template = TEMPLATES.dig(type.to_sym, key.to_sym)
+    template = TEMPLATES.dig(type.to_sym, key.to_s)
     template ? { key: key.to_s, **template } : nil
   end
 end
