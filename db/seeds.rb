@@ -1,4 +1,4 @@
-# Seeds file for Kizuflow
+# Seeds file for TurboFlows
 
 # Create demo admin user for Render deployment
 admin_user = User.find_or_initialize_by(email: "admin@test.com")

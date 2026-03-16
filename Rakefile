@@ -1,4 +1,4 @@
-# Rakefile for Kizuflow
+# Rakefile for TurboFlows
 # This file is used by Rake to define tasks.
 
 require_relative "config/application"

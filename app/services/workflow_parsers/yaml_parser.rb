@@ -1,4 +1,4 @@
-# YAML Parser for Kizuflow workflow imports
+# YAML Parser for TurboFlows workflow imports
 # Updated for Graph Mode support
 require 'yaml'
 

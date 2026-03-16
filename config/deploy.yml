@@ -1,6 +1,6 @@
-service: kizuflow
+service: turboflows
 
-image: your-registry/kizuflow
+image: your-registry/turboflows
 
 servers:
   web:

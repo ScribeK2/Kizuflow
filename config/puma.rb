@@ -1,4 +1,4 @@
-# Puma Configuration for Kizuflow
+# Puma Configuration for TurboFlows
 # ================================
 # 
 # Production: Uses workers (processes) + threads for horizontal scaling

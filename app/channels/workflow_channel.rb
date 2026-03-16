@@ -291,7 +291,7 @@ class WorkflowChannel < ApplicationCable::Channel
   end
 
   def presence_redis_key(workflow)
-    "kizuflow:presence:workflow:#{workflow.id}"
+    "turboflows:presence:workflow:#{workflow.id}"
   end
 
   # Thread-safe in-memory store for development/test

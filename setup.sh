@@ -1,10 +1,10 @@
 # Create a simple wrapper script to help with setup
 #!/bin/bash
 
-echo "Kizuflow Setup Script"
-echo "===================="
+echo "TurboFlows Setup Script"
+echo "======================"
 echo ""
-echo "This script will help you set up the Kizuflow application."
+echo "This script will help you set up the TurboFlows application."
 echo ""
 echo "Prerequisites:"
 echo "  - Ruby 3.3.0 or higher"

@@ -19,7 +19,7 @@ export default class extends Controller {
     // Restore preferred mode from localStorage.
     // Only restore "list" and "split" — "visual" requires explicit activation
     // because it needs loadFromListForm() which can't run reliably on page load.
-    const savedMode = localStorage.getItem("kizuflow:editor-mode")
+    const savedMode = localStorage.getItem("turboflows:editor-mode")
     if (savedMode === "split") {
       this.modeValue = "split"
     }
@@ -41,13 +41,13 @@ export default class extends Controller {
     // Reload the page in list mode so the list editor has fresh server data.
     // The visual editor saves steps via a separate API (sync_steps), so the
     // list editor DOM is always stale — a reload is the reliable way to sync.
-    localStorage.setItem("kizuflow:editor-mode", "list")
+    localStorage.setItem("turboflows:editor-mode", "list")
     window.location.reload()
   }
 
   switchToVisual() {
     this.modeValue = "visual"
-    localStorage.setItem("kizuflow:editor-mode", "visual")
+    localStorage.setItem("turboflows:editor-mode", "visual")
     this.applyMode()
 
     // Load current list form state into visual editor
@@ -59,7 +59,7 @@ export default class extends Controller {
 
   switchToSplit() {
     this.modeValue = "split"
-    localStorage.setItem("kizuflow:editor-mode", "split")
+    localStorage.setItem("turboflows:editor-mode", "split")
     this.applyMode()
   }
 

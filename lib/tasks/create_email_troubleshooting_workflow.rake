@@ -4,7 +4,7 @@ namespace :workflows do
     # ============================================================================
     # ULTIMATE EXTERNAL EMAIL CLIENT TROUBLESHOOTING WORKFLOW
     # ============================================================================
-    # A comprehensive stress test workflow demonstrating Kizuflow's power
+    # A comprehensive stress test workflow demonstrating TurboFlows' power
     # Covers: Apple Mail, Gmail, Microsoft Outlook
     # Platforms: Android, iOS, Windows, macOS, Web Browsers
     # Protocols: IMAP, POP, Exchange
@@ -63,7 +63,7 @@ namespace :workflows do
         <li>⚠️ Two-factor authentication may require app-specific passwords</li>
       </ul>
 
-      <p><em>This workflow demonstrates Kizuflow's ability to handle complex, multi-branching troubleshooting scenarios with 55+ detailed steps.</em></p>
+      <p><em>This workflow demonstrates TurboFlows' ability to handle complex, multi-branching troubleshooting scenarios with 55+ detailed steps.</em></p>
     DESC
 
     workflow.steps = [
@@ -1586,7 +1586,7 @@ namespace :workflows do
 
           Thank you for using the Ultimate External Email Client Troubleshooting workflow.
 
-          This workflow was designed to demonstrate Kizuflow's powerful features:
+          This workflow was designed to demonstrate TurboFlows' powerful features:
           - ✅ Multi-branch conditional logic
           - ✅ Variable-based personalization
           - ✅ 55+ detailed atomic steps

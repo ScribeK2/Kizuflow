@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="public/favicon.svg" alt="Kizuflow logo" width="64" height="64">
+  <img src="public/favicon.svg" alt="TurboFlows logo" width="64" height="64">
 </p>
 
-<h1 align="center">Kizuflow</h1>
+<h1 align="center">TurboFlows</h1>
 
 <p align="center">
   A workflow builder for call and chat centers — create, run, and manage training and troubleshooting flows with drag-and-drop simplicity.
@@ -95,8 +95,8 @@ No Node.js required — uses Rails' importmap-rails for JS and Propshaft for van
 ## Installation
 
 ```bash
-git clone https://github.com/ScribeK2/Kizuflow
-cd Kizuflow
+git clone https://github.com/ScribeK2/TurboFlows
+cd TurboFlows
 bundle install
 
 # Setup database

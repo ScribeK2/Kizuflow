@@ -31,7 +31,7 @@ module WorkflowParsers
       @warnings << message
     end
 
-    # Convert parsed data to Kizuflow workflow format
+    # Convert parsed data to TurboFlows workflow format
     # Now includes Graph Mode support with automatic conversion
     def to_workflow_data(parsed_data)
       steps = normalize_steps(parsed_data[:steps] || [])
@@ -244,7 +244,7 @@ module WorkflowParsers
       end
     end
 
-    # Normalize steps to ensure they match Kizuflow format
+    # Normalize steps to ensure they match TurboFlows format
     def normalize_steps(steps)
       return [] unless steps.is_a?(Array)
 

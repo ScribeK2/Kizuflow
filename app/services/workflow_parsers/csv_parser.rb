@@ -1,4 +1,4 @@
-# CSV Parser for Kizuflow workflow imports
+# CSV Parser for TurboFlows workflow imports
 # Updated for Graph Mode support
 require 'csv'
 

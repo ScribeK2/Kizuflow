@@ -1,4 +1,4 @@
-# Markdown Parser for Kizuflow workflow imports
+# Markdown Parser for TurboFlows workflow imports
 # Updated for Graph Mode support
 module WorkflowParsers
   class MarkdownParser < BaseParser
