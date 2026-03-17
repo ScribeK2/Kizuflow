@@ -1,4 +1,4 @@
-<div class="page-content" data-controller="admin-users">
+<div class="page-content" data-controller="admin-users" data-admin-users-total-count-value="<%= @total_count %>">
   <!-- Header Section -->
   <div class="mb-4 flex items-center justify-between">
     <div>
@@ -17,105 +17,113 @@
 
   <!-- Users Table -->
   <div class="card">
-    <div class="card__header flex items-center justify-between">
-      <h2>All Users</h2>
-      <button type="button"
-              data-admin-users-target="bulkToggleBtn"
-              data-action="click->admin-users#toggleBulk"
-              class="btn btn--secondary btn--sm flex items-center gap-2">
-        <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-        Bulk Assign Groups
-      </button>
-    </div>
-    <% if @users.any? %>
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th class="bulk-select-column" style="display: none;">
-                <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox">
-              </th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Groups</th>
-              <th>Workflows</th>
-              <th>Joined</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @users.each do |user| %>
+    <turbo-frame id="users-table" data-turbo-action="advance">
+      <div class="card__header flex items-center justify-between">
+        <h2>All Users</h2>
+        <button type="button"
+                data-admin-users-target="bulkToggleBtn"
+                data-action="click->admin-users#toggleBulk"
+                class="btn btn--secondary btn--sm flex items-center gap-2">
+          <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          Bulk Assign Groups
+        </button>
+      </div>
+
+      <%= render "filter_toolbar" %>
+
+      <% if @users.any? %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
               <tr>
-                <td class="bulk-select-column" style="display: none;">
-                  <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox">
-                </td>
-                <td>
-                  <span class="font-medium"><%= user.email %></span>
-                </td>
-                <td>
-                  <span class="badge <%= user.avatar_role_badge_classes %>">
-                    <%= user.role.capitalize %>
-                  </span>
-                </td>
-                <td>
-                  <div class="flex flex-wrap gap-1">
-                    <% if user.groups.any? %>
-                      <% user.groups.each do |group| %>
-                        <span class="badge" title="<%= group.full_path %>">
-                          <%= group.name %>
-                        </span>
-                      <% end %>
-                    <% else %>
-                      <span class="text-xs">None</span>
-                    <% end %>
-                  </div>
-                </td>
-                <td class="text-sm">
-                  <%= user.workflows.size %>
-                </td>
-                <td class="text-sm">
-                  <%= time_ago_in_words(user.created_at) %> ago
-                </td>
-                <td>
-                  <div class="flex items-center gap-2">
-                    <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
-                      <%= form.select :role, options_for_select(User.roles.map { |key, _| [key.capitalize, key] }, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
-                    <% end %>
-                    <button type="button"
-                            class="btn btn--secondary btn--sm flex items-center gap-1"
-                            data-action="click->admin-users#openGroupModal"
-                            data-modal-id="group-modal-<%= user.id %>"
-                            title="Assign groups">
-                      <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      Groups
-                    </button>
-                    <button type="button"
-                            class="btn btn--sm flex items-center gap-1"
-                            data-action="click->admin-users#resetPassword"
-                            data-user-id="<%= user.id %>"
-                            data-user-email="<%= user.email %>"
-                            title="Generate temporary password">
-                      <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                      Reset
-                    </button>
-                  </div>
-                </td>
+                <th class="bulk-select-column" style="display: none;">
+                  <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox">
+                </th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Groups</th>
+                <th>Workflows</th>
+                <th>Joined</th>
+                <th>Actions</th>
               </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <div class="empty-state p-4">
-        <p class="empty-state__text">No users found</p>
-      </div>
-    <% end %>
+            </thead>
+            <tbody>
+              <% @users.each do |user| %>
+                <tr class="<%= 'admin-user-row--deactivated' if user.access_locked? %>">
+                  <td class="bulk-select-column" style="display: none;">
+                    <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox">
+                  </td>
+                  <td>
+                    <span class="font-medium"><%= user.email %></span>
+                    <% if user.access_locked? %><span class="badge badge--muted ml-1">Deactivated</span><% end %>
+                  </td>
+                  <td>
+                    <span class="badge <%= user.avatar_role_badge_classes %>">
+                      <%= user.role.capitalize %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="flex flex-wrap gap-1">
+                      <% if user.groups.any? %>
+                        <% user.groups.each do |group| %>
+                          <span class="badge" title="<%= group.full_path %>">
+                            <%= group.name %>
+                          </span>
+                        <% end %>
+                      <% else %>
+                        <span class="text-xs">None</span>
+                      <% end %>
+                    </div>
+                  </td>
+                  <td class="text-sm">
+                    <%= user.workflows.size %>
+                  </td>
+                  <td class="text-sm">
+                    <%= time_ago_in_words(user.created_at) %> ago
+                  </td>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
+                        <%= form.select :role, options_for_select(User.roles.map { |key, _| [key.capitalize, key] }, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
+                      <% end %>
+                      <button type="button"
+                              class="btn btn--secondary btn--sm flex items-center gap-1"
+                              data-action="click->admin-users#openGroupModal"
+                              data-modal-id="group-modal-<%= user.id %>"
+                              title="Assign groups">
+                        <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        Groups
+                      </button>
+                      <button type="button"
+                              class="btn btn--sm flex items-center gap-1"
+                              data-action="click->admin-users#resetPassword"
+                              data-user-id="<%= user.id %>"
+                              data-user-email="<%= user.email %>"
+                              title="Generate temporary password">
+                        <svg class="icon icon--xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Reset
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <%= render "pagination" if @total_count > 0 %>
+      <% else %>
+        <div class="empty-state p-4">
+          <p class="empty-state__text">No users found</p>
+        </div>
+      <% end %>
+    </turbo-frame>
   </div>
 
 <%# Group Assignment Modals %>
@@ -315,4 +323,3 @@
 </div>
 
 </div>
-
