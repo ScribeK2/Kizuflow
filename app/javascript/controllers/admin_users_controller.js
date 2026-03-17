@@ -4,8 +4,11 @@ export default class extends Controller {
   static targets = [
     "bulkToggleBtn", "selectAll", "userCheckbox", "selectedCount",
     "bulkModal", "bulkForm", "resetModal", "resetEmail",
-    "tempPasswordDisplay", "copyBtn", "doneBtn", "closeResetBtn"
+    "tempPasswordDisplay", "copyBtn", "doneBtn", "closeResetBtn",
+    "bulkBar", "bulkCount", "roleModal", "roleForm", "deactivateForm"
   ]
+
+  static values = { totalCount: Number }
 
   connect() {
     this.bulkMode = false
@@ -45,19 +48,35 @@ export default class extends Controller {
   }
 
   updateSelectedCount() {
-    if (!this.hasSelectedCountTarget) return
     const count = this.selectedUserIds.length
-    this.selectedCountTarget.textContent = count > 0
-      ? `${count} user${count > 1 ? "s" : ""} selected`
-      : "No users selected"
+
+    // Update bulk group modal count
+    if (this.hasSelectedCountTarget) {
+      this.selectedCountTarget.textContent = count > 0
+        ? `${count} user${count > 1 ? "s" : ""} selected`
+        : "No users selected"
+    }
+
+    // Show/hide sticky bulk bar
+    if (this.hasBulkBarTarget) {
+      if (count > 0) {
+        this.bulkBarTarget.classList.remove("is-hidden")
+        if (this.hasBulkCountTarget) {
+          this.bulkCountTarget.textContent = `${count} user${count > 1 ? "s" : ""} selected`
+        }
+      } else {
+        this.bulkBarTarget.classList.add("is-hidden")
+      }
+    }
   }
 
   get selectedUserIds() {
     return this.userCheckboxTargets.filter(cb => cb.checked).map(cb => cb.value)
   }
 
-  openBulkModal() {
-    const form = this.bulkFormTarget
+  // --- Inject user_ids[] into a form before submission ---
+
+  _injectUserIds(form) {
     form.querySelectorAll('input[name="user_ids[]"]').forEach(input => input.remove())
     this.selectedUserIds.forEach(id => {
       const input = document.createElement("input")
@@ -66,6 +85,12 @@ export default class extends Controller {
       input.value = id
       form.appendChild(input)
     })
+  }
+
+  // --- Bulk Group Modal (existing) ---
+
+  openBulkModal() {
+    this._injectUserIds(this.bulkFormTarget)
     this.bulkModalTarget.classList.remove("is-hidden")
   }
 
@@ -73,7 +98,30 @@ export default class extends Controller {
     this.bulkModalTarget.classList.add("is-hidden")
   }
 
-  // --- Group Modals ---
+  // --- Bulk Role Modal (new) ---
+
+  openRoleModal() {
+    if (this.selectedUserIds.length === 0) return
+    this._injectUserIds(this.roleFormTarget)
+    this.roleModalTarget.classList.remove("is-hidden")
+  }
+
+  closeRoleModal() {
+    this.roleModalTarget.classList.add("is-hidden")
+  }
+
+  // --- Bulk Deactivate (new) ---
+
+  bulkDeactivate() {
+    const count = this.selectedUserIds.length
+    if (count === 0) return
+    if (!confirm(`Are you sure you want to deactivate ${count} user${count > 1 ? "s" : ""}? They will not be able to sign in.`)) return
+
+    this._injectUserIds(this.deactivateFormTarget)
+    this.deactivateFormTarget.requestSubmit()
+  }
+
+  // --- Group Modals (existing, unchanged) ---
 
   openGroupModal(event) {
     const modalId = event.currentTarget.dataset.modalId
@@ -87,7 +135,7 @@ export default class extends Controller {
     if (modal) modal.classList.add("is-hidden")
   }
 
-  // --- Password Reset ---
+  // --- Password Reset (existing, unchanged) ---
 
   async resetPassword(event) {
     const btn = event.currentTarget
@@ -98,7 +146,6 @@ export default class extends Controller {
       return
     }
 
-    // Store original button content safely
     const originalBtnChildren = Array.from(btn.childNodes).map(n => n.cloneNode(true))
     btn.disabled = true
     btn.textContent = "Generating..."
