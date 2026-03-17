@@ -1,7 +1,12 @@
 class Admin::UsersController < Admin::BaseController
 
   def index
-    @users = User.includes(:groups, :workflows).order(created_at: :desc)
+    filter = Admin::UsersFilter.new(params: filter_params).call
+    @users = filter.users
+    @total_count = filter.total_count
+    @current_page = filter.current_page
+    @total_pages = filter.total_pages
+    @per_page = filter.per_page_size
     @all_groups = Group.order(:name)
   end
 
@@ -111,9 +116,42 @@ class Admin::UsersController < Admin::BaseController
     redirect_to admin_users_path, notice: "Groups assigned to #{users.count} user(s)."
   end
 
+  def bulk_update_role
+    new_role = params[:role]
+    unless User::ROLES.include?(new_role)
+      redirect_to admin_users_path(filter_params), alert: "Invalid role."
+      return
+    end
+    user_ids = resolve_user_ids
+    User.where(id: user_ids).find_each { |u| u.update!(role: new_role) }
+    redirect_to admin_users_path(filter_params), notice: "#{user_ids.size} user(s) updated to #{new_role}."
+  end
+
+  def bulk_deactivate
+    user_ids = resolve_user_ids
+    count = 0
+    User.where(id: user_ids).find_each do |u|
+      u.lock_access!(send_instructions: false)
+      count += 1
+    end
+    redirect_to admin_users_path(filter_params), notice: "#{count} user(s) deactivated."
+  end
+
   private
 
   def user_params
     params.require(:user).permit(:role)
+  end
+
+  def filter_params
+    params.permit(:q, :role, :group, :sort, :page, :per_page)
+  end
+
+  def resolve_user_ids
+    if params[:select_all_matching]
+      Admin::UsersFilter.new(params: filter_params).call.users.pluck(:id)
+    else
+      Array(params[:user_ids])
+    end
   end
 end

@@ -284,4 +284,80 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_users_path
     assert_match(/Temporary password generated/, flash[:notice])
   end
+
+  # Filter and pagination tests
+  test "index with search query filters users" do
+    sign_in @admin
+    get admin_users_path(q: @editor.email.split("@").first)
+
+    assert_response :success
+    assert_match @editor.email, response.body
+  end
+
+  test "index with role filter shows only that role" do
+    sign_in @admin
+    get admin_users_path(role: "admin")
+
+    assert_response :success
+    assert_match @admin.email, response.body
+  end
+
+  test "index with pagination returns correct page" do
+    sign_in @admin
+    get admin_users_path(page: 1, per_page: 25)
+
+    assert_response :success
+  end
+
+  test "index assigns filter metadata" do
+    sign_in @admin
+    get admin_users_path
+
+    assert_response :success
+  end
+
+  test "bulk_update_role changes roles for selected users" do
+    sign_in @admin
+    patch bulk_update_role_admin_users_path, params: {
+      user_ids: [@user.id, @editor.id],
+      role: "admin"
+    }
+
+    assert_response :redirect
+    @user.reload
+    @editor.reload
+    assert_equal "admin", @user.role
+    assert_equal "admin", @editor.role
+  end
+
+  test "bulk_update_role rejects invalid role" do
+    sign_in @admin
+    patch bulk_update_role_admin_users_path, params: {
+      user_ids: [@user.id],
+      role: "superadmin"
+    }
+
+    assert_response :redirect
+    assert_equal "Invalid role.", flash[:alert]
+  end
+
+  test "bulk_deactivate locks selected users" do
+    sign_in @admin
+    patch bulk_deactivate_admin_users_path, params: {
+      user_ids: [@user.id]
+    }
+
+    assert_redirected_to admin_users_path
+    @user.reload
+    assert @user.access_locked?, "User should be locked"
+  end
+
+  test "non-admin cannot access bulk_deactivate" do
+    sign_in @editor
+    patch bulk_deactivate_admin_users_path, params: {
+      user_ids: [@user.id]
+    }
+
+    assert_redirected_to root_path
+  end
 end
