@@ -65,17 +65,15 @@
                     </span>
                   </td>
                   <td>
-                    <div class="flex flex-wrap gap-1">
-                      <% if user.groups.any? %>
+                    <% if user.groups.any? %>
+                      <div class="flex flex-wrap gap-1">
                         <% user.groups.each do |group| %>
-                          <span class="badge" title="<%= group.full_path %>">
-                            <%= group.name %>
-                          </span>
+                          <span class="badge" title="<%= group.full_path %>"><%= group.name %></span>
                         <% end %>
-                      <% else %>
-                        <span class="text-xs">None</span>
-                      <% end %>
-                    </div>
+                      </div>
+                    <% else %>
+                      <span class="text-xs">None</span>
+                    <% end %>
                   </td>
                   <td class="text-sm">
                     <%= user.workflows.size %>
