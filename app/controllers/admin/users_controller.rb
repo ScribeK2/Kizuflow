@@ -143,8 +143,37 @@ class Admin::UsersController < Admin::BaseController
     params.require(:user).permit(:role)
   end
 
+  helper_method :filter_params
+
   def filter_params
     params.permit(:q, :role, :group, :sort, :page, :per_page)
+  end
+
+  helper_method :filter_params_without
+
+  def filter_params_without(*keys)
+    filter_params.to_h.except(*keys.map(&:to_s))
+  end
+
+  helper_method :pagination_range
+
+  def pagination_range(current, total)
+    return (1..total).to_a if total <= 7
+
+    pages = [1]
+    if current > 3
+      pages << :gap
+    end
+
+    range_start = [current - 1, 2].max
+    range_end = [current + 1, total - 1].min
+    pages.concat((range_start..range_end).to_a)
+
+    if current < total - 2
+      pages << :gap
+    end
+    pages << total unless pages.include?(total)
+    pages
   end
 
   def resolve_user_ids

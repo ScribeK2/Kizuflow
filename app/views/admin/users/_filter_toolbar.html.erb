@@ -1,0 +1,69 @@
+<%= form_with url: admin_users_path, method: :get, data: {
+  controller: "admin-users-filter",
+  turbo_frame: "users-table",
+  turbo_action: "advance"
+}, class: "admin-filter-toolbar" do |form| %>
+  <div class="admin-filter-toolbar__controls">
+    <div class="admin-filter-toolbar__search">
+      <svg class="icon icon--sm admin-filter-toolbar__search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <%= form.search_field :q,
+        value: params[:q],
+        placeholder: "Search by name or email...",
+        class: "form-input admin-filter-toolbar__search-input",
+        data: { admin_users_filter_target: "search", action: "input->admin-users-filter#search" },
+        autocomplete: "off" %>
+    </div>
+
+    <%# Use DB values (User::ROLES) so bulk_update_role validation works consistently %>
+    <%= form.select :role,
+      options_for_select([["All Roles", ""], ["Admin", "admin"], ["Editor", "editor"], ["Regular", "user"]], params[:role]),
+      {},
+      { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
+
+    <%= form.select :group,
+      options_for_select([["All Groups", ""]] + @all_groups.map { |g| [g.name, g.id] }, params[:group]),
+      {},
+      { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
+
+    <%= form.select :sort,
+      options_for_select([["Newest First", ""], ["Oldest First", "created_at_asc"], ["Email A-Z", "email_asc"], ["Email Z-A", "email_desc"]], params[:sort]),
+      {},
+      { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
+  </div>
+
+  <% if params[:q].present? || params[:role].present? || params[:group].present? %>
+    <div class="admin-filter-pills">
+      <% if params[:q].present? %>
+        <span class="admin-filter-pill">
+          Search: "<%= params[:q] %>"
+          <%= link_to admin_users_path(filter_params_without(:q)), class: "admin-filter-pill__remove", data: { turbo_frame: "users-table" } do %>
+            &times;
+          <% end %>
+        </span>
+      <% end %>
+      <% if params[:role].present? %>
+        <span class="admin-filter-pill">
+          Role: <%= params[:role].capitalize %>
+          <%= link_to admin_users_path(filter_params_without(:role)), class: "admin-filter-pill__remove", data: { turbo_frame: "users-table" } do %>
+            &times;
+          <% end %>
+        </span>
+      <% end %>
+      <% if params[:group].present? %>
+        <% group_name = @all_groups.find { |g| g.id.to_s == params[:group].to_s }&.name || "Unknown" %>
+        <span class="admin-filter-pill">
+          Group: <%= group_name %>
+          <%= link_to admin_users_path(filter_params_without(:group)), class: "admin-filter-pill__remove", data: { turbo_frame: "users-table" } do %>
+            &times;
+          <% end %>
+        </span>
+      <% end %>
+      <%= link_to "Clear all", admin_users_path, class: "admin-filter-clear", data: { turbo_frame: "users-table" } %>
+    </div>
+  <% end %>
+
+  <%# Preserve per_page in form submission %>
+  <%= form.hidden_field :per_page, value: params[:per_page] %>
+<% end %>
