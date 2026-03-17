@@ -84,7 +84,7 @@ export default class extends Controller {
               data-action="click->step-outline#scrollToStep"
               data-step-index="${index}"
               data-step-id="${escapedId}">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 overflow-hidden min-w-0">
           <span class="step-outline__number flex-shrink-0"
                 style="--step-hue: ${stepHue};">${index + 1}</span>
           <span class="step-outline__type-icon flex-shrink-0"
@@ -122,8 +122,8 @@ export default class extends Controller {
         const questionInput = stepItem.querySelector("textarea[name*='[question]'], input[name*='[question]']")
         hasWarning = !questionInput?.value?.trim()
       } else if (type === 'action') {
-        const instructionsInput = stepItem.querySelector("textarea[name*='[instructions]']")
-        hasWarning = !instructionsInput?.value?.trim()
+        const instructionsEditor = stepItem.querySelector(".lexxy-editor__content")
+        hasWarning = !instructionsEditor?.textContent?.trim()
       }
       
       steps.push({

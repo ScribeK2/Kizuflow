@@ -4,7 +4,7 @@ class WorkflowsFilter
               :accessible_groups, :total_count, :total_pages, :page,
               :workflows_paginated, :group_error
 
-  PER_PAGE = 10
+  PER_PAGE = 6
 
   def initialize(user:, params:)
     @user = user

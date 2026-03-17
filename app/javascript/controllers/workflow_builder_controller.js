@@ -38,6 +38,22 @@ export default class extends Controller {
     // Set up event listeners for title changes (debounced)
     this.setupTitleChangeListeners()
 
+    // Before form validation, expand all collapsed steps so hidden required
+    // fields become focusable. HTML5 validation runs between click and submit,
+    // so this must be a click handler on the submit button.
+    const form = this.element.closest("form")
+    if (form) {
+      const submitBtn = form.querySelector("input[type='submit'][name='commit']")
+      if (submitBtn) {
+        this.boundExpandBeforeValidation = () => {
+          form.querySelectorAll("[data-collapsible-step-target='content'].is-hidden").forEach(el => {
+            el.classList.remove("is-hidden")
+          })
+        }
+        submitBtn.addEventListener("click", this.boundExpandBeforeValidation)
+      }
+    }
+
     // Intercept form submit to save via sync_steps for existing workflows
     this.boundFormSubmit = async (e) => {
       const workflowId = this.workflowIdValue || getWorkflowIdFromForm(this.element)
@@ -58,7 +74,6 @@ export default class extends Controller {
         window.location.href = nextUrl || `/workflows/${workflowId}`
       }
     }
-    const form = this.element.closest("form")
     if (form) {
       // Use capturing phase so our handler fires BEFORE Turbo's submit observer
       form.addEventListener("submit", this.boundFormSubmit, true)
@@ -78,6 +93,11 @@ export default class extends Controller {
     if (this.boundFormSubmit) {
       const form = this.element.closest("form")
       if (form) form.removeEventListener("submit", this.boundFormSubmit, true)
+    }
+    if (this.boundExpandBeforeValidation) {
+      const form = this.element.closest("form")
+      const submitBtn = form?.querySelector("input[type='submit'][name='commit']")
+      if (submitBtn) submitBtn.removeEventListener("click", this.boundExpandBeforeValidation)
     }
     // Clean up container listeners
     if (this.hasContainerTarget) {

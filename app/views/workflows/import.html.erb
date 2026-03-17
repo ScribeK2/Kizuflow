@@ -13,7 +13,7 @@
 
   <div class="card mb-6">
     <div class="card__body" style="display: flex; flex-direction: column; gap: 1.5rem;">
-      <%= form_with url: import_file_workflows_path, method: :post, local: true, multipart: true, class: "space-y-6", data: { controller: "file-upload" } do |form| %>
+      <%= form_with url: import_file_workflows_path, method: :post, local: true, multipart: true, html: { style: "display: flex; flex-direction: column; gap: 1.5rem;" }, data: { controller: "file-upload" } do |form| %>
         <div class="form-group">
           <label class="form-label">Select File</label>
           <div class="file-dropzone"
@@ -47,7 +47,7 @@
 
         <div class="alert alert--info">
           <h3 class="font-medium mb-2">Supported Formats</h3>
-          <ul class="text-sm" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <ul class="text-sm list-disc" style="padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
             <li><strong>JSON:</strong> Native export format with full Graph Mode support (recommended)</li>
             <li><strong>CSV:</strong> Spreadsheet format with columns for step data and transitions</li>
             <li><strong>YAML:</strong> Structured configuration format with hierarchical steps</li>
@@ -68,8 +68,8 @@
         <div class="alert alert--warning">
           <h3 class="font-medium mb-2">Import Notes</h3>
           <ul class="text-sm list-disc" style="padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
-            <li>Incomplete steps will be imported and marked for your attention</li>
-            <li>You'll be redirected to the edit page to complete any missing information</li>
+            <li>Steps with missing required fields will still be imported</li>
+            <li>If incomplete steps or warnings are found, you'll be redirected to the edit page to review</li>
             <li>Workflows are imported as private by default</li>
             <li>Graph structure is validated after import (cycles, unreachable steps)</li>
           </ul>
@@ -131,8 +131,7 @@
       "id": "step-6",
       "type": "resolve",
       "title": "Complete Interaction",
-      "resolution_type": "success",
-      "resolution_notes": "Customer inquiry handled"
+      "resolution_type": "success"
     }
   ]
 }</code></pre>
@@ -145,10 +144,10 @@
             Spreadsheet format. Use semicolons to separate multiple transitions: <code>target:condition</code>.
             Options use format: <code>Label:value,Label2:value2</code> or JSON array.
           </p>
-          <pre class="code-block"><code>workflow_title,id,type,title,question,answer_type,variable_name,options,instructions,content,target_type,priority,reason,resolution_type,resolution_notes,transitions
-Customer Support,step-1,question,Get Name,What is your name?,text,customer_name,,,,,,,,,step-2
-,step-2,question,Issue Type,What type of issue?,multiple_choice,issue_type,"Billing:billing,Technical:technical,Other:other",,,,,,,,step-3:issue_type == 'billing';step-4:issue_type == 'technical';step-5
-,step-6,resolve,Complete,,,,,,,,,,success,Issue resolved,</code></pre>
+          <pre class="code-block"><code>workflow_title,id,type,title,question,answer_type,variable_name,options,instructions,content,target_type,priority,reason,resolution_type,transitions
+Customer Support,step-1,question,Get Name,What is your name?,text,customer_name,,,,,,,,step-2
+,step-2,question,Issue Type,What type of issue?,multiple_choice,issue_type,"Billing:billing,Technical:technical,Other:other",,,,,,,step-3:issue_type == 'billing';step-4:issue_type == 'technical';step-5
+,step-6,resolve,Complete,,,,,,,,,success,</code></pre>
         </div>
 
         <%# YAML Format Example %>
@@ -189,29 +188,6 @@ Variable: customer_name
 Transitions: Step 2</code></pre>
         </div>
 
-        <%# Legacy Format Note %>
-        <details class="card">
-          <summary class="card__header cursor-pointer">
-            Legacy Format Support (click to expand)
-          </summary>
-          <div class="card__body">
-            <p class="text-xs mb-2">
-              Files from older versions without explicit transitions are automatically converted to Graph Mode during import.
-              Legacy step types (<code>decision</code>, <code>checkpoint</code>) are auto-converted: decision/simple_decision becomes <code>question</code>, checkpoint becomes <code>message</code>. Legacy formats (<code>branches</code>, <code>true_path</code>/<code>false_path</code>) are converted to Graph Mode transitions.
-            </p>
-            <pre class="code-block"><code>{
-  "title": "Legacy Workflow",
-  "steps": [
-    {
-      "type": "question",
-      "title": "Get Name",
-      "question": "What is your name?",
-      "variable_name": "name"
-    }
-  ]
-}</code></pre>
-          </div>
-        </details>
       </div>
     </div>
   </div>
@@ -237,14 +213,14 @@ Transitions: Step 2</code></pre>
         <div class="card card--muted p-3">
           <h4 class="font-medium text-sm">message</h4>
           <p class="text-xs mt-1">Display a message or announcement.</p>
-          <p class="text-xs mt-1">Required: <code>content</code></p>
+          <p class="text-xs mt-1">Optional: <code>content</code></p>
         </div>
         <div class="card card--muted p-3">
           <h4 class="font-medium text-sm">escalate</h4>
           <p class="text-xs mt-1">Escalate to a department, supervisor, channel, or ticket.</p>
           <p class="text-xs mt-1">
             Required: <code>target_type</code><br>
-            Optional: <code>target_id</code>, <code>priority</code>, <code>reason</code>
+            Optional: <code>target_value</code>, <code>priority</code>, <code>reason</code>
           </p>
         </div>
         <div class="card card--muted p-3">
@@ -258,8 +234,7 @@ Transitions: Step 2</code></pre>
           <h4 class="font-medium text-sm">resolve</h4>
           <p class="text-xs mt-1">End the workflow with a resolution status. Terminal step with no outgoing transitions.</p>
           <p class="text-xs mt-1">
-            Required: <code>resolution_type</code><br>
-            Optional: <code>resolution_notes</code>
+            Required: <code>resolution_type</code>
           </p>
         </div>
       </div>

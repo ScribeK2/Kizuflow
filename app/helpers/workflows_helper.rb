@@ -197,45 +197,22 @@ module WorkflowsHelper
   end
 
   # ============================================================================
-  # Step Type Composition Dots
+  # Workflow Icon
   # ============================================================================
 
-  # Renders small colored dots representing the composition of step types in a workflow.
-  # Groups steps by type and shows up to 4 dots per type. Returns nil if no steps.
-  def step_type_composition_dots(workflow)
-    return nil unless workflow.steps.any?
+  # Returns a simple workflow/flowchart SVG icon colored by the dominant step type.
+  def workflow_list_icon(workflow)
+    dominant = workflow.dominant_step_type || 'question'
+    hue_var = "--hue-#{dominant == 'sub_flow' ? 'subflow' : dominant}"
 
-    dot_modifiers = {
-      'question' => 'dot--question',
-      'action' => 'dot--action',
-      'message' => 'dot--message',
-      'escalate' => 'dot--escalate',
-      'resolve' => 'dot--resolve',
-      'sub_flow' => 'dot--sub-flow'
-    }
-
-    dot_labels = {
-      'question' => 'Question',
-      'action' => 'Action',
-      'message' => 'Message',
-      'escalate' => 'Escalate',
-      'resolve' => 'Resolve',
-      'sub_flow' => 'Sub-flow'
-    }
-
-    type_counts = workflow.step_type_counts
-
-    return nil if type_counts.empty?
-
-    dots = type_counts.flat_map do |type, count|
-      modifier = dot_modifiers[type] || 'dot--default'
-      label = dot_labels[type] || type&.titleize || 'Step'
-      visible_count = [count, 2].min
-      visible_count.times.map do
-        content_tag(:span, '', class: "dot #{modifier}", title: "#{label} (#{count})")
+    content_tag(:div, class: "wf-list-item__icon", style: "--step-hue: var(#{hue_var});") do
+      content_tag(:svg, nil, class: "wf-list-item__icon-svg", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "stroke-width": "1.5") do
+        safe_join([
+          tag(:path, d: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2", "stroke-linecap": "round", "stroke-linejoin": "round"),
+          tag(:path, d: "M9 5a2 2 0 012-2h2a2 2 0 012 2", "stroke-linecap": "round", "stroke-linejoin": "round"),
+          tag(:path, d: "M9 14l2 2 4-4", "stroke-linecap": "round", "stroke-linejoin": "round")
+        ])
       end
     end
-
-    safe_join(dots)
   end
 end
