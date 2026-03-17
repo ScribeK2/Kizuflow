@@ -72,6 +72,8 @@ Rails.application.routes.draw do
     resources :users, only: %i[index update] do
       collection do
         patch :bulk_assign_groups
+        patch :bulk_update_role
+        patch :bulk_deactivate
       end
       member do
         patch :update_role
