@@ -61,12 +61,12 @@ class Scenario < ApplicationRecord
   # Cleanup scopes
   scope :terminal, -> { where(status: %w[completed stopped timeout error]) }
 
-  scope :stale_simulations, -> {
+  scope :stale_simulations, lambda {
     terminal.where(purpose: "simulation")
             .where("COALESCE(completed_at, updated_at) < ?", simulation_retention_days.days.ago)
   }
 
-  scope :stale_live, -> {
+  scope :stale_live, lambda {
     terminal.where(purpose: "live")
             .where("COALESCE(completed_at, updated_at) < ?", live_retention_days.days.ago)
   }

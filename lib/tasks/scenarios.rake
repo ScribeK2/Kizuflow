@@ -3,7 +3,7 @@ namespace :scenarios do
   desc "Delete stale scenarios based on tiered retention policy"
   task cleanup: :environment do
     count = Scenario.cleanup_stale
-    if count > 0
+    if count.positive?
       Rails.logger.info("Cleaned up #{count} stale scenario(s)")
       puts "Cleaned up #{count} stale scenario(s)"
     else
