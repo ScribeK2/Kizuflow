@@ -23,7 +23,7 @@
 ### Workflow Builder
 - **Six step types** — Question, Action, Sub-Flow, Message, Escalate, and Resolve
 - **Drag-and-drop ordering** with inline step creation and collapsible cards
-- **Two editing modes** — Linear (sequential list) and Graph Mode (visual node editor with connections via dagre/leader-line)
+- **Three editing views** — List (sequential cards), Visual (node editor with connections via dagre/leader-line), and Split (list + flow preview side-by-side)
 - **Sub-flow support** — Call other workflows as reusable sub-routines with circular reference detection
 - **Rich text content** — Action Text editor (Lexxy/Lexical) for step instructions, messages, and notes
 - **Multi-branch decisions** — Visual condition builder with presets and variable autocomplete
@@ -71,7 +71,7 @@
 | Layer | Technology |
 |-------|-----------|
 | **Framework** | Ruby on Rails 8.1 (#nobuild — no Node.js required) |
-| **Frontend** | Hotwire (Turbo + Stimulus), 66 Stimulus controllers |
+| **Frontend** | Hotwire (Turbo + Stimulus), 71 Stimulus controllers |
 | **Styling** | Vanilla CSS (@layer cascade, OKLCH design tokens, Propshaft) |
 | **Database** | SQLite (dev/test), PostgreSQL (production) |
 | **Real-time** | Action Cable (Redis in production, in-memory in dev) |
