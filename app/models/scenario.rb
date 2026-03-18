@@ -29,6 +29,15 @@ class Scenario < ApplicationRecord
   MAX_EXECUTION_TIME = ENV.fetch("SCENARIO_MAX_SECONDS", 30).to_i # seconds
   MAX_CONDITION_DEPTH = 50 # Max nested condition evaluations per step
 
+  # Retention periods for cleanup (days)
+  def self.simulation_retention_days
+    ENV.fetch("SCENARIO_RETENTION_SIMULATION_DAYS", 7).to_i
+  end
+
+  def self.live_retention_days
+    ENV.fetch("SCENARIO_RETENTION_LIVE_DAYS", 90).to_i
+  end
+
   # Custom error classes
   class ScenarioTimeout < StandardError; end
   class ScenarioIterationLimit < StandardError; end
@@ -48,6 +57,36 @@ class Scenario < ApplicationRecord
   # Valid outcomes
   OUTCOMES = %w[completed resolved escalated abandoned error].freeze
   validates :outcome, inclusion: { in: OUTCOMES }, allow_nil: true
+
+  # Cleanup scopes
+  scope :terminal, -> { where(status: %w[completed stopped timeout error]) }
+
+  scope :stale_simulations, -> {
+    terminal.where(purpose: "simulation")
+            .where("COALESCE(completed_at, updated_at) < ?", simulation_retention_days.days.ago)
+  }
+
+  scope :stale_live, -> {
+    terminal.where(purpose: "live")
+            .where("COALESCE(completed_at, updated_at) < ?", live_retention_days.days.ago)
+  }
+
+  # Deletes stale scenarios and their children. Returns the number of stale
+  # parent scenarios removed (excludes cascaded children from the count).
+  # Uses delete_all for performance — bypasses callbacks and dependent: :destroy.
+  # If Scenario gains destroy callbacks, revisit this approach.
+  def self.cleanup_stale
+    stale_ids = (stale_simulations.pluck(:id) + stale_live.pluck(:id)).uniq
+    return 0 if stale_ids.empty?
+
+    # Delete ALL children of stale parents first (including active/stuck ones —
+    # if the parent is terminal and past retention, any remaining child is orphaned).
+    # FK is ON DELETE NULLIFY, not CASCADE, so this must be explicit.
+    where(parent_scenario_id: stale_ids).delete_all
+    where(id: stale_ids).delete_all
+
+    stale_ids.size
+  end
 
   # Enum handles status validation automatically
 
