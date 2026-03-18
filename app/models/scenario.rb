@@ -190,6 +190,137 @@ class Scenario < ApplicationRecord
     save
   end
 
+  # Process completion of a sub-flow
+  def process_subflow_completion
+    child = active_child_scenario || child_scenarios.where(status: 'completed').order(updated_at: :desc).first
+
+    # If child is still running, wait
+    return false if child && !child.complete?
+
+    # Merge child results back to parent
+    if child&.results.present?
+      self.results ||= {}
+
+      # Get variable mapping from the sub-flow step
+      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
+      variable_mapping = resume_step&.variable_mapping || {}
+      if variable_mapping.is_a?(String)
+        variable_mapping = begin
+          JSON.parse(variable_mapping)
+        rescue JSON::ParserError
+          {}
+        end
+      end
+      variable_mapping = {} unless variable_mapping.is_a?(Hash)
+
+      # Merge child results back to parent.
+      # Explicitly mapped variables always overwrite (that's the intent of the mapping).
+      # Non-mapped child results are only added if the key doesn't already exist in the
+      # parent — this prevents child step titles / variable names from overwriting parent
+      # values that may be used in routing conditions.
+      reverse_mapping = variable_mapping.invert
+      child.results.each do |key, value|
+        next if key.start_with?('_') # Skip internal keys
+
+        if reverse_mapping.key?(key)
+          # Explicitly mapped: always overwrite parent value
+          self.results[reverse_mapping[key]] = value
+        else
+          # Non-mapped: only add if parent doesn't already have this key
+          self.results[key] = value unless self.results.key?(key)
+        end
+      end
+    end
+
+    # Move to next step after sub-flow
+    self.status = 'active'
+
+    if graph_mode?
+      resolver = StepResolver.new(workflow)
+      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
+      next_step = resolver.resolve_next_after_subflow(resume_step, self.results) if resume_step
+      next_uuid = next_step.is_a?(Step) ? next_step.uuid : nil
+
+      # Guard against self-loop: if the resolved next step is the same sub_flow step
+      # we just completed, treat it as end-of-workflow rather than looping infinitely.
+      if next_uuid == resume_node_uuid
+        Rails.logger.warn "[Scenario ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
+        advance_to_step_uuid(nil)
+      else
+        advance_to_step_uuid(next_uuid)
+      end
+    else
+      # Linear mode: advance past the sub-flow step
+      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
+      if resume_step
+        self.current_step_index = resume_step.position + 1
+      end
+    end
+
+    self.resume_node_uuid = nil
+    check_completion
+    save
+
+    true
+  end
+
+  # Check for universal jumps on any step type
+  def check_jumps(step, results)
+    return nil unless step.jumps.present? && step.jumps.is_a?(Array)
+
+    step.jumps.each do |jump|
+      jump_condition = jump['condition'] || jump[:condition]
+      jump_next_step_id = jump['next_step_id'] || jump[:next_step_id]
+
+      next unless jump_condition.present? && jump_next_step_id.present?
+
+      condition_result = case step.step_type
+                         when 'question'
+                           current_answer = results[step.title] || results[step.variable_name]
+                           current_answer.to_s == jump_condition.to_s
+                         when 'action'
+                           if jump_condition == 'completed'
+                             true
+                           else
+                             evaluate_condition_string(jump_condition, results)
+                           end
+                         else
+                           evaluate_condition_string(jump_condition, results)
+                         end
+
+      next unless condition_result
+
+      target_step = workflow.steps.find_by(uuid: jump_next_step_id)
+      if target_step
+        return target_step.position
+      end
+    end
+
+    nil # No jump matched
+  end
+
+  def execute
+    return false unless workflow.present? && inputs.present?
+
+    # Wrap execution with timeout protection
+    Timeout.timeout(MAX_EXECUTION_TIME, ScenarioTimeout) do
+      execute_with_limits
+    end
+  rescue ScenarioTimeout
+    self.status = 'timeout'
+    self.results ||= {}
+    self.results['_error'] = "Scenario timed out after #{MAX_EXECUTION_TIME} seconds"
+    record_completion("error")
+    save
+    Rails.logger.warn "Scenario #{id} timed out for workflow #{workflow_id}"
+    false
+  rescue ScenarioIterationLimit
+    record_completion("error")
+    save
+    Rails.logger.warn "Scenario #{id} hit iteration limit for workflow #{workflow_id}"
+    false
+  end
+
   private
 
   def set_started_at
@@ -400,84 +531,6 @@ class Scenario < ApplicationRecord
     true
   end
 
-  public
-
-  # Process completion of a sub-flow
-  def process_subflow_completion
-    child = active_child_scenario || child_scenarios.where(status: 'completed').order(updated_at: :desc).first
-
-    # If child is still running, wait
-    return false if child && !child.complete?
-
-    # Merge child results back to parent
-    if child&.results.present?
-      self.results ||= {}
-
-      # Get variable mapping from the sub-flow step
-      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
-      variable_mapping = resume_step&.variable_mapping || {}
-      if variable_mapping.is_a?(String)
-        variable_mapping = begin
-          JSON.parse(variable_mapping)
-        rescue JSON::ParserError
-          {}
-        end
-      end
-      variable_mapping = {} unless variable_mapping.is_a?(Hash)
-
-      # Merge child results back to parent.
-      # Explicitly mapped variables always overwrite (that's the intent of the mapping).
-      # Non-mapped child results are only added if the key doesn't already exist in the
-      # parent — this prevents child step titles / variable names from overwriting parent
-      # values that may be used in routing conditions.
-      reverse_mapping = variable_mapping.invert
-      child.results.each do |key, value|
-        next if key.start_with?('_') # Skip internal keys
-
-        if reverse_mapping.key?(key)
-          # Explicitly mapped: always overwrite parent value
-          self.results[reverse_mapping[key]] = value
-        else
-          # Non-mapped: only add if parent doesn't already have this key
-          self.results[key] = value unless self.results.key?(key)
-        end
-      end
-    end
-
-    # Move to next step after sub-flow
-    self.status = 'active'
-
-    if graph_mode?
-      resolver = StepResolver.new(workflow)
-      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
-      next_step = resolver.resolve_next_after_subflow(resume_step, self.results) if resume_step
-      next_uuid = next_step.is_a?(Step) ? next_step.uuid : nil
-
-      # Guard against self-loop: if the resolved next step is the same sub_flow step
-      # we just completed, treat it as end-of-workflow rather than looping infinitely.
-      if next_uuid == resume_node_uuid
-        Rails.logger.warn "[Scenario ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
-        advance_to_step_uuid(nil)
-      else
-        advance_to_step_uuid(next_uuid)
-      end
-    else
-      # Linear mode: advance past the sub-flow step
-      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
-      if resume_step
-        self.current_step_index = resume_step.position + 1
-      end
-    end
-
-    self.resume_node_uuid = nil
-    check_completion
-    save
-
-    true
-  end
-
-  private
-
   # Resolve the scenario at the current step (mid-step resolution via can_resolve flag)
   def resolve_at_current_step(step)
     # Mark the last execution path entry as resolved
@@ -542,67 +595,6 @@ class Scenario < ApplicationRecord
     end
   end
 
-  public
-
-  # Check for universal jumps on any step type
-  def check_jumps(step, results)
-    return nil unless step.jumps.present? && step.jumps.is_a?(Array)
-
-    step.jumps.each do |jump|
-      jump_condition = jump['condition'] || jump[:condition]
-      jump_next_step_id = jump['next_step_id'] || jump[:next_step_id]
-
-      next unless jump_condition.present? && jump_next_step_id.present?
-
-      condition_result = case step.step_type
-                         when 'question'
-                           current_answer = results[step.title] || results[step.variable_name]
-                           current_answer.to_s == jump_condition.to_s
-                         when 'action'
-                           if jump_condition == 'completed'
-                             true
-                           else
-                             evaluate_condition_string(jump_condition, results)
-                           end
-                         else
-                           evaluate_condition_string(jump_condition, results)
-                         end
-
-      next unless condition_result
-
-      target_step = workflow.steps.find_by(uuid: jump_next_step_id)
-      if target_step
-        return target_step.position
-      end
-    end
-
-    nil # No jump matched
-  end
-
-  def execute
-    return false unless workflow.present? && inputs.present?
-
-    # Wrap execution with timeout protection
-    Timeout.timeout(MAX_EXECUTION_TIME, ScenarioTimeout) do
-      execute_with_limits
-    end
-  rescue ScenarioTimeout
-    self.status = 'timeout'
-    self.results ||= {}
-    self.results['_error'] = "Scenario timed out after #{MAX_EXECUTION_TIME} seconds"
-    record_completion("error")
-    save
-    Rails.logger.warn "Scenario #{id} timed out for workflow #{workflow_id}"
-    false
-  rescue ScenarioIterationLimit
-    record_completion("error")
-    save
-    Rails.logger.warn "Scenario #{id} hit iteration limit for workflow #{workflow_id}"
-    false
-  end
-
-  private
-
   def evaluate_condition_string(condition_string, results)
     ConditionEvaluator.evaluate(condition_string, results)
   end
@@ -617,6 +609,7 @@ class Scenario < ApplicationRecord
   # Find an AR step by UUID
   def find_step_by_uuid(uuid)
     return nil unless uuid.present?
+
     workflow.steps.find_by(uuid: uuid)
   end
 

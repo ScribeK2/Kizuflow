@@ -179,111 +179,18 @@ class WorkflowsController < ApplicationController
       return
     end
 
-    incoming_steps = params[:steps] || []
-    start_node_uuid = params[:start_node_uuid]
+    result = StepSyncer.call(
+      @workflow,
+      params[:steps] || [],
+      start_node_uuid: params[:start_node_uuid],
+      title: params[:title].presence,
+      description: params.key?(:description) ? params[:description] : nil
+    )
 
-    # Save title/description if provided (visual editor sends these with step data)
-    if params[:title].present?
-      @workflow.title = params[:title]
-    end
-    if params.key?(:description)
-      @workflow.description = params[:description]
-    end
-
-    begin
-      Workflow.transaction do
-        existing_steps = @workflow.steps.unscoped
-          .where(workflow_id: @workflow.id)
-          .includes(:transitions, :incoming_transitions)
-          .index_by(&:uuid)
-
-        incoming_uuids = Set.new
-        step_records = {}
-
-        # Phase 1: Create or update steps
-        incoming_steps.each_with_index do |step_data, index|
-          step_data = step_data.permit!.to_h if step_data.respond_to?(:permit!)
-          uuid = step_data["id"].presence || SecureRandom.uuid
-          incoming_uuids << uuid
-
-          step_type = step_data["type"].to_s
-          sti_class = step_class_for(step_type)
-
-          if (existing = existing_steps[uuid])
-            attrs = build_step_attrs(step_data, index)
-            existing.update!(attrs)
-            assign_rich_text_fields(existing, step_data)
-            step_records[uuid] = existing
-          else
-            attrs = build_step_attrs(step_data, index).merge(
-              workflow: @workflow,
-              type: sti_class.name,
-              uuid: uuid
-            )
-            step_record = Step.create!(attrs)
-            assign_rich_text_fields(step_record, step_data)
-            step_records[uuid] = step_record
-          end
-        end
-
-        # Phase 2: Delete steps not in incoming set
-        existing_steps.each do |uuid, step|
-          unless incoming_uuids.include?(uuid)
-            step.incoming_transitions.delete_all
-            step.destroy!
-          end
-        end
-
-        # Phase 3: Reconcile transitions
-        incoming_steps.each do |step_data|
-          step_data = step_data.permit!.to_h if step_data.respond_to?(:permit!)
-          uuid = step_data["id"]
-          source_step = step_records[uuid]
-          next unless source_step
-
-          incoming_transitions = (step_data["transitions"] || []).select { |t| t.is_a?(Hash) || t.respond_to?(:permit!) }
-
-          desired = incoming_transitions.map do |t|
-            t = t.permit!.to_h if t.respond_to?(:permit!)
-            target = step_records[t["target_uuid"]]
-            next nil unless target
-            { target_step_id: target.id, condition: t["condition"].presence, label: t["label"].presence }
-          end.compact
-
-          existing_trans = source_step.transitions.unscoped.where(step_id: source_step.id).to_a
-          existing_trans.each do |et|
-            match = desired.find { |d| d[:target_step_id] == et.target_step_id && d[:condition] == et.condition }
-            et.destroy! unless match
-          end
-
-          desired.each_with_index do |d, pos|
-            t = Transition.find_or_initialize_by(
-              step_id: source_step.id,
-              target_step_id: d[:target_step_id],
-              condition: d[:condition]
-            )
-            t.label = d[:label]
-            t.position = pos
-            t.save!
-          end
-        end
-
-        # Phase 4: Set start step
-        if start_node_uuid.present? && step_records[start_node_uuid]
-          @workflow.update_column(:start_step_id, step_records[start_node_uuid].id)
-        elsif step_records.values.first
-          @workflow.update_column(:start_step_id, step_records.values.first.id)
-        else
-          @workflow.update_column(:start_step_id, nil)
-        end
-
-        @workflow.reload
-        @workflow.touch
-      end
-
-      render json: { success: true, lock_version: @workflow.reload.lock_version }
-    rescue ActiveRecord::RecordInvalid => e
-      render json: { error: e.message }, status: :unprocessable_entity
+    if result.success?
+      render json: { success: true, lock_version: result.lock_version }
+    else
+      render json: { error: result.error }, status: :unprocessable_content
     end
   end
 
@@ -375,7 +282,7 @@ class WorkflowsController < ApplicationController
 
     Rails.logger.debug { "[render_step] step_type=#{step_type}, step_index=#{step_index}, step_data=#{step_data.inspect}" }
 
-    step_class = step_class_for(step_type)
+    step_class = StepBuilder.sti_class_for(step_type)
     position = @workflow.steps.maximum(:position).to_i + 1
     attrs = { workflow: @workflow, position: position, title: step_data[:title] || "" }
 
@@ -717,8 +624,9 @@ class WorkflowsController < ApplicationController
     { rich_text_instructions: Steps::Action,
       rich_text_content: Steps::Message,
       rich_text_notes: Steps::Escalate }.each do |assoc, klass|
-      typed = steps.select { |s| s.is_a?(klass) }
+      typed = steps.grep(klass)
       next if typed.empty?
+
       ActiveRecord::Associations::Preloader.new(records: typed, associations: [assoc]).call
     end
   end
@@ -729,140 +637,18 @@ class WorkflowsController < ApplicationController
     @subflow_targets = Workflow.where(id: subflow_ids).index_by(&:id) if subflow_ids.any?
   end
 
-  # Resolve step type string to STI class
   # Create AR steps from incoming params (used by update_step2 wizard flow)
   def create_ar_steps_from_params(incoming_steps, start_uuid = nil)
-    Workflow.transaction do
-      # Remove existing steps (wizard replaces all steps)
-      @workflow.steps.destroy_all
-
-      step_records = {}
-      incoming_steps.each_with_index do |step_data, index|
-        step_data = step_data.to_h if step_data.respond_to?(:to_h) && !step_data.is_a?(Hash)
-        step_data = step_data.stringify_keys
-
-        uuid = step_data["id"].presence || SecureRandom.uuid
-        sti_class = step_class_for(step_data["type"].to_s)
-
-        attrs = build_step_attrs(step_data, index).merge(
-          workflow: @workflow,
-          type: sti_class.name,
-          uuid: uuid
-        )
-        step_record = Step.create!(attrs)
-        assign_rich_text_fields(step_record, step_data)
-        step_records[uuid] = step_record
-      end
-
-      # Set start step
-      if start_uuid.present? && step_records[start_uuid]
-        @workflow.update_column(:start_step_id, step_records[start_uuid].id)
-      elsif step_records.values.first
-        @workflow.update_column(:start_step_id, step_records.values.first.id)
-      end
+    normalized = incoming_steps.map do |s|
+      s = s.to_h if s.respond_to?(:to_h) && !s.is_a?(Hash)
+      s.stringify_keys
     end
-  end
-
-  def step_class_for(type)
-    case type.to_s
-    when "question"  then Steps::Question
-    when "action"    then Steps::Action
-    when "message"   then Steps::Message
-    when "escalate"  then Steps::Escalate
-    when "resolve"   then Steps::Resolve
-    when "sub_flow"  then Steps::SubFlow
-    else Steps::Action
-    end
-  end
-
-  def build_step_attrs(step_data, position)
-    attrs = { title: step_data["title"], position: position }
-
-    case step_data["type"].to_s
-    when "question"
-      attrs.merge!(question: step_data["question"], answer_type: step_data["answer_type"],
-                    variable_name: step_data["variable_name"], options: step_data["options"])
-    when "action"
-      attrs.merge!(can_resolve: step_data["can_resolve"] || false, action_type: step_data["action_type"],
-                    output_fields: step_data["output_fields"], jumps: step_data["jumps"])
-    when "message"
-      attrs.merge!(can_resolve: step_data["can_resolve"] || false, jumps: step_data["jumps"])
-    when "escalate"
-      attrs.merge!(target_type: step_data["target_type"], target_value: step_data["target_value"],
-                    priority: step_data["priority"], reason_required: step_data["reason_required"] || false)
-    when "resolve"
-      attrs.merge!(resolution_type: step_data["resolution_type"], resolution_code: step_data["resolution_code"],
-                    notes_required: step_data["notes_required"] || false, survey_trigger: step_data["survey_trigger"] || false)
-    when "sub_flow"
-      attrs.merge!(sub_flow_workflow_id: step_data["target_workflow_id"], variable_mapping: step_data["variable_mapping"])
-    end
-
-    attrs
-  end
-
-  def assign_rich_text_fields(step_record, step_data)
-    { "instructions" => Steps::Action, "content" => Steps::Message, "notes" => Steps::Escalate }.each do |field, klass|
-      if step_record.is_a?(klass) && step_data[field].present?
-        step_record.send(:"#{field}=", step_data[field])
-        step_record.save!
-      end
-    end
+    StepBuilder.call(@workflow, normalized, start_node_uuid: start_uuid, replace: true)
   end
 
   # Serialize AR steps to JSONB-compatible format for export
   def serialize_ar_steps_for_export(workflow)
-    workflow.steps.includes(:transitions).map do |step|
-      data = {
-        "id" => step.uuid,
-        "type" => step.type.demodulize.underscore,
-        "title" => step.title
-      }
-
-      case step
-      when Steps::Question
-        data["question"] = step.question
-        data["answer_type"] = step.answer_type
-        data["variable_name"] = step.variable_name
-        data["options"] = step.options if step.options.present?
-        data["can_resolve"] = step.can_resolve
-      when Steps::Action
-        data["instructions"] = step.instructions&.body&.to_s || ""
-        data["action_type"] = step.action_type
-        data["can_resolve"] = step.can_resolve
-        data["output_fields"] = step.output_fields if step.output_fields.present?
-      when Steps::Message
-        data["content"] = step.content&.body&.to_s || ""
-        data["can_resolve"] = step.can_resolve
-      when Steps::Escalate
-        data["target_type"] = step.target_type
-        data["target_value"] = step.target_value
-        data["priority"] = step.priority
-        data["reason_required"] = step.reason_required
-        data["notes"] = step.notes&.body&.to_s || ""
-      when Steps::Resolve
-        data["resolution_type"] = step.resolution_type
-        data["resolution_code"] = step.resolution_code
-        data["notes_required"] = step.notes_required
-        data["survey_trigger"] = step.survey_trigger
-      when Steps::SubFlow
-        data["target_workflow_id"] = step.sub_flow_workflow_id
-        data["variable_mapping"] = step.variable_mapping if step.variable_mapping.present?
-      end
-
-      if step.transitions.any?
-        data["transitions"] = step.transitions.map do |t|
-          target = t.target_step
-          transition_data = { "target_uuid" => target.uuid }
-          transition_data["condition"] = t.condition if t.condition.present?
-          transition_data["label"] = t.label if t.label.present?
-          transition_data
-        end
-      else
-        data["transitions"] = []
-      end
-
-      data
-    end
+    StepSerializer.call(workflow)
   end
 
   # PDF export for AR steps
@@ -898,7 +684,6 @@ class WorkflowsController < ApplicationController
       pdf.move_down 10
     end
   end
-
 
   # Determine graph_mode for new workflows
   # Graph mode is the default; use ?force_linear_mode=1 to create linear workflow

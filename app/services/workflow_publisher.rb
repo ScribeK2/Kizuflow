@@ -55,62 +55,14 @@ class WorkflowPublisher
     }
   end
 
-  # Build steps snapshot from AR Step records
   def build_ar_steps_snapshot
-    @workflow.steps.includes(:transitions).map do |step|
-      data = {
-        "id" => step.uuid,
-        "type" => step.type.demodulize.underscore,
-        "title" => step.title,
-        "position" => step.position
-      }
-
-      case step
-      when Steps::Question
-        data["question"] = step.question
-        data["answer_type"] = step.answer_type
-        data["variable_name"] = step.variable_name
-        data["options"] = step.options if step.options.present?
-        data["can_resolve"] = step.can_resolve
-      when Steps::Action
-        data["instructions"] = step.instructions&.body&.to_s || ""
-        data["action_type"] = step.action_type
-        data["can_resolve"] = step.can_resolve
-        data["output_fields"] = step.output_fields if step.output_fields.present?
-      when Steps::Message
-        data["content"] = step.content&.body&.to_s || ""
-        data["can_resolve"] = step.can_resolve
-      when Steps::Escalate
-        data["target_type"] = step.target_type
-        data["target_value"] = step.target_value
-        data["priority"] = step.priority
-        data["reason_required"] = step.reason_required
-        data["notes"] = step.notes&.body&.to_s || ""
-      when Steps::Resolve
-        data["resolution_type"] = step.resolution_type
-        data["resolution_code"] = step.resolution_code
-        data["notes_required"] = step.notes_required
-        data["survey_trigger"] = step.survey_trigger
-      when Steps::SubFlow
-        data["target_workflow_id"] = step.sub_flow_workflow_id
-        data["variable_mapping"] = step.variable_mapping if step.variable_mapping.present?
-      end
-
-      data["transitions"] = step.transitions.map do |t|
-        transition_data = { "target_uuid" => t.target_step.uuid }
-        transition_data["condition"] = t.condition if t.condition.present?
-        transition_data["label"] = t.label if t.label.present?
-        transition_data
-      end
-
-      data
-    end
+    StepSerializer.call(@workflow)
   end
 
   # Validate graph structure from AR steps
   def validate_ar_graph!
     graph_steps = {}
-    @workflow.steps.includes(:transitions).each do |step|
+    @workflow.steps.includes(:transitions).find_each do |step|
       step_hash = {
         "id" => step.uuid,
         "type" => step.type.demodulize.underscore,
