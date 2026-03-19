@@ -198,6 +198,18 @@ class StepHelperTest < ActionView::TestCase
     assert_equal [], result
   end
 
+  test "serialize_steps_for_editor includes position_x and position_y" do
+    Steps::Action.create!(workflow: @workflow, position: 0, title: "A1", position_x: 120, position_y: 240)
+    Steps::Action.create!(workflow: @workflow, position: 1, title: "A2")
+
+    result = serialize_steps_for_editor(@workflow.reload)
+
+    assert_equal 120, result[0]["position_x"]
+    assert_equal 240, result[0]["position_y"]
+    assert_nil result[1]["position_x"]
+    assert_nil result[1]["position_y"]
+  end
+
   # ─── workflow_display_steps ─────────────────────────────────────────────────
 
   test "workflow_display_steps includes transitions" do
@@ -208,5 +220,120 @@ class StepHelperTest < ActionView::TestCase
     steps = workflow_display_steps(@workflow.reload)
     assert_equal 2, steps.length
     assert_equal 1, steps.first.transitions.length
+  end
+
+  # ─── step_summary_text ─────────────────────────────────────────────────────
+
+  test "step_summary_text combines outcome and condition summaries" do
+    q = Steps::Question.create!(workflow: @workflow, position: 0, title: "Age Check", question: "How old are you?", answer_type: "number", variable_name: "age")
+    a = Steps::Action.create!(workflow: @workflow, position: 1, title: "Next")
+    Transition.create!(step: q, target_step: a, condition: "age >= 18", label: "Adult", position: 0)
+
+    result = step_summary_text(q.reload)
+
+    assert_includes result, "Number"
+    assert_includes result, "How old are you?"
+    assert_includes result, "{{age}}"
+    assert_includes result, "Adult -> Next"
+  end
+
+  test "step_summary_text returns empty for step with no summary" do
+    a = Steps::Action.create!(workflow: @workflow, position: 0, title: "Do something")
+    result = step_summary_text(a)
+    assert_equal "", result
+  end
+
+  test "step_summary_text shows Terminal for resolve steps" do
+    r = Steps::Resolve.create!(workflow: @workflow, position: 0, title: "Done", resolution_type: "success")
+    result = step_summary_text(r)
+    assert_includes result, "Success"
+    assert_includes result, "Terminal"
+  end
+
+  # ─── highlight_variables ───────────────────────────────────────────────────
+
+  test "highlight_variables wraps variables in spans" do
+    result = highlight_variables("Hello {{name}}, your ID is {{user_id}}")
+    assert_includes result, '<span class="variable-tag">{{name}}</span>'
+    assert_includes result, '<span class="variable-tag">{{user_id}}</span>'
+    assert result.html_safe?
+  end
+
+  test "highlight_variables escapes HTML in surrounding text" do
+    result = highlight_variables("Use <b>{{name}}</b> here")
+    assert_includes result, "&lt;b&gt;"
+    assert_includes result, '<span class="variable-tag">{{name}}</span>'
+    assert_not_includes result, "<b>"
+  end
+
+  test "highlight_variables returns empty for blank input" do
+    assert_equal "", highlight_variables(nil)
+    assert_equal "", highlight_variables("")
+  end
+
+  # ─── outcome_summary per subclass ──────────────────────────────────────────
+
+  test "Question#outcome_summary includes answer type and variable" do
+    q = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q", question: "What color?", answer_type: "multiple_choice", variable_name: "color")
+    result = q.outcome_summary
+    assert_includes result, "Multiple Choice"
+    assert_includes result, "What color?"
+    assert_includes result, "{{color}}"
+  end
+
+  test "Action#outcome_summary includes action type and instructions" do
+    a = Steps::Action.create!(workflow: @workflow, position: 0, title: "A", action_type: "Verify")
+    a.instructions = "Check the customer account"
+    a.save!
+    result = a.reload.outcome_summary
+    assert_includes result, "Verify"
+    assert_includes result, "Check the customer account"
+  end
+
+  test "Message#outcome_summary returns plain text content" do
+    m = Steps::Message.create!(workflow: @workflow, position: 0, title: "M")
+    m.content = "Welcome to the workflow"
+    m.save!
+    result = m.reload.outcome_summary
+    assert_includes result, "Welcome to the workflow"
+  end
+
+  test "Escalate#outcome_summary shows priority and target" do
+    e = Steps::Escalate.create!(workflow: @workflow, position: 0, title: "E", target_type: "supervisor", priority: "high")
+    result = e.outcome_summary
+    assert_includes result, "High"
+    assert_includes result, "supervisor"
+  end
+
+  test "Resolve#outcome_summary shows resolution type and code" do
+    r = Steps::Resolve.create!(workflow: @workflow, position: 0, title: "R", resolution_type: "success", resolution_code: "RESOLVED")
+    result = r.outcome_summary
+    assert_includes result, "Success"
+    assert_includes result, "(RESOLVED)"
+  end
+
+  test "SubFlow#outcome_summary shows target workflow title" do
+    sf = Steps::SubFlow.create!(workflow: @workflow, position: 0, title: "SF", sub_flow_workflow_id: @workflow.id)
+    result = sf.outcome_summary
+    assert_includes result, "Run:"
+    assert_includes result, @workflow.title
+  end
+
+  test "condition_summary shows branch info" do
+    q = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q", question: "?")
+    a1 = Steps::Action.create!(workflow: @workflow, position: 1, title: "Yes Path")
+    a2 = Steps::Action.create!(workflow: @workflow, position: 2, title: "No Path")
+    Transition.create!(step: q, target_step: a1, condition: "yes", label: "Yes", position: 0)
+    Transition.create!(step: q, target_step: a2, condition: "no", label: "No", position: 1)
+
+    result = q.reload.condition_summary
+    assert_includes result, "2 branches"
+    assert_includes result, "Yes -> Yes Path"
+    assert_includes result, "No -> No Path"
+  end
+
+  test "condition_summary returns nil for steps with no transitions" do
+    a = Steps::Action.create!(workflow: @workflow, position: 0, title: "A")
+    assert_nil a.condition_summary
   end
 end

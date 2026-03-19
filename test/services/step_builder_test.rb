@@ -125,6 +125,20 @@ class StepBuilderTest < ActiveSupport::TestCase
     assert_instance_of Steps::SubFlow, @workflow.steps.find_by(uuid: "uuid-5")
   end
 
+  test "build_attrs extracts position_x and position_y" do
+    step_data = { "type" => "action", "title" => "A", "position_x" => 120, "position_y" => 240 }
+    attrs = StepBuilder.build_attrs(step_data, 0)
+    assert_equal 120, attrs[:position_x]
+    assert_equal 240, attrs[:position_y]
+  end
+
+  test "build_attrs omits position_x and position_y when not in data" do
+    step_data = { "type" => "action", "title" => "A" }
+    attrs = StepBuilder.build_attrs(step_data, 0)
+    assert_not attrs.key?(:position_x)
+    assert_not attrs.key?(:position_y)
+  end
+
   test "unknown step type defaults to Steps::Action" do
     steps_data = [
       { "id" => "uuid-1", "type" => "unknown_type", "title" => "Mystery" }

@@ -91,6 +91,36 @@ class StepSyncerTest < ActiveSupport::TestCase
     assert result.lock_version.is_a?(Integer)
   end
 
+  test "round-trips position_x and position_y" do
+    incoming = [
+      { "id" => "pos-1", "type" => "action", "title" => "A1", "position_x" => 100, "position_y" => 200 },
+      { "id" => "pos-2", "type" => "action", "title" => "A2" }
+    ]
+
+    StepSyncer.call(@workflow, incoming)
+
+    s1 = @workflow.steps.find_by(uuid: "pos-1")
+    s2 = @workflow.steps.find_by(uuid: "pos-2")
+    assert_equal 100, s1.position_x
+    assert_equal 200, s1.position_y
+    assert_nil s2.position_x
+    assert_nil s2.position_y
+  end
+
+  test "updates position_x and position_y on existing steps" do
+    Steps::Action.create!(workflow: @workflow, uuid: "existing-pos", position: 0, title: "A1")
+
+    incoming = [
+      { "id" => "existing-pos", "type" => "action", "title" => "A1", "position_x" => 300, "position_y" => 400 }
+    ]
+
+    StepSyncer.call(@workflow, incoming)
+
+    step = @workflow.steps.find_by(uuid: "existing-pos")
+    assert_equal 300, step.position_x
+    assert_equal 400, step.position_y
+  end
+
   test "returns error on invalid record" do
     incoming = [
       { "id" => "u1", "type" => "question", "title" => "Q" }
