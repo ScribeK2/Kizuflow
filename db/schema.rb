@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_13_182246) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_19_145842) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -130,6 +130,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_13_182246) do
     t.json "options"
     t.json "output_fields"
     t.integer "position", null: false
+    t.integer "position_x"
+    t.integer "position_y"
     t.string "priority"
     t.string "question"
     t.boolean "reason_required", default: false
