@@ -58,7 +58,7 @@ export default class extends Controller {
 
   closeOnOutsideClick(event) {
     if (this.hasTypePickerTarget && !this.typePickerTarget.hidden) {
-      if (!event.target.closest(".builder__list-add")) {
+      if (!event.target.closest(".builder__list-add-wrapper")) {
         this.typePickerTarget.hidden = true
       }
     }

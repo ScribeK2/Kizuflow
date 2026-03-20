@@ -9,22 +9,26 @@
      data-controller="step-list"
      data-step-list-reorder-url-value="<%= reorder_workflow_step_path(workflow, ':id') %>">
 
-  <div id="steps-list"
-       data-step-list-target="list"
-       role="list">
-    <% steps.each do |step| %>
-      <%= render "workflows/step_row", step: step, workflow: workflow %>
+  <div class="builder__list-scroll">
+    <div id="steps-list"
+         data-step-list-target="list"
+         role="list">
+      <% steps.each do |step| %>
+        <%= render "workflows/step_row", step: step, workflow: workflow %>
+      <% end %>
+    </div>
+
+    <% if steps.empty? %>
+      <%= render "workflows/empty_state", workflow: workflow %>
     <% end %>
   </div>
 
-  <% if steps.empty? %>
-    <%= render "workflows/empty_state", workflow: workflow %>
-  <% end %>
-
-  <%# Add Step Button (edit mode only) %>
-  <div class="builder__list-add builder__edit-only"
-       data-action="click->step-list#toggleTypePicker">
-    + Add Step
+  <%# Add Step Button (edit mode only) — outside scroll area so popover isn't clipped %>
+  <div class="builder__list-add-wrapper builder__edit-only">
+    <div class="builder__list-add"
+         data-action="click->step-list#toggleTypePicker">
+      + Add Step
+    </div>
     <%= render "workflows/type_picker", workflow: workflow %>
   </div>
 </div>
