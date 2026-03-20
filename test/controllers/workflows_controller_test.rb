@@ -508,6 +508,81 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to step1_workflow_path(workflow)
   end
 
+  # ===========================================================================
+  # Backend Action Tests (sync_steps, publish, variables)
+  # ===========================================================================
+
+  test "sync_steps with valid data returns lock_version" do
+    sign_in @editor
+    draft = Workflow.create!(title: "Sync Draft", user: @editor, status: "draft")
+
+    patch sync_steps_workflow_path(draft), params: {
+      steps: [
+        { id: "u1", type: "question", title: "Q1", question: "What?", position: 0, transitions: [] },
+        { id: "u2", type: "resolve", title: "Done", resolution_type: "success", position: 1, transitions: [] }
+      ],
+      start_node_uuid: "u1",
+      lock_version: draft.lock_version
+    }, as: :json
+
+    assert_response :success
+    json = response.parsed_body
+    assert json["success"]
+    assert json["lock_version"].is_a?(Integer)
+  end
+
+  test "sync_steps with stale lock_version returns 409" do
+    sign_in @editor
+    draft = Workflow.create!(title: "Stale Sync", user: @editor, status: "draft")
+
+    patch sync_steps_workflow_path(draft), params: {
+      steps: [{ id: "u1", type: "action", title: "A1", transitions: [] }],
+      start_node_uuid: "u1",
+      lock_version: draft.lock_version + 99
+    }, as: :json
+
+    assert_response :conflict
+    json = response.parsed_body
+    assert json["error"].present?
+  end
+
+  test "publish with valid graph succeeds" do
+    sign_in @editor
+    # @workflow already has Q1 -> Done (Resolve) from setup
+    assert_difference("WorkflowVersion.count", 1) do
+      post publish_workflow_path(@workflow), params: { changelog: "Test publish" }
+    end
+
+    assert_redirected_to workflow_path(@workflow)
+    @workflow.reload
+    assert_equal "published", @workflow.status
+    assert_not_nil @workflow.published_version
+  end
+
+  test "publish with invalid graph fails" do
+    sign_in @editor
+    bad_wf = Workflow.create!(title: "Bad Graph", user: @editor, status: "draft")
+    # Only an Action step, no Resolve terminal
+    a = Steps::Action.create!(workflow: bad_wf, position: 0, title: "Orphan Action")
+    bad_wf.update_column(:start_step_id, a.id)
+
+    assert_no_difference("WorkflowVersion.count") do
+      post publish_workflow_path(bad_wf)
+    end
+
+    assert_redirected_to workflow_path(bad_wf)
+    assert_match(/Resolve/, flash[:alert])
+  end
+
+  test "variables returns Question step variables" do
+    sign_in @editor
+    get variables_workflow_path(@workflow), as: :json
+
+    assert_response :success
+    json = response.parsed_body
+    assert json["variables"].is_a?(Array)
+  end
+
   test "user should not be able to start wizard" do
     sign_in @user
     assert_no_difference("Workflow.count") do
