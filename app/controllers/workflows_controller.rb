@@ -143,6 +143,7 @@ class WorkflowsController < ApplicationController
                 locals: { status: :saved }
               )
             end
+            format.json { render json: { status: "saved", title: @workflow.title } }
             format.html { redirect_to @workflow, notice: "Workflow was successfully updated." }
           end
         else
@@ -163,6 +164,7 @@ class WorkflowsController < ApplicationController
             locals: { status: :error, errors: @workflow.errors }
           ), status: :unprocessable_content
         end
+        format.json { render json: { status: "error", errors: @workflow.errors.full_messages }, status: :conflict }
         format.html { render :edit, status: :conflict }
       end
       return
@@ -180,6 +182,7 @@ class WorkflowsController < ApplicationController
             locals: { status: :error, errors: @workflow.errors }
           ), status: :unprocessable_content
         end
+        format.json { render json: { status: "error", errors: @workflow.errors.full_messages }, status: :unprocessable_content }
         format.html { render :edit, status: :unprocessable_content }
       end
     end
