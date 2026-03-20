@@ -22,16 +22,18 @@
 
 ### Workflow Builder
 - **Six step types** — Question, Action, Sub-Flow, Message, Escalate, and Resolve
-- **Drag-and-drop ordering** with inline step creation and collapsible cards
-- **Three editing views** — List (sequential cards), Visual (node editor with connections via dagre/leader-line), and Split (list + flow preview side-by-side)
+- **Unified builder** — Single-page interface with step list + slide-in detail panel for editing steps, viewing the flow diagram, and managing settings
+- **Drag-and-drop ordering** with SortableJS reordering
 - **Sub-flow support** — Call other workflows as reusable sub-routines with circular reference detection
 - **Rich text content** — Action Text editor (Lexxy/Lexical) for step instructions, messages, and notes
-- **Multi-branch decisions** — Visual condition builder with presets and variable autocomplete
-- **Autosave and optimistic locking** — Concurrent editing protection via `lock_version`
+- **Multi-branch decisions** — Condition builder with presets and variable autocomplete
+- **Autosave** — All changes saved automatically with debounced persistence; flush on step switch
+- **Read-only / edit mode** — View mode for browsing, edit mode for building; role-based access
+- **Optimistic locking** — Concurrent editing protection via `lock_version`
 
 ### Scenario Mode
 - **Step-by-step execution** — Walk through any workflow interactively, recording inputs and results
-- **Graph traversal** — Follows branches and connections in both linear and graph mode workflows
+- **Graph traversal** — Follows branches and connections through the workflow graph
 - **Variable interpolation** — `{{variable}}` syntax resolved at runtime
 - **Sub-flow execution** — Spawns child scenarios for sub-flow steps, resuming the parent on completion
 - **Safety limits** — Iteration cap (1,000), execution timeout (30s), and nested condition depth limit to prevent infinite loops
@@ -61,24 +63,19 @@
 - Group and folder hierarchy management
 - Workflow overview and monitoring
 
-### Guided Workflow Wizard
-- **Three-step creation wizard** — Title/description, add steps with templates, review and publish
-- **Step templates** — Pre-built step configurations for common patterns
-- **Live flow preview** — Visual preview updates as you build
-
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | **Framework** | Ruby on Rails 8.1 (#nobuild — no Node.js required) |
-| **Frontend** | Hotwire (Turbo + Stimulus), 71 Stimulus controllers |
+| **Frontend** | Hotwire (Turbo + Stimulus), ~60 Stimulus controllers |
 | **Styling** | Vanilla CSS (@layer cascade, OKLCH design tokens, Propshaft) |
 | **Database** | SQLite (dev/test), PostgreSQL (production) |
 | **Real-time** | Action Cable (Redis in production, in-memory in dev) |
 | **Auth** | Devise with lockable accounts |
 | **PDF** | Prawn |
 | **Rich Text** | Action Text + Lexxy (Lexical-based editor) |
-| **JS (vendored)** | SortableJS, Fuse.js, dagre, leader-line, spark-md5 |
+| **JS (vendored)** | SortableJS, Fuse.js, spark-md5 |
 | **Monitoring** | Sentry (sentry-rails) |
 | **Security** | Rack::Attack, Brakeman, Bullet (N+1 detection) |
 | **Linting** | RuboCop (with rails, minitest, performance plugins) |
@@ -111,12 +108,13 @@ Visit `http://localhost:3000` to access the application.
 ## Usage
 
 1. **Sign up** with email and password
-2. **Create a workflow** from scratch, use the guided wizard, or start from a template
-3. **Add steps** — questions, actions, sub-flows, messages, escalations, or resolve steps
-4. **Switch to Graph Mode** for visual node-based editing with connections
-5. **Test** with Scenario Mode — walk through the flow step by step
-6. **Organize** into groups and folders
-7. **Export** as JSON or PDF, or save as a reusable template
+2. **Create a workflow** — opens the builder with an empty canvas, or start from a template
+3. **Add steps** — use the type picker to add questions, actions, sub-flows, messages, escalations, or resolve steps
+4. **Configure** — click any step to open its editor panel; set up connections between steps with conditions
+5. **Preview** — use View Flow to see the graph diagram in the side panel
+6. **Test** with Scenario Mode — walk through the flow step by step
+7. **Organize** into groups and folders
+8. **Publish** when ready, then export as JSON or PDF
 
 ## Running Tests
 

@@ -64,6 +64,28 @@ Kamal: `kamal deploy` (see `config/deploy.yml`). Required env: `RAILS_MASTER_KEY
 - `User` — Devise model with roles (Administrator / Editor / User)
 - `Template` / `StepTemplate` — reusable patterns
 
+## Builder UI
+
+The unified builder lives at `workflows/:id` — one URL for both viewing and editing. No separate wizard or editor views.
+
+**Layout:** Header (inline-editable title, status, publish) → Toolbar (step count, View Flow, Settings) → Main area (step list + slide-in panel).
+
+**Key views:**
+- `_builder.html.erb` — main layout, renders step list + empty Turbo Frame panel
+- `_step_list.html.erb` / `_step_row.html.erb` — compact step rows with SortableJS drag-and-drop
+- `steps/_panel_edit.html.erb` — step editor loaded via Turbo Frame into the panel
+- `_flow_diagram_panel.html.erb` — read-only BFS flow diagram in the panel
+- `_settings_panel.html.erb` — workflow metadata (description, groups, public toggle)
+
+**Key Stimulus controllers:**
+- `builder_controller.js` — panel open/close, step selection, title autosave, Escape to close
+- `step_list_controller.js` — SortableJS reorder + type picker popover
+- `inline_autosave_controller.js` — debounced autosave (2s), listens for `lexxy:change` events, flushes pending saves on disconnect via `FormData` + `fetch`
+
+**Autosave pattern:** Every field change triggers `inline-autosave#schedule` (via `data-action` on inputs or `lexxy:change` listener on the form). On disconnect (e.g., switching steps), pending saves are flushed by snapshotting `FormData` and sending via `fetch()` POST with `_method=patch`.
+
+**Mode:** `data-builder-mode-value="view|edit"` on the builder container. CSS hides drag handles, add/delete buttons, and edit-only elements in view mode.
+
 ## Real-Time & Collaboration
 
 - WorkflowChannel (Action Cable) — presence (who's editing), live updates
@@ -77,11 +99,11 @@ All workflows are graphs. There is no separate "linear mode" — a sequential fl
 **Key services:**
 - `StepResolver` — graph traversal engine. Evaluates transitions in position order, handles conditional branching (via `ConditionEvaluator`), simple value matching for Question answers, and SubFlow markers.
 - `StepBuilder` — creates AR steps from hash data. Auto-creates sequential transitions when no explicit transitions provided. Validates at least one Resolve step exists.
-- `StepSyncer` — incremental sync for the visual editor. Upserts, deletes, and reconciles transitions atomically.
+- `StepSyncer` — incremental sync for step persistence. Upserts, deletes, and reconciles transitions atomically.
 - `GraphValidator` — DAG validation (cycle detection, reachability from start_step, terminal nodes must be Resolve steps).
 - `SubflowValidator` — prevents circular sub-flow references (max depth: 10).
 - `WorkflowPublisher` — publishes workflow versions with full graph validation.
-- `FlowDiagramService` — BFS layout for visual preview.
+- `FlowDiagramService` — BFS layout for the builder's flow diagram panel.
 
 **Constraints enforced:**
 - Transitions must connect steps within the same workflow (cross-workflow via SubFlow only)
@@ -103,7 +125,7 @@ All workflows are graphs. There is no separate "linear mode" — a sequential fl
 @STYLE.md
 
 ## Tools
-Chrome MCP (for UI/system testing). Point agent to running app at `http://localhost:3000` (after `bin/dev`). Allows browser control (click, type, screenshot, inspect) — ideal for testing Scenario simulation, wizard flows, drag-and-drop.
+Playwright MCP (for UI/system testing). Point agent to running app at `http://localhost:3000` (after `bin/dev`). Allows browser control (click, type, snapshot, inspect) — ideal for testing the builder, Scenario simulation, and drag-and-drop.
 
 ## Deployment Notes
 
