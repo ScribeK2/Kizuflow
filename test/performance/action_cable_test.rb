@@ -17,8 +17,8 @@ class ActionCableBroadcastTest < ActiveSupport::TestCase
 
   test "step CRUD broadcasts are handled via Turbo Streams in StepsController" do
     controller_source = File.read(Rails.root.join("app/controllers/steps_controller.rb"))
-    assert_match(/broadcast_step_card/, controller_source,
-      "StepsController should broadcast step cards for real-time collaboration")
+    assert_match(/broadcast_step_row/, controller_source,
+      "StepsController should broadcast step rows for real-time collaboration")
     assert_match(/broadcast_replace_to/, controller_source,
       "StepsController should use Turbo::StreamsChannel.broadcast_replace_to")
   end

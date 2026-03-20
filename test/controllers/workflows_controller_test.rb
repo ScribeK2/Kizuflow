@@ -59,7 +59,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_redirected_to step1_workflow_path(Workflow.last)
+    assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "should create workflow" do
@@ -79,6 +79,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should get edit" do
     get edit_workflow_path(@workflow)
 
+    assert_response :redirect
+    follow_redirect!
     assert_response :success
   end
 
@@ -202,7 +204,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_redirected_to step1_workflow_path(Workflow.last)
+    assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "editor should be able to create workflows" do
@@ -210,7 +212,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_redirected_to step1_workflow_path(Workflow.last)
+    assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "user should not be able to create workflows" do
@@ -225,6 +227,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     get edit_workflow_path(@workflow)
 
+    assert_response :redirect
+    follow_redirect!
     assert_response :success
   end
 
@@ -232,6 +236,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get edit_workflow_path(@workflow)
 
+    assert_response :redirect
+    follow_redirect!
     assert_response :success
   end
 
@@ -497,7 +503,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to step1_workflow_path(workflow)
   end
 
-  test "GET new creates a draft workflow and redirects to step1" do
+  test "GET new creates a draft workflow and redirects to builder" do
     sign_in @editor
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
@@ -505,7 +511,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     workflow = Workflow.last
     assert_equal "draft", workflow.status
     assert_equal "Untitled Workflow", workflow.title
-    assert_redirected_to step1_workflow_path(workflow)
+    assert_redirected_to workflow_path(workflow, edit: true)
   end
 
   # ===========================================================================

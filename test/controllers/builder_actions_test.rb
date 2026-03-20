@@ -1,7 +1,7 @@
 require "test_helper"
 
 class BuilderActionsRoutingTest < ActionDispatch::IntegrationTest
-  fixtures :users, :workflows, :steps
+  fixtures :users, :workflows
 
   setup do
     @user = users(:admin_user)
@@ -10,7 +10,7 @@ class BuilderActionsRoutingTest < ActionDispatch::IntegrationTest
   end
 
   test "panel_edit route responds" do
-    step = @workflow.steps.first || @workflow.steps.create!(type: "Steps::Action", title: "Test", position: 0)
+    step = @workflow.steps.create!(type: "Steps::Action", title: "Test Step", position: 0)
     get panel_edit_workflow_step_path(@workflow, step)
     assert_response :success
   end
