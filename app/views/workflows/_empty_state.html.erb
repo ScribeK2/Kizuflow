@@ -1,0 +1,28 @@
+<%#
+  Empty State — guided quick-start for workflows with zero steps.
+
+  Local variables:
+  - workflow: Workflow object
+%>
+<div class="builder__empty" id="builder-empty-state">
+  <svg class="icon icon--xl" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--color-ink-muted);">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+  </svg>
+  <h3 class="builder__empty-title">Every workflow starts with a step</h3>
+  <p class="builder__empty-text">Choose a step type to begin building your workflow. You can always add more steps and reorder them later.</p>
+  <div class="builder__quick-starts">
+    <% [
+      { type: "question", label: "Start with a Question" },
+      { type: "action", label: "Start with an Action" },
+      { type: "message", label: "Start with a Message" }
+    ].each do |qs| %>
+      <%= button_to workflow_steps_path(workflow),
+          method: :post,
+          params: { step_type: qs[:type] },
+          data: { turbo_stream: true },
+          class: "btn btn--secondary btn--sm" do %>
+        <%= qs[:label] %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

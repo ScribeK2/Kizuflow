@@ -1,0 +1,28 @@
+<%#
+  Type Picker — popover with 6 step types for adding new steps.
+
+  Local variables:
+  - workflow: Workflow object
+%>
+<div class="builder__type-picker"
+     hidden
+     data-step-list-target="typePicker">
+  <% [
+    { type: "question", name: "Question", desc: "Ask for information" },
+    { type: "action", name: "Action", desc: "Perform a task" },
+    { type: "message", name: "Message", desc: "Display information" },
+    { type: "escalate", name: "Escalate", desc: "Transfer to another team" },
+    { type: "resolve", name: "Resolve", desc: "Mark as completed" },
+    { type: "sub_flow", name: "Sub-Flow", desc: "Run another workflow" }
+  ].each do |st| %>
+    <%= button_to workflow_steps_path(workflow),
+        method: :post,
+        params: { step_type: st[:type] },
+        data: { turbo_stream: true },
+        class: "builder__type-option" do %>
+      <span class="builder__type-dot builder__type-dot--<%= st[:type] %>"></span>
+      <span class="builder__type-name"><%= st[:name] %></span>
+      <span class="builder__type-desc"><%= st[:desc] %></span>
+    <% end %>
+  <% end %>
+</div>
