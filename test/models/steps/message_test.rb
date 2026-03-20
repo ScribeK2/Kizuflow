@@ -1,20 +1,33 @@
 require "test_helper"
 
 class Steps::MessageTest < ActiveSupport::TestCase
-  def setup
-    @user = User.create!(email: "m-test@example.com", password: "password123!", password_confirmation: "password123!")
-    @workflow = Workflow.create!(title: "Test", user: @user)
+  setup do
+    @user = User.create!(email: "test-message@example.com", password: "password123456")
+    @workflow = Workflow.create!(title: "Message Test", user: @user)
   end
 
-  test "message step has rich text content" do
-    step = Steps::Message.create!(workflow: @workflow, position: 0, title: "M1")
-    step.content = "<p>Hello</p>"
+  test "valid with title only" do
+    step = Steps::Message.new(workflow: @workflow, title: "Welcome", position: 0)
+    assert step.valid?
+  end
+
+  test "has rich text content" do
+    step = Steps::Message.create!(workflow: @workflow, title: "M1", position: 0)
+    step.content = "<p>Hello <strong>customer</strong></p>"
     step.save!
-    assert_includes step.content.body.to_s, "Hello"
+    assert_equal "Hello customer", step.content.to_plain_text
   end
 
-  test "message step has can_resolve flag" do
-    step = Steps::Message.create!(workflow: @workflow, position: 0, title: "M1", can_resolve: true)
-    assert step.can_resolve
+  test "outcome_summary returns truncated content" do
+    step = Steps::Message.create!(workflow: @workflow, title: "M1", position: 0)
+    step.content = "This is a message to the agent"
+    step.save!
+    summary = step.outcome_summary
+    assert_includes summary, "This is a message"
+  end
+
+  test "step_type returns message" do
+    step = Steps::Message.create!(workflow: @workflow, title: "M1", position: 0)
+    assert_equal "message", step.step_type
   end
 end
