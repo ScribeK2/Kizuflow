@@ -12,12 +12,12 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
   end
 
   # ==========================================================================
-  # Scenario 1: Basic Linear Flow (Wizard End-to-End)
+  # Scenario 1: Basic Wizard Flow (End-to-End)
   # ==========================================================================
 
   test "complete wizard flow creates working workflow" do
     # Step 1: Create draft via POST /workflows/start_wizard
-    post start_wizard_workflows_path(force_linear_mode: 1)
+    post start_wizard_workflows_path
 
     assert_response :redirect
     follow_redirect!
@@ -27,14 +27,15 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
     assert_not_nil draft_workflow
     assert_equal "draft", draft_workflow.status
-    assert_equal false, draft_workflow.graph_mode, "Should be linear mode with force_linear_mode param"
+
+    q_uuid = SecureRandom.uuid
+    a_uuid = SecureRandom.uuid
 
     # Step 2: Complete Step 1 - Title and Description
     patch update_step1_workflow_path(draft_workflow), params: {
       workflow: {
         title: "Customer Support Flow",
-        description: "Workflow for handling customer inquiries",
-        graph_mode: false
+        description: "Workflow for handling customer inquiries"
       }
     }
 
@@ -50,15 +51,16 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
       workflow: {
         steps: [
           {
-            id: SecureRandom.uuid,
+            id: q_uuid,
             type: "question",
             title: "Customer Name",
             question: "What is your name?",
             variable_name: "customer_name",
-            answer_type: "text"
+            answer_type: "text",
+            transitions: [{ target_uuid: a_uuid }]
           },
           {
-            id: SecureRandom.uuid,
+            id: a_uuid,
             type: "action",
             title: "Greet Customer",
             instructions: "Hello {{customer_name}}, how can I help you today?",
@@ -88,13 +90,15 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     assert_equal "published", draft_workflow.status
 
     # Step 5: Run scenario to verify variable interpolation works
+    start_uuid = draft_workflow.start_step&.uuid || draft_workflow.steps.first.uuid
     scenario = Scenario.create!(
       workflow: draft_workflow,
       user: @user,
       status: 'active',
-      current_step_index: 0,
+      current_node_uuid: start_uuid,
       results: {},
-      inputs: {}
+      inputs: {},
+      purpose: "simulation"
     )
 
     scenario.process_step("John")
@@ -266,9 +270,12 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
 
   test "wizard creates workflow with working variable interpolation" do
     draft = Workflow.create!(title: "Interpolation Test", user: @user, status: 'draft')
-    Steps::Question.create!(workflow: draft, position: 0, uuid: "step-1", title: "Get Customer Name", question: "What is your name?", variable_name: "customer_name", answer_type: "text")
-    Steps::Question.create!(workflow: draft, position: 1, uuid: "step-2", title: "Get Issue", question: "Hello {{customer_name}}, what is your issue?", variable_name: "issue", answer_type: "text")
-    Steps::Action.create!(workflow: draft, position: 2, uuid: "step-3", title: "Summary")
+    q1 = Steps::Question.create!(workflow: draft, position: 0, uuid: "step-1", title: "Get Customer Name", question: "What is your name?", variable_name: "customer_name", answer_type: "text")
+    q2 = Steps::Question.create!(workflow: draft, position: 1, uuid: "step-2", title: "Get Issue", question: "Hello {{customer_name}}, what is your issue?", variable_name: "issue", answer_type: "text")
+    a1 = Steps::Action.create!(workflow: draft, position: 2, uuid: "step-3", title: "Summary")
+    Transition.create!(step: q1, target_step: q2, position: 0)
+    Transition.create!(step: q2, target_step: a1, position: 0)
+    draft.update_column(:start_step_id, q1.id)
 
     # Publish
     patch create_from_draft_workflow_path(draft)
@@ -280,9 +287,10 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
       workflow: draft,
       user: @user,
       status: 'active',
-      current_step_index: 0,
+      current_node_uuid: "step-1",
       results: {},
-      inputs: {}
+      inputs: {},
+      purpose: "simulation"
     )
 
     scenario.process_step("Alice")

@@ -81,27 +81,28 @@ class ScenarioLimitsTest < ActiveSupport::TestCase
 
   test "step-by-step processing tracks iterations" do
     workflow = Workflow.create!(title: "Step Workflow", user: @user)
-    Steps::Question.create!(workflow: workflow, position: 0, title: "Q1", question: "First?", variable_name: "q1")
-    Steps::Question.create!(workflow: workflow, position: 1, title: "Q2", question: "Second?", variable_name: "q2")
+    q1 = Steps::Question.create!(workflow: workflow, position: 0, uuid: "q-1", title: "Q1", question: "First?", variable_name: "q1")
+    q2 = Steps::Question.create!(workflow: workflow, position: 1, uuid: "q-2", title: "Q2", question: "Second?", variable_name: "q2")
+    Transition.create!(step: q1, target_step: q2, position: 0)
+    workflow.update_column(:start_step_id, q1.id)
 
     scenario = Scenario.create!(
       workflow: workflow,
       user: @user,
       status: 'active',
-      current_step_index: 0
+      current_node_uuid: "q-1",
+      purpose: "simulation"
     )
 
     # Process first step
     scenario.process_step("answer1")
 
-    assert_equal 1, scenario.current_step_index
+    assert_equal "q-2", scenario.current_node_uuid
 
     # Process second step
     scenario.process_step("answer2")
 
-    assert_equal 2, scenario.current_step_index
-
-    # Should be complete
+    # Should be complete (no more transitions)
     assert_predicate scenario, :complete?
   end
 end
