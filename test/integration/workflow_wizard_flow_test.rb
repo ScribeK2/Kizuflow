@@ -46,6 +46,8 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     draft_workflow.reload
     assert_equal "Customer Support Flow", draft_workflow.title
 
+    r_uuid = SecureRandom.uuid
+
     # Step 3: Complete Step 2 - Add Steps (controller now creates AR steps)
     patch update_step2_workflow_path(draft_workflow), params: {
       workflow: {
@@ -64,7 +66,14 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
             type: "action",
             title: "Greet Customer",
             instructions: "Hello {{customer_name}}, how can I help you today?",
-            action_type: "Greeting"
+            action_type: "Greeting",
+            transitions: [{ target_uuid: r_uuid }]
+          },
+          {
+            id: r_uuid,
+            type: "resolve",
+            title: "Done",
+            resolution_type: "success"
           }
         ]
       }
@@ -75,7 +84,7 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     assert_match(/step3/, request.path)
 
     draft_workflow.reload
-    assert_equal 2, draft_workflow.steps.count
+    assert_equal 3, draft_workflow.steps.count
 
     question_step = draft_workflow.steps.find_by(type: "Steps::Question")
     assert_equal "customer_name", question_step.variable_name
@@ -104,7 +113,8 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
     scenario.process_step("John")
     assert_equal "John", scenario.results["customer_name"]
 
-    scenario.process_step
+    scenario.process_step  # action step
+    scenario.process_step  # resolve step
     assert_equal "completed", scenario.status
   end
 
@@ -125,6 +135,12 @@ class WorkflowWizardFlowTest < ActionDispatch::IntegrationTest
             type: "question",
             title: "Question Updated",
             question: "Enter value updated"
+          },
+          {
+            id: "step-r",
+            type: "resolve",
+            title: "Done",
+            resolution_type: "success"
           }
         ]
       }

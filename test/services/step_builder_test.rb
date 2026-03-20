@@ -20,12 +20,13 @@ class StepBuilderTest < ActiveSupport::TestCase
         "question" => "What is your name?", "answer_type" => "text",
         "variable_name" => "name" },
       { "id" => "uuid-2", "type" => "action", "title" => "Look up account",
-        "action_type" => "Instruction", "can_resolve" => false }
+        "action_type" => "Instruction", "can_resolve" => false },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data)
 
-    assert_equal 2, @workflow.steps.reload.count
+    assert_equal 3, @workflow.steps.reload.count
     assert_instance_of Steps::Question, @workflow.steps.find_by(uuid: "uuid-1")
     assert_instance_of Steps::Action, @workflow.steps.find_by(uuid: "uuid-2")
   end
@@ -34,7 +35,8 @@ class StepBuilderTest < ActiveSupport::TestCase
     steps_data = [
       { "id" => "uuid-1", "type" => "question", "title" => "Q1", "question" => "Ask?",
         "transitions" => [{ "target_uuid" => "uuid-2", "condition" => "yes", "label" => "Yes" }] },
-      { "id" => "uuid-2", "type" => "action", "title" => "A1" }
+      { "id" => "uuid-2", "type" => "action", "title" => "A1" },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data)
@@ -47,7 +49,8 @@ class StepBuilderTest < ActiveSupport::TestCase
   test "sets start step from start_node_uuid" do
     steps_data = [
       { "id" => "uuid-1", "type" => "question", "title" => "Q1", "question" => "Ask?" },
-      { "id" => "uuid-2", "type" => "action", "title" => "A1" }
+      { "id" => "uuid-2", "type" => "action", "title" => "A1" },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data, start_node_uuid: "uuid-2")
@@ -57,7 +60,8 @@ class StepBuilderTest < ActiveSupport::TestCase
 
   test "sets first step as start when start_node_uuid is nil" do
     steps_data = [
-      { "id" => "uuid-1", "type" => "question", "title" => "Q1", "question" => "Ask?" }
+      { "id" => "uuid-1", "type" => "question", "title" => "Q1", "question" => "Ask?" },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data)
@@ -69,13 +73,14 @@ class StepBuilderTest < ActiveSupport::TestCase
     Steps::Action.create!(workflow: @workflow, uuid: "old-uuid", position: 0, title: "Old")
 
     steps_data = [
-      { "id" => "uuid-new", "type" => "question", "title" => "New", "question" => "Ask?" }
+      { "id" => "uuid-new", "type" => "question", "title" => "New", "question" => "Ask?" },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data, replace: true)
 
-    assert_equal 1, @workflow.steps.reload.count
-    assert_equal "uuid-new", @workflow.steps.first.uuid
+    assert_equal 2, @workflow.steps.reload.count
+    assert @workflow.steps.find_by(uuid: "uuid-new")
   end
 
   test "assigns rich text fields" do
@@ -85,7 +90,8 @@ class StepBuilderTest < ActiveSupport::TestCase
       { "id" => "uuid-2", "type" => "message", "title" => "Show msg",
         "content" => "<p>Hello</p>" },
       { "id" => "uuid-3", "type" => "escalate", "title" => "Esc",
-        "target_type" => "supervisor", "notes" => "<p>Urgent</p>" }
+        "target_type" => "supervisor", "notes" => "<p>Urgent</p>" },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data)
@@ -141,11 +147,41 @@ class StepBuilderTest < ActiveSupport::TestCase
 
   test "unknown step type defaults to Steps::Action" do
     steps_data = [
-      { "id" => "uuid-1", "type" => "unknown_type", "title" => "Mystery" }
+      { "id" => "uuid-1", "type" => "unknown_type", "title" => "Mystery" },
+      { "id" => "uuid-r", "type" => "resolve", "title" => "Done" }
     ]
 
     StepBuilder.call(@workflow, steps_data)
 
     assert_instance_of Steps::Action, @workflow.steps.find_by(uuid: "uuid-1")
+  end
+
+  test "auto-creates sequential transitions when no explicit transitions provided" do
+    steps_data = [
+      { "type" => "question", "title" => "Q1", "id" => "uuid-1" },
+      { "type" => "action", "title" => "A1", "id" => "uuid-2" },
+      { "type" => "resolve", "title" => "Done", "id" => "uuid-3" }
+    ]
+    StepBuilder.call(@workflow, steps_data)
+    steps = @workflow.steps.reload
+    assert_equal 3, steps.count
+    q1 = steps.find { |s| s.uuid == "uuid-1" }
+    a1 = steps.find { |s| s.uuid == "uuid-2" }
+    done = steps.find { |s| s.uuid == "uuid-3" }
+    assert_equal 1, q1.transitions.count
+    assert_equal a1, q1.transitions.first.target_step
+    assert_equal 1, a1.transitions.count
+    assert_equal done, a1.transitions.first.target_step
+    assert_equal 0, done.transitions.count
+  end
+
+  test "raises error when no Resolve step in steps_data" do
+    steps_data = [
+      { "type" => "question", "title" => "Q1", "id" => "uuid-1" },
+      { "type" => "action", "title" => "A1", "id" => "uuid-2" }
+    ]
+    assert_raises(ActiveRecord::RecordInvalid) do
+      StepBuilder.call(@workflow, steps_data)
+    end
   end
 end
