@@ -37,7 +37,8 @@
          name="step[transitions_json]"
          value="<%= transitions_data.to_json %>"
          data-step-transitions-target="hiddenInput"
-         data-step-id="<%= step.uuid %>">
+         data-step-id="<%= step.uuid %>"
+         data-action="input->inline-autosave#schedule">
 
   <div data-step-transitions-target="transitionsList" style="display: flex; flex-direction: column; gap: 0.5rem;">
     <% if transitions.empty? %>

@@ -14,12 +14,7 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log(`[StepTransitions] Connected for step ${this.stepIdValue}`)
     this.refresh()
-
-    // Debug: log hidden input state
-    const hiddenInput = this.element.closest('.step-item')?.querySelector('input[name*="transitions_json"]')
-    console.log(`[StepTransitions] Hidden input found: ${!!hiddenInput}`, hiddenInput?.value?.substring(0, 100))
   }
 
   /**
@@ -34,10 +29,9 @@ export default class extends Controller {
    * Load transitions from the hidden input
    */
   loadTransitions() {
-    const hiddenInput = this.element.closest('.step-item')?.querySelector('input[name*="transitions_json"]')
-    if (hiddenInput && hiddenInput.value) {
+    if (this.hasHiddenInputTarget && this.hiddenInputTarget.value) {
       try {
-        return JSON.parse(hiddenInput.value)
+        return JSON.parse(this.hiddenInputTarget.value)
       } catch (e) {
         console.error('[StepTransitions] Failed to parse transitions:', e)
         return []
@@ -50,13 +44,10 @@ export default class extends Controller {
    * Save transitions to the hidden input
    */
   saveTransitions() {
-    const hiddenInput = this.element.closest('.step-item')?.querySelector('input[name*="transitions_json"]')
-    if (hiddenInput) {
-      const jsonValue = JSON.stringify(this.transitions)
-      hiddenInput.value = jsonValue
-      console.log(`[StepTransitions] Saved to hidden input for step ${this.stepIdValue}:`, jsonValue)
-    } else {
-      console.error(`[StepTransitions] Hidden input NOT FOUND for step ${this.stepIdValue}`)
+    if (this.hasHiddenInputTarget) {
+      this.hiddenInputTarget.value = JSON.stringify(this.transitions)
+      // Trigger autosave by dispatching input event on the hidden field
+      this.hiddenInputTarget.dispatchEvent(new Event("input", { bubbles: true }))
     }
 
     // Dispatch event for flow preview update
