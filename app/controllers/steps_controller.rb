@@ -173,7 +173,7 @@ class StepsController < ApplicationController
   end
 
   def step_params
-    params.fetch(:step, {}).permit( # rubocop:disable Rails/StrongParametersExpect
+    params.fetch(:step, {}).permit(
       :type, :title, :question, :answer_type, :variable_name, :can_resolve,
       :action_type, :target_type, :target_value, :priority, :reason_required,
       :resolution_type, :resolution_code, :notes_required, :survey_trigger,

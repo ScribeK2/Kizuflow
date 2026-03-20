@@ -83,5 +83,4 @@ Rails.application.routes.draw do
     end
     get "analytics", to: "analytics#index", as: :analytics
   end
-
 end
