@@ -33,7 +33,8 @@
       </div>
     <% else %>
       <%= form_with model: workflow, url: workflow_path(workflow), method: :patch,
-          data: { controller: "inline-autosave", "inline-autosave-delay-value": 2000 } do |f| %>
+          data: { controller: "inline-autosave", "inline-autosave-delay-value": 2000,
+                  turbo_frame: "_top", turbo_stream: true } do |f| %>
 
         <div class="form-group">
           <%= f.label :description, class: "form-label" %>
