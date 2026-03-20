@@ -8,7 +8,7 @@ class StepsController < ApplicationController
   # GET /workflows/:workflow_id/steps/:id
   def show
     respond_to do |format|
-      format.html { render partial: "workflows/step_card", locals: { step: @step, workflow: @workflow } }
+      format.html { render partial: "workflows/step_row", locals: { step: @step, workflow: @workflow } }
       format.json { render json: step_json(@step) }
     end
   end
@@ -65,9 +65,12 @@ class StepsController < ApplicationController
         format.turbo_stream do
           streams = [
             turbo_stream.append("steps-list",
-                                partial: "workflows/step_card",
-                                locals: { step: @step, workflow: @workflow, expanded: true }),
-            turbo_stream.remove("steps-empty-state")
+                                partial: "workflows/step_row",
+                                locals: { step: @step, workflow: @workflow }),
+            turbo_stream.remove("builder-empty-state"),
+            turbo_stream.update("builder-panel",
+                                partial: "steps/panel_edit",
+                                locals: { step: @step, workflow: @workflow, readonly: false })
           ]
           render turbo_stream: streams
         end
@@ -75,7 +78,7 @@ class StepsController < ApplicationController
         format.json { render json: step_json(@step), status: :created }
       end
 
-      broadcast_step_card(@step)
+      broadcast_step_row(@step)
     else
       respond_to do |format|
         format.turbo_stream do
@@ -97,7 +100,7 @@ class StepsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             dom_id(@step),
-            partial: "workflows/step_card",
+            partial: "workflows/step_row",
             locals: { step: @step.reload, workflow: @workflow }
           )
         end
@@ -105,7 +108,7 @@ class StepsController < ApplicationController
         format.json { render json: step_json(@step) }
       end
 
-      broadcast_step_card(@step)
+      broadcast_step_row(@step)
     else
       respond_to do |format|
         format.turbo_stream do
@@ -242,11 +245,11 @@ class StepsController < ApplicationController
     @step.errors.add(:base, "Invalid transitions JSON: #{e.message}")
   end
 
-  def broadcast_step_card(step)
+  def broadcast_step_row(step)
     Turbo::StreamsChannel.broadcast_replace_to(
       "workflow_#{@workflow.id}",
       target: dom_id(step),
-      partial: "workflows/step_card",
+      partial: "workflows/step_row",
       locals: { step: step, workflow: @workflow }
     )
   end
