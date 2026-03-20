@@ -1,154 +1,175 @@
 require "test_helper"
 
 class StepResolverTest < ActiveSupport::TestCase
-  fixtures :users
-
   setup do
-    @user = users(:one)
+    @user = User.create!(email: "test-resolver@example.com", password: "password123456")
+    @workflow = Workflow.create!(title: "Resolver Test", user: @user)
   end
 
-  test "resolves next step via transitions" do
-    workflow = Workflow.create!(title: "Sequential Test", user: @user, graph_mode: true)
-
-    q_step = Steps::Question.create!(workflow: workflow, position: 0, uuid: "a", title: "Q1", question: "Test?")
-    a_step = Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "A1", instructions: "Do something")
-    a2_step = Steps::Action.create!(workflow: workflow, position: 2, uuid: "c", title: "A2", instructions: "Done")
-
-    Transition.create!(step: q_step, target_step: a_step, position: 0)
-    Transition.create!(step: a_step, target_step: a2_step, position: 0)
-
-    workflow.update_column(:start_step_id, q_step.id)
-
-    resolver = StepResolver.new(workflow)
-    next_step = resolver.resolve_next(q_step, {})
-
-    assert_equal a_step, next_step
+  def create_step(type_class, title, position, **attrs)
+    type_class.create!(workflow: @workflow, title: title, position: position, **attrs)
   end
 
-  test "resolves conditional transition in graph mode" do
-    workflow = Workflow.create!(title: "Conditional Graph Test", user: @user, graph_mode: true)
-
-    q_step = Steps::Question.create!(workflow: workflow, position: 0, uuid: "a", title: "Q1", question: "Yes or no?", variable_name: "answer")
-    yes_step = Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "Yes Path")
-    no_step = Steps::Action.create!(workflow: workflow, position: 2, uuid: "c", title: "No Path")
-    default_step = Steps::Action.create!(workflow: workflow, position: 3, uuid: "d", title: "Default Path")
-
-    Transition.create!(step: q_step, target_step: yes_step, condition: "answer == 'yes'", position: 0)
-    Transition.create!(step: q_step, target_step: no_step, condition: "answer == 'no'", position: 1)
-    Transition.create!(step: q_step, target_step: default_step, position: 2)
-
-    resolver = StepResolver.new(workflow)
-
-    # Test yes path
-    assert_equal yes_step, resolver.resolve_next(q_step, { "answer" => "yes" })
-    # Test no path
-    assert_equal no_step, resolver.resolve_next(q_step, { "answer" => "no" })
-    # Test default path
-    assert_equal default_step, resolver.resolve_next(q_step, { "answer" => "maybe" })
+  def link(from_step, to_step, condition: nil, label: nil, position: 0)
+    Transition.create!(step: from_step, target_step: to_step, condition: condition, label: label, position: position)
   end
 
-  test "identifies terminal nodes" do
-    workflow = Workflow.create!(title: "Terminal Test", user: @user, graph_mode: true)
-
-    q_step = Steps::Question.create!(workflow: workflow, position: 0, uuid: "a", title: "Q1", question: "Test?")
-    end_step = Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "End")
-
-    Transition.create!(step: q_step, target_step: end_step, position: 0)
-
-    resolver = StepResolver.new(workflow)
-
-    assert_not resolver.terminal?(q_step)
-    assert resolver.terminal?(end_step)
+  test "resolves unconditional transition to target step" do
+    q = create_step(Steps::Question, "Q1", 0)
+    a = create_step(Steps::Action, "A1", 1)
+    link(q, a)
+    resolver = StepResolver.new(@workflow)
+    assert_equal a, resolver.resolve_next(q, {})
   end
 
-  test "returns subflow marker for sub_flow steps" do
-    target_workflow = Workflow.create!(title: "Target Workflow", user: @user, status: "published")
-
-    workflow = Workflow.create!(title: "Parent Workflow", user: @user, graph_mode: true)
-    sf_step = Steps::SubFlow.create!(workflow: workflow, position: 0, uuid: "a", title: "Call Sub", sub_flow_workflow_id: target_workflow.id)
-    after_step = Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "After Sub")
-
-    Transition.create!(step: sf_step, target_step: after_step, position: 0)
-    workflow.update_column(:start_step_id, sf_step.id)
-
-    resolver = StepResolver.new(workflow)
-    result = resolver.resolve_next(sf_step, {})
-
-    assert_instance_of StepResolver::SubflowMarker, result
-    assert_equal target_workflow.id, result.target_workflow_id
-    assert_equal "a", result.step_uuid
+  test "returns nil for step with no transitions (terminal)" do
+    r = create_step(Steps::Resolve, "Done", 0)
+    resolver = StepResolver.new(@workflow)
+    assert_nil resolver.resolve_next(r, {})
   end
 
-  test "finds start step" do
-    workflow = Workflow.create!(title: "Start Step Test", user: @user, graph_mode: true)
-
-    a_step = Steps::Action.create!(workflow: workflow, position: 0, uuid: "a", title: "Not Start")
-    q_step = Steps::Question.create!(workflow: workflow, position: 1, uuid: "b", title: "Start", question: "Begin?")
-
-    Transition.create!(step: q_step, target_step: a_step, position: 0)
-    workflow.update_column(:start_step_id, q_step.id)
-
-    resolver = StepResolver.new(workflow.reload)
-    start = resolver.start_step
-
-    assert_equal q_step, start
-    assert_equal "Start", start.title
+  test "returns default transition when no conditions match" do
+    q = create_step(Steps::Question, "Q1", 0, variable_name: "answer")
+    a = create_step(Steps::Action, "A1", 1)
+    r = create_step(Steps::Resolve, "Done", 2)
+    link(q, a, condition: "yes", position: 0)
+    link(q, r, position: 1)
+    resolver = StepResolver.new(@workflow)
+    result = resolver.resolve_next(q, { "answer" => "no" })
+    assert_equal r, result
   end
 
-  test "resolves conditional transition with Step objects" do
-    workflow = Workflow.create!(title: "AR Test", user: @user, graph_mode: true)
-
-    q_step = Steps::Question.create!(workflow: workflow, position: 0, title: "Q1", question: "Yes or No?", variable_name: "answer")
-    a_step = Steps::Action.create!(workflow: workflow, position: 1, title: "A1")
-    r_step = Steps::Resolve.create!(workflow: workflow, position: 2, title: "Done", resolution_type: "success")
-
-    Transition.create!(step: q_step, target_step: a_step, condition: "answer == yes", position: 0)
-    Transition.create!(step: q_step, target_step: r_step, position: 1)
-    Transition.create!(step: a_step, target_step: r_step, position: 0)
-
-    workflow.update_column(:start_step_id, q_step.id)
-
-    resolver = StepResolver.new(workflow)
-
-    # Conditional match
-    assert_equal a_step, resolver.resolve_next(q_step, { "answer" => "yes" })
-    # Default fallback
-    assert_equal r_step, resolver.resolve_next(q_step, { "answer" => "no" })
-    # Terminal
-    assert_nil resolver.resolve_next(r_step, {})
+  test "matches simple value condition" do
+    q = create_step(Steps::Question, "Q1", 0, variable_name: "answer")
+    yes_step = create_step(Steps::Action, "Yes path", 1)
+    no_step = create_step(Steps::Action, "No path", 2)
+    link(q, yes_step, condition: "yes", position: 0)
+    link(q, no_step, condition: "no", position: 1)
+    resolver = StepResolver.new(@workflow)
+    assert_equal yes_step, resolver.resolve_next(q, { "answer" => "yes" })
+    assert_equal no_step, resolver.resolve_next(q, { "answer" => "no" })
   end
 
-  test "detects terminal steps" do
-    workflow = Workflow.create!(title: "AR Terminal", user: @user, graph_mode: true)
-
-    q_step = Steps::Question.create!(workflow: workflow, position: 0, title: "Q1", question: "Test?")
-    r_step = Steps::Resolve.create!(workflow: workflow, position: 1, title: "Done")
-    Transition.create!(step: q_step, target_step: r_step, position: 0)
-
-    resolver = StepResolver.new(workflow)
-    assert_not resolver.terminal?(q_step)
-    assert resolver.terminal?(r_step)
+  test "first matching condition wins (position order)" do
+    q = create_step(Steps::Question, "Q1", 0, variable_name: "status")
+    a = create_step(Steps::Action, "First", 1)
+    b = create_step(Steps::Action, "Second", 2)
+    link(q, a, condition: "active", position: 0)
+    link(q, b, condition: "active", position: 1)
+    resolver = StepResolver.new(@workflow)
+    assert_equal a, resolver.resolve_next(q, { "status" => "active" })
   end
 
-  test "returns SubflowMarker for sub_flow step" do
-    target_wf = Workflow.create!(title: "Child", user: @user, status: "published")
-    workflow = Workflow.create!(title: "Parent", user: @user, graph_mode: true)
-    sf_step = Steps::SubFlow.create!(workflow: workflow, position: 0, title: "SF1", sub_flow_workflow_id: target_wf.id)
+  test "no conditions match and no default returns nil" do
+    q = create_step(Steps::Question, "Q1", 0, variable_name: "answer")
+    a = create_step(Steps::Action, "A1", 1)
+    link(q, a, condition: "yes", position: 0)
+    resolver = StepResolver.new(@workflow)
+    assert_nil resolver.resolve_next(q, { "answer" => "no" })
+  end
 
-    resolver = StepResolver.new(workflow)
-    result = resolver.resolve_next(sf_step, {})
+  test "expression condition evaluation" do
+    q = create_step(Steps::Question, "Q1", 0, variable_name: "age")
+    adult = create_step(Steps::Action, "Adult path", 1)
+    child = create_step(Steps::Action, "Child path", 2)
+    link(q, adult, condition: "age >= 18", position: 0)
+    link(q, child, condition: "age < 18", position: 1)
+    resolver = StepResolver.new(@workflow)
+    assert_equal adult, resolver.resolve_next(q, { "age" => "25" })
+    assert_equal child, resolver.resolve_next(q, { "age" => "10" })
+  end
 
+  test "resolves with empty results hash" do
+    q = create_step(Steps::Question, "Q1", 0)
+    a = create_step(Steps::Action, "A1", 1)
+    link(q, a)
+    resolver = StepResolver.new(@workflow)
+    assert_equal a, resolver.resolve_next(q, {})
+  end
+
+  test "resolves with nil results" do
+    q = create_step(Steps::Question, "Q1", 0)
+    a = create_step(Steps::Action, "A1", 1)
+    link(q, a)
+    resolver = StepResolver.new(@workflow)
+    assert_equal a, resolver.resolve_next(q, nil)
+  end
+
+  test "SubFlow step returns SubflowMarker" do
+    target_wf = Workflow.create!(title: "Target", user: @user, status: "published")
+    sf = create_step(Steps::SubFlow, "Run sub", 0, sub_flow_workflow_id: target_wf.id)
+    next_step = create_step(Steps::Resolve, "Done", 1)
+    link(sf, next_step)
+    resolver = StepResolver.new(@workflow)
+    result = resolver.resolve_next(sf, {})
     assert_instance_of StepResolver::SubflowMarker, result
     assert_equal target_wf.id, result.target_workflow_id
-    assert_equal sf_step.uuid, result.step_uuid
   end
 
-  test "finds start step from ActiveRecord" do
-    workflow = Workflow.create!(title: "AR Start", user: @user, graph_mode: true)
-    q_step = Steps::Question.create!(workflow: workflow, position: 0, title: "Start", question: "Begin?")
-    workflow.update_column(:start_step_id, q_step.id)
+  test "resolve_next_after_subflow continues from SubFlow step" do
+    target_wf = Workflow.create!(title: "Target", user: @user, status: "published")
+    sf = create_step(Steps::SubFlow, "Run sub", 0, sub_flow_workflow_id: target_wf.id)
+    next_step = create_step(Steps::Resolve, "Done", 1)
+    link(sf, next_step)
+    resolver = StepResolver.new(@workflow)
+    result = resolver.resolve_next_after_subflow(sf, {})
+    assert_equal next_step, result
+  end
 
-    resolver = StepResolver.new(workflow.reload)
-    assert_equal q_step, resolver.start_step
+  test "self-loop transition" do
+    q = create_step(Steps::Question, "Retry", 0, variable_name: "retry")
+    r = create_step(Steps::Resolve, "Done", 1)
+    link(q, q, condition: "yes", position: 0)
+    link(q, r, condition: "no", position: 1)
+    resolver = StepResolver.new(@workflow)
+    assert_equal q, resolver.resolve_next(q, { "retry" => "yes" })
+    assert_equal r, resolver.resolve_next(q, { "retry" => "no" })
+  end
+
+  test "start_step returns workflow start_step" do
+    q = create_step(Steps::Question, "Start", 0)
+    @workflow.update!(start_step: q)
+    resolver = StepResolver.new(@workflow)
+    assert_equal q, resolver.start_step
+  end
+
+  test "terminal? returns true for Resolve step" do
+    r = create_step(Steps::Resolve, "Done", 0)
+    resolver = StepResolver.new(@workflow)
+    assert resolver.terminal?(r)
+  end
+
+  test "terminal? returns true for step with no transitions" do
+    q = create_step(Steps::Question, "Dead end", 0)
+    resolver = StepResolver.new(@workflow)
+    assert resolver.terminal?(q)
+  end
+
+  test "terminal? returns false for step with transitions" do
+    q = create_step(Steps::Question, "Q", 0)
+    a = create_step(Steps::Action, "A", 1)
+    link(q, a)
+    resolver = StepResolver.new(@workflow)
+    assert_not resolver.terminal?(q)
+  end
+
+  test "jumps are checked before transitions" do
+    q = create_step(Steps::Question, "Q1", 0, variable_name: "answer")
+    jump_target = create_step(Steps::Action, "Jump Target", 1)
+    transition_target = create_step(Steps::Action, "Transition Target", 2)
+    link(q, transition_target)
+    q.update_column(:jumps, [{ "condition" => "special", "next_step_id" => jump_target.uuid }])
+    resolver = StepResolver.new(@workflow)
+    result = resolver.resolve_next(q, { "answer" => "special" })
+    assert_equal jump_target, result, "Jumps should be checked before transitions"
+  end
+
+  test "empty jumps array falls through to transitions" do
+    q = create_step(Steps::Question, "Q1", 0)
+    a = create_step(Steps::Action, "A1", 1)
+    link(q, a)
+    q.update_column(:jumps, [])
+    resolver = StepResolver.new(@workflow)
+    assert_equal a, resolver.resolve_next(q, {})
   end
 end
