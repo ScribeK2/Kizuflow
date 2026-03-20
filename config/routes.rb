@@ -35,6 +35,9 @@ Rails.application.routes.draw do
       get :versions
       # AR step persistence
       patch :sync_steps
+      # Builder panel routes
+      get :flow_diagram
+      get :settings
     end
     resources :versions, only: [:show], controller: "workflow_versions" do
       member do
@@ -45,6 +48,7 @@ Rails.application.routes.draw do
     resources :steps, except: [:index] do
       member do
         patch :reorder
+        get :panel_edit
       end
     end
   end
