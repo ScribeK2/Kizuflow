@@ -74,7 +74,7 @@ class StepsController < ApplicationController
           ]
           render turbo_stream: streams
         end
-        format.html { redirect_to edit_workflow_path(@workflow), notice: "Step added." }
+        format.html { redirect_to workflow_path(@workflow, edit: true), notice: "Step added." }
         format.json { render json: step_json(@step), status: :created }
       end
 
@@ -85,7 +85,7 @@ class StepsController < ApplicationController
           render turbo_stream: turbo_stream.update("steps-list",
                                                    html: helpers.tag.div(@step.errors.full_messages.join(", "), class: "alert alert--warning mb-4")), status: :unprocessable_content
         end
-        format.html { redirect_to edit_workflow_path(@workflow), alert: @step.errors.full_messages.join(", ") }
+        format.html { redirect_to workflow_path(@workflow, edit: true), alert: @step.errors.full_messages.join(", ") }
         format.json { render json: { errors: @step.errors.full_messages }, status: :unprocessable_content }
       end
     end
@@ -104,7 +104,7 @@ class StepsController < ApplicationController
             locals: { step: @step.reload, workflow: @workflow }
           )
         end
-        format.html { redirect_to edit_workflow_path(@workflow), notice: "Step updated." }
+        format.html { redirect_to workflow_path(@workflow, edit: true), notice: "Step updated." }
         format.json { render json: step_json(@step) }
       end
 
@@ -118,7 +118,7 @@ class StepsController < ApplicationController
             locals: { step: @step, workflow: @workflow }
           ), status: :unprocessable_content
         end
-        format.html { redirect_to edit_workflow_path(@workflow), alert: @step.errors.full_messages.join(", ") }
+        format.html { redirect_to workflow_path(@workflow, edit: true), alert: @step.errors.full_messages.join(", ") }
         format.json { render json: { errors: @step.errors.full_messages }, status: :unprocessable_content }
       end
     end
@@ -131,7 +131,7 @@ class StepsController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream { render turbo_stream: turbo_stream.remove(dom_id(@step)) }
-      format.html { redirect_to edit_workflow_path(@workflow), notice: "Step removed." }
+      format.html { redirect_to workflow_path(@workflow, edit: true), notice: "Step removed." }
       format.json { head :no_content }
     end
 

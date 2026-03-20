@@ -90,11 +90,7 @@ class WorkflowsController < ApplicationController
   end
 
   def edit
-    # Eager load groups to prevent N+1 queries
-    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
-    @selected_group_ids = @workflow.group_ids
-    eager_load_steps
-    preload_subflow_targets
+    redirect_to workflow_path(@workflow, edit: true)
   end
 
   def create
@@ -154,7 +150,16 @@ class WorkflowsController < ApplicationController
             @workflow.group_workflows.destroy_all
           end
 
-          redirect_to @workflow, notice: "Workflow was successfully updated."
+          respond_to do |format|
+            format.turbo_stream do
+              render turbo_stream: turbo_stream.replace(
+                "autosave-status",
+                partial: "workflows/autosave_status",
+                locals: { status: :saved }
+              )
+            end
+            format.html { redirect_to @workflow, notice: "Workflow was successfully updated." }
+          end
         else
           raise ActiveRecord::Rollback
         end
@@ -165,7 +170,16 @@ class WorkflowsController < ApplicationController
       @selected_group_ids = @workflow.group_ids
       @conflict_detected = true
       flash.now[:alert] = "This workflow was modified by another user. Your changes could not be saved. Please review the current version and try again."
-      render :edit, status: :conflict
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "autosave-status",
+            partial: "workflows/autosave_status",
+            locals: { status: :error, errors: @workflow.errors }
+          ), status: :unprocessable_content
+        end
+        format.html { render :edit, status: :conflict }
+      end
       return
     end
 
@@ -173,7 +187,16 @@ class WorkflowsController < ApplicationController
     unless performed?
       @accessible_groups = Group.visible_to(current_user).order(:name)
       @selected_group_ids = @workflow.group_ids
-      render :edit, status: :unprocessable_content
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "autosave-status",
+            partial: "workflows/autosave_status",
+            locals: { status: :error, errors: @workflow.errors }
+          ), status: :unprocessable_content
+        end
+        format.html { render :edit, status: :unprocessable_content }
+      end
     end
   end
 
