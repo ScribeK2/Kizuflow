@@ -94,6 +94,45 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects workflow with no Resolve terminal" do
+    # Create a workflow with only non-Resolve steps
+    no_resolve_wf = Workflow.create!(title: "No Resolve", user: @user, graph_mode: true, status: "draft")
+    a = Steps::Action.create!(workflow: no_resolve_wf, position: 0, title: "Only Action")
+    no_resolve_wf.update_column(:start_step_id, a.id)
+
+    result = WorkflowPublisher.publish(no_resolve_wf, @user)
+
+    assert_not result.success?
+    assert_match(/Resolve/i, result.error)
+  end
+
+  test "rejects workflow with unreachable orphan step" do
+    orphan_wf = Workflow.create!(title: "Orphan WF", user: @user, graph_mode: true, status: "draft")
+    q = Steps::Question.create!(workflow: orphan_wf, position: 0, title: "Q", question: "What?")
+    r = Steps::Resolve.create!(workflow: orphan_wf, position: 1, title: "Done", resolution_type: "success")
+    orphan = Steps::Action.create!(workflow: orphan_wf, position: 2, title: "Orphan")
+    Transition.create!(step: q, target_step: r, position: 0)
+    orphan_wf.update_column(:start_step_id, q.id)
+
+    result = WorkflowPublisher.publish(orphan_wf, @user)
+
+    assert_not result.success?
+    assert_match(/reachable/i, result.error)
+  end
+
+  test "publishes valid workflow with Resolve terminal and all reachable" do
+    valid_wf = Workflow.create!(title: "Valid", user: @user, graph_mode: true, status: "draft")
+    q = Steps::Question.create!(workflow: valid_wf, position: 0, title: "Q1", question: "What?", variable_name: "answer")
+    r = Steps::Resolve.create!(workflow: valid_wf, position: 1, title: "Done", resolution_type: "success")
+    Transition.create!(step: q, target_step: r, position: 0)
+    valid_wf.update_column(:start_step_id, q.id)
+
+    result = WorkflowPublisher.publish(valid_wf, @user)
+
+    assert result.success?, "Expected success, got: #{result.error}"
+    assert_equal 1, result.version.version_number
+  end
+
   test "published_version points to latest version" do
     WorkflowPublisher.publish(@workflow, @user)
 
