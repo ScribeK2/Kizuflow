@@ -111,7 +111,7 @@ class GraphValidator
     terminal_uuids.each do |uuid|
       node = @steps[uuid]
       unless node && node["type"] == "resolve"
-        @errors << "Terminal node '#{node&.dig("title") || uuid}' is not a Resolve step. All terminal nodes must be Resolve steps."
+        @errors << "Terminal node '#{node&.dig('title') || uuid}' is not a Resolve step. All terminal nodes must be Resolve steps."
       end
     end
   end

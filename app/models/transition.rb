@@ -12,6 +12,7 @@ class Transition < ApplicationRecord
 
   def steps_belong_to_same_workflow
     return unless step && target_step
+
     if step.workflow_id != target_step.workflow_id
       errors.add(:target_step, "must belong to the same workflow")
     end

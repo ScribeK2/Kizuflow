@@ -23,7 +23,7 @@ class FlowDiagramService
   # BFS from start node, assign depth levels
   def bfs_levels
     start = @workflow.start_step || @steps.min_by(&:position)
-    return @steps.sort_by(&:position).map { |step| [step] } unless start
+    return @steps.sort_by(&:position).zip unless start
 
     steps_by_id = @steps.index_by(&:id)
     visited = Set.new
@@ -37,7 +37,7 @@ class FlowDiagramService
 
       step.transitions.each do |transition|
         target = steps_by_id[transition.target_step_id]
-        next unless target && !visited.include?(target.id)
+        next unless target && visited.exclude?(target.id)
 
         visited.add(target.id)
         queue << [target, depth + 1]
