@@ -53,7 +53,7 @@
             <% unless @scenario.complete? %>
               <div class="flex items-center flex-shrink-0 ml-2" style="flex-shrink: 0;">
                 <div class="scenario-step-current" style="flex-shrink: 0;">
-                  <span class="text-xs font-bold"><%= (@scenario.execution_path&.length || 0) + 1 %></span>
+                  <span class="text-xs font-bold"><%= scenario_step_counter(@scenario, @workflow).delete_prefix("Step ") %></span>
                 </div>
               </div>
             <% end %>
@@ -72,15 +72,9 @@
   <% if @scenario.complete? %>
     <div class="card text-center">
       <div class="card__body">
-        <% if @scenario.parent_scenario.present? %>
-          <h2>Sub-Flow Complete!</h2>
-          <p class="mb-4">Returning to <strong><%= @scenario.parent_scenario.workflow.title %></strong>.</p>
-          <%= link_to "Return to Main Workflow", step_scenario_path(@scenario.parent_scenario), class: "btn btn--primary" %>
-        <% else %>
-          <h2>Scenario Complete!</h2>
-          <p class="mb-4">All steps have been completed.</p>
-          <%= link_to "View Results", scenario_path(@scenario), class: "btn btn--positive" %>
-        <% end %>
+        <h2>Scenario Complete!</h2>
+        <p class="mb-4">All steps have been completed.</p>
+        <%= link_to "View Results", scenario_path(@scenario), class: "btn btn--positive" %>
       </div>
     </div>
   <% else %>
@@ -105,7 +99,7 @@
           <div class="scenario-step-header">
             <div class="scenario-step-header__info">
               <span class="<%= scenario_step_number_classes(stype) %>">
-                <%= (@scenario.execution_path&.length || 0) + 1 %>
+                <%= scenario_step_counter(@scenario, @workflow).delete_prefix("Step ") %>
               </span>
               <div>
                 <h2><%= VariableInterpolator.interpolate(step['title'], @scenario.results || {}) %></h2>
@@ -412,37 +406,16 @@
                 </div>
                 <div class="scenario-btn-group">
                   <%= link_to "Cancel", cancel_url, class: "scenario-btn-cancel", data: { turbo_confirm: cancel_confirm, scenario_step_target: "cancel" } %>
-                  <% if @scenario.parent_scenario.present? %>
-                    <%= form.submit "Finish & Return", class: "btn btn--primary", data: { scenario_step_target: "submit" } %>
-                  <% else %>
-                    <%= form.submit "Complete Workflow", class: "btn btn--positive", data: { scenario_step_target: "submit" } %>
-                  <% end %>
+                  <%= form.submit "Complete Workflow", class: "btn btn--positive", data: { scenario_step_target: "submit" } %>
                 </div>
               </div>
             <% end %>
 
           <% when 'sub_flow' %>
-            <%# Sub-flow steps are auto-processed and should not normally be displayed %>
-            <%# This fallback case prevents a dead-end if auto-advance didn't trigger %>
-            <div class="admin-info-box admin-info-box--info mb-4">
-              <svg class="icon icon--sm flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <div class="flex-1">
-                <h3 class="font-semibold mb-1">Processing Sub-Flow...</h3>
-                <p class="text-sm">This step launches a sub-workflow. If you see this message, please click Continue or refresh the page.</p>
-              </div>
-            </div>
-            <%= form_with url: next_step_scenario_path(@scenario), method: :post, data: { scenario_step_target: "form" } do |form| %>
+            <%# Sub-flow steps are auto-processed by the controller. This hidden fallback %>
+            <%# auto-submits via JS in case auto-advance didn't redirect. %>
+            <%= form_with url: next_step_scenario_path(@scenario), method: :post, data: { controller: "auto-advance" } do |form| %>
               <%= form.hidden_field :answer, value: "" %>
-              <div class="scenario-button-bar">
-                <div>
-                  <%= scenario_back_button(@scenario) %>
-                </div>
-                <div class="flex items-center">
-                  <%= form.submit "Continue", class: "btn btn--primary", data: { scenario_step_target: "submit" } %>
-                </div>
-              </div>
             <% end %>
           <% end %>
         </div>
