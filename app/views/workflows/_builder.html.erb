@@ -18,14 +18,22 @@
   <%# === Header === %>
   <div class="builder__header">
     <div class="builder__header-left">
-      <input type="text"
-             class="builder__title"
-             value="<%= workflow.title %>"
-             data-builder-target="titleInput"
-             data-action="blur->builder#saveTitle change->builder#saveTitle"
-             data-url="<%= workflow_path(workflow) %>"
-             <%= "readonly" if mode == "view" %>
-             placeholder="Workflow title...">
+      <div class="builder__title-wrapper">
+        <input type="text"
+               class="builder__title"
+               value="<%= workflow.title %>"
+               data-builder-target="titleInput"
+               data-action="blur->builder#saveTitle change->builder#saveTitle"
+               data-url="<%= workflow_path(workflow) %>"
+               <%= "readonly" if mode == "view" %>
+               placeholder="Workflow title...">
+        <% if mode == "edit" %>
+          <svg class="builder__title-pencil" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="m15 5 4 4"/>
+          </svg>
+        <% end %>
+      </div>
 
       <span class="builder__status builder__status--<%= workflow.status %>">
         <%= workflow.status.titleize %>
@@ -77,7 +85,7 @@
       <button class="builder__toolbar-btn"
               data-action="click->builder#openSettings"
               data-builder-settings-url-value="<%= settings_workflow_path(workflow) %>">
-        &#9881; Settings
+        &#9881; Details
       </button>
     </div>
   </div>

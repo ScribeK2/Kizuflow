@@ -24,6 +24,28 @@
     min-width: 0;
   }
 
+  .builder__title-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .builder__title-pencil {
+    flex-shrink: 0;
+    color: var(--color-ink-muted);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .builder__title-wrapper:hover .builder__title-pencil {
+    opacity: 1;
+  }
+
+  .builder__title:focus ~ .builder__title-pencil {
+    opacity: 0;
+  }
+
   .builder__title {
     font-size: 1.25rem;
     font-weight: 600;
@@ -32,8 +54,7 @@
     background: transparent;
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius);
-    width: 100%;
-    max-width: 32rem;
+    width: 32rem;
   }
 
   .builder__title:hover {
