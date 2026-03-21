@@ -15,7 +15,7 @@ module ScenariosHelper
     total = (scenario.execution_path&.length || 0) + 1
     ancestor = scenario.parent_scenario
     while ancestor.present?
-      total += (ancestor.execution_path&.length || 0)
+      total += ancestor.execution_path&.length || 0
       ancestor = ancestor.parent_scenario
     end
     "Step #{total}"

@@ -89,17 +89,7 @@ class ScenariosController < ApplicationController
       end
 
       if @scenario.complete?
-        if @scenario.parent_scenario.present?
-          parent = @scenario.parent_scenario
-          parent.process_subflow_completion
-          if parent.complete?
-            redirect_to_completion(parent)
-          else
-            redirect_to step_scenario_path(parent)
-          end
-        else
-          redirect_to scenario_path(@scenario), notice: "Scenario completed successfully!"
-        end
+        redirect_after_child_completion(@scenario)
       else
         redirect_to step_scenario_path(@scenario)
       end
@@ -118,17 +108,7 @@ class ScenariosController < ApplicationController
     end
 
     if @scenario.complete?
-      if @scenario.parent_scenario.present?
-        parent = @scenario.parent_scenario
-        parent.process_subflow_completion
-        if parent.complete?
-          redirect_to_completion(parent)
-        else
-          redirect_to step_scenario_path(parent)
-        end
-      else
-        redirect_to scenario_path(@scenario), notice: "Scenario completed!"
-      end
+      redirect_after_child_completion(@scenario)
       return true
     end
 
@@ -268,21 +248,28 @@ class ScenariosController < ApplicationController
     end
 
     if @scenario.complete?
-      if @scenario.parent_scenario.present?
-        parent = @scenario.parent_scenario
-        parent.process_subflow_completion
-        if parent.complete?
-          redirect_to_completion(parent)
-        else
-          redirect_to step_scenario_path(parent)
-        end
-      else
-        redirect_to_completion(@scenario)
-      end
+      redirect_after_child_completion(@scenario)
     else
       redirect_to step_scenario_path(@scenario)
     end
     true
+  end
+
+  # Process completion of a scenario that may be a child sub-flow.
+  # If child: completes parent sub-flow and redirects to parent's next step.
+  # If root: redirects to results page.
+  def redirect_after_child_completion(scenario)
+    if scenario.parent_scenario.present?
+      parent = scenario.parent_scenario
+      parent.process_subflow_completion
+      if parent.complete?
+        redirect_to_completion(parent)
+      else
+        redirect_to step_scenario_path(parent)
+      end
+    else
+      redirect_to_completion(scenario)
+    end
   end
 
   # Redirect to the appropriate completion destination for a scenario.
