@@ -6,8 +6,9 @@ This file provides guidance to AI coding agents working with TurboFlows.
 A straightforward workflow creator for call/chat centers to build, simulate, and manage post-onboarding training + client troubleshooting flows with drag-and-drop simplicity.
 
 - Six step types: Question, Action, Sub-Flow, Message, Escalate, Resolve
-- Linear (collapsible cards) + Graph editing modes (dagre + leader-line visuals)
-- Scenario Mode: interactive step-by-step simulation with variable interpolation {{var}}, sub-flow recursion, safety limits
+- All workflows are graphs — every step connects via explicit Transitions (no separate "linear mode")
+- Every workflow must have at least one Resolve step (the only always-terminal type)
+- Scenario Mode: interactive step-by-step graph traversal with variable interpolation {{var}}, sub-flow recursion, safety limits
 - Real-time collaboration via Action Cable (WorkflowChannel presence)
 - Hierarchical Groups (up to 5 levels) + Folders + drag-and-drop organization
 - Template library + import/export (JSON/CSV/YAML/MD → JSON/PDF via Prawn)
@@ -56,12 +57,34 @@ Kamal: `kamal deploy` (see `config/deploy.yml`). Required env: `RAILS_MASTER_KEY
 **Core Domain Models**
 
 - `Workflow` — container with versions (`workflow_version.rb`), autosave, optimistic locking (`lock_version`)
-- `Step` — STI base class (`app/models/step.rb`); subclasses in `app/models/steps/` (QuestionStep, ActionStep, SubFlowStep, etc.)
-- `Transition` — branching logic between steps
-- `Scenario` — simulation runner (executes steps, resolves `{{variables}}`, spawns child scenarios for sub-flows, enforces limits)
+- `Step` — STI base class (`app/models/step.rb`); subclasses in `app/models/steps/` (Question, Action, SubFlow, Message, Escalate, Resolve). UUID-based identification (immutable via `attr_readonly`). Includes `Step::Positionable` concern for ordering.
+- `Transition` — directed edges between steps (same workflow only). Supports conditional expressions via `ConditionEvaluator`, simple value matching, and position-ordered evaluation (first match wins).
+- `Scenario` — simulation runner. Always uses graph traversal via `StepResolver` and `current_node_uuid` tracking. Spawns child scenarios for sub-flows, enforces iteration limits on circular graphs.
 - `Group` / `Folder` — hierarchical org (recursive membership, cascade permissions)
 - `User` — Devise model with roles (Administrator / Editor / User)
 - `Template` / `StepTemplate` — reusable patterns
+
+## Builder UI
+
+The unified builder lives at `workflows/:id` — one URL for both viewing and editing. No separate wizard or editor views.
+
+**Layout:** Header (inline-editable title, status, publish) → Toolbar (step count, View Flow, Settings) → Main area (step list + slide-in panel).
+
+**Key views:**
+- `_builder.html.erb` — main layout, renders step list + empty Turbo Frame panel
+- `_step_list.html.erb` / `_step_row.html.erb` — compact step rows with SortableJS drag-and-drop
+- `steps/_panel_edit.html.erb` — step editor loaded via Turbo Frame into the panel
+- `_flow_diagram_panel.html.erb` — read-only BFS flow diagram in the panel
+- `_settings_panel.html.erb` — workflow metadata (description, groups, public toggle)
+
+**Key Stimulus controllers:**
+- `builder_controller.js` — panel open/close, step selection, title autosave, Escape to close
+- `step_list_controller.js` — SortableJS reorder + type picker popover
+- `inline_autosave_controller.js` — debounced autosave (2s), listens for `lexxy:change` events, flushes pending saves on disconnect via `FormData` + `fetch`
+
+**Autosave pattern:** Every field change triggers `inline-autosave#schedule` (via `data-action` on inputs or `lexxy:change` listener on the form). On disconnect (e.g., switching steps), pending saves are flushed by snapshotting `FormData` and sending via `fetch()` POST with `_method=patch`.
+
+**Mode:** `data-builder-mode-value="view|edit"` on the builder container. CSS hides drag handles, add/delete buttons, and edit-only elements in view mode.
 
 ## Real-Time & Collaboration
 
@@ -69,10 +92,25 @@ Kamal: `kamal deploy` (see `config/deploy.yml`). Required env: `RAILS_MASTER_KEY
 - In-memory cable in dev; Redis in production
 - Optimistic locking prevents save conflicts
 
-## Editing Modes
+## Workflow Engine
 
-- **Linear:** collapsible cards, inline creation
-- **Graph:** visual nodes/connections (vendored dagre/leader-line)
+All workflows are graphs. There is no separate "linear mode" — a sequential flow is just a graph where each step has one transition to the next.
+
+**Key services:**
+- `StepResolver` — graph traversal engine. Evaluates transitions in position order, handles conditional branching (via `ConditionEvaluator`), simple value matching for Question answers, and SubFlow markers.
+- `StepBuilder` — creates AR steps from hash data. Auto-creates sequential transitions when no explicit transitions provided. Validates at least one Resolve step exists.
+- `StepSyncer` — incremental sync for step persistence. Upserts, deletes, and reconciles transitions atomically.
+- `GraphValidator` — DAG validation (cycle detection, reachability from start_step, terminal nodes must be Resolve steps).
+- `SubflowValidator` — prevents circular sub-flow references (max depth: 10).
+- `WorkflowPublisher` — publishes workflow versions with full graph validation.
+- `FlowDiagramService` — BFS layout for the builder's flow diagram panel.
+
+**Constraints enforced:**
+- Transitions must connect steps within the same workflow (cross-workflow via SubFlow only)
+- Every workflow must have at least one Resolve step
+- All terminal nodes must be Resolve steps (on publish)
+- Step UUIDs are immutable after creation
+- Optimistic locking on both Workflow and Step (`lock_version`)
 
 ## Other Highlights
 
@@ -87,7 +125,7 @@ Kamal: `kamal deploy` (see `config/deploy.yml`). Required env: `RAILS_MASTER_KEY
 @STYLE.md
 
 ## Tools
-Chrome MCP (for UI/system testing). Point agent to running app at `http://localhost:3000` (after `bin/dev`). Allows browser control (click, type, screenshot, inspect) — ideal for testing Graph Mode, Scenario simulation, wizard flows, drag-and-drop.
+Playwright MCP (for UI/system testing). Point agent to running app at `http://localhost:3000` (after `bin/dev`). Allows browser control (click, type, snapshot, inspect) — ideal for testing the builder, Scenario simulation, and drag-and-drop.
 
 ## Deployment Notes
 

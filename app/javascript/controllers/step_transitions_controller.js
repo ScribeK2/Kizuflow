@@ -14,12 +14,7 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log(`[StepTransitions] Connected for step ${this.stepIdValue}`)
     this.refresh()
-
-    // Debug: log hidden input state
-    const hiddenInput = this.element.closest('.step-item')?.querySelector('input[name*="transitions_json"]')
-    console.log(`[StepTransitions] Hidden input found: ${!!hiddenInput}`, hiddenInput?.value?.substring(0, 100))
   }
 
   /**
@@ -34,10 +29,9 @@ export default class extends Controller {
    * Load transitions from the hidden input
    */
   loadTransitions() {
-    const hiddenInput = this.element.closest('.step-item')?.querySelector('input[name*="transitions_json"]')
-    if (hiddenInput && hiddenInput.value) {
+    if (this.hasHiddenInputTarget && this.hiddenInputTarget.value) {
       try {
-        return JSON.parse(hiddenInput.value)
+        return JSON.parse(this.hiddenInputTarget.value)
       } catch (e) {
         console.error('[StepTransitions] Failed to parse transitions:', e)
         return []
@@ -50,13 +44,10 @@ export default class extends Controller {
    * Save transitions to the hidden input
    */
   saveTransitions() {
-    const hiddenInput = this.element.closest('.step-item')?.querySelector('input[name*="transitions_json"]')
-    if (hiddenInput) {
-      const jsonValue = JSON.stringify(this.transitions)
-      hiddenInput.value = jsonValue
-      console.log(`[StepTransitions] Saved to hidden input for step ${this.stepIdValue}:`, jsonValue)
-    } else {
-      console.error(`[StepTransitions] Hidden input NOT FOUND for step ${this.stepIdValue}`)
+    if (this.hasHiddenInputTarget) {
+      this.hiddenInputTarget.value = JSON.stringify(this.transitions)
+      // Trigger autosave by dispatching input event on the hidden field
+      this.hiddenInputTarget.dispatchEvent(new Event("input", { bubbles: true }))
     }
 
     // Dispatch event for flow preview update
@@ -216,10 +207,10 @@ export default class extends Controller {
                  class="form-input transition-item__label">
           <button type="button"
                   data-action="click->step-transitions#removeTransition"
-                  class="btn btn--negative btn--sm"
+                  class="btn btn--plain btn--sm transition-item__delete"
                   title="Remove connection">
             <svg class="icon icon--sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
           </button>
         </div>
@@ -234,18 +225,26 @@ export default class extends Controller {
    */
   getOtherSteps() {
     const steps = []
-    const stepItems = document.querySelectorAll('.step-item')
+    // Support both builder step rows (data-step-uuid) and legacy step cards (.step-item)
+    const stepRows = document.querySelectorAll('.builder__list-row[data-step-uuid], .step-item')
 
-    stepItems.forEach((item, index) => {
-      const idInput = item.querySelector('input[name*="[id]"]')
-      const titleInput = item.querySelector('input[name*="[title]"]')
+    stepRows.forEach((item, index) => {
+      let id, title
 
-      if (idInput && idInput.value !== this.stepIdValue) {
-        steps.push({
-          id: idInput.value,
-          title: titleInput?.value || '',
-          index: index
-        })
+      if (item.dataset.stepUuid) {
+        // Builder step row: data attributes on the row element
+        id = item.dataset.stepUuid
+        title = item.querySelector('.builder__step-title')?.textContent?.trim() || ''
+      } else {
+        // Legacy step card: hidden inputs
+        const idInput = item.querySelector('input[data-step-field="id"]') || item.querySelector('input[name*="[id]"]')
+        const titleInput = item.querySelector('input[data-step-field="title"]') || item.querySelector('input[name*="[title]"]')
+        id = idInput?.value
+        title = titleInput?.value || ''
+      }
+
+      if (id && id !== this.stepIdValue) {
+        steps.push({ id, title, index })
       }
     })
 

@@ -7,14 +7,14 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     @user = users(:one)
   end
 
-  test "graph_mode? returns correct value" do
-    linear_workflow = Workflow.create!(title: "Linear", user: @user, graph_mode: false)
-    graph_workflow = Workflow.create!(title: "Graph", user: @user, graph_mode: true)
+  test "graph_mode? always returns true (all workflows are graphs)" do
+    workflow_a = Workflow.create!(title: "Workflow A", user: @user, graph_mode: false)
+    workflow_b = Workflow.create!(title: "Workflow B", user: @user, graph_mode: true)
 
-    assert_not linear_workflow.graph_mode?
-    assert_predicate graph_workflow, :graph_mode?
-    assert_predicate linear_workflow, :linear_mode?
-    assert_not graph_workflow.linear_mode?
+    assert_predicate workflow_a, :graph_mode?
+    assert_predicate workflow_b, :graph_mode?
+    assert_not workflow_a.linear_mode?
+    assert_not workflow_b.linear_mode?
   end
 
   test "graph_steps returns hash keyed by UUID" do
@@ -33,7 +33,7 @@ class WorkflowGraphTest < ActiveSupport::TestCase
   end
 
   test "start_node returns start_step when set" do
-    workflow = Workflow.create!(title: "Start Node Test", user: @user, graph_mode: true)
+    workflow = Workflow.create!(title: "Start Node Test", user: @user, graph_mode: true, status: "draft")
     step1 = Steps::Action.create!(workflow: workflow, position: 0, uuid: "uuid-1", title: "Not Start")
     step2 = Steps::Question.create!(workflow: workflow, position: 1, uuid: "uuid-2", title: "Start Step", question: "Begin?")
     Transition.create!(step: step2, target_step: step1, position: 0)
@@ -59,10 +59,10 @@ class WorkflowGraphTest < ActiveSupport::TestCase
   end
 
   test "terminal_nodes returns steps without transitions in graph mode" do
-    workflow = Workflow.create!(title: "Terminal Test", user: @user, graph_mode: true)
+    workflow = Workflow.create!(title: "Terminal Test", user: @user, graph_mode: true, status: "draft")
     step_a = Steps::Question.create!(workflow: workflow, position: 0, uuid: "a", title: "Start", question: "Which path?")
-    step_b = Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "End 1")
-    step_c = Steps::Action.create!(workflow: workflow, position: 2, uuid: "c", title: "End 2")
+    step_b = Steps::Resolve.create!(workflow: workflow, position: 1, uuid: "b", title: "End 1", resolution_type: "success")
+    step_c = Steps::Resolve.create!(workflow: workflow, position: 2, uuid: "c", title: "End 2", resolution_type: "success")
     Transition.create!(step: step_a, target_step: step_b, position: 0)
     Transition.create!(step: step_a, target_step: step_c, position: 1)
     workflow.update!(start_step: step_a)
@@ -77,12 +77,14 @@ class WorkflowGraphTest < ActiveSupport::TestCase
   test "subflow_steps returns sub_flow type steps" do
     target = Workflow.create!(title: "Target", user: @user, status: "published")
 
-    workflow = Workflow.create!(title: "Subflow Test", user: @user, graph_mode: true)
+    workflow = Workflow.create!(title: "Subflow Test", user: @user, graph_mode: true, status: "draft")
     step_a = Steps::Action.create!(workflow: workflow, position: 0, uuid: "a", title: "Action")
     step_b = Steps::SubFlow.create!(workflow: workflow, position: 1, uuid: "b", title: "Call Sub", sub_flow_workflow_id: target.id)
     step_c = Steps::SubFlow.create!(workflow: workflow, position: 2, uuid: "c", title: "Call Sub 2", sub_flow_workflow_id: target.id)
+    step_d = Steps::Resolve.create!(workflow: workflow, position: 3, uuid: "d", title: "Done", resolution_type: "success")
     Transition.create!(step: step_a, target_step: step_b, position: 0)
     Transition.create!(step: step_b, target_step: step_c, position: 0)
+    Transition.create!(step: step_c, target_step: step_d, position: 0)
     workflow.update!(start_step: step_a)
 
     subflows = workflow.subflow_steps
@@ -95,12 +97,14 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     target1 = Workflow.create!(title: "Target 1", user: @user, status: "published")
     target2 = Workflow.create!(title: "Target 2", user: @user, status: "published")
 
-    workflow = Workflow.create!(title: "References Test", user: @user, graph_mode: true)
+    workflow = Workflow.create!(title: "References Test", user: @user, graph_mode: true, status: "draft")
     step_a = Steps::SubFlow.create!(workflow: workflow, position: 0, uuid: "a", title: "Sub 1", sub_flow_workflow_id: target1.id)
     step_b = Steps::SubFlow.create!(workflow: workflow, position: 1, uuid: "b", title: "Sub 2", sub_flow_workflow_id: target2.id)
     step_c = Steps::SubFlow.create!(workflow: workflow, position: 2, uuid: "c", title: "Sub 3", sub_flow_workflow_id: target1.id)
+    step_d = Steps::Resolve.create!(workflow: workflow, position: 3, uuid: "d", title: "Done", resolution_type: "success")
     Transition.create!(step: step_a, target_step: step_b, position: 0)
     Transition.create!(step: step_b, target_step: step_c, position: 0)
+    Transition.create!(step: step_c, target_step: step_d, position: 0)
     workflow.update!(start_step: step_a)
 
     ids = workflow.referenced_workflow_ids

@@ -99,30 +99,23 @@ class Scenario < ApplicationRecord
     self.inputs ||= {}
   end
 
-  # Check if workflow is in graph mode
+  # All workflows are now graph mode
   def graph_mode?
-    workflow&.graph_mode? || false
+    true
   end
 
-  # Get the current step (works for both linear and graph mode)
+  # Get the current step via UUID lookup
   # Returns an AR Step object or nil
   def current_step
     return nil unless workflow&.steps&.any?
+    return nil unless current_node_uuid.present?
 
-    if graph_mode? && current_node_uuid.present?
-      workflow.steps.find_by(uuid: current_node_uuid)
-    else
-      workflow.steps.find_by(position: current_step_index)
-    end
+    workflow.steps.find_by(uuid: current_node_uuid)
   end
 
-  # Get the current step UUID (graph mode) or generate one (linear mode)
+  # Get the current step UUID
   def current_step_uuid
-    if graph_mode?
-      current_node_uuid
-    else
-      current_step&.uuid
-    end
+    current_node_uuid
   end
 
   # Get the active child scenario (if any)
@@ -137,12 +130,8 @@ class Scenario < ApplicationRecord
     return false if awaiting_subflow?
     return true unless workflow&.steps&.any?
 
-    if graph_mode?
-      # In graph mode, complete when no current node or current node is nil
-      current_node_uuid.nil? && !active?
-    else
-      current_step_index >= workflow.steps.count
-    end
+    # Complete when no current node
+    current_node_uuid.nil? && !active?
   end
 
   # Stop the workflow execution
@@ -174,11 +163,7 @@ class Scenario < ApplicationRecord
     # Question steps are excluded because users can legitimately re-answer after back navigation.
     if execution_path.present? && step.step_type != 'question'
       last_entry = execution_path.last
-      if graph_mode?
-        return false if last_entry&.dig('step_uuid') == step.uuid
-      else
-        return false if last_entry&.dig('step_index') == current_step_index
-      end
+      return false if last_entry&.dig('step_uuid') == step.uuid
     end
 
     # Track iterations to prevent infinite loops in step-by-step mode
@@ -274,26 +259,18 @@ class Scenario < ApplicationRecord
     # Move to next step after sub-flow
     self.status = 'active'
 
-    if graph_mode?
-      resolver = StepResolver.new(workflow)
-      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
-      next_step = resolver.resolve_next_after_subflow(resume_step, self.results) if resume_step
-      next_uuid = next_step.is_a?(Step) ? next_step.uuid : nil
+    resolver = StepResolver.new(workflow)
+    resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
+    next_step = resolver.resolve_next_after_subflow(resume_step, self.results) if resume_step
+    next_uuid = next_step.is_a?(Step) ? next_step.uuid : nil
 
-      # Guard against self-loop: if the resolved next step is the same sub_flow step
-      # we just completed, treat it as end-of-workflow rather than looping infinitely.
-      if next_uuid == resume_node_uuid
-        Rails.logger.warn "[Scenario ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
-        advance_to_step_uuid(nil)
-      else
-        advance_to_step_uuid(next_uuid)
-      end
+    # Guard against self-loop: if the resolved next step is the same sub_flow step
+    # we just completed, treat it as end-of-workflow rather than looping infinitely.
+    if next_uuid == resume_node_uuid
+      Rails.logger.warn "[Scenario ##{id}] Sub-flow step #{resume_node_uuid} resolved back to itself — breaking loop"
+      advance_to_step_uuid(nil)
     else
-      # Linear mode: advance past the sub-flow step
-      resume_step = workflow.steps.find_by(uuid: resume_node_uuid)
-      if resume_step
-        self.current_step_index = resume_step.position + 1
-      end
+      advance_to_step_uuid(next_uuid)
     end
 
     self.resume_node_uuid = nil
@@ -376,18 +353,11 @@ class Scenario < ApplicationRecord
 
   # Build execution path entry for a step
   def build_path_entry(step)
-    entry = {
+    {
       step_title: step.title,
-      step_type: step.step_type
+      step_type: step.step_type,
+      step_uuid: step.uuid
     }
-
-    if graph_mode?
-      entry[:step_uuid] = step.uuid
-    else
-      entry[:step_index] = current_step_index
-    end
-
-    entry
   end
 
   # Process a question step
@@ -499,7 +469,7 @@ class Scenario < ApplicationRecord
     record_completion("resolved")
     # Resolve steps are always terminal - complete the scenario
     self.status = 'completed'
-    self.current_node_uuid = nil if graph_mode?
+    self.current_node_uuid = nil
   end
 
   # Process a sub-flow step - creates child scenario
@@ -553,10 +523,8 @@ class Scenario < ApplicationRecord
     )
 
     # Initialize child's starting position
-    if target_workflow.graph_mode?
-      start_uuid = target_workflow.start_step&.uuid || target_workflow.steps.first&.uuid
-      child_scenario.update!(current_node_uuid: start_uuid)
-    end
+    start_uuid = target_workflow.start_step&.uuid || target_workflow.steps.first&.uuid
+    child_scenario.update!(current_node_uuid: start_uuid)
 
     path_entry[:subflow_started] = true
     path_entry[:child_scenario_id] = child_scenario.id
@@ -583,26 +551,21 @@ class Scenario < ApplicationRecord
 
     record_completion("resolved")
     self.status = 'completed'
-    self.current_node_uuid = nil if graph_mode?
+    self.current_node_uuid = nil
   end
 
-  # Advance to the next step based on mode
+  # Advance to the next step using graph-based resolution
   def advance_to_next_step(step)
-    if graph_mode?
-      resolver = StepResolver.new(workflow)
-      next_result = resolver.resolve_next(step, self.results)
+    resolver = StepResolver.new(workflow)
+    next_result = resolver.resolve_next(step, self.results)
 
-      if next_result.is_a?(StepResolver::SubflowMarker)
-        # Will be handled in next process_step call
-        advance_to_step_uuid(next_result.step_uuid)
-      elsif next_result.is_a?(Step)
-        advance_to_step_uuid(next_result.uuid)
-      else
-        advance_to_step_uuid(nil)
-      end
+    if next_result.is_a?(StepResolver::SubflowMarker)
+      # Will be handled in next process_step call
+      advance_to_step_uuid(next_result.step_uuid)
+    elsif next_result.is_a?(Step)
+      advance_to_step_uuid(next_result.uuid)
     else
-      next_step_index = determine_next_step_index(step, self.results)
-      self.current_step_index = next_step_index
+      advance_to_step_uuid(nil)
     end
   end
 
@@ -615,22 +578,17 @@ class Scenario < ApplicationRecord
   def check_completion
     return if %w[stopped awaiting_subflow].include?(status)
 
-    if graph_mode?
-      if current_node_uuid.nil?
-        record_completion("completed") unless outcome.present?
-        self.status = 'completed'
-      else
-        step = current_step
-        if step.nil?
-          record_completion("completed") unless outcome.present?
-          self.status = 'completed'
-        elsif StepResolver.new(workflow).terminal?(step) && step.step_type != 'sub_flow'
-          # Terminal node that's not a sub-flow - will complete after processing
-        end
-      end
-    elsif current_step_index >= workflow.steps.count
+    if current_node_uuid.nil?
       record_completion("completed") unless outcome.present?
       self.status = 'completed'
+    else
+      step = current_step
+      if step.nil?
+        record_completion("completed") unless outcome.present?
+        self.status = 'completed'
+      elsif StepResolver.new(workflow).terminal?(step) && step.step_type != 'sub_flow'
+        # Terminal node that's not a sub-flow - will complete after processing
+      end
     end
   end
 

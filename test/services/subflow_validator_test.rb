@@ -71,6 +71,16 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     assert validator.errors.any? { |e| e.include?("maximum depth") }
   end
 
+  test "detects self-reference" do
+    wf = Workflow.create!(title: "Self Ref", user: @user, status: "published")
+    step = Steps::SubFlow.new(workflow: wf, position: 0, title: "Run self",
+                              sub_flow_workflow_id: wf.id, uuid: SecureRandom.uuid)
+    step.save(validate: false)
+    validator = SubflowValidator.new(wf.id)
+    assert_not validator.valid?
+    assert validator.errors.any? { |e| e.include?("Circular") }
+  end
+
   test "class methods valid? and errors_for work" do
     wf = Workflow.create!(title: "Class Method Test", user: @user)
     Steps::Action.create!(workflow: wf, position: 0, title: "A1")

@@ -12,7 +12,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
 
     q_step = Steps::Question.create!(workflow: workflow, position: 0, uuid: "a", title: "Q1", question: "Test?")
     a_step = Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "A1")
-    end_step = Steps::Action.create!(workflow: workflow, position: 2, uuid: "c", title: "End")
+    end_step = Steps::Resolve.create!(workflow: workflow, position: 2, uuid: "c", title: "End", resolution_type: "success")
 
     converter = WorkflowGraphConverter.new(workflow)
     assert converter.convert
@@ -35,7 +35,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
     workflow = Workflow.create!(title: "Valid Conversion", user: @user, graph_mode: false)
 
     Steps::Action.create!(workflow: workflow, position: 0, uuid: "a", title: "Start")
-    Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "End")
+    Steps::Resolve.create!(workflow: workflow, position: 1, uuid: "b", title: "End", resolution_type: "success")
 
     converter = WorkflowGraphConverter.new(workflow)
 
@@ -43,11 +43,13 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
     assert_empty converter.errors
   end
 
-  test "returns true for already graph mode workflow" do
-    workflow = Workflow.create!(title: "Already Graph", user: @user, graph_mode: true)
+  test "returns true for already converted workflow with transitions" do
+    workflow = Workflow.create!(title: "Already Graph", user: @user)
 
-    step = Steps::Action.create!(workflow: workflow, position: 0, uuid: "a", title: "Only Step")
-    workflow.update_column(:start_step_id, step.id)
+    step1 = Steps::Action.create!(workflow: workflow, position: 0, uuid: "a", title: "Start")
+    step2 = Steps::Resolve.create!(workflow: workflow, position: 1, uuid: "b", title: "End", resolution_type: "success")
+    Transition.create!(step: step1, target_step: step2, position: 0)
+    workflow.update_column(:start_step_id, step1.id)
 
     converter = WorkflowGraphConverter.new(workflow)
     assert converter.convert
@@ -61,7 +63,7 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
       variable_name: "skip", jumps: [{ "condition" => "yes", "next_step_id" => "c" }]
     )
     Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "Normal")
-    skip_target = Steps::Action.create!(workflow: workflow, position: 2, uuid: "c", title: "Skip Target")
+    skip_target = Steps::Resolve.create!(workflow: workflow, position: 2, uuid: "c", title: "Skip Target", resolution_type: "success")
 
     converter = WorkflowGraphConverter.new(workflow)
     assert converter.convert
@@ -80,6 +82,9 @@ class WorkflowGraphConverterTest < ActiveSupport::TestCase
     )
     a_step = Steps::Action.create!(
       workflow: workflow, position: 1, uuid: "b", title: "A1", action_type: "Email"
+    )
+    r_step = Steps::Resolve.create!(
+      workflow: workflow, position: 2, uuid: "c", title: "Done", resolution_type: "success"
     )
 
     converter = WorkflowGraphConverter.new(workflow)

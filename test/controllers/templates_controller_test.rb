@@ -27,14 +27,20 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
       category: "troubleshooting",
       is_public: true,
       graph_mode: false,
-      workflow_data: [{ type: "question", title: "Question 1", question: "What is your name?", answer_type: "text" }]
+      workflow_data: [
+        { "type" => "question", "title" => "Question 1", "question" => "What is your name?", "answer_type" => "text" },
+        { "type" => "resolve", "title" => "Done", "resolution_type" => "success" }
+      ]
     )
     @private_template = Template.create!(
       name: "Private Template",
       description: "A private template",
       category: "troubleshooting",
       is_public: false,
-      workflow_data: [{ type: "action", title: "Action 1", instructions: "Do something" }]
+      workflow_data: [
+        { "type" => "action", "title" => "Action 1" },
+        { "type" => "resolve", "title" => "Done", "resolution_type" => "success" }
+      ]
     )
     sign_in @editor
   end

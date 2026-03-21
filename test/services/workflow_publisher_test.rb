@@ -16,6 +16,10 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     @q_step = Steps::Question.create!(
       workflow: @workflow, position: 0, title: "Q1", question: "What?", variable_name: "q1"
     )
+    @r_step = Steps::Resolve.create!(
+      workflow: @workflow, position: 1, title: "Done", resolution_type: "success"
+    )
+    Transition.create!(step: @q_step, target_step: @r_step, position: 0)
     @workflow.update_column(:start_step_id, @q_step.id)
   end
 
@@ -90,16 +94,59 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects workflow with no Resolve terminal" do
+    # Create a workflow with only non-Resolve steps
+    no_resolve_wf = Workflow.create!(title: "No Resolve", user: @user, graph_mode: true, status: "draft")
+    a = Steps::Action.create!(workflow: no_resolve_wf, position: 0, title: "Only Action")
+    no_resolve_wf.update_column(:start_step_id, a.id)
+
+    result = WorkflowPublisher.publish(no_resolve_wf, @user)
+
+    assert_not result.success?
+    assert_match(/Resolve/i, result.error)
+  end
+
+  test "rejects workflow with unreachable orphan step" do
+    orphan_wf = Workflow.create!(title: "Orphan WF", user: @user, graph_mode: true, status: "draft")
+    q = Steps::Question.create!(workflow: orphan_wf, position: 0, title: "Q", question: "What?")
+    r = Steps::Resolve.create!(workflow: orphan_wf, position: 1, title: "Done", resolution_type: "success")
+    orphan = Steps::Action.create!(workflow: orphan_wf, position: 2, title: "Orphan")
+    Transition.create!(step: q, target_step: r, position: 0)
+    orphan_wf.update_column(:start_step_id, q.id)
+
+    result = WorkflowPublisher.publish(orphan_wf, @user)
+
+    assert_not result.success?
+    assert_match(/reachable/i, result.error)
+  end
+
+  test "publishes valid workflow with Resolve terminal and all reachable" do
+    valid_wf = Workflow.create!(title: "Valid", user: @user, graph_mode: true, status: "draft")
+    q = Steps::Question.create!(workflow: valid_wf, position: 0, title: "Q1", question: "What?", variable_name: "answer")
+    r = Steps::Resolve.create!(workflow: valid_wf, position: 1, title: "Done", resolution_type: "success")
+    Transition.create!(step: q, target_step: r, position: 0)
+    valid_wf.update_column(:start_step_id, q.id)
+
+    result = WorkflowPublisher.publish(valid_wf, @user)
+
+    assert result.success?, "Expected success, got: #{result.error}"
+    assert_equal 1, result.version.version_number
+  end
+
   test "published_version points to latest version" do
     WorkflowPublisher.publish(@workflow, @user)
 
-    # Add a new step and publish v2
-    Steps::Action.create!(workflow: @workflow, position: 1, title: "New Step")
-    @workflow.update!(graph_mode: false)
+    # Add a new step between Q1 and Done, rewire transitions for v2
+    new_step = Steps::Action.create!(workflow: @workflow, position: 1, title: "New Step")
+    @r_step.update!(position: 2)
+    # Remove old Q1->Done transition and add Q1->New->Done
+    @q_step.transitions.destroy_all
+    Transition.create!(step: @q_step, target_step: new_step, position: 0)
+    Transition.create!(step: new_step, target_step: @r_step, position: 0)
     result = WorkflowPublisher.publish(@workflow, @user, changelog: "v2")
 
     @workflow.reload
     assert_equal 2, @workflow.published_version.version_number
-    assert_equal "New Step", @workflow.published_version.steps_snapshot.last["title"]
+    assert_equal "New Step", @workflow.published_version.steps_snapshot[1]["title"]
   end
 end

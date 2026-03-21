@@ -61,6 +61,8 @@ class StepBuilder
   def call
     return if @steps_data.blank?
 
+    validate_has_resolve_step!
+
     Workflow.transaction do
       destroy_existing_steps if @replace
 
@@ -73,8 +75,8 @@ class StepBuilder
   private
 
   def destroy_existing_steps
-    @workflow.steps.destroy_all
     @workflow.update_column(:start_step_id, nil)
+    @workflow.steps.destroy_all
   end
 
   def create_steps
@@ -100,6 +102,19 @@ class StepBuilder
   end
 
   def create_transitions(step_records)
+    has_any_explicit = @steps_data.any? do |sd|
+      sd = normalize(sd)
+      sd["transitions"].is_a?(Array) && sd["transitions"].any?
+    end
+
+    if has_any_explicit
+      create_explicit_transitions(step_records)
+    else
+      create_sequential_transitions(step_records)
+    end
+  end
+
+  def create_explicit_transitions(step_records)
     @steps_data.each do |step_data|
       step_data = normalize(step_data)
       source = step_records[step_data["id"]]
@@ -121,6 +136,21 @@ class StepBuilder
           position: pos
         )
       end
+    end
+  end
+
+  def create_sequential_transitions(step_records)
+    sorted = step_records.values.sort_by(&:position)
+    sorted.each_cons(2) do |from_step, to_step|
+      Transition.create!(step: from_step, target_step: to_step, position: 0)
+    end
+  end
+
+  def validate_has_resolve_step!
+    has_resolve = @steps_data.any? { |sd| normalize(sd)["type"]&.downcase == "resolve" }
+    unless has_resolve
+      @workflow.errors.add(:base, "Workflow must contain at least one Resolve step")
+      raise ActiveRecord::RecordInvalid, @workflow
     end
   end
 

@@ -1,0 +1,34 @@
+<%#
+  Step List — builder step list with SortableJS drag-and-drop.
+
+  Local variables:
+  - workflow: Workflow object
+  - steps: ordered step collection (preloaded with transitions)
+%>
+<div class="builder__list"
+     data-controller="step-list"
+     data-step-list-reorder-url-value="<%= reorder_workflow_step_path(workflow, ':id') %>">
+
+  <div class="builder__list-scroll">
+    <div id="steps-list"
+         data-step-list-target="list"
+         role="list">
+      <% steps.each do |step| %>
+        <%= render "workflows/step_row", step: step, workflow: workflow %>
+      <% end %>
+    </div>
+
+    <% if steps.empty? %>
+      <%= render "workflows/empty_state", workflow: workflow %>
+    <% end %>
+  </div>
+
+  <%# Add Step Button (edit mode only) — outside scroll area so popover isn't clipped %>
+  <div class="builder__list-add-wrapper builder__edit-only">
+    <div class="builder__list-add"
+         data-action="click->step-list#toggleTypePicker">
+      + Add Step
+    </div>
+    <%= render "workflows/type_picker", workflow: workflow %>
+  </div>
+</div>

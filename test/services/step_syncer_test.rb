@@ -10,7 +10,8 @@ class StepSyncerTest < ActiveSupport::TestCase
     @workflow = Workflow.create!(
       title: "Syncer Test Workflow",
       user: @user,
-      graph_mode: true
+      graph_mode: true,
+      status: "draft"
     )
   end
 
@@ -121,15 +122,15 @@ class StepSyncerTest < ActiveSupport::TestCase
     assert_equal 400, step.position_y
   end
 
-  test "returns error on invalid record" do
+  test "accepts question without question text (validated on publish only)" do
     incoming = [
       { "id" => "u1", "type" => "question", "title" => "Q" }
-      # Missing required question field
     ]
 
     result = StepSyncer.call(@workflow, incoming)
 
-    assert_not result.success?
-    assert result.error.present?
+    # Question text validation only runs on :publish context
+    assert result.success?
+    assert_equal 1, @workflow.steps.reload.count
   end
 end

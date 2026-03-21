@@ -11,7 +11,6 @@ Rails.application.routes.draw do
     collection do
       get :import
       post :import_file
-      post :start_wizard
     end
     member do
       get :export
@@ -21,20 +20,14 @@ Rails.application.routes.draw do
       post :save_as_template
       get :start
       post :begin_execution
-      # Wizard routes
-      get :step1
-      patch :update_step1
-      get :step2
-      patch :update_step2
-      get :step3
-      patch :create_from_draft
-      # Step rendering for dynamic step creation (Sprint 3)
-      post :render_step
       # Publishing & versioning
       post :publish
       get :versions
       # AR step persistence
       patch :sync_steps
+      # Builder panel routes
+      get :flow_diagram
+      get :settings
     end
     resources :versions, only: [:show], controller: "workflow_versions" do
       member do
@@ -45,6 +38,7 @@ Rails.application.routes.draw do
     resources :steps, except: [:index] do
       member do
         patch :reorder
+        get :panel_edit
       end
     end
   end
@@ -89,5 +83,4 @@ Rails.application.routes.draw do
     end
     get "analytics", to: "analytics#index", as: :analytics
   end
-
 end

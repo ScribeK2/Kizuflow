@@ -19,6 +19,9 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
       user: @editor
     )
     @q1_step = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q1", question: "What?")
+    @resolve_step = Steps::Resolve.create!(workflow: @workflow, position: 1, title: "Done", resolution_type: "success")
+    Transition.create!(step: @q1_step, target_step: @resolve_step, position: 0)
+    @workflow.update_column(:start_step_id, @q1_step.id)
   end
 
   test "editor can publish their own workflow" do
@@ -45,6 +48,7 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
 
   test "publish fails for workflow with no steps" do
     sign_in @editor
+    @workflow.update_column(:start_step_id, nil)
     @workflow.steps.destroy_all
 
     assert_no_difference "WorkflowVersion.count" do
@@ -82,6 +86,7 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
     sign_in @editor
     WorkflowPublisher.publish(@workflow, @editor)
     # Change the workflow steps
+    @workflow.update_column(:start_step_id, nil)
     @workflow.steps.destroy_all
     Steps::Action.create!(workflow: @workflow, position: 0, title: "Changed")
     version = @workflow.versions.last # version 1 (oldest)

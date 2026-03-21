@@ -178,4 +178,18 @@ class ConditionEvaluatorTest < ActiveSupport::TestCase
   test "handles nil results" do
     assert_not ConditionEvaluator.evaluate("status == 'active'", nil)
   end
+
+  # ==========================================================================
+  # Instance API Tests (required by audit)
+  # ==========================================================================
+
+  test "instance evaluate works" do
+    evaluator = ConditionEvaluator.new("age > 21")
+    assert evaluator.evaluate({ "age" => "30" })
+    assert_not evaluator.evaluate({ "age" => "18" })
+  end
+
+  test "blank condition returns false on evaluate" do
+    assert_not ConditionEvaluator.evaluate("", { "status" => "active" })
+  end
 end

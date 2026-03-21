@@ -26,14 +26,20 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
       description: "A test workflow",
       user: @editor
     )
-    Steps::Question.create!(workflow: @workflow, position: 0, title: "Question 1", question: "What is your name?")
+    q1 = Steps::Question.create!(workflow: @workflow, position: 0, title: "Question 1", question: "What is your name?")
+    r1 = Steps::Resolve.create!(workflow: @workflow, position: 1, title: "Done", resolution_type: "success")
+    Transition.create!(step: q1, target_step: r1, position: 0)
+    @workflow.update_column(:start_step_id, q1.id)
     @public_workflow = Workflow.create!(
       title: "Public Workflow",
       description: "A public workflow",
       user: @editor,
       is_public: true
     )
-    Steps::Question.create!(workflow: @public_workflow, position: 0, title: "Question 1", question: "What is your name?")
+    q2 = Steps::Question.create!(workflow: @public_workflow, position: 0, title: "Question 1", question: "What is your name?")
+    r2 = Steps::Resolve.create!(workflow: @public_workflow, position: 1, title: "Done", resolution_type: "success")
+    Transition.create!(step: q2, target_step: r2, position: 0)
+    @public_workflow.update_column(:start_step_id, q2.id)
     sign_in @editor
   end
 
@@ -53,7 +59,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_redirected_to step1_workflow_path(Workflow.last)
+    assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "should create workflow" do
@@ -73,6 +79,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "should get edit" do
     get edit_workflow_path(@workflow)
 
+    assert_response :redirect
+    follow_redirect!
     assert_response :success
   end
 
@@ -102,7 +110,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     @workflow.reload
 
     assert_equal "Updated Title", @workflow.title
-    assert_equal 1, @workflow.steps.count
+    assert_equal 2, @workflow.steps.count
   end
 
   test "should update workflow with is_public flag" do
@@ -196,7 +204,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_redirected_to step1_workflow_path(Workflow.last)
+    assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "editor should be able to create workflows" do
@@ -204,7 +212,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
     end
-    assert_redirected_to step1_workflow_path(Workflow.last)
+    assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "user should not be able to create workflows" do
@@ -219,6 +227,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     get edit_workflow_path(@workflow)
 
+    assert_response :redirect
+    follow_redirect!
     assert_response :success
   end
 
@@ -226,6 +236,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get edit_workflow_path(@workflow)
 
+    assert_response :redirect
+    follow_redirect!
     assert_response :success
   end
 
@@ -479,19 +491,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Group 2", response.body
   end
 
-  # start_wizard and idempotent new tests
-  test "should create draft via POST start_wizard and redirect to step1" do
-    sign_in @editor
-    assert_difference("Workflow.count", 1) do
-      post start_wizard_workflows_path
-    end
-    workflow = Workflow.last
-    assert_equal "draft", workflow.status
-    assert_equal "Untitled Workflow", workflow.title
-    assert_redirected_to step1_workflow_path(workflow)
-  end
-
-  test "GET new creates a draft workflow and redirects to step1" do
+  test "GET new creates a draft workflow and redirects to builder" do
     sign_in @editor
     assert_difference("Workflow.count", 1) do
       get new_workflow_path
@@ -499,15 +499,82 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     workflow = Workflow.last
     assert_equal "draft", workflow.status
     assert_equal "Untitled Workflow", workflow.title
-    assert_redirected_to step1_workflow_path(workflow)
+    assert_redirected_to workflow_path(workflow, edit: true)
   end
 
-  test "user should not be able to start wizard" do
-    sign_in @user
-    assert_no_difference("Workflow.count") do
-      post start_wizard_workflows_path
-    end
-    assert_redirected_to root_path
-    assert_equal "You don't have permission to perform this action.", flash[:alert]
+  # ===========================================================================
+  # Backend Action Tests (sync_steps, publish, variables)
+  # ===========================================================================
+
+  test "sync_steps with valid data returns lock_version" do
+    sign_in @editor
+    draft = Workflow.create!(title: "Sync Draft", user: @editor, status: "draft")
+
+    patch sync_steps_workflow_path(draft), params: {
+      steps: [
+        { id: "u1", type: "question", title: "Q1", question: "What?", position: 0, transitions: [] },
+        { id: "u2", type: "resolve", title: "Done", resolution_type: "success", position: 1, transitions: [] }
+      ],
+      start_node_uuid: "u1",
+      lock_version: draft.lock_version
+    }, as: :json
+
+    assert_response :success
+    json = response.parsed_body
+    assert json["success"]
+    assert json["lock_version"].is_a?(Integer)
   end
+
+  test "sync_steps with stale lock_version returns 409" do
+    sign_in @editor
+    draft = Workflow.create!(title: "Stale Sync", user: @editor, status: "draft")
+
+    patch sync_steps_workflow_path(draft), params: {
+      steps: [{ id: "u1", type: "action", title: "A1", transitions: [] }],
+      start_node_uuid: "u1",
+      lock_version: draft.lock_version + 99
+    }, as: :json
+
+    assert_response :conflict
+    json = response.parsed_body
+    assert json["error"].present?
+  end
+
+  test "publish with valid graph succeeds" do
+    sign_in @editor
+    # @workflow already has Q1 -> Done (Resolve) from setup
+    assert_difference("WorkflowVersion.count", 1) do
+      post publish_workflow_path(@workflow), params: { changelog: "Test publish" }
+    end
+
+    assert_redirected_to workflow_path(@workflow)
+    @workflow.reload
+    assert_equal "published", @workflow.status
+    assert_not_nil @workflow.published_version
+  end
+
+  test "publish with invalid graph fails" do
+    sign_in @editor
+    bad_wf = Workflow.create!(title: "Bad Graph", user: @editor, status: "draft")
+    # Only an Action step, no Resolve terminal
+    a = Steps::Action.create!(workflow: bad_wf, position: 0, title: "Orphan Action")
+    bad_wf.update_column(:start_step_id, a.id)
+
+    assert_no_difference("WorkflowVersion.count") do
+      post publish_workflow_path(bad_wf)
+    end
+
+    assert_redirected_to workflow_path(bad_wf)
+    assert_match(/Resolve/, flash[:alert])
+  end
+
+  test "variables returns Question step variables" do
+    sign_in @editor
+    get variables_workflow_path(@workflow), as: :json
+
+    assert_response :success
+    json = response.parsed_body
+    assert json["variables"].is_a?(Array)
+  end
+
 end
