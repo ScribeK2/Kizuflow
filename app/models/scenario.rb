@@ -123,6 +123,19 @@ class Scenario < ApplicationRecord
     child_scenarios.find_by(status: %w[active awaiting_subflow])
   end
 
+  # Walk up the parent chain to find the top-level scenario.
+  # Used to reference the root workflow during seamless sub-flow traversal.
+  def root_scenario
+    current = self
+    current = current.parent_scenario while current.parent_scenario.present?
+    current
+  end
+
+  # The top-level workflow — always the root parent's workflow.
+  def root_workflow
+    root_scenario.workflow
+  end
+
   # Check if scenario is complete
   def complete?
     return true if completed?

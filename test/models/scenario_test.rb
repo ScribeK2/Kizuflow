@@ -258,4 +258,42 @@ class ScenarioTest < ActiveSupport::TestCase
     # Should continue normally since can_resolve is not set
     assert_equal "step-2", scenario.current_node_uuid
   end
+
+  # --- root_scenario / root_workflow tests ---
+
+  test "root_scenario returns self when no parent" do
+    wf = Workflow.create!(title: "Parent WF", user: @user)
+    Steps::Resolve.create!(workflow: wf, position: 0, title: "Done", uuid: SecureRandom.uuid)
+    scenario = Scenario.create!(workflow: wf, user: @user, inputs: {}, purpose: "simulation")
+    assert_equal scenario, scenario.root_scenario
+  end
+
+  test "root_scenario returns top-level parent through nested chain" do
+    parent_wf = Workflow.create!(title: "Parent WF", user: @user)
+    Steps::Resolve.create!(workflow: parent_wf, position: 0, title: "Done", uuid: SecureRandom.uuid)
+    child_wf = Workflow.create!(title: "Child WF", user: @user)
+    Steps::Resolve.create!(workflow: child_wf, position: 0, title: "Done", uuid: SecureRandom.uuid)
+    grandchild_wf = Workflow.create!(title: "Grandchild WF", user: @user)
+    Steps::Resolve.create!(workflow: grandchild_wf, position: 0, title: "Done", uuid: SecureRandom.uuid)
+
+    parent = Scenario.create!(workflow: parent_wf, user: @user, inputs: {}, purpose: "simulation")
+    child = Scenario.create!(workflow: child_wf, user: @user, parent_scenario: parent, inputs: {}, purpose: "simulation")
+    grandchild = Scenario.create!(workflow: grandchild_wf, user: @user, parent_scenario: child, inputs: {}, purpose: "simulation")
+
+    assert_equal parent, grandchild.root_scenario
+    assert_equal parent, child.root_scenario
+  end
+
+  test "root_workflow returns parent workflow even from nested child" do
+    parent_wf = Workflow.create!(title: "Parent WF", user: @user)
+    Steps::Resolve.create!(workflow: parent_wf, position: 0, title: "Done", uuid: SecureRandom.uuid)
+    child_wf = Workflow.create!(title: "Child WF", user: @user)
+    Steps::Resolve.create!(workflow: child_wf, position: 0, title: "Done", uuid: SecureRandom.uuid)
+
+    parent = Scenario.create!(workflow: parent_wf, user: @user, inputs: {}, purpose: "simulation")
+    child = Scenario.create!(workflow: child_wf, user: @user, parent_scenario: parent, inputs: {}, purpose: "simulation")
+
+    assert_equal parent_wf, child.root_workflow
+    assert_equal parent_wf, parent.root_workflow
+  end
 end
