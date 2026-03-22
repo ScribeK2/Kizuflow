@@ -31,7 +31,10 @@ export default class extends Controller {
     details.classList.toggle("is-hidden")
 
     if (icon) {
-      icon.style.transform = isHidden ? "rotate(90deg)" : ""
+      icon.animate([
+        { transform: isHidden ? "rotate(0deg)" : "rotate(90deg)" },
+        { transform: isHidden ? "rotate(90deg)" : "rotate(0deg)" }
+      ], { duration: 150, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "forwards" })
     }
 
     // Update aria-expanded on the toggle button
@@ -42,7 +45,10 @@ export default class extends Controller {
     this.detailsTargets.forEach((details, index) => {
       details.classList.remove("is-hidden")
       const icon = this.toggleIconTargets[index]
-      if (icon) icon.style.transform = "rotate(90deg)"
+      if (icon) icon.animate(
+        [{ transform: "rotate(0deg)" }, { transform: "rotate(90deg)" }],
+        { duration: 150, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "forwards" }
+      )
     })
 
     this.element.querySelectorAll("[aria-expanded]").forEach(el => {
@@ -54,7 +60,10 @@ export default class extends Controller {
     this.detailsTargets.forEach((details, index) => {
       details.classList.add("is-hidden")
       const icon = this.toggleIconTargets[index]
-      if (icon) icon.style.transform = ""
+      if (icon) icon.animate(
+        [{ transform: "rotate(90deg)" }, { transform: "rotate(0deg)" }],
+        { duration: 150, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "forwards" }
+      )
     })
 
     this.element.querySelectorAll("[aria-expanded]").forEach(el => {

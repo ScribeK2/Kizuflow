@@ -33,6 +33,11 @@ export default class extends Controller {
       })
     }
 
+    // Dynamic page title
+    if (this.hasStepInfoValue && this.stepInfoValue) {
+      document.title = `Step ${this.stepInfoValue} — TurboFlows`
+    }
+
     // ARIA announcement
     if (this.hasAnnounceTarget && this.stepInfoValue) {
       this.announceTarget.textContent = this.stepInfoValue
@@ -102,6 +107,13 @@ export default class extends Controller {
 
     this.submitted = true
     this.formTarget.dataset.submitting = "true"
+
+    // Fade out content before submitting
+    const content = this.element.querySelector(".scenario-content-layout") || this.formTarget
+    content.animate([
+      { opacity: 1 },
+      { opacity: 0 }
+    ], { duration: 120, easing: "ease-out", fill: "forwards" })
 
     // Show spinner on submit button
     if (this.hasSubmitTarget) {

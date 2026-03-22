@@ -21,18 +21,21 @@
   padding: 0.875rem 1.125rem;
   border: 2px solid #e2e8f0;
   border-left: 4px solid #e2e8f0;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    border-color var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
   background: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .radio-card:hover {
-  border-color: #94a3b8;
+  border-color: var(--color-border-strong);
   border-left-color: #3b82f6;
   background: #f8fafc;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
   transform: translateY(-1px);
 }
 
@@ -44,8 +47,11 @@
 .radio-card:has(input:checked) {
   border-color: #3b82f6;
   border-left-color: #3b82f6;
+  border-left-width: 4px;
   background: #eff6ff;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.1);
+  transition: border-left-width var(--duration-fast) var(--ease-spring),
+              background var(--duration-fast) var(--ease-out);
 }
 
 /* Radio dot (selection indicator) */
@@ -295,13 +301,13 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: #94a3b8;
-  transition: color 0.2s ease;
+  color: var(--color-ink-muted);
+  transition: color var(--duration-fast) var(--ease-spring);
   z-index: 1;
 }
 
 .scenario-input-wrap:focus-within .scenario-input-icon {
-  color: #3b82f6;
+  color: var(--color-primary);
 }
 
 .scenario-input-wrap .scenario-input {
@@ -524,9 +530,10 @@
 
 .stepper-pill--current {
   background: var(--color-link);
-  border-color: var(--color-link);
+  border-color: var(--color-primary);
   color: oklch(1 0 0);
   box-shadow: 0 0 0 3px oklch(0.55 0.2 260 / 0.2);
+  animation: subtlePulse 2s var(--ease-in-out) infinite;
 }
 
 .stepper-pill--pending {
@@ -537,6 +544,7 @@
   background: var(--color-positive);
   border-color: var(--color-positive);
   color: oklch(1 0 0);
+  animation: none;
 }
 
 /* Step-type-colored completed pills */
@@ -556,6 +564,12 @@
   height: 2px;
   background: var(--color-border);
   flex-shrink: 0;
+  transition: background var(--duration-normal) var(--ease-out);
+}
+
+.scenario-step-connector.is-completed {
+  background: var(--color-positive);
+  transition: background var(--duration-normal) var(--ease-out);
 }
 
 .scenario-step-current {
@@ -587,9 +601,9 @@
 
 .scenario-progress-bar {
   height: 100%;
-  background: var(--color-link);
+  background: linear-gradient(90deg, var(--color-primary), oklch(0.60 0.18 250));
   border-radius: var(--radius-full);
-  transition: width 0.3s ease;
+  transition: width var(--duration-normal) var(--ease-out);
 }
 
 /* ============================================================================
@@ -833,11 +847,22 @@
   border-radius: var(--radius);
   padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
   background: var(--color-canvas-alt);
-  transition: background var(--duration-fast) var(--ease-out);
+  transition: background var(--duration-snap) var(--ease-out),
+              box-shadow var(--duration-snap) var(--ease-out);
 }
 
 .exec-step:hover {
-  background: var(--color-canvas);
+  background: oklch(0.96 0.01 var(--step-hue, 245));
+  box-shadow: 0 1px 4px oklch(0.25 0.02 245 / 0.06);
+}
+
+.exec-step .scenario-result__copy {
+  opacity: 0;
+  transition: opacity var(--duration-snap) var(--ease-out);
+}
+
+.exec-step:hover .scenario-result__copy {
+  opacity: 1;
 }
 
 .exec-step--question  { border-left-color: oklch(0.65 0.18 var(--hue-question)); }
