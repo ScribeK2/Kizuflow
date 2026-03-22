@@ -11,22 +11,31 @@
     box-shadow var(--duration-fast) var(--ease-out);
 }
 
-.card:hover {
-  box-shadow: var(--shadow);
-}
-
 /* ─── Top-Bordered Cards ─── */
 .card--bordered-top {
-  border-top: 3px solid var(--color-border);
+  border-top: 3.5px solid var(--color-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.card--bordered-top::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to bottom, oklch(0.55 0.15 var(--step-hue, 245) / 0.15), transparent);
+  pointer-events: none;
 }
 
 /* Step type colored top borders (using new hue tokens via legacy aliases) */
-.card--question  { border-top-color: oklch(0.55 0.20 var(--color-step-question)); }
-.card--action    { border-top-color: oklch(0.60 0.19 var(--color-step-action)); }
-.card--message   { border-top-color: oklch(0.55 0.18 var(--color-step-message)); }
-.card--escalate  { border-top-color: oklch(0.55 0.22 var(--color-step-escalate)); }
-.card--resolve   { border-top-color: oklch(0.60 0.19 var(--color-step-resolve)); }
-.card--sub-flow  { border-top-color: oklch(0.55 0.18 var(--color-step-subflow)); }
+.card--question  { border-top-color: oklch(0.55 0.20 var(--color-step-question)); --step-hue: var(--hue-question); }
+.card--action    { border-top-color: oklch(0.60 0.19 var(--color-step-action));   --step-hue: var(--hue-action); }
+.card--message   { border-top-color: oklch(0.55 0.18 var(--color-step-message));  --step-hue: var(--hue-message); }
+.card--escalate  { border-top-color: oklch(0.55 0.22 var(--color-step-escalate)); --step-hue: var(--hue-escalate); }
+.card--resolve   { border-top-color: oklch(0.60 0.19 var(--color-step-resolve));  --step-hue: var(--hue-resolve); }
+.card--sub-flow  { border-top-color: oklch(0.55 0.18 var(--color-step-subflow));  --step-hue: var(--hue-subflow); }
 
 /* ─── Card with Left Accent ─── */
 .card--accent-left {
@@ -50,7 +59,7 @@
 }
 
 .card--interactive:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -62,7 +71,7 @@
 /* ─── Card Sections ─── */
 .card__header {
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid oklch(0.89 0.015 245 / 0.5);
 }
 
 .card__body {
@@ -71,7 +80,7 @@
 
 .card__footer {
   padding: var(--space-3) var(--space-5);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid oklch(0.89 0.015 245 / 0.5);
 }
 
 /* ============================================================================
@@ -81,11 +90,18 @@
 
 .alert {
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
   font-size: var(--text-sm);
   line-height: var(--line-height-normal);
 }
+
+.alert--info    { border-left-color: var(--color-primary); }
+.alert--warning { border-left-color: var(--color-warning); }
+.alert--success { border-left-color: var(--color-positive); }
+.alert--error,
+.alert--danger  { border-left-color: var(--color-negative); }
 
 .alert--info {
   background: oklch(0.96 0.04 250);
