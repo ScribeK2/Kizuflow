@@ -1,27 +1,42 @@
 @layer components {
-/* tooltips.css — Tooltip components */
+/* tooltips.css — Tooltip component */
 
 .tooltip {
   position: absolute;
   z-index: var(--z-tooltip);
-  padding: 0.375rem 0.75rem;
   background: var(--color-ink);
-  color: var(--color-canvas);
+  color: oklch(1 0 0);
   font-size: var(--text-xs);
-  border-radius: var(--radius);
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--duration-fast) var(--ease-spring),
+              transform var(--duration-fast) var(--ease-spring);
+}
+
+.tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .tooltip::after {
   content: "";
   position: absolute;
-  bottom: -4px;
+  top: 100%;
   left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  width: 8px;
-  height: 8px;
-  background: var(--color-ink);
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--color-ink);
+}
+
+.tooltip--bottom::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--color-ink);
 }
 }

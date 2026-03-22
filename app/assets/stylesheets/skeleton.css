@@ -1,0 +1,43 @@
+@layer components {
+/* skeleton.css — Shimmer loading states */
+
+.skeleton {
+  background: var(--color-canvas-alt);
+  background-image: linear-gradient(
+    90deg,
+    var(--color-canvas-alt) 0%,
+    var(--color-canvas-raised) 40%,
+    var(--color-canvas-alt) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s var(--ease-in-out) infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton--text {
+  height: 0.875rem;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton--text:last-child {
+  width: 60%;
+}
+
+.skeleton--heading {
+  height: 1.25rem;
+  width: 40%;
+  margin-bottom: var(--space-3);
+}
+
+.skeleton--button {
+  height: 2.25rem;
+  width: 6rem;
+  border-radius: var(--radius-md);
+}
+
+.skeleton--card {
+  height: 5rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+}
+}
