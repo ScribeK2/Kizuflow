@@ -11,12 +11,12 @@
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: var(--line-height-tight);
   cursor: pointer;
-  border: 1px solid var(--btn-border);
+  border: 1.5px solid var(--btn-border);
   background: var(--btn-bg);
   color: var(--btn-text);
   transition:
@@ -24,7 +24,7 @@
     color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    transform var(--duration-fast) var(--ease-spring);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -35,29 +35,37 @@
 }
 
 .btn:active:not(:disabled):not(.is-disabled) {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 /* ─── Primary ─── */
 .btn--primary {
-  --btn-bg: var(--color-primary);
+  --btn-bg: oklch(0.54 0.19 250);
   --btn-text: oklch(1 0 0);
-  --btn-border: var(--color-primary);
+  --btn-border: oklch(0.48 0.20 250);
+  background: linear-gradient(180deg, oklch(0.56 0.18 250), oklch(0.52 0.20 250));
+  box-shadow: 0 1px 2px oklch(0.30 0.10 250 / 0.2), 0 2px 6px oklch(0.30 0.10 250 / 0.1);
 }
 
 .btn--primary:hover {
-  --btn-bg: var(--color-primary-hover);
-  --btn-border: var(--color-primary-hover);
+  background: linear-gradient(180deg, oklch(0.52 0.20 250), oklch(0.48 0.22 250));
+  --btn-border: oklch(0.44 0.22 250);
+  box-shadow: 0 2px 4px oklch(0.30 0.10 250 / 0.25), 0 4px 12px oklch(0.30 0.10 250 / 0.15);
+}
+
+.btn--primary:active:not(:disabled) {
+  background: oklch(0.50 0.20 250);
+  box-shadow: inset 0 1px 3px oklch(0.20 0.10 250 / 0.25), 0 1px 2px oklch(0.30 0.10 250 / 0.1);
 }
 
 [data-theme="dark"] .btn--primary {
-  --btn-bg: var(--color-primary);
-  --btn-border: var(--color-primary);
+  --btn-border: oklch(0.60 0.16 250);
+  background: linear-gradient(180deg, oklch(0.72 0.17 250), oklch(0.68 0.19 250));
 }
 
 [data-theme="dark"] .btn--primary:hover {
-  --btn-bg: var(--color-primary-hover);
-  --btn-border: var(--color-primary-hover);
+  background: linear-gradient(180deg, oklch(0.68 0.19 250), oklch(0.64 0.20 250));
+  --btn-border: oklch(0.56 0.18 250);
 }
 
 /* ─── Secondary ─── */
@@ -65,11 +73,17 @@
   --btn-bg: var(--color-canvas-raised);
   --btn-text: var(--color-ink);
   --btn-border: var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn--secondary:hover {
   --btn-border: var(--color-border-strong);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
+}
+
+.btn--secondary:active:not(:disabled) {
+  box-shadow: none;
+  transform: scale(0.97);
 }
 
 /* ─── Plain / Ghost ─── */
@@ -78,6 +92,9 @@
   --btn-text: var(--color-ink-subtle);
   --btn-border: transparent;
   padding: var(--space-2) var(--space-3);
+  transition:
+    background var(--duration-snap) var(--ease-out),
+    color var(--duration-snap) var(--ease-out);
 }
 
 .btn--plain:hover {
@@ -160,18 +177,34 @@
   animation: spin 0.6s linear infinite;
 }
 
+.btn.is-loading::before {
+  content: "";
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  opacity: 0;
+  animation: pulse-ring 1.2s var(--ease-out) infinite;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.4; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
 /* ─── Step Type Buttons ─── */
-.btn--step-question  { --btn-bg: oklch(0.50 0.14 var(--hue-question));  --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-question)); }
-.btn--step-action    { --btn-bg: oklch(0.50 0.14 var(--hue-action));    --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-action)); }
-.btn--step-message   { --btn-bg: oklch(0.50 0.14 var(--hue-message));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-message)); }
-.btn--step-escalate  { --btn-bg: oklch(0.55 0.18 var(--hue-escalate));  --btn-text: oklch(1 0 0); --btn-border: oklch(0.55 0.18 var(--hue-escalate)); }
-.btn--step-resolve   { --btn-bg: oklch(0.50 0.14 var(--hue-resolve));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-resolve)); }
-.btn--step-subflow   { --btn-bg: oklch(0.50 0.14 var(--hue-subflow));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-subflow)); }
-.btn--step-sub-flow  { --btn-bg: oklch(0.50 0.14 var(--hue-subflow));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.50 0.14 var(--hue-subflow)); }
+.btn--step-question  { background: linear-gradient(180deg, oklch(0.52 0.13 var(--hue-question)), oklch(0.48 0.15 var(--hue-question)));  --btn-text: oklch(1 0 0); --btn-border: oklch(0.44 0.15 var(--hue-question)); }
+.btn--step-action    { background: linear-gradient(180deg, oklch(0.52 0.13 var(--hue-action)), oklch(0.48 0.15 var(--hue-action)));    --btn-text: oklch(1 0 0); --btn-border: oklch(0.44 0.15 var(--hue-action)); }
+.btn--step-message   { background: linear-gradient(180deg, oklch(0.52 0.13 var(--hue-message)), oklch(0.48 0.15 var(--hue-message)));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.44 0.15 var(--hue-message)); }
+.btn--step-escalate  { background: linear-gradient(180deg, oklch(0.57 0.17 var(--hue-escalate)), oklch(0.53 0.19 var(--hue-escalate)));  --btn-text: oklch(1 0 0); --btn-border: oklch(0.49 0.19 var(--hue-escalate)); }
+.btn--step-resolve   { background: linear-gradient(180deg, oklch(0.52 0.13 var(--hue-resolve)), oklch(0.48 0.15 var(--hue-resolve)));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.44 0.15 var(--hue-resolve)); }
+.btn--step-subflow   { background: linear-gradient(180deg, oklch(0.52 0.13 var(--hue-subflow)), oklch(0.48 0.15 var(--hue-subflow)));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.44 0.15 var(--hue-subflow)); }
+.btn--step-sub-flow  { background: linear-gradient(180deg, oklch(0.52 0.13 var(--hue-subflow)), oklch(0.48 0.15 var(--hue-subflow)));   --btn-text: oklch(1 0 0); --btn-border: oklch(0.44 0.15 var(--hue-subflow)); }
 
 /* ─── Button Group ─── */
 .btn-group {
