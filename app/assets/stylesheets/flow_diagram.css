@@ -58,6 +58,12 @@
     max-width: 14rem;
     font-size: 0.8125rem;
     position: relative;
+    transition: box-shadow var(--duration-snap) var(--ease-out),
+                background var(--duration-snap) var(--ease-out);
+  }
+
+  .flow-diagram__node:hover {
+    box-shadow: var(--shadow);
   }
 
   .flow-diagram__node-number {
