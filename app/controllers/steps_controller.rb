@@ -128,9 +128,18 @@ class StepsController < ApplicationController
   def destroy
     @step.destroy
     Step.rebalance_positions(@workflow)
+    remaining_steps = @workflow.steps.reload.count
 
     respond_to do |format|
-      format.turbo_stream { render turbo_stream: turbo_stream.remove(dom_id(@step)) }
+      format.turbo_stream do
+        streams = [turbo_stream.remove(dom_id(@step))]
+        if remaining_steps.zero?
+          streams << turbo_stream.append("steps-list",
+            partial: "workflows/empty_state",
+            locals: { workflow: @workflow })
+        end
+        render turbo_stream: streams
+      end
       format.html { redirect_to workflow_path(@workflow, edit: true), notice: "Step removed." }
       format.json { head :no_content }
     end

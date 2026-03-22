@@ -530,7 +530,7 @@
     border: 1px solid var(--color-border);
     border-left: 3px solid var(--color-border-strong);
     border-radius: var(--radius);
-    opacity: 0.15;
+    opacity: 0.35;
   }
 
   .empty-state__ghost-row:nth-child(1) { transform: rotate(-2deg); border-left-color: oklch(0.55 0.18 var(--hue-question)); }
