@@ -26,11 +26,6 @@
 }
 
 @starting-style {
-  .dialog__panel {
-    opacity: 0;
-    transform: scale(0.95) translateY(8px);
-  }
-
   .dialog[open] {
     opacity: 0;
     transform: scale(0.95) translateY(8px);

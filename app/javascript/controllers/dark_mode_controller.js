@@ -28,11 +28,15 @@ export default class extends Controller {
     // Suppress all CSS transitions for an instant theme switch
     this.disableTransitions()
 
-    if (document.documentElement.dataset.theme === "dark") {
+    const isDark = document.documentElement.dataset.theme === "dark"
+    if (isDark) {
       this.enableLightMode()
     } else {
       this.enableDarkMode()
     }
+
+    // Animate the icon swap on explicit toggle
+    this.updateIcons(!isDark, true)
 
     // Re-enable transitions after the browser has painted the new theme
     requestAnimationFrame(() => {
@@ -54,7 +58,7 @@ export default class extends Controller {
     this.updateIcons(false)
   }
 
-  updateIcons(isDark) {
+  updateIcons(isDark, animate = false) {
     if (this.hasSunIconTarget && this.hasMoonIconTarget) {
       if (isDark) {
         this.sunIconTarget.classList.remove("is-hidden")
@@ -64,11 +68,13 @@ export default class extends Controller {
         this.moonIconTarget.classList.remove("is-hidden")
       }
 
-      const activeIcon = isDark ? this.sunIconTarget : this.moonIconTarget
-      activeIcon.animate([
-        { transform: "rotate(-90deg)", opacity: 0 },
-        { transform: "rotate(0deg)", opacity: 1 }
-      ], { duration: 250, easing: "cubic-bezier(0.16, 1, 0.3, 1)" })
+      if (animate) {
+        const activeIcon = isDark ? this.sunIconTarget : this.moonIconTarget
+        activeIcon.animate([
+          { transform: "rotate(-90deg)", opacity: 0 },
+          { transform: "rotate(0deg)", opacity: 1 }
+        ], { duration: 250, easing: "cubic-bezier(0.16, 1, 0.3, 1)" })
+      }
     }
   }
 
