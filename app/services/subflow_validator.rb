@@ -145,6 +145,15 @@ class SubflowValidator
   def validate_no_circular_subflows(workflow, path)
     return if workflow.nil?
 
+    # Grey is consulted BEFORE black, and that order is the correctness of the
+    # whole thing: a back edge points at a node that is on the current path, and
+    # if the black check ran first it would skip that edge and miss the cycle.
+    # Reversing these two lines makes six tests in this file fail — checked.
+    #
+    # Given that order, marking black on exit rather than on entry is a matter of
+    # meaning, not behaviour (also checked: moving it makes nothing fail). It is
+    # on exit because black is meant to say "this subtree is proven acyclic",
+    # not "seen once".
     if @on_path.include?(workflow.id)
       cycle_start = path.index(workflow.id)
       cycle_path = path[cycle_start..] + [workflow.id]

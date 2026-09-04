@@ -195,4 +195,60 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     Workflow.where(user: user).destroy_all if user
     user&.destroy
   end
+  # The shape three-colour DFS could plausibly break.
+  #
+  # D is reachable from the root by two routes (via B and via C), and the cycle
+  # exists only through the second one. If a node were marked black too eagerly,
+  # the walk would skip the subtree on its second visit and never find the back
+  # edge. Black must mean "this subtree is proven acyclic", not "seen once".
+  test "a cycle reachable by only one of several routes is still found" do
+    user = User.create!(email: "twoway-#{SecureRandom.hex(4)}@example.com",
+                        password: "password123456", role: "editor")
+    a, b, c, d = %w[A B C D].map do |name|
+      wf = user.workflows.create!(title: "TwoWay #{name}", status: "draft")
+      Steps::Resolve.create!(workflow: wf, position: 0, title: "Done", resolution_type: "success")
+      wf
+    end
+    link = lambda do |from, to, pos|
+      Steps::SubFlow.create!(workflow: from, position: pos, title: "To #{to.title}",
+                             sub_flow_workflow_id: to.id)
+    end
+
+    link.call(a, b, 1)   # A -> B -> D   (clean route, explored first)
+    link.call(b, d, 1)
+    link.call(a, c, 2)   # A -> C -> D   (second route into D)
+    link.call(c, d, 1)
+    link.call(d, c, 2)   # D -> C        (back edge: the cycle is C -> D -> C)
+
+    validator = SubflowValidator.new(a.id)
+
+    assert_not validator.valid?
+    assert(validator.findings.any? { |f| f.code == :circular_subflow },
+           "the cycle through the second route must still be found: " \
+           "#{validator.findings.map(&:code).inspect}")
+  ensure
+    Workflow.where(user: user).destroy_all if user
+    user&.destroy
+  end
+
+  test "a diamond with no cycle is still reported clean" do
+    user = User.create!(email: "diamond-#{SecureRandom.hex(4)}@example.com",
+                        password: "password123456", role: "editor")
+    a, b, c, d = %w[A B C D].map do |name|
+      wf = user.workflows.create!(title: "Diamond #{name}", status: "draft")
+      Steps::Resolve.create!(workflow: wf, position: 0, title: "Done", resolution_type: "success")
+      wf
+    end
+    [[a, b], [a, c], [b, d], [c, d]].each_with_index do |(from, to), i|
+      Steps::SubFlow.create!(workflow: from, position: i + 1, title: "To #{to.title}",
+                             sub_flow_workflow_id: to.id)
+    end
+
+    validator = SubflowValidator.new(a.id)
+
+    assert_predicate validator, :valid?, validator.findings.map(&:message).inspect
+  ensure
+    Workflow.where(user: user).destroy_all if user
+    user&.destroy
+  end
 end
