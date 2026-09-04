@@ -155,4 +155,44 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     assert_equal SubflowValidator::MAX_DEPTH, finding.details[:max_depth]
     assert_operator finding.details[:depth], :>, SubflowValidator::MAX_DEPTH
   end
+  # A fan-out DAG with NO cycle: workflow i references every j > i.
+  #
+  # Before the three-colour fix this enumerated every simple path, so a graph a
+  # single import can now build took minutes and then hours: measured 0.7s at 8
+  # workflows, 4.3s at 12, 16s at 14, 61s at 16 - roughly doubling per workflow,
+  # inside the import's open write transaction and again on every later save.
+  # A wall-clock bound is a blunt assertion, but it is the only kind that fails
+  # on a complexity regression; correctness alone cannot see this.
+  test "a fan-out graph validates in linear time, not by enumerating every path" do
+    user = User.create!(email: "fanout-#{SecureRandom.hex(4)}@example.com",
+                        password: "password123456", role: "editor")
+    n = 16
+    flows = (0...n).map do |i|
+      wf = user.workflows.create!(title: "Fan #{i}", status: "draft")
+      Steps::Resolve.create!(workflow: wf, position: 0, title: "Done", resolution_type: "success")
+      wf
+    end
+    flows.each_with_index do |wf, i|
+      ((i + 1)...n).each_with_index do |j, k|
+        Steps::SubFlow.create!(workflow: wf, position: k + 1, title: "To #{j}",
+                               sub_flow_workflow_id: flows[j].id)
+      end
+    end
+
+    validator = SubflowValidator.new(flows.first.id)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    validator.valid?
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+    # Depth 16 legitimately exceeds MAX_DEPTH; what must NOT appear is a cycle,
+    # because there isn't one. The point of the test is the clock.
+    assert_empty validator.findings.select { |f| f.code == :circular_subflow },
+                 "a fan-out DAG has no cycle"
+
+    assert_operator elapsed, :<, 5.0,
+                    "#{n} workflows took #{elapsed.round(1)}s - the traversal is exponential again"
+  ensure
+    Workflow.where(user: user).destroy_all if user
+    user&.destroy
+  end
 end

@@ -129,6 +129,36 @@ class StrictImportValidatorTest < ActiveSupport::TestCase
     assert_equal ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE, report.workflows_data.size
   end
 
+  test "a non-string workflow title is refused" do
+    # A JSON `true` compares as "true" everywhere in the validator and is cast to
+    # "t" by ActiveModel on save, so an in-bundle sub_flow target matched here and
+    # bound to nothing at import time — with the import reporting success.
+    [true, 42, %w[a b], { "x" => 1 }].each do |bad|
+      report = validate({ schema_version: "1", workflows: [minimal_workflow.merge(title: bad)] })
+
+      assert_not report.valid?, "#{bad.inspect} should be refused"
+      assert_equal "invalid_workflow_title", report.errors.first[:code]
+    end
+  end
+
+  test "an unknown workflow-level field is refused rather than ignored" do
+    report = validate({ schema_version: "1",
+                        workflows: [minimal_workflow.merge(start_step: "done")] })
+
+    assert_not report.valid?,
+               "a misspelled start_step_id used to be dropped in silence"
+    assert_equal "unknown_field", report.errors.first[:code]
+    assert_equal "workflows[0].start_step", report.errors.first[:path]
+  end
+
+  test "every documented workflow field is still accepted" do
+    report = validate({ schema_version: "1", workflows: [minimal_workflow.merge(
+      description: "d", start_step_id: "done", tags: ["t"]
+    )] })
+
+    assert_predicate report, :valid?, report.errors.inspect
+  end
+
   test "an empty workflows array is refused" do
     report = validate({ schema_version: "1", workflows: [] })
 

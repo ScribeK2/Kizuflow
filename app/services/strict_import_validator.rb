@@ -244,7 +244,18 @@ class StrictImportValidator
         title = step["target_workflow_title"].to_s.strip
         path = "#{path_for(w_index)}.steps[#{index}].target_workflow_title"
 
-        next if bundle_titles.include?(title.downcase)
+        if bundle_titles.include?(title.downcase)
+          # The bundle wins, deliberately — but say so. Silently rebinding every
+          # sub_flow from an existing published workflow to a new draft of the
+          # same name, with the report page saying nothing, is the wrong-result-
+          # no-error shape this dialect exists to remove.
+          if visible_published_workflows(title).exists?
+            add_warning(path, "shadowed_published_target", title,
+                        "A published workflow is also titled #{title.inspect}. This sub-flow " \
+                        "will run the copy defined in this file, not the published one.")
+          end
+          next
+        end
 
         published = visible_published_workflows(title)
 
@@ -402,6 +413,7 @@ class StrictImportValidator
   # --- structure -------------------------------------------------------------
 
   def validate_structure(workflow, workflow_path)
+    validate_workflow_fields(workflow, workflow_path)
     validate_workflow_title(workflow, workflow_path)
 
     steps = workflow["steps"]
@@ -437,8 +449,38 @@ class StrictImportValidator
   # the dry run would report "valid" and the commit would then fail on an AR
   # validation, breaking the promise the report rests on: it says exactly what
   # committing would say.
+  # The keys a workflow object may carry, from the same schema branch the steps
+  # are checked against.
+  #
+  # Nothing checked the workflow envelope at all: `validate_fields` runs per
+  # step, so a misspelled workflow-level key was silently ignored. An agent
+  # writing `start_step` instead of `start_step_id` got no error and a workflow
+  # that quietly started at its first step — a silent drop, in the dialect whose
+  # whole purpose is that a file cannot fail quietly.
+  def validate_workflow_fields(workflow, workflow_path)
+    allowed = workflow_schema_properties.keys
+
+    workflow.each_key do |key|
+      next if allowed.include?(key)
+
+      add_error("#{workflow_path}.#{key}", "unknown_field", workflow[key],
+                "#{key} is not a field on a workflow.", expected: allowed.sort)
+    end
+  end
+
   def validate_workflow_title(workflow, workflow_path)
     title = workflow["title"]
+
+    # Type-checked, not just coerced. A JSON `true` passes `.to_s` as "true" and
+    # every downstream comparison uses that, but ActiveModel casts the column to
+    # "t" on save — so an in-bundle sub_flow target matched at validation time
+    # and bound to nothing at import time, with the import reporting success.
+    # Two titles that differ before the cast and collide after it also defeated
+    # the duplicate-title check that in-bundle resolution depends on.
+    if !title.nil? && !title.is_a?(String)
+      return add_error("#{workflow_path}.title", "invalid_workflow_title", title,
+                       "A workflow title must be a string, not #{title.class.name.downcase}.")
+    end
 
     if title.blank?
       add_error("#{workflow_path}.title", "invalid_workflow_title", title,
@@ -621,9 +663,16 @@ class StrictImportValidator
     @allowed_keys[type] ||= schema_branch(type)["properties"].keys
   end
 
-  def schema_branch(type)
+  def workflow_schema_properties
+    schema.dig("$defs", "workflow", "properties")
+  end
+
+  def schema
     @schema ||= ImportSchemaGenerator.call
-    @schema["$defs"]["step"]["oneOf"].find { |b| b["properties"]["type"]["const"] == type }
+  end
+
+  def schema_branch(type)
+    schema["$defs"]["step"]["oneOf"].find { |b| b["properties"]["type"]["const"] == type }
   end
 
   # --- reporting -------------------------------------------------------------

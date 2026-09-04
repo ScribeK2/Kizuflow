@@ -3,6 +3,8 @@ module Workflows
     before_action :authenticate_user!
     before_action :ensure_editor_or_admin!
 
+    MAX_IMPORT_BYTES = 10.megabytes
+
     # GET /workflows/import
     def new
       # Show import form
@@ -18,7 +20,7 @@ module Workflows
       uploaded_file = params[:file]
       file_content = uploaded_file.read.force_encoding("UTF-8")
 
-      if file_content.bytesize > 10.megabytes
+      if file_content.bytesize > MAX_IMPORT_BYTES
         redirect_to new_workflow_import_path, alert: "File is too large. Maximum size is 10MB."
         return
       end
@@ -55,6 +57,16 @@ module Workflows
     # again: re-validate rather than trusting the report that produced the page.
     def commit
       content = params[:content].to_s
+
+      # The upload is capped at 10MB in #create; this round-trips through a
+      # hidden form field, so it is fresh user input and needs the same bound.
+      # It was re-validated but not re-bounded, and a bundle now fits far more
+      # into one payload than a single workflow did.
+      if content.bytesize > MAX_IMPORT_BYTES
+        redirect_to new_workflow_import_path, alert: "File is too large. Maximum size is 10MB."
+        return
+      end
+
       report = StrictImportValidator.new(user: current_user, content:).validate
 
       return render_report(content, report, :unprocessable_entity) unless report.valid?

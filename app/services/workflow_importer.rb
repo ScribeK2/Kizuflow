@@ -10,6 +10,11 @@ class WorkflowImporter
     end
   end
 
+  # The validator promised an in-bundle title resolves and the importer could not
+  # find it. Raised rather than skipped so the bundle rolls back loudly instead of
+  # writing a sub_flow that points at nothing.
+  class BundleTargetUnresolved < StandardError; end
+
   # `workflows` is every workflow this import created, in file order. The strict
   # dialect accepts a set in one file; the lenient formats are single-workflow by
   # nature, so they build a one-element array.
@@ -156,7 +161,12 @@ class WorkflowImporter
     save_failed = false
     save_errors = []
 
-    ActiveRecord::Base.transaction do
+    # requires_new: so this is always a real transaction or savepoint. Joined to
+    # an enclosing one it would be a no-op: `raise ActiveRecord::Rollback` would
+    # be swallowed without rolling anything back, and the method would still
+    # return failure — reporting a rollback that never happened. Nothing wraps
+    # this today; the flag removes the class rather than relying on that.
+    ActiveRecord::Base.transaction(requires_new: true) do
       workflows = data_set.map { |data| build_strict_workflow(data) }
 
       workflows.each do |workflow|
@@ -214,9 +224,26 @@ class WorkflowImporter
     Array(steps).each do |step|
       next unless step["type"] == "sub_flow"
 
-      title = step["target_workflow_title"].to_s.strip.downcase
-      target = titles_to_workflows[title]
-      next unless target
+      # Only a title still present is this method's business. The validator
+      # resolves an out-of-bundle target itself, setting target_workflow_id and
+      # deleting the title, so a step arriving without one is already bound.
+      raw_title = step["target_workflow_title"]
+      next if raw_title.blank?
+
+      target = titles_to_workflows[raw_title.to_s.strip.downcase]
+
+      # Skipping quietly here is how a sub_flow imported bound to nothing while
+      # the import reported success. The validator has already decided this title
+      # names a workflow in this file, so a miss means the two disagree about
+      # what the title IS — which happened for real: a JSON `true` compared as
+      # "true" and saved as "t", because ActiveModel casts the column. That is a
+      # bug, not a condition to step over, and it rolls the bundle back.
+      unless target
+        raise BundleTargetUnresolved,
+              "sub_flow target #{step['target_workflow_title'].inspect} was accepted as " \
+              "in-bundle but matches no workflow this import created " \
+              "(have: #{titles_to_workflows.keys.inspect})"
+      end
 
       step["target_workflow_id"] = target.id
       step.delete("target_workflow_title")
