@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fieldList"]
+  static targets = ["fieldList", "choices"]
   static values = { fieldTypes: Array }
 
   connect() {
@@ -21,6 +21,7 @@ export default class extends Controller {
     const labelInput = this.createInput("text", "step[options][][label]", "Label")
     const typeSelect = this.createTypeSelect()
     const requiredLabel = this.createRequiredCheckbox()
+    const choicesInput = this.createChoicesInput()
     const positionInput = this.createHidden("step[options][][position]", this.fieldCount)
     const removeBtn = document.createElement("button")
     removeBtn.type = "button"
@@ -28,13 +29,22 @@ export default class extends Controller {
     removeBtn.textContent = "Remove"
     removeBtn.dataset.action = "form-field-builder#removeField"
 
-    inputs.append(nameInput, labelInput, typeSelect, requiredLabel, positionInput, removeBtn)
+    inputs.append(nameInput, labelInput, typeSelect, requiredLabel, choicesInput, positionInput, removeBtn)
     row.appendChild(inputs)
     this.fieldListTarget.appendChild(row)
   }
 
   removeField(event) {
     event.target.closest(".form-field-row").remove()
+  }
+
+  // A select field is the only one with choices to author. The input stays in
+  // the DOM either way — `options` posts unindexed, so a key present on some
+  // rows and absent on others is how Rails' grouping goes wrong.
+  toggleChoices(event) {
+    const row = event.target.closest(".form-field-row")
+    const choices = row?.querySelector("[data-form-field-builder-target='choices']")
+    if (choices) choices.hidden = event.target.value !== "select"
   }
 
   createInput(type, name, placeholder) {
@@ -58,6 +68,17 @@ export default class extends Controller {
       select.appendChild(opt)
     })
     return select
+  }
+
+  createChoicesInput() {
+    const input = document.createElement("input")
+    input.type = "text"
+    input.name = "step[options][][select_options_raw]"
+    input.placeholder = "Choices, comma separated"
+    input.className = "form-input form-input--sm"
+    input.dataset.formFieldBuilderTarget = "choices"
+    input.hidden = true
+    return input
   }
 
   createRequiredCheckbox() {

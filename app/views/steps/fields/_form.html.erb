@@ -19,7 +19,8 @@
         <div class="form-field-row__inputs">
           <input type="text" name="step[options][][name]" value="<%= field['name'] %>" placeholder="field_name" class="form-input form-input--sm" required>
           <input type="text" name="step[options][][label]" value="<%= field['label'] %>" placeholder="Label" class="form-input form-input--sm" required>
-          <select name="step[options][][field_type]" class="form-select form-select--sm">
+          <select name="step[options][][field_type]" class="form-select form-select--sm"
+                  data-action="change->form-field-builder#toggleChoices">
             <% Steps::Form::VALID_FIELD_TYPES.each do |ft| %>
               <option value="<%= ft %>" <%= "selected" if field["field_type"] == ft %>><%= ft.capitalize %></option>
             <% end %>
@@ -28,6 +29,15 @@
             <input type="checkbox" name="step[options][][required]" value="true" class="form-checkbox" <%= "checked" if field["required"] %>>
             Required
           </label>
+          <%# Rendered on every row, hidden unless the type is select: `options`
+              posts unindexed, and a key that appears on some rows and not
+              others is how that grouping goes wrong. %>
+          <input type="text" name="step[options][][select_options_raw]"
+                 value="<%= step.select_options_text(field) %>"
+                 placeholder="Choices, comma separated"
+                 class="form-input form-input--sm"
+                 data-form-field-builder-target="choices"
+                 <%= "hidden" unless field["field_type"] == "select" %>>
           <input type="hidden" name="step[options][][position]" value="<%= i %>">
           <button type="button" class="btn btn--negative btn--sm" data-action="form-field-builder#removeField">Remove</button>
         </div>

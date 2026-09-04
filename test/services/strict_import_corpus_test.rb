@@ -16,6 +16,7 @@ class StrictImportCorpusTest < ActiveSupport::TestCase
     invalid_enum_value graph_invalid invalid_condition_syntax
     unknown_sub_flow_target ambiguous_sub_flow_target sub_flow_target_not_published
     unknown_group group_not_permitted unknown_folder
+    missing_select_options
   ].freeze
 
   setup do

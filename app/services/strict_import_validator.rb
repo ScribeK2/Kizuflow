@@ -343,6 +343,7 @@ class StrictImportValidator
       validate_fields(step, type, path)
       validate_required(step, type, path)
       validate_enums(step, path)
+      validate_form_fields(step, type, path)
       validate_step_transitions(step, type, path)
     end
 
@@ -431,6 +432,30 @@ class StrictImportValidator
 
       add_error("#{path}.#{field}", "invalid_enum_value", value,
                 "#{value.inspect} is not a valid #{field}.", expected: values.call)
+    end
+  end
+
+  # A select field has to say what it offers.
+  #
+  # Nothing could supply `select_options` before 2026-09-04 — the permit list
+  # dropped it, the schema rejected it as an additional property, and the
+  # builder had no control for it — so a select field always rendered an empty
+  # dropdown. Now that the key exists, an omission is a real authoring mistake
+  # and it produces a step the agent cannot answer, which is an error rather
+  # than a warning for the same reason an unparseable condition is.
+  def validate_form_fields(step, type, path)
+    return unless type == "form"
+    return unless step["options"].is_a?(Array)
+
+    step["options"].each_with_index do |field, index|
+      next unless field.is_a?(Hash) && field["field_type"] == "select"
+      next if field["select_options"].is_a?(Array) && field["select_options"].any?
+
+      add_error("#{path}.options[#{index}].select_options", "missing_select_options",
+                field["select_options"],
+                "Field #{field['name'].inspect} is a select and lists no choices. " \
+                "Give it select_options as [{\"label\": ..., \"value\": ...}] — a " \
+                "select with none renders an empty dropdown nobody can answer.")
     end
   end
 

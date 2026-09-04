@@ -11,6 +11,13 @@
   }
   .form-field-row__inputs input[type="text"],
   .form-field-row__inputs select { flex: 1; min-width: 6rem; }
+  /* The choices input is only for a select field, and it is toggled with the
+     `hidden` attribute. That attribute alone is not enough here: `hidden` gets
+     its `display: none` from the UA stylesheet, and `.form-input` sets
+     `display: block` in this layer, so an author rule beats it and the input
+     would stay visible on every field type. Same reason
+     `.step-warning-icon[hidden]` exists in builder.css. */
+  .form-field-row__inputs input[type="text"][hidden] { display: none; }
   .form-checkbox-label {
     display: inline-flex; align-items: center; gap: var(--space-1);
     font-size: 0.75rem; white-space: nowrap;

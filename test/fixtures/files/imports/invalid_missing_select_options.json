@@ -75,17 +75,7 @@
               "label": "Preferred contact method",
               "field_type": "select",
               "required": false,
-              "position": 1,
-              "select_options": [
-                {
-                  "label": "Phone",
-                  "value": "phone"
-                },
-                {
-                  "label": "Email",
-                  "value": "email"
-                }
-              ]
+              "position": 1
             }
           ],
           "transitions": [

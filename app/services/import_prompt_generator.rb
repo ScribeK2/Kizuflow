@@ -154,8 +154,19 @@ class ImportPromptGenerator
       `"groups": ["Support / Tier 2"]`. The group must already exist and you must
       have access to it. Use `["Support", "Tier 2"]` if a name contains a slash.
 
+      **Form fields of type `select` must list their choices.** Put them in
+      `select_options` on the field, as `{"label": ..., "value": ...}` — the same
+      shape a question's `options` uses. A select with no `select_options`
+      renders as an empty dropdown the agent cannot answer, so do not encode the
+      choices in the label text.
+
       **Sub-flows** name their target by `target_workflow_title`, which must match
-      an existing published workflow.
+      an existing published workflow. To hand variables to one, use
+      `variable_mapping`, written `{"name_here": "name_inside_the_sub_flow"}` —
+      the key is this workflow's name for the value, the value is the sub-flow's.
+      **Only mapped variables cross**, so a sub-flow that interpolates
+      `{{something}}` it was not given renders blank. Map everything the
+      sub-flow's text or conditions refer to.
     MD
   end
 
