@@ -30,6 +30,60 @@ class WorkflowExportImportRoundTripTest < ActionDispatch::IntegrationTest
     Tag.where(name: %w[billing tier-2]).destroy_all
   end
 
+  # A workflow authored before select_options existed exports to a file the
+  # strict validator now refuses. That is a deliberate, narrow break in the
+  # "an exported file is a valid strict import file" guarantee in AGENTS.md:
+  # such a select was ALWAYS a dropdown nobody could answer, so the alternative
+  # is round-tripping a broken field silently. WorkflowHealthCheck flags it on
+  # the step so an operator can fix it before exporting.
+  test "a workflow with a choiceless select exports, and the strict path refuses it back" do
+    workflow = Workflow.create!(title: "Legacy Select #{SecureRandom.hex(2)}",
+                                user: @user, status: "draft")
+    form = Steps::Form.create!(
+      workflow: workflow, uuid: SecureRandom.uuid, position: 0, title: "Collect",
+      options: [{ "name" => "method", "label" => "How paid", "field_type" => "select" }]
+    )
+    resolve = Steps::Resolve.create!(workflow: workflow, uuid: SecureRandom.uuid, position: 1,
+                                     title: "Done", resolution_type: "success")
+    Transition.create!(step: form, target_step: resolve, position: 0)
+    workflow.update!(start_step: form)
+
+    get workflow_export_path(workflow)
+    assert_response :success
+    exported = response.body
+
+    report = StrictImportValidator.new(user: @user, content: exported).validate
+    assert_not report.valid?, "the export carries a select with no choices"
+    assert_equal ["missing_select_options"], report.errors.pluck(:code).uniq
+
+    flagged = WorkflowHealthCheck.new(workflow.reload).call.issues[form.uuid]
+    assert(flagged.any? { |i| i[:code] == :select_options_required },
+           "the health panel is how an operator finds this before exporting")
+  end
+
+  test "a workflow whose select has real choices round-trips cleanly" do
+    workflow = Workflow.create!(title: "Good Select #{SecureRandom.hex(2)}",
+                                user: @user, status: "draft")
+    form = Steps::Form.create!(
+      workflow: workflow, uuid: SecureRandom.uuid, position: 0, title: "Collect",
+      options: [{ "name" => "method", "label" => "How paid", "field_type" => "select",
+                  "select_options" => [{ "label" => "IVR", "value" => "ivr" }] }]
+    )
+    resolve = Steps::Resolve.create!(workflow: workflow, uuid: SecureRandom.uuid, position: 1,
+                                     title: "Done", resolution_type: "success")
+    Transition.create!(step: form, target_step: resolve, position: 0)
+    workflow.update!(start_step: form)
+
+    get workflow_export_path(workflow)
+    report = StrictImportValidator.new(user: @user, content: response.body).validate
+
+    assert_predicate report, :valid?, report.errors.inspect
+    reimported = report.workflows_data.first["steps"].find { |s| s["type"] == "form" }
+    assert_equal [{ "label" => "IVR", "value" => "ivr" }],
+                 reimported["options"].first["select_options"],
+                 "the choices survive export and come back intact"
+  end
+
   test "export includes the workflow's groups, folder and tags" do
     workflow = import_fixture
 

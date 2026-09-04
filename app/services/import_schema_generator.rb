@@ -222,7 +222,21 @@ class ImportSchemaGenerator
           "required" => { "type" => "boolean" },
           "position" => { "type" => "integer" },
           "select_options" => select_options_property
-        }
+        },
+        # StrictImportValidator makes a choiceless select a hard error, and the
+        # prompt tells the agent to validate against this schema before handing
+        # the file over. A schema looser than the validator sends it away with a
+        # file that passes locally and is refused on upload — the round trip the
+        # strict dialect exists to remove.
+        "allOf" => [
+          {
+            "if" => {
+              "properties" => { "field_type" => { "const" => "select" } },
+              "required" => %w[field_type]
+            },
+            "then" => { "required" => %w[select_options] }
+          }
+        ]
       }
     }
   end

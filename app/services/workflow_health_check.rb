@@ -145,6 +145,21 @@ class WorkflowHealthCheck
         add_issue(issues, step.uuid, :warning, "Sub-flow target is required for publish",
                   fixable: false, code: :subflow_target_required)
       end
+
+      next unless step.is_a?(Steps::Form)
+
+      # A select field with no choices renders a dropdown the agent cannot
+      # answer. Nothing could write `select_options` before 2026-09-04, so every
+      # select authored until then is in this state — and it is not only a live
+      # runner problem: an export carries schema_version, so it re-imports down
+      # the strict path, where StrictImportValidator refuses it outright. This
+      # is where an operator finds out which workflows to fix.
+      step.select_fields_without_choices.each do |field|
+        label = field["label"].presence || field["name"]
+        add_issue(issues, step.uuid, :warning,
+                  "Select field #{label.to_s.inspect} lists no choices — it renders an empty dropdown",
+                  fixable: false, code: :select_options_required)
+      end
     end
   end
 

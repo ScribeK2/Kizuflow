@@ -27,12 +27,26 @@ module Steps
       select_options_for(field).pluck("label").join(", ")
     end
 
-    # Every select field that has no choices to offer. Such a field renders a
-    # dropdown the agent cannot answer, which is why the strict dialect refuses
-    # it and the builder marks it.
+    # Every select field with no choices the runner could render.
+    #
+    # Read by WorkflowHealthCheck, which surfaces each one as a warning on the
+    # step. That matters beyond the runner: an export carries schema_version, so
+    # it comes back down the strict path where StrictImportValidator refuses a
+    # choiceless select outright — the health panel is where an operator finds
+    # which workflows to fix before exporting one.
+    #
+    # "No choices" means the same thing here as in the validator: an entry that
+    # is not a {label, value} pair cannot be rendered either. `["IVR"]` looks
+    # populated and is not — `scenarios/_form_step` reads `opt["value"]` off it,
+    # which is String#[] answering nil.
     def select_fields_without_choices
       fields.select do |field|
-        field.is_a?(Hash) && field["field_type"] == "select" && select_options_for(field).empty?
+        next false unless field.is_a?(Hash) && field["field_type"] == "select"
+
+        choices = select_options_for(field)
+        choices.empty? || choices.any? do |choice|
+          !choice.is_a?(Hash) || choice["label"].blank? || choice["value"].blank?
+        end
       end
     end
 

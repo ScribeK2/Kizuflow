@@ -504,7 +504,26 @@
                       }
                     }
                   }
-                }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "field_type": {
+                          "const": "select"
+                        }
+                      },
+                      "required": [
+                        "field_type"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "select_options"
+                      ]
+                    }
+                  }
+                ]
               }
             },
             "instructions": {

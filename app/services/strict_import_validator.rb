@@ -532,14 +532,29 @@ class StrictImportValidator
 
     step["options"].each_with_index do |field, index|
       next unless field.is_a?(Hash) && field["field_type"] == "select"
-      next if field["select_options"].is_a?(Array) && field["select_options"].any?
+      next if usable_choices?(field["select_options"])
 
       add_error("#{path}.options[#{index}].select_options", "missing_select_options",
                 field["select_options"],
-                "Field #{field['name'].inspect} is a select and lists no choices. " \
+                "Field #{field['name'].inspect} is a select and lists no usable choices. " \
                 "Give it select_options as [{\"label\": ..., \"value\": ...}] — a " \
                 "select with none renders an empty dropdown nobody can answer.")
     end
+  end
+
+  # Choices the runner can actually render.
+  #
+  # Presence is not enough, and checking only for a non-empty Array was the first
+  # version of this. `["IVR", "Link"]` is a plausible shape for an agent to reach
+  # for and it passed — then `scenarios/_form_step` evaluates `opt["value"] ||
+  # opt["label"]` against a String, which is String#[] doing a substring lookup
+  # and answering nil for both. The result is a dropdown of blank options: the
+  # exact thing this code exists to refuse, reached by a shape the published
+  # schema already forbids. The validator is the half that writes, so it is the
+  # half that has to agree.
+  def usable_choices?(choices)
+    choices.is_a?(Array) && choices.any? &&
+      choices.all? { |c| c.is_a?(Hash) && c["label"].present? && c["value"].present? }
   end
 
   def validate_step_transitions(step, type, path)

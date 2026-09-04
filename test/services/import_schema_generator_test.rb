@@ -19,6 +19,28 @@ class ImportSchemaGeneratorTest < ActiveSupport::TestCase
     assert_operator ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE, :>, 1
   end
 
+  test "a select form field must declare its choices, matching the validator" do
+    options = step_branch("form")["properties"]["options"]["items"]
+
+    assert options["properties"].key?("select_options"),
+           "external agents lose the property entirely if the generator stops emitting it"
+    assert_equal %w[label value], options["properties"]["select_options"]["items"]["required"]
+
+    conditional = options["allOf"].first
+    assert_equal "select", conditional["if"]["properties"]["field_type"]["const"]
+    assert_equal %w[select_options], conditional["then"]["required"],
+                 "StrictImportValidator refuses a choiceless select, so the schema must too — " \
+                 "a looser schema sends the agent away with a file that fails on upload"
+  end
+
+  test "variable_mapping publishes the shape the runtime actually seeds" do
+    mapping = step_branch("sub_flow")["properties"]["variable_mapping"]
+
+    assert_equal "string", mapping["additionalProperties"]["type"]
+    assert_predicate mapping["description"], :present?,
+                     "a bare object taught an agent nothing, so it omitted the key rather than guess"
+  end
+
   test "every step type in the app has a schema branch" do
     branch_types = @schema["$defs"]["step"]["oneOf"].map do |branch|
       branch["properties"]["type"]["const"]

@@ -89,6 +89,18 @@ class StrictImportFlowTest < ActionDispatch::IntegrationTest
     assert_equal child.id, sub_flow.sub_flow_workflow_id
   end
 
+  test "committing a file with a select field stores its choices" do
+    post commit_workflow_import_path, params: { content: select_field_file }
+
+    workflow = Workflow.find_by(title: "Select Field Flow")
+    field = workflow.steps.find { |s| s.step_type == "form" }.fields.first
+
+    assert_equal [{ "label" => "IVR", "value" => "ivr" },
+                  { "label" => "Secure link", "value" => "link" }],
+                 field["select_options"],
+                 "the accepting path through the real commit endpoint, not just the validator"
+  end
+
   test "a single workflow still lands on that workflow, not the list" do
     post commit_workflow_import_path, params: { content: valid_file }
 
@@ -111,6 +123,24 @@ class StrictImportFlowTest < ActionDispatch::IntegrationTest
         title: "Flow Test",
         steps: [
           { id: "hello", type: "message", title: "Greet", content: "<p>Hello</p>",
+            transitions: [{ target_id: "done" }] },
+          { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+        ]
+      }]
+    }.to_json
+  end
+
+  def select_field_file
+    {
+      schema_version: "1",
+      workflows: [{
+        title: "Select Field Flow",
+        steps: [
+          { id: "collect", type: "form", title: "Take payment",
+            options: [{ name: "method", label: "How paid", field_type: "select",
+                        required: true, position: 0,
+                        select_options: [{ label: "IVR", value: "ivr" },
+                                         { label: "Secure link", value: "link" }] }],
             transitions: [{ target_id: "done" }] },
           { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
         ]

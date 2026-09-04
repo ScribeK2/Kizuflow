@@ -54,8 +54,16 @@ class StepFieldMapTest < ActionDispatch::IntegrationTest
   # unprotected while this test reported the whole map covered.
   VALUES_BY_TYPE = {
     "form" => {
+      # Two fields on purpose. `options` is a nested shape, so a key inside it is
+      # only exercised if the VALUE here carries it — adding select_options to
+      # StepFieldMap::NESTED_SHAPES buys no coverage in the file that is this
+      # module's guarantee unless a fixture field actually has choices.
       options: [{ "name" => "phone_number", "label" => "Phone", "field_type" => "phone",
-                  "required" => true, "position" => 0 }]
+                  "required" => true, "position" => 0 },
+                { "name" => "contact_method", "label" => "Method", "field_type" => "select",
+                  "required" => false, "position" => 1,
+                  "select_options" => [{ "label" => "Phone", "value" => "phone" },
+                                       { "label" => "Email", "value" => "email" }] }]
     }
   }.freeze
 

@@ -71,6 +71,64 @@ class StrictImportValidatorTest < ActiveSupport::TestCase
     assert_match(/at most/, report.errors.first[:message])
   end
 
+  test "select choices that are not label/value pairs are refused" do
+    # `["IVR", "Link"]` is a plausible shape and the first version of this guard
+    # accepted it: `scenarios/_form_step` then reads `opt["value"]` off a String,
+    # which is String#[] answering nil, so every option renders blank. Checking
+    # only for a non-empty Array let the unanswerable dropdown back in.
+    report = validate({ schema_version: "1", workflows: [minimal_workflow.merge(
+      steps: [
+        { id: "f", type: "form", title: "F",
+          options: [{ name: "m", label: "M", field_type: "select",
+                      select_options: %w[IVR Link] }],
+          transitions: [{ target_id: "done" }] },
+        { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    )] })
+
+    assert_not report.valid?
+    assert_equal "missing_select_options", report.errors.first[:code]
+  end
+
+  test "a select choice missing its value is refused" do
+    report = validate({ schema_version: "1", workflows: [minimal_workflow.merge(
+      steps: [
+        { id: "f", type: "form", title: "F",
+          options: [{ name: "m", label: "M", field_type: "select",
+                      select_options: [{ label: "IVR" }] }],
+          transitions: [{ target_id: "done" }] },
+        { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    )] })
+
+    assert_not report.valid?
+    assert_equal "missing_select_options", report.errors.first[:code]
+  end
+
+  test "well-formed select choices are accepted" do
+    report = validate({ schema_version: "1", workflows: [minimal_workflow.merge(
+      steps: [
+        { id: "f", type: "form", title: "F",
+          options: [{ name: "m", label: "M", field_type: "select",
+                      select_options: [{ label: "IVR", value: "ivr" }] }],
+          transitions: [{ target_id: "done" }] },
+        { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+      ]
+    )] })
+
+    assert_predicate report, :valid?, report.errors.inspect
+  end
+
+  test "a file carrying exactly the maximum number of workflows is accepted" do
+    at_limit = Array.new(ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE) do |i|
+      minimal_workflow.merge(title: "Bundle Workflow #{i}")
+    end
+    report = validate({ schema_version: "1", workflows: at_limit })
+
+    assert_predicate report, :valid?, report.errors.inspect
+    assert_equal ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE, report.workflows_data.size
+  end
+
   test "an empty workflows array is refused" do
     report = validate({ schema_version: "1", workflows: [] })
 

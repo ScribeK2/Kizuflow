@@ -132,19 +132,46 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
                      "the refusal must name the cycle: #{result.errors.inspect}"
   end
 
-  test "one unsaveable workflow rolls back the whole set" do
+  test "an over-long title in the second workflow is refused before anything is written" do
     before = Workflow.count
 
     good = workflow("Good One", steps: [resolve_step])
-    unsaveable = workflow("x" * 300, steps: [resolve_step("d2")])
-    _report, result = import(schema_version: "1", workflows: [good, unsaveable])
+    too_long = workflow("x" * 300, steps: [resolve_step("d2")])
+    report, result = import(schema_version: "1", workflows: [good, too_long])
 
-    if result.nil?
-      # Refused at validation, which is also acceptable — the title is too long.
-      assert_equal before, Workflow.count
-    else
-      assert_not result.success?
+    assert_not report.valid?
+    assert_equal "invalid_workflow_title", report.errors.first[:code]
+    assert_equal "workflows[1].title", report.errors.first[:path],
+                 "the index has to name the offending workflow, not always the first"
+    assert_nil result, "the importer is never reached"
+    assert_equal before, Workflow.count
+  end
+
+  # The save-failure branch is unreachable through validation — Workflow only
+  # validates title presence and length, and the validator checks both first. It
+  # still has to work: without it a failed save would return a success Result
+  # carrying unsaved records. Stubbed rather than left untested.
+  test "a workflow that fails to save rolls back the whole set" do
+    before = Workflow.count
+    original = Workflow.instance_method(:save)
+
+    begin
+      Workflow.define_method(:save) do |*args, **kwargs|
+        next false if title == "Poison Pill"
+
+        original.bind_call(self, *args, **kwargs)
+      end
+
+      good = workflow("Good One", steps: [resolve_step])
+      poison = workflow("Poison Pill", steps: [resolve_step("d2")])
+      _report, result = import(schema_version: "1", workflows: [good, poison])
+
+      assert_not result.success?, "a failed save must not report success"
       assert_equal before, Workflow.count, "half an imported set is worse than none"
+      assert_empty Workflow.where(title: "Good One"),
+                   "the workflow that saved fine is rolled back with the one that did not"
+    ensure
+      Workflow.define_method(:save, original)
     end
   end
 

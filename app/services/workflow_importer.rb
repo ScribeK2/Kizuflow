@@ -148,6 +148,12 @@ class WorkflowImporter
 
     data_set = strict_report.workflows_data
     workflows = []
+    # Two variables, not one. Keying "did a save fail" off `save_errors.any?`
+    # reported SUCCESS for a save that returned false without populating errors —
+    # which is exactly what a `before_save` throwing :abort does, and Workflow
+    # already runs one (`set_draft_expiration`). The result was a success Result
+    # carrying records the transaction had just rolled back.
+    save_failed = false
     save_errors = []
 
     ActiveRecord::Base.transaction do
@@ -156,6 +162,7 @@ class WorkflowImporter
       workflows.each do |workflow|
         next if workflow.save
 
+        save_failed = true
         save_errors = workflow.errors.full_messages
         raise ActiveRecord::Rollback
       end
@@ -175,7 +182,10 @@ class WorkflowImporter
       raise CircularBundle, circular if circular.any?
     end
 
-    return failure(save_errors) if save_errors.any?
+    if save_failed
+      return failure(save_errors.presence ||
+                     ["A workflow in this file could not be saved, and reported no reason."])
+    end
 
     Result.new(success: true, workflows:, errors: [],
                warnings: strict_report.warnings.pluck(:message), incomplete_steps_count: 0)
