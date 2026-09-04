@@ -86,10 +86,13 @@ class ImportPromptGenerator
       Produce a single JSON file in exactly this envelope:
 
       ```
-      { "schema_version": "#{ImportSchemaGenerator::SCHEMA_VERSION}", "workflows": [ { ...one workflow... } ] }
+      { "schema_version": "#{ImportSchemaGenerator::SCHEMA_VERSION}", "workflows": [ { ...a workflow... } ] }
       ```
 
-      One workflow per file. The full JSON Schema is at
+      One file may carry a set of up to #{ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE} workflows, imported
+      together. Split a domain into several when the parts are separately
+      reusable — a diagnosis that routes into four procedures belongs as five
+      workflows, not as one of seventy steps. The full JSON Schema is at
       `#{ImportSchemaGenerator::SCHEMA_URL}` — validate against it before handing the
       file over.
 
@@ -131,7 +134,8 @@ class ImportPromptGenerator
 
       **Transitions are explicit.** Every step except `resolve` needs at least
       one. Nothing is inferred. A `resolve` step must have none at all.
-      `target_id` names another step's `id` in the same file.
+      `target_id` names another step's `id` in the same workflow. A transition
+      never crosses from one workflow to another — that is what `sub_flow` is for.
 
       **Loops are allowed** — "didn't work, try again" is a normal shape. What is
       refused is a loop with no way out: from every step, some path must still be
@@ -160,8 +164,12 @@ class ImportPromptGenerator
       renders as an empty dropdown the agent cannot answer, so do not encode the
       choices in the label text.
 
-      **Sub-flows** name their target by `target_workflow_title`, which must match
-      an existing published workflow. To hand variables to one, use
+      **Sub-flows** name their target by `target_workflow_title`. That title may
+      be another workflow **in this same file** — which is the reason to put a
+      linked set in one file, since it then needs nothing to exist beforehand.
+      Otherwise it must match a workflow that already exists and is published.
+      Two workflows in one file cannot share a title, because that is how a
+      target is matched. To hand variables to one, use
       `variable_mapping`, written `{"name_here": "name_inside_the_sub_flow"}` —
       the key is this workflow's name for the value, the value is the sub-flow's.
       **Only mapped variables cross**, so a sub-flow that interpolates

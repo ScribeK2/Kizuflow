@@ -24,28 +24,39 @@
     </div>
 
     <% if @report.valid? %>
-      <% workflow = @report.workflow_data %>
-      <% steps = Array(workflow["steps"]) %>
-      <div class="card mb-4">
-        <div class="card__body">
-          <h2 class="font-semibold mb-3" style="font-size: var(--text-lg);"><%= workflow["title"] %></h2>
-          <p class="text-sm mb-3"><%= pluralize(steps.size, "step") %>, landing as a draft for review.</p>
-          <ul class="text-sm" style="list-style: disc; padding-left: var(--space-5);">
-            <% steps.group_by { |s| s["type"] }.sort.each do |type, of_type| %>
-              <li><%= pluralize(of_type.size, "#{type.tr('_', ' ')} step") %></li>
-            <% end %>
-            <% if workflow["groups"].present? %>
-              <li>Group: <%= Array(workflow["groups"]).map { |g| Array(g).join(" / ") }.to_sentence %></li>
-            <% end %>
-            <% if workflow["folder"].present? %>
-              <li>Folder: <%= workflow["folder"] %></li>
-            <% end %>
-            <% if workflow["tags"].present? %>
-              <li>Tags: <%= Array(workflow["tags"]).to_sentence %></li>
-            <% end %>
-          </ul>
+      <%# A file may carry a set of linked workflows, so preview each one. The
+          heading above the cards says how many, because "5 workflows" is the
+          first thing to check before committing an import you did not author. %>
+      <% previewed = Array(@report.workflows_data) %>
+      <% if previewed.size > 1 %>
+        <p class="text-sm mb-3" style="color: var(--color-ink-muted);">
+          This file carries <%= pluralize(previewed.size, "workflow") %>. They import
+          together as one set, so a sub-flow can point at another workflow in the file.
+        </p>
+      <% end %>
+      <% previewed.each do |workflow| %>
+        <% steps = Array(workflow["steps"]) %>
+        <div class="card mb-4">
+          <div class="card__body">
+            <h2 class="font-semibold mb-3" style="font-size: var(--text-lg);"><%= workflow["title"] %></h2>
+            <p class="text-sm mb-3"><%= pluralize(steps.size, "step") %>, landing as a draft for review.</p>
+            <ul class="text-sm" style="list-style: disc; padding-left: var(--space-5);">
+              <% steps.group_by { |s| s["type"] }.sort.each do |type, of_type| %>
+                <li><%= pluralize(of_type.size, "#{type.tr('_', ' ')} step") %></li>
+              <% end %>
+              <% if workflow["groups"].present? %>
+                <li>Group: <%= Array(workflow["groups"]).map { |g| Array(g).join(" / ") }.to_sentence %></li>
+              <% end %>
+              <% if workflow["folder"].present? %>
+                <li>Folder: <%= workflow["folder"] %></li>
+              <% end %>
+              <% if workflow["tags"].present? %>
+                <li>Tags: <%= Array(workflow["tags"]).to_sentence %></li>
+              <% end %>
+            </ul>
+          </div>
         </div>
-      </div>
+      <% end %>
     <% else %>
       <section class="list-section mb-4">
         <div class="list-section__head">

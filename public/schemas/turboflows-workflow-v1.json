@@ -22,8 +22,8 @@
     "workflows": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 1,
-      "description": "This version accepts exactly one workflow per file.",
+      "maxItems": 25,
+      "description": "One or more workflows, up to 25. They are imported together as one set, so a sub_flow step may name a workflow defined elsewhere in this same file by its title — it does not have to exist or be published first.",
       "items": {
         "$ref": "#/$defs/workflow"
       }

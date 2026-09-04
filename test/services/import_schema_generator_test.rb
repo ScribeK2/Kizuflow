@@ -3,15 +3,20 @@ require "test_helper"
 class ImportSchemaGeneratorTest < ActiveSupport::TestCase
   setup { @schema = ImportSchemaGenerator.call }
 
-  test "the envelope requires schema_version and a one-element workflows array" do
+  test "the envelope requires schema_version and a bounded workflows array" do
     assert_equal %w[schema_version workflows], @schema["required"]
     # The app's own export sets exported_at; additionalProperties is false, so an
     # agent validating against this schema would otherwise reject a TurboFlows export.
     assert @schema["properties"].key?("exported_at")
     assert_equal [ImportSchemaGenerator::SCHEMA_VERSION],
                  @schema["properties"]["schema_version"]["enum"]
-    assert_equal 1, @schema["properties"]["workflows"]["maxItems"]
+    # A file carries a SET of workflows, so a sub_flow can name one defined
+    # alongside it. Bounded rather than unbounded: the whole bundle is validated
+    # and written in one transaction.
+    assert_equal ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE,
+                 @schema["properties"]["workflows"]["maxItems"]
     assert_equal 1, @schema["properties"]["workflows"]["minItems"]
+    assert_operator ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE, :>, 1
   end
 
   test "every step type in the app has a schema branch" do

@@ -13,6 +13,20 @@ class ImportSchemaGenerator
   SCHEMA_PATH = Rails.public_path.join("schemas/turboflows-workflow-v1.json")
   SCHEMA_URL = "/schemas/turboflows-workflow-v1.json".freeze
 
+  # How many workflows one file may carry.
+  #
+  # Was 1, which meant a set of linked workflows could not be expressed at all:
+  # a sub_flow target has to name a workflow that already exists AND is
+  # published, so a five-workflow domain took nine operations in an order the
+  # operator had to derive. Raising it is backward compatible — a one-workflow
+  # file still validates — and it is what lets a generated set arrive as one
+  # deliverable.
+  #
+  # Capped rather than unbounded: the whole bundle is validated and written in
+  # one transaction, and the 10MB upload limit is a poor proxy for how much work
+  # that is. Twenty-five is well past any real domain and still bounded.
+  MAX_WORKFLOWS_PER_FILE = 25
+
   # Importable but editable in no builder UI, so excluded from the dialect an
   # agent writes. See spec D9. (`variable_mapping` is deliberately NOT here — the
   # sub_flow editor does render it, in app/views/steps/fields/_sub_flow.html.erb.)
@@ -60,8 +74,11 @@ class ImportSchemaGenerator
         "workflows" => {
           "type" => "array",
           "minItems" => 1,
-          "maxItems" => 1,
-          "description" => "This version accepts exactly one workflow per file.",
+          "maxItems" => MAX_WORKFLOWS_PER_FILE,
+          "description" => "One or more workflows, up to #{MAX_WORKFLOWS_PER_FILE}. " \
+                           "They are imported together as one set, so a sub_flow step may " \
+                           "name a workflow defined elsewhere in this same file by its " \
+                           "title — it does not have to exist or be published first.",
           "items" => { "$ref" => "#/$defs/workflow" }
         }
       },

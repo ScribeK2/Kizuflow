@@ -1,7 +1,27 @@
 class WorkflowImporter
-  Result = Data.define(:success, :workflow, :errors, :warnings, :incomplete_steps_count) do
+  # A bundle whose sub_flow references form a cycle. Carries SubflowValidator's
+  # findings rather than one message, because it names each cycle it found.
+  class CircularBundle < StandardError
+    attr_reader :findings
+
+    def initialize(findings)
+      @findings = Array(findings)
+      super(@findings.join("; "))
+    end
+  end
+
+  # `workflows` is every workflow this import created, in file order. The strict
+  # dialect accepts a set in one file; the lenient formats are single-workflow by
+  # nature, so they build a one-element array.
+  #
+  # `workflow` stays as the first, because most callers genuinely want "the
+  # workflow this import made" and every lenient path has exactly one. Anything
+  # that reports on the import must use `workflows`.
+  Result = Data.define(:success, :workflows, :errors, :warnings, :incomplete_steps_count) do
     def success? = success
     def incomplete_steps? = incomplete_steps_count.to_i.positive?
+    def workflow = workflows&.first
+    def multiple? = workflows.to_a.size > 1
   end
 
   def initialize(user, format:, content:, strict_report: nil)
@@ -53,7 +73,7 @@ class WorkflowImporter
       unless workflow.save
         return Result.new(
           success: false,
-          workflow:,
+          workflows: [workflow],
           errors: workflow.errors.full_messages,
           warnings:,
           incomplete_steps_count: incomplete_count
@@ -95,7 +115,7 @@ class WorkflowImporter
 
     Result.new(
       success: true,
-      workflow:,
+      workflows: [workflow],
       errors: [],
       warnings:,
       incomplete_steps_count: incomplete_count
@@ -108,37 +128,95 @@ class WorkflowImporter
 
   # A strict report has already been parsed, normalised and validated — every
   # group resolved, every sub-flow target found, every graph rule checked — so
-  # writing is all that is left. It reuses the placement the validator already
+  # writing is all that is left. It reuses the placements the validator already
   # resolved rather than resolving twice, and shares create_ar_steps with the
   # lenient path because the normalized shape is deliberately the same.
+  #
+  # Every workflow in the file is created BEFORE any step is built.
+  #
+  # That ordering is what removes the need to sort the bundle by dependency: a
+  # sub_flow step needs its target's id at the moment it is built, and after the
+  # first pass every id in the bundle exists. A file where A runs B and B runs A
+  # therefore writes fine; whether that is a legal *runtime* shape is
+  # SubflowValidator's question, asked below once the graph is real.
+  #
+  # The whole bundle is one transaction. A file is a single deliverable, and half
+  # an imported set is worse than none — the missing half is exactly what the
+  # other half's sub_flow steps point at.
   def import_strict(strict_report)
     raise ArgumentError, "strict_report must be valid" unless strict_report.valid?
 
-    data = strict_report.workflow_data
-    workflow = @user.workflows.build(
+    data_set = strict_report.workflows_data
+    workflows = []
+    save_errors = []
+
+    ActiveRecord::Base.transaction do
+      workflows = data_set.map { |data| build_strict_workflow(data) }
+
+      workflows.each do |workflow|
+        next if workflow.save
+
+        save_errors = workflow.errors.full_messages
+        raise ActiveRecord::Rollback
+      end
+
+      titles = workflows.index_by { |workflow| workflow.title.to_s.strip.downcase }
+
+      data_set.each_with_index do |data, index|
+        resolve_bundle_sub_flow_targets(data["steps"], titles)
+        create_ar_steps(workflows[index], data["steps"], data["start_step_id"])
+        strict_report.placements[index].apply!(workflows[index])
+      end
+
+      Workflow.where(id: workflows.map(&:id)).update_all(draft_expires_at: nil)
+      workflows.each(&:reload)
+
+      circular = circular_sub_flow_errors(workflows)
+      raise CircularBundle, circular if circular.any?
+    end
+
+    return failure(save_errors) if save_errors.any?
+
+    Result.new(success: true, workflows:, errors: [],
+               warnings: strict_report.warnings.pluck(:message), incomplete_steps_count: 0)
+  rescue CircularBundle => e
+    failure(e.findings)
+  rescue StandardError => e
+    failure([e.message])
+  end
+
+  def build_strict_workflow(data)
+    @user.workflows.build(
       title: data["title"],
       description: data["description"] || "",
       graph_mode: true,
       is_public: false,
       status: "draft"
     )
+  end
 
-    ActiveRecord::Base.transaction do
-      unless workflow.save
-        return Result.new(success: false, workflow:, errors: workflow.errors.full_messages,
-                          warnings: [], incomplete_steps_count: 0)
-      end
+  # Bind the sub_flow targets the validator deliberately left as titles.
+  #
+  # It could not resolve them: an in-bundle target names a workflow that did not
+  # exist when the file was checked. Anything pointing outside the bundle already
+  # carries target_workflow_id and is untouched here.
+  def resolve_bundle_sub_flow_targets(steps, titles_to_workflows)
+    Array(steps).each do |step|
+      next unless step["type"] == "sub_flow"
 
-      create_ar_steps(workflow, data["steps"], data["start_step_id"])
-      strict_report.placement.apply!(workflow)
-      Workflow.where(id: workflow.id).update_all(draft_expires_at: nil)
-      workflow.reload
+      title = step["target_workflow_title"].to_s.strip.downcase
+      target = titles_to_workflows[title]
+      next unless target
+
+      step["target_workflow_id"] = target.id
+      step.delete("target_workflow_title")
     end
+  end
 
-    Result.new(success: true, workflow:, errors: [],
-               warnings: strict_report.warnings.pluck(:message), incomplete_steps_count: 0)
-  rescue StandardError => e
-    failure([e.message])
+  # Cycles are a runtime question, so they are asked of the saved graph rather
+  # than of the file. Inside one transaction, so a circular bundle writes nothing.
+  def circular_sub_flow_errors(workflows)
+    workflows.flat_map { |workflow| SubflowValidator.errors_for(workflow.id) }.uniq
   end
 
   def create_parser
@@ -297,7 +375,7 @@ class WorkflowImporter
   def failure(errors, warnings: [])
     Result.new(
       success: false,
-      workflow: nil,
+      workflows: [],
       errors:,
       warnings:,
       incomplete_steps_count: 0

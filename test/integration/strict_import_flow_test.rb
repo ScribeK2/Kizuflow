@@ -54,6 +54,47 @@ class StrictImportFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
+  # --- a set of linked workflows in one file -----------------------------------
+
+  test "a bundle previews every workflow it carries and writes nothing yet" do
+    assert_no_difference -> { Workflow.count } do
+      post workflow_import_path, params: { file: upload(bundle_file) }
+    end
+
+    assert_response :success
+    assert_match(/carries 2 workflows/, response.body)
+    assert_match(/Bundle Flow Router/, response.body)
+    assert_match(/Bundle Flow Child/, response.body,
+                 "the second workflow must be previewed too, not hidden behind the first")
+  end
+
+  test "committing a bundle creates every workflow and lands on the list" do
+    assert_difference -> { Workflow.count }, 2 do
+      post commit_workflow_import_path, params: { content: bundle_file }
+    end
+
+    assert_redirected_to workflows_path
+    assert_match(/Imported 2 workflows/, flash[:notice])
+    assert_match(/Bundle Flow Router/, flash[:notice],
+                 "after importing a set, which ones is the immediate question")
+  end
+
+  test "a committed bundle wires its sub_flow to the workflow that arrived with it" do
+    post commit_workflow_import_path, params: { content: bundle_file }
+
+    router = Workflow.find_by(title: "Bundle Flow Router")
+    child  = Workflow.find_by(title: "Bundle Flow Child")
+    sub_flow = router.steps.find { |step| step.step_type == "sub_flow" }
+
+    assert_equal child.id, sub_flow.sub_flow_workflow_id
+  end
+
+  test "a single workflow still lands on that workflow, not the list" do
+    post commit_workflow_import_path, params: { content: valid_file }
+
+    assert_redirected_to workflow_path(Workflow.order(:created_at).last)
+  end
+
   private
 
   def upload(content)
@@ -74,6 +115,29 @@ class StrictImportFlowTest < ActionDispatch::IntegrationTest
           { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
         ]
       }]
+    }.to_json
+  end
+
+  def bundle_file
+    {
+      schema_version: "1",
+      workflows: [
+        {
+          title: "Bundle Flow Router",
+          steps: [
+            { id: "run-child", type: "sub_flow", title: "Run the child",
+              target_workflow_title: "Bundle Flow Child",
+              transitions: [{ target_id: "done" }] },
+            { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+          ]
+        },
+        {
+          title: "Bundle Flow Child",
+          steps: [
+            { id: "child-done", type: "resolve", title: "Done", resolution_type: "success" }
+          ]
+        }
+      ]
     }.to_json
   end
 

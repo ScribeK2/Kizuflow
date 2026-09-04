@@ -51,12 +51,31 @@ class StrictImportValidatorTest < ActiveSupport::TestCase
     assert_equal "envelope_invalid", report.errors.first[:code]
   end
 
-  test "more than one workflow is refused with a message that says why" do
+  test "two workflows sharing a title are refused, because a sub_flow target is matched by title" do
     report = validate({ schema_version: "1", workflows: [minimal_workflow, minimal_workflow] })
 
     assert_not report.valid?
+    assert_equal "duplicate_workflow_title", report.errors.first[:code]
+    assert_equal "workflows[1].title", report.errors.first[:path],
+                 "the second one is the duplicate, and the path has to say which"
+  end
+
+  test "more workflows than a file may carry is refused" do
+    too_many = Array.new(ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE + 1) do |i|
+      minimal_workflow.merge(title: "Bundle Workflow #{i}")
+    end
+    report = validate({ schema_version: "1", workflows: too_many })
+
+    assert_not report.valid?
     assert_equal "envelope_invalid", report.errors.first[:code]
-    assert_match(/one workflow per file/, report.errors.first[:message])
+    assert_match(/at most/, report.errors.first[:message])
+  end
+
+  test "an empty workflows array is refused" do
+    report = validate({ schema_version: "1", workflows: [] })
+
+    assert_not report.valid?
+    assert_equal "envelope_invalid", report.errors.first[:code]
   end
 
   test "malformed JSON is reported, not raised" do
