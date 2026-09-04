@@ -225,8 +225,20 @@ class WorkflowImporter
 
   # Cycles are a runtime question, so they are asked of the saved graph rather
   # than of the file. Inside one transaction, so a circular bundle writes nothing.
+  #
+  # Only `:circular_subflow` refuses the import. SubflowValidator also reports
+  # `:max_depth_exceeded`, and refusing on that too made a legal file
+  # unimportable: MAX_WORKFLOWS_PER_FILE is 25 and MAX_DEPTH is 10, so a chain of
+  # 11 or more validated clean and was then rolled back whole, with an error
+  # calling it circular when it was not. It also contradicted the app's own
+  # policy — WorkflowHealthCheck files max_depth_exceeded as a :warning, not an
+  # error, and publish is where depth is enforced. An import lands as a draft, so
+  # a deep chain arrives with a health warning like any other draft problem.
   def circular_sub_flow_errors(workflows)
-    workflows.flat_map { |workflow| SubflowValidator.errors_for(workflow.id) }.uniq
+    workflows.flat_map { |workflow| SubflowValidator.new(workflow.id).tap(&:valid?).findings }
+             .select { |finding| finding.code == :circular_subflow }
+             .map(&:message)
+             .uniq
   end
 
   def create_parser

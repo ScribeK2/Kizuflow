@@ -175,6 +175,39 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
     end
   end
 
+  # A chain longer than SubflowValidator::MAX_DEPTH (10) is legal to import.
+  # MAX_WORKFLOWS_PER_FILE is 25, so refusing on depth made a file the envelope
+  # explicitly allows unimportable — and reported it as a circular reference,
+  # which it is not. WorkflowHealthCheck files max_depth_exceeded as a :warning
+  # and publish is where depth is enforced; an import lands as a draft.
+  test "a sub-flow chain deeper than MAX_DEPTH still imports" do
+    depth = SubflowValidator::MAX_DEPTH + 5
+    chain = (0...depth).map do |i|
+      steps = []
+      steps << sub_flow_step("go", "Chain #{i + 1}", "done") if i < depth - 1
+      steps << resolve_step
+      workflow("Chain #{i}", steps: steps)
+    end
+
+    report, result = import(schema_version: "1", workflows: chain)
+
+    assert_predicate report, :valid?, report.errors.inspect
+    assert_predicate result, :success?,
+                     "depth is a publish-time warning, not an import refusal: #{result.errors.inspect}"
+    assert_equal depth, result.workflows.size
+  end
+
+  test "a file at the maximum workflow count imports" do
+    at_limit = Array.new(ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE) do |i|
+      workflow("Limit #{i}", steps: [resolve_step])
+    end
+
+    _report, result = import(schema_version: "1", workflows: at_limit)
+
+    assert_predicate result, :success?
+    assert_equal ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE, result.workflows.size
+  end
+
   # --- placement stays index-aligned -------------------------------------------
 
   test "each workflow gets its own groups and tags, not the first one's" do
