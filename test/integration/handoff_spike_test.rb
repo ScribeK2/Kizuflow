@@ -270,6 +270,20 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
     assert_equal before, run.reload.attributes.slice("status", "outcome", "current_node_uuid"),
                  "the run is not here any more; rewinding this frame reopens a half it already left"
     assert_predicate run, :terminal?
+
+    # And it must SAY so. A refusal with no markup of its own is
+    # indistinguishable from a Back that worked — the first version of this
+    # guard set a flash that the back stream had no block to render, so the
+    # thread silently redrew and the agent learned nothing.
+    assert_match(/runner-thread__notice/, response.body,
+                 "the refusal has to reach the page")
+    assert_match(/continued in another workflow/i, response.body)
+
+    # The notice is prepended after the thread is replaced. Prepending first
+    # puts it inside the element the replace then throws away.
+    assert_operator response.body.index("runner-thread__notice"), :>,
+                    response.body.index('action="replace"'),
+                    "a notice streamed before the replace is discarded with the old thread"
   end
 
   test "going back does not fork the run into two live branches" do

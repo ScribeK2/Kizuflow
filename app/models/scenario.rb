@@ -228,7 +228,11 @@ class Scenario < ApplicationRecord
 
   # The handed-to run of this frame, ignoring branches that were abandoned.
   def live_handed_off_to
-    Scenario.where(handed_off_from_id: id).where.not(status: "stopped").order(:id).last
+    branches = Scenario.where(handed_off_from_id: id).where.not(status: "stopped").order(:id)
+    # A frame the run is still on beats a finished one. Ordering by id alone
+    # picked the newest even when it was terminal and an older sibling was still
+    # active, which stranded the agent on a dead page.
+    branches.reject(&:terminal?).last || branches.last
   end
 
   private
@@ -236,7 +240,11 @@ class Scenario < ApplicationRecord
   # A handoff issued from *inside* this frame: the run left through a sub-flow
   # of ours, so the forward link hangs off that child rather than off us.
   def handed_off_descendant_of(frame)
-    frame.child_scenarios.where(outcome: "transferred").order(:id).find_each do |child|
+    # `each`, not `find_each`: find_each discards any order and logs a WARN
+    # about it on every call — and this runs on every runner GET, so it put a
+    # warning in the production log for a feature most runs never touch. At most
+    # a couple of rows, so batching buys nothing and the order becomes real.
+    frame.child_scenarios.where(outcome: "transferred").order(:id).each do |child|
       found = child.live_handed_off_to || handed_off_descendant_of(child)
       return found if found
     end

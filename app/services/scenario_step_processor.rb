@@ -320,60 +320,43 @@ class ScenarioStepProcessor
     #
     # Without shared_access, an anonymous visitor following a share link was
     # refused their own run the moment a sub-flow opened.
-    # SPIKE (Wave 2). A handoff spawns the same way a sub-flow does, and differs
-    # in exactly two places: nobody is recorded as waiting (parent_scenario is
-    # nil), and the source is finished rather than suspended.
+    # A handoff spawns the same way a sub-flow does, and differs in exactly two
+    # places: nobody is recorded as waiting (parent_scenario is nil), and the
+    # source is finished rather than suspended.
     handoff = step.respond_to?(:sub_flow_returns) && step.sub_flow_returns == false
 
-    child_scenario = Scenario.create!(
-      workflow: target_workflow,
-      user: @scenario.user,
-      parent_scenario: handoff ? nil : @scenario,
-      handed_off_from: handoff ? @scenario : nil,
-      purpose: @scenario.purpose,
-      shared_access: @scenario.shared_access?,
-      results: child_results,
-      inputs: {},
-      status: 'active'
-    )
-
-    # Initialize child's starting position
-    start_uuid = target_workflow.start_step&.uuid || target_workflow.steps.first&.uuid
-    child_scenario.update!(current_node_uuid: start_uuid)
-
-    path_entry["subflow_started"] = true
-    path_entry["child_scenario_id"] = child_scenario.id
-    path_entry["target_workflow_title"] = target_workflow.title
-    # Recorded, not inferred. The transcript has to know a boundary was a tail
-    # call rather than a call, and asking the child's FKs at render time is
-    # exactly the "reader guesses the run's shape" pattern that produced three
-    # criticals in this subsystem.
-    path_entry["handed_off"] = true if handoff
-    @scenario.append_path_entry(path_entry)
-
-    # A handoff ends this half, and every frame waiting on it. Scenario#hand_off!
-    # owns that rule and the exact end state (§T item 3): status "completed" so
-    # terminal? is true and parked? false, outcome "transferred" so reporting can
-    # tell a handoff from a completion, and no current node.
+    # For a handoff the target's creation and the settling of this half are ONE
+    # fact — "the run is now over there" — so they share one transaction.
+    #
+    # An earlier version created the target and then compensated with `destroy`
+    # if the settling lost an optimistic-locking race. That is three separate
+    # transactions, and a process death between the first and the last left a
+    # live target beside a source that had never handed off: two live heads for
+    # one run, which is the invariant this path exists to hold.
+    # `Scenario#hand_off!` opens its own transaction, which joins this one, so
+    # the raise rolls the insert back with it.
+    #
+    # The returning path keeps its previous shape on purpose. It is protected
+    # from the same race by the stale-child sweep above, which cannot see a
+    # handoff child because that child has no parent_scenario_id — and giving it
+    # a transaction here would change when its child becomes visible.
     if handoff
-      # NB: path_entry is already appended four lines above — appending again
-      # here duplicated the handoff step on the transcript.
       begin
-        @scenario.hand_off!
+        Scenario.transaction do
+          child = spawn_target(target_workflow, child_results, handoff: true)
+          record_subflow_entry(path_entry, child, target_workflow, handoff: true)
+          @scenario.hand_off!
+        end
       rescue ActiveRecord::StaleObjectError
-        # The target and the settling of this half are one fact — "the run is
-        # now over there" — and this is where they can come apart. A lost race
-        # used to leave the target alive with a source that had never been
-        # handed off, so `handed_off_to` had two live rows to choose between and
-        # the run had forked. The returning path is protected from the same
-        # shape by its stale-child sweep, which cannot see a handoff child
-        # because that child has no parent_scenario_id.
         Rails.logger.warn "[Scenario ##{@scenario.id}] Stale object on handoff — concurrent modification detected"
-        child_scenario.destroy
         return Outcome.halted(:conflict)
       end
+
       return Outcome.awaiting_subflow
     end
+
+    child_scenario = spawn_target(target_workflow, child_results, handoff: false)
+    record_subflow_entry(path_entry, child_scenario, target_workflow, handoff: false)
 
     @scenario.status = 'awaiting_subflow'
     begin
@@ -384,5 +367,42 @@ class ScenarioStepProcessor
     end
 
     Outcome.awaiting_subflow
+  end
+
+  # The scenario the run moves into, whether it will come back or not.
+  #
+  # purpose and shared_access describe the *run*, not the frame, so it inherits
+  # them. Without purpose, a live run's sub-flow took the column default of
+  # "simulation" and was reaped by the 7-day tier while its parent lived for 90 —
+  # a completed live run silently lost the answers recorded inside it. Without
+  # shared_access, an anonymous visitor following a share link was refused their
+  # own run the moment a sub-flow opened.
+  def spawn_target(target_workflow, child_results, handoff:)
+    child = Scenario.create!(
+      workflow: target_workflow,
+      user: @scenario.user,
+      parent_scenario: handoff ? nil : @scenario,
+      handed_off_from: handoff ? @scenario : nil,
+      purpose: @scenario.purpose,
+      shared_access: @scenario.shared_access?,
+      results: child_results,
+      inputs: {},
+      status: 'active'
+    )
+    start_uuid = target_workflow.start_step&.uuid || target_workflow.steps.first&.uuid
+    child.update!(current_node_uuid: start_uuid)
+    child
+  end
+
+  # `handed_off` is recorded, not inferred. The transcript has to know a boundary
+  # was a tail call rather than a call, and asking the child's foreign keys at
+  # render time is exactly the "reader guesses the run's shape" pattern that
+  # produced three criticals in this subsystem.
+  def record_subflow_entry(path_entry, child, target_workflow, handoff:)
+    path_entry["subflow_started"] = true
+    path_entry["child_scenario_id"] = child.id
+    path_entry["target_workflow_title"] = target_workflow.title
+    path_entry["handed_off"] = true if handoff
+    @scenario.append_path_entry(path_entry)
   end
 end
