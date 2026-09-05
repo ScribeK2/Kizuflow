@@ -406,6 +406,10 @@
                 "type": "string"
               }
             },
+            "sub_flow_returns": {
+              "type": "boolean",
+              "description": "Default true: the sub-flow runs and the agent comes back here. Set false to hand the run over for good — the step then ends this workflow, so it takes no transitions and needs no Resolve after it."
+            },
             "target_workflow_title": {
               "type": "string",
               "minLength": 1

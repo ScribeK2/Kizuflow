@@ -70,6 +70,10 @@ class StepBuilder
                    notes_required: step_data["notes_required"] || false, survey_trigger: step_data["survey_trigger"] || false)
     when "sub_flow"
       attrs[:sub_flow_workflow_id] = step_data["target_workflow_id"]
+      # `key?`, not `||`: a stored false must survive, and `step_data[...] ||
+      # true` would quietly turn every handoff back into a returning sub-flow.
+      # Absent means the file predates handoffs, which is the column default.
+      attrs[:sub_flow_returns] = step_data["sub_flow_returns"] if step_data.key?("sub_flow_returns")
       attrs[:variable_mapping] = step_data["variable_mapping"]
     when "form"
       attrs[:options] = step_data["options"]

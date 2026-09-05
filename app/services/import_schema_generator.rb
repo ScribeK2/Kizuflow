@@ -173,6 +173,11 @@ class ImportSchemaGenerator
     when :variable_mapping then variable_mapping_property
     when :can_resolve, :reason_required, :notes_required, :survey_trigger
       { "type" => "boolean" }
+    when :sub_flow_returns
+      { "type" => "boolean",
+        "description" => "Default true: the sub-flow runs and the agent comes back here. " \
+                         "Set false to hand the run over for good — the step then ends this " \
+                         "workflow, so it takes no transitions and needs no Resolve after it." }
     when :instructions, :content, :notes, :description
       { "type" => "string",
         "description" => "HTML. Use <p>, <strong>, <em>, <ul>/<ol>/<li>, <a>. " \

@@ -100,6 +100,13 @@ class StepSerializer
     when Steps::SubFlow
       data["target_workflow_id"] = step.sub_flow_workflow_id
       data["variable_mapping"] = step.variable_mapping if step.variable_mapping.present?
+      # Emitted unconditionally, not `if step.sub_flow_returns == false`. The
+      # column defaults to true, so an omitted key and a deliberate `true` are
+      # indistinguishable on the way back in — and the interesting value is the
+      # one that changes behaviour. A field missing from here is erased on
+      # version restore, silently; step_field_map_test is the guard, and it
+      # caught this one.
+      data["sub_flow_returns"] = step.sub_flow_returns
     end
   end
 
