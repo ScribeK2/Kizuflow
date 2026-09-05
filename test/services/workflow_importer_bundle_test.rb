@@ -175,12 +175,22 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
     end
   end
 
-  # A chain longer than SubflowValidator::MAX_DEPTH (10) is legal to import.
-  # MAX_WORKFLOWS_PER_FILE is 25, so refusing on depth made a file the envelope
-  # explicitly allows unimportable — and reported it as a circular reference,
-  # which it is not. WorkflowHealthCheck files max_depth_exceeded as a :warning
-  # and publish is where depth is enforced; an import lands as a draft.
-  test "a sub-flow chain deeper than MAX_DEPTH still imports" do
+  # A chain longer than SubflowValidator::MAX_DEPTH (10) is refused, and this
+  # test once asserted the opposite.
+  #
+  # The reasoning for letting it through: MAX_WORKFLOWS_PER_FILE is 25, so
+  # refusing on depth looked like refusing a file the envelope explicitly
+  # allows, and WorkflowHealthCheck files max_depth_exceeded as a :warning. What
+  # that missed is `Workflow#validate_subflow_circular_references`, which copies
+  # every SubflowValidator error onto the record on *every save*. So the
+  # imported chain was not a draft carrying a warning — it was fifteen
+  # workflows that could never be saved or published again, with no fix
+  # available from the builder and nothing saying why. The health check's
+  # severity is the inconsistency; the model validation is the policy.
+  #
+  # What was genuinely wrong before was the message, which called a chain a
+  # circular reference. That is what this now pins.
+  test "a sub-flow chain deeper than MAX_DEPTH is refused, and not as a cycle" do
     depth = SubflowValidator::MAX_DEPTH + 5
     chain = (0...depth).map do |i|
       steps = []
@@ -191,9 +201,29 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
 
     report, result = import(schema_version: "1", workflows: chain)
 
-    assert_predicate report, :valid?, report.errors.inspect
-    assert_predicate result, :success?,
-                     "depth is a publish-time warning, not an import refusal: #{result.errors.inspect}"
+    assert_predicate report, :valid?, "the file is structurally fine; depth is a graph question"
+    assert_not result.success?
+    assert_equal 0, @user.workflows.where(title: "Chain 0").count, "the whole bundle rolls back"
+
+    message = result.errors.join(" ")
+    assert_match(/#{depth} levels deep/, message)
+    assert_match(/chain, not a cycle/, message)
+    assert_no_match(/Circular/i, message, "a chain is not a cycle, and saying so sent the last fix the wrong way")
+  end
+
+  # A chain exactly at the limit is the other side of that boundary.
+  test "a sub-flow chain exactly at MAX_DEPTH imports" do
+    depth = SubflowValidator::MAX_DEPTH
+    chain = (0...depth).map do |i|
+      steps = []
+      steps << sub_flow_step("go", "Edge #{i + 1}", "done") if i < depth - 1
+      steps << resolve_step
+      workflow("Edge #{i}", steps: steps)
+    end
+
+    _report, result = import(schema_version: "1", workflows: chain)
+
+    assert_predicate result, :success?, result&.errors.inspect
     assert_equal depth, result.workflows.size
   end
 
@@ -225,6 +255,54 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
     assert_equal ["child-tag"], child.tags.map(&:name)
     assert_empty router.groups, "the router declared no group and must not inherit one"
     assert_equal [group.id], child.groups.map(&:id)
+  end
+
+  # --- what happens to a bundle AFTER it lands ---------------------------------
+  #
+  # Every assertion above this point stops at `result.success?`. That is how a
+  # bundle shipped whose workflows imported cleanly and then refused every
+  # subsequent save: a file's workflows reference each other and all land as
+  # drafts, and `Workflow#validate_subflow_steps` demanded a published target on
+  # every save. The import was never the whole story.
+
+  test "an imported bundle workflow can still be saved" do
+    _report, result = import(linked_pair)
+    router = result.workflows.find { |w| w.title == "Bundle Router" }
+
+    router.title = "Bundle Router Renamed"
+
+    assert router.save,
+           "a draft may reference a draft; requiring publish on save made every imported bundle read-only: " \
+           "#{router.errors.full_messages.inspect}"
+  end
+
+  test "the health panel says the target is still a draft, rather than reading clean" do
+    _report, result = import(linked_pair)
+    router = result.workflows.find { |w| w.title == "Bundle Router" }
+    sub_flow = router.steps.find { |s| s.is_a?(Steps::SubFlow) }
+
+    issues = WorkflowHealthCheck.new(router).call.issues[sub_flow.uuid] || []
+    codes = issues.pluck(:code)
+
+    assert_includes codes, :subflow_target_unpublished,
+                    "publishing a bundle is leaf-first, and this is the only thing that says so"
+    assert_equal [:warning], issues.select { |i| i[:code] == :subflow_target_unpublished }.pluck(:severity).uniq,
+                 "an unpublished target blocks publish, not saving or running"
+  end
+
+  test "publishing a bundle is leaf-first, and the parent says why when it is not" do
+    _report, result = import(linked_pair)
+    router = result.workflows.find { |w| w.title == "Bundle Router" }
+    child = result.workflows.find { |w| w.title == "Bundle Child" }
+
+    parent_first = WorkflowPublisher.new(router, @user).publish
+
+    assert_nil parent_first.version, "the child is still a draft"
+    assert_match(/not published/, parent_first.error.to_s)
+
+    assert WorkflowPublisher.new(child.reload, @user).publish.version, "the leaf has no sub-flow of its own"
+    assert WorkflowPublisher.new(router.reload, @user).publish.version,
+           "and now the parent goes: #{WorkflowPublisher.new(router.reload, @user).publish.error.inspect}"
   end
 
   # --- the single-workflow case is unchanged -----------------------------------

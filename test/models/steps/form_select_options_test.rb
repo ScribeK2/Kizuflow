@@ -101,6 +101,63 @@ class Steps::FormSelectOptionsTest < ActiveSupport::TestCase
     assert_equal ["broken"], step.select_fields_without_choices.pluck("name")
   end
 
+  # --- the builder must not rewrite choices it was not asked to change ---------
+  #
+  # `_form.html.erb` renders the raw choices box on every field row of every
+  # autosave, and its value is labels only. So an edit to an unrelated part of
+  # the step re-posted a raw string that, parsed, flattened every value to its
+  # label. Only import can author a value that differs from its label, which is
+  # why nothing noticed until a bundle carried one.
+
+  test "an unchanged choices box leaves imported label/value pairs alone" do
+    step = build_form("name" => "contact", "field_type" => "select",
+                      "select_options" => [{ "label" => "Phone", "value" => "phone" },
+                                           { "label" => "Email", "value" => "email" }])
+    raw = step.select_options_text(step.fields.first)
+
+    step.update!(title: "Edited elsewhere",
+                 options: [{ "name" => "contact", "field_type" => "select", "select_options_raw" => raw }])
+
+    assert_equal [{ "label" => "Phone", "value" => "phone" }, { "label" => "Email", "value" => "email" }],
+                 step.reload.fields.first["select_options"],
+                 "re-posting the rendered box is 'I did not touch this', not 'rewrite values from labels'"
+  end
+
+  test "a label containing the separator survives an unrelated save" do
+    step = build_form("name" => "urgency", "field_type" => "select",
+                      "select_options" => [{ "label" => "Yes, immediately", "value" => "yes" },
+                                           { "label" => "No", "value" => "no" }])
+    raw = step.select_options_text(step.fields.first)
+
+    assert_equal "Yes, immediately, No", raw, "the rendered text is genuinely ambiguous — that is the trap"
+
+    step.update!(options: [{ "name" => "urgency", "field_type" => "select", "select_options_raw" => raw }])
+
+    assert_equal ["Yes, immediately", "No"], step.reload.fields.first["select_options"].pluck("label"),
+                 "splitting the rendered text turned two choices into three"
+  end
+
+  test "editing the choices box still rewrites them" do
+    step = build_form("name" => "contact", "field_type" => "select",
+                      "select_options" => [{ "label" => "Phone", "value" => "phone" }])
+
+    step.update!(options: [{ "name" => "contact", "field_type" => "select",
+                             "select_options_raw" => "Phone, Email" }])
+
+    assert_equal [{ "label" => "Phone", "value" => "Phone" }, { "label" => "Email", "value" => "Email" }],
+                 step.reload.fields.first["select_options"],
+                 "a real edit is label=value, which is the builder's contract"
+  end
+
+  test "clearing the choices box still removes them" do
+    step = build_form("name" => "contact", "field_type" => "select",
+                      "select_options" => [{ "label" => "Phone", "value" => "phone" }])
+
+    step.update!(options: [{ "name" => "contact", "field_type" => "select", "select_options_raw" => "" }])
+
+    assert_nil step.reload.fields.first["select_options"]
+  end
+
   private
 
   def build_form(*fields)

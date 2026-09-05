@@ -59,6 +59,15 @@ class WorkflowHealthCheck
     @start_uuid ||= @workflow.start_step&.uuid || steps_collection.first&.uuid
   end
 
+  # id => title, for every sub_flow target of this workflow that is still a
+  # draft. One query for the whole step list rather than one per sub_flow step.
+  def unpublished_subflow_targets
+    @unpublished_subflow_targets ||= begin
+      target_ids = steps_collection.filter_map { |s| s.sub_flow_workflow_id if s.is_a?(Steps::SubFlow) }
+      target_ids.any? ? Workflow.where(id: target_ids, status: "draft").pluck(:id, :title).to_h : {}
+    end
+  end
+
   # Translate GraphValidator findings into per-step issues.
   #
   # Severity, panel wording and fix metadata are decided HERE, not in the
@@ -144,6 +153,18 @@ class WorkflowHealthCheck
       if step.is_a?(Steps::SubFlow) && step.sub_flow_workflow_id.blank?
         add_issue(issues, step.uuid, :warning, "Sub-flow target is required for publish",
                   fixable: false, code: :subflow_target_required)
+      end
+
+      # An unpublished target is legal to save and legal to run — it only blocks
+      # publish. This is the whole signpost for a bundle: a file's workflows
+      # reference each other and all land as drafts, so publishing them is
+      # leaf-first, and without this the operator meets that ordering as a
+      # validation failure on the publish button with nothing having said so.
+      if step.is_a?(Steps::SubFlow) && unpublished_subflow_targets.key?(step.sub_flow_workflow_id)
+        add_issue(issues, step.uuid, :warning,
+                  "Target workflow #{unpublished_subflow_targets[step.sub_flow_workflow_id].inspect} " \
+                  "is still a draft — publish it before publishing this one",
+                  fixable: false, code: :subflow_target_unpublished)
       end
 
       next unless step.is_a?(Steps::Form)

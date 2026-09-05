@@ -476,7 +476,18 @@ class Workflow < ApplicationRecord
         next
       end
 
-      unless target_workflow.published?
+      # A draft may point at a draft. This is a publish-time rule, not a
+      # save-time one, and asking it on every save made an imported bundle
+      # unusable: a file carries a set of workflows that reference each other by
+      # title, they all land as drafts, and so every one of them carrying a
+      # sub_flow step refused to save from the moment it arrived — rename the
+      # title in the builder and the autosave went red, with the health panel
+      # reading clean because it only ever flagged a *blank* target.
+      #
+      # Publishing still enforces it. WorkflowPublisher assigns status before
+      # validating, so `draft?` is already false by the time this runs and the
+      # branch fires — which is what makes a bundle publish leaf-first.
+      if published? && !target_workflow.published?
         errors.add(:steps, "Step #{step.position + 1}: Target workflow '#{target_workflow.title}' is not published")
       end
 

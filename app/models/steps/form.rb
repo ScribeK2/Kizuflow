@@ -109,9 +109,42 @@ module Steps
         field = field.except("select_options_raw")
         next field if raw.nil?
 
+        # An unchanged raw box means "I did not touch the choices", not "rewrite
+        # them from their labels". The builder renders the box on every field
+        # row on every autosave, and its value is `select_options_text` — labels
+        # only — so without this check a save triggered by an unrelated edit
+        # flattened every choice's value to its label. That is invisible and
+        # permanent: a transition matching `contact == 'phone'` silently stops
+        # firing once the stored value becomes "Phone". A label containing the
+        # separator was worse — "Yes, immediately" came back as two choices.
+        #
+        # Only import can author a choice whose value differs from its label, so
+        # this is the round-trip that kept a bundle's forms intact.
+        stored = stored_select_options_for(field)
+        next field.merge("select_options" => stored) if stored.any? && raw == choices_text(stored)
+
         parsed = parse_select_options(raw)
         parsed.any? ? field.merge("select_options" => parsed) : field.except("select_options")
       end
+    end
+
+    # The choices this field had before the current assignment, matched by
+    # `name` because that is the only stable identifier a field carries —
+    # `position` is re-sent by the builder and can shift within one save.
+    #
+    # Renaming a field and leaving its choices alone in the same save misses
+    # this lookup and falls through to the parse, which is the pre-existing
+    # label=value behaviour rather than a new failure.
+    def stored_select_options_for(field)
+      name = field["name"]
+      return [] if name.blank?
+
+      previous = Array(options_in_database).find { |f| f.is_a?(Hash) && f["name"] == name }
+      Array(previous && previous["select_options"])
+    end
+
+    def choices_text(choices)
+      choices.filter_map { |choice| choice["label"] if choice.is_a?(Hash) }.join(", ")
     end
 
     def parse_select_options(raw)
