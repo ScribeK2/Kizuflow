@@ -122,3 +122,84 @@ forbids a transition-less non-resolve step), the embed/share path
 `StepFieldMap`/`StepSerializer` carrying `sub_flow_returns` through publish and
 version restore (SC 9) — that last one is the field-erasure trap, so it must not
 be left to the end.
+
+---
+
+# Wave 2, replanned from the spike
+
+This replaces `workflow-handoff.md` §T as the build order. §T's *site list* was
+largely accurate — its sequencing was not, and two of its items turned out to be
+one item while a third was not needed at all.
+
+**What is already built on `spike/handoff` and is keepable as-is:** the two
+columns, `run_origin`/`run_head` with their tests, the `GraphHashBuilder` field,
+the two `GraphValidator` rules, the `descend` fallback, the `SubflowValidator`
+depth exemption, and the `runner_step_redirect` forward branch. That is roughly
+half of §T, verified. The spike's one throwaway is the ancestor-termination loop
+in `scenario_step_processor.rb`, which works but is written as a `while` over
+`update_columns` and belongs on `Scenario` with proper locking.
+
+## Order
+
+**1. Make the ancestor termination real.** The spike proves the rule — a handoff
+ends every frame waiting on it — but implements it with `update_columns`, which
+skips validations, callbacks and `lock_version`. Move it to a `Scenario` method
+beside `stop!` (which already does a cascade correctly and is the model to
+follow), and decide the status honestly: those frames did not *complete*, the run
+left them. `stop!` uses `stopped` with outcome `abandoned`; neither fits. This is
+a data-model decision, not a refactor, and everything below reads it.
+
+**2. The thread splice (SC 2).** The single biggest user-visible gap, and the
+feature's whole purpose. `run_origin` exists for this. The head's
+`execution_path` is empty and the origin holds the entries, so
+`runner_thread_entries` must walk origin → head and concatenate, without adding
+indentation at the boundary — a handoff is not a nesting level. Do this second
+because it is what makes a handoff *feel* like one run, and because every
+remaining item is easier to judge once a real transcript renders.
+
+**3. Settle Open Q2 and route the header through one reader.** The app currently
+answers the title-flip question both ways in a single session. Once decided,
+`runner_shell.rb:82` and `:165` and `player_controller.rb:55` all take
+`run_origin.workflow` (or `run_head.workflow`) instead of `root_workflow`. The
+embed bug falls out here: a handed-to workflow has no share token, so
+`embeddable?` is false and an embedded share-link run loses embed mode at the
+boundary.
+
+**4. Round-trip (§R items 9-10).** The published schema forbids the exact shape
+this feature emits: `ImportSchemaGenerator` gives every non-resolve step a
+`transitions` property with `minItems: 1`, and a handoff step has none. Export,
+schema, and `StrictImportValidator` move together or a handoff workflow exports
+to a file the app refuses — the same class of defect as the two round-trip
+exceptions already documented in AGENTS.md.
+
+**5. `StepFieldMap` + `StepSerializer` carry `sub_flow_returns` (SC 9).** Do not
+leave this last despite its position here: a field missing from the serializer is
+**erased on version restore**, silently. The map-driven test is the guard. It is
+listed at 5 only because it is mechanical once 4 has settled the field's name in
+the export document.
+
+**6. The builder UI.** A checkbox on the sub-flow step editor, plus the step row
+and flow diagram rendering a handoff as terminal (`Step#terminal?` is
+`transitions.empty?`, and `condition_summary` prints "Terminal" only for
+`Steps::Resolve`). **Note the live P2:** the Form field inputs have no
+`data-action` and never autosave — check whether the sub-flow panel's inputs
+share that defect before adding another control to a panel that may not save it.
+
+## Dropped from §T
+
+- **Item 6 (`WorkflowHealthCheck` `add_resolve_after`)** — not needed. The panel
+  derives `terminal_not_resolve` from `GraphValidator`, so fixing the validator
+  fixed the panel. SC 8 passes with no health-check change.
+- **Item 12a's "new Outcome status"** — not needed for a working handoff. The
+  existing `awaiting_subflow` outcome plus a `descend` that also looks at
+  `handed_off_to` is enough, and it is a smaller change. Revisit only if the
+  thread splice needs to distinguish the two at render time.
+
+## What the spike did not touch, and what it would cost to find out
+
+Publish-time handoff cycle refusal is confirmed working (SC 5). Untested:
+concurrent runs over a handoff boundary under optimistic locking, the retention
+jobs' view of a handed-off chain (`purpose` is inherited, but
+`unfinished_descendants` walks the parent FK and will not see across a handoff —
+**this is a likely data-retention leak and deserves its own probe**), and
+anonymous share-link runs crossing a boundary.
