@@ -198,8 +198,20 @@ share that defect before adding another control to a panel that may not save it.
 ## What the spike did not touch, and what it would cost to find out
 
 Publish-time handoff cycle refusal is confirmed working (SC 5). Untested:
-concurrent runs over a handoff boundary under optimistic locking, the retention
-jobs' view of a handed-off chain (`purpose` is inherited, but
-`unfinished_descendants` walks the parent FK and will not see across a handoff —
-**this is a likely data-retention leak and deserves its own probe**), and
-anonymous share-link runs crossing a boundary.
+concurrent runs over a handoff boundary under optimistic locking, and anonymous
+share-link runs crossing a boundary.
+
+**One verified constraint on decision 1.** `Scenario#unfinished_descendants`
+(`:260`) recurses through `child_scenarios` only, so it cannot see across a
+handoff — checked on the real pair: `625.unfinished_descendants` is `[]` while
+626 is the live run. `stop!` is built on it, so "stop this run" reaches only one
+side of a boundary.
+
+That is **not** a live leak today, and an earlier draft of this section
+overstated it as one: the spike terminates every waiting ancestor eagerly, so
+nothing non-terminal is ever left behind a boundary. The real content is that it
+constrains decision 1 — if ancestor termination is done any way that leaves those
+frames non-terminal (a "handed off" status rather than a terminal one), `stop!`
+and the retention scopes silently stop reaching them. Whatever status is chosen
+must either be terminal, or `unfinished_descendants` must learn to cross the
+handoff link.
