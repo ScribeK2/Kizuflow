@@ -256,4 +256,94 @@ class RunnerThreadHelperTest < ActionView::TestCase
 
     assert_empty runner_thread_entries(scenario)
   end
+
+  # --- across a handoff boundary (SC 2) ---------------------------------------
+  #
+  # The transcript is the whole point of the feature: an agent who exhausts a
+  # diagnostic flow should carry their work forward, not re-collect it. The spike
+  # found it truncated at the boundary — the handed-to run's own execution_path
+  # is empty, and the thread read from `root_scenario`, which for a run with no
+  # parent is itself.
+  #
+  # A handoff is also NOT a nesting level. A sub-flow indents because the run
+  # went somewhere and will come back; a tail call does not come back, so
+  # indenting it would say something untrue about the shape of the run.
+
+  def handoff_pair
+    target = Workflow.create!(title: "Escalation", user: @user)
+    tq = Steps::Question.create!(workflow: target, title: "Which team", position: 0, variable_name: "team")
+    tr = Steps::Resolve.create!(workflow: target, title: "Escalated", position: 1)
+    Transition.create!(step: tq, target_step: tr, position: 0)
+    target.update!(start_step: tq)
+
+    source = Workflow.create!(title: "Diagnose", user: @user)
+    sq = Steps::Question.create!(workflow: source, title: "Restarted", position: 0, variable_name: "restarted")
+    ho = Steps::SubFlow.create!(workflow: source, title: "Continue in Escalation", position: 1,
+                                sub_flow_workflow_id: target.id, sub_flow_returns: false)
+    Transition.create!(step: sq, target_step: ho, position: 0)
+    source.update!(start_step: sq)
+
+    run = Scenario.create!(workflow: source, user: @user, purpose: "simulation", started_at: Time.current,
+                           current_node_uuid: sq.uuid, execution_path: [], results: {}, inputs: {})
+    head = ScenarioSettler.new(run).settle("No").scenario
+    [run.reload, head]
+  end
+
+  test "the thread carries the steps from before the handoff" do
+    _run, head = handoff_pair
+
+    titles = runner_thread_entries(head).pluck("step_title")
+
+    assert_includes titles, "Restarted",
+                    "everything before the boundary vanished — which is the problem the feature exists to solve"
+  end
+
+  test "a handoff does not indent the run" do
+    _run, head = handoff_pair
+    ScenarioSettler.new(head).settle("Support")
+
+    depths = runner_thread_entries(head.reload).pluck("depth")
+
+    assert_equal [0], depths.uniq,
+                 "a sub-flow indents because the run comes back; a tail call does not come back"
+  end
+
+  test "a handoff is not marked as going into a sub-flow" do
+    _run, head = handoff_pair
+
+    kinds = runner_thread_entries(head).pluck("kind")
+
+    assert_not_includes kinds, "group_start",
+                        "group_start means the run stepped into another script and will return"
+  end
+
+  # `drop_child_terminal?` removes a *sub-flow's* closing resolve from the
+  # transcript, because that ending belongs to the sub-flow and not to the run.
+  # After a handoff it IS the run's ending, so it must survive.
+  #
+  # Note where it lives while the run is open: a top-level resolve is not
+  # auto-processed (`auto_processable?` requires a parent), so the run rests ON
+  # it as the open card rather than filing it as a past entry — which is SC 4.
+  # It joins the transcript once acknowledged, and that is what this pins.
+  test "the handed-to workflow's ending is not swallowed the way a sub-flow's is" do
+    _run, head = handoff_pair
+    settled = ScenarioSettler.new(head).settle("Support")
+
+    assert_equal "Escalated", settled.scenario.current_step&.title,
+                 "the run rests on the ending it reached, rather than it being dropped"
+
+    ScenarioSettler.new(settled.scenario).settle(nil, resolved_here: true)
+    titles = runner_thread_entries(head.reload).pluck("step_title")
+
+    assert_includes titles, "Escalated",
+                    "acknowledged, it is the run's ending and belongs on the transcript"
+  end
+
+  test "reading the thread from either end of the chain gives the same run" do
+    run, head = handoff_pair
+
+    assert_equal runner_thread_entries(run).pluck("step_title"),
+                 runner_thread_entries(head).pluck("step_title"),
+                 "the transcript is a property of the run, not of which frame you ask"
+  end
 end

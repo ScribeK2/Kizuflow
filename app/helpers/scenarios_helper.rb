@@ -75,10 +75,15 @@ module ScenariosHelper
   # subtle, and already carrying a fix for a query per sub-flow — while
   # differing only at the call site is what stops the two drifting.
   #
-  # Reads from the root, because a thread is the whole run: a sub-flow shows the
-  # steps that led into it rather than restarting at one.
+  # Reads from the run's origin, because a thread is the whole run: a sub-flow
+  # shows the steps that led into it rather than restarting at one, and after a
+  # handoff the earlier workflow's steps are still this run's steps.
+  #
+  # `root_scenario` was right until handoffs existed and is now half the walk —
+  # a handed-to run has no parent, so it is its own root and the transcript
+  # started blank at the boundary. That is the whole point of `run_origin`.
   def runner_thread_entries(scenario)
-    flatten_path_entries(scenario.root_scenario.execution_path || [])
+    flatten_path_entries(scenario.run_origin.execution_path || [])
   end
 
   # Humanizes raw result keys: strips step_ prefix, replaces underscores, titleizes.
@@ -120,12 +125,24 @@ module ScenariosHelper
 
     path.each do |entry|
       if entry["subflow_started"].present? && entry["child_scenario_id"].present?
+        child = children[entry["child_scenario_id"]]
+
+        # A tail call, not a call. Three differences from a sub-flow, all of them
+        # the same fact — the run left and is not coming back:
+        #   no group mark, because nothing was stepped *into*;
+        #   the same depth, because indenting would claim a nesting that ends;
+        #   and its terminal step is kept, because that ending is the run's.
+        if entry["handed_off"].present?
+          next unless child
+
+          flat.concat(flatten_path_entries(child.execution_path || [], depth))
+          next
+        end
+
         # Emitted even when the child is gone. The mark is a fact about the call
         # — it went into another script — and saying so with the title the entry
         # already carries beats silence.
         flat << entry.merge("kind" => "group_start", "depth" => depth)
-
-        child = children[entry["child_scenario_id"]]
         next unless child
 
         child_path = child.execution_path || []

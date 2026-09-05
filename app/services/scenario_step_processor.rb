@@ -344,6 +344,11 @@ class ScenarioStepProcessor
     path_entry["subflow_started"] = true
     path_entry["child_scenario_id"] = child_scenario.id
     path_entry["target_workflow_title"] = target_workflow.title
+    # Recorded, not inferred. The transcript has to know a boundary was a tail
+    # call rather than a call, and asking the child's FKs at render time is
+    # exactly the "reader guesses the run's shape" pattern that produced three
+    # criticals in this subsystem.
+    path_entry["handed_off"] = true if handoff
     @scenario.append_path_entry(path_entry)
 
     # A handoff ends this half, and every frame waiting on it. Scenario#hand_off!
