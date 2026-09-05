@@ -356,6 +356,13 @@ class WorkflowImporter
       when "sub_flow"
         attrs[:sub_flow_workflow_id] = step_hash["target_workflow_id"] if step_hash["target_workflow_id"].present?
         attrs[:variable_mapping] = step_hash["variable_mapping"] if step_hash["variable_mapping"].present?
+        # `key?`, not `.present?`. Every line around this one guards on presence,
+        # and for a boolean whose meaningful value is `false` that reads as
+        # "absent" — the field would be dropped and the column's default of true
+        # would silently turn an imported handoff back into a returning
+        # sub-flow. This is the fourth reader of the sub_flow field list, which
+        # is what StepFieldMap exists to keep honest.
+        attrs[:sub_flow_returns] = step_hash["sub_flow_returns"] if step_hash.key?("sub_flow_returns")
       when "form"
         attrs[:options] = step_hash["options"] if step_hash["options"].present?
       end

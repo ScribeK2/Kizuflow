@@ -16,3 +16,20 @@
         errors: errors, submitted: submitted, auto_advance: auto_advance,
         parked: parked, results_url: results_url %>
 <% end %>
+
+<% if flash.now[:alert].present? %>
+  <%#
+    Back can be refused — a run that was handed to another workflow has no half
+    to reopen — and a refusal with no markup of its own is indistinguishable
+    from a Back that worked. `_advance_stream` has carried this block for the
+    same reason; without it here, the shell set an alert that nothing rendered
+    and the agent saw the thread silently redraw.
+
+    AFTER the replace, not before: the replace above swaps the whole
+    #runner-thread element, so a notice prepended first is thrown away with the
+    old one. Turbo applies the actions in document order.
+  %>
+  <%= turbo_stream.prepend "runner-thread" do %>
+    <li class="runner-thread__notice" role="alert"><%= flash.now[:alert] %></li>
+  <% end %>
+<% end %>

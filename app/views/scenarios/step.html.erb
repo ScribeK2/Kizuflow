@@ -7,7 +7,11 @@
       <%= icon "chevron-left", class: "icon icon--xs" %>
       Back to workflow
     <% end %>
-    <h1 class="page-header-section__title" title="<%= @workflow.title %>">
+    <%# id'd so a streamed answer can rename it. A handoff moves the run to a
+        different workflow mid-page, and the answer is a Turbo Stream that
+        touches only the thread tail — without this the header would keep naming
+        the previous workflow for the rest of the run. %>
+    <h1 class="page-header-section__title" id="runner-workflow-title" title="<%= @workflow.title %>">
       <%= truncate(@workflow.title, length: 60, omission: "...") %>
     </h1>
     <p class="page-header-section__ident">Step-by-step execution</p>

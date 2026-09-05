@@ -7,6 +7,13 @@ class Scenario < ApplicationRecord
   # Parent/child scenario associations for sub-flows
   belongs_to :parent_scenario, class_name: 'Scenario', optional: true
   has_many :child_scenarios, class_name: 'Scenario', foreign_key: 'parent_scenario_id', inverse_of: :parent_scenario, dependent: :destroy
+  # SPIKE (Wave 2). Deliberately NOT parent/child: a parent is waiting to be
+  # returned to, and the whole point of a tail call is that nobody is waiting.
+  # `dependent: :nullify` because the handed-to run outlives the half that
+  # started it — destroying the source must not take the live run with it.
+  belongs_to :handed_off_from, class_name: 'Scenario', optional: true
+  has_one :handed_off_to, class_name: 'Scenario', foreign_key: 'handed_off_from_id',
+                          inverse_of: :handed_off_from, dependent: :nullify
   has_many :step_responses, dependent: :destroy
 
   # String-backed enum — maps to existing column values with no migration needed.
@@ -65,7 +72,13 @@ class Scenario < ApplicationRecord
   validates :purpose, inclusion: { in: PURPOSES }, allow_nil: false
 
   # Valid outcomes
-  OUTCOMES = %w[completed resolved escalated abandoned error].freeze
+  # "transferred" is the handoff ending. It lives on `outcome`, not `status`,
+  # because the two columns answer different questions: `status` says whether the
+  # frame is finished (and must stay one of the enum's members so `terminal?`,
+  # `parked?` and the cleanup scopes keep working), while `outcome` says how it
+  # ended. A run that handed its work to another workflow did not *complete*, and
+  # reporting has to be able to tell those apart.
+  OUTCOMES = %w[completed resolved escalated abandoned error transferred].freeze
   validates :outcome, inclusion: { in: OUTCOMES }, allow_nil: true
 
   # Cleanup scopes
@@ -159,6 +172,87 @@ class Scenario < ApplicationRecord
     root_scenario.workflow
   end
 
+  # Where the run started, and where it lives now.
+  #
+  # These exist because four separate readers each worked out "where does this
+  # run live" from `parent_scenario_id` or `root_scenario`, and three review
+  # rounds plus one spike each found a different one wrong — twice at the same
+  # line. `root_scenario` answers a narrower question (the top of *one* parent
+  # chain) and is kept for callers that genuinely mean that; anything asking
+  # about the run as a whole wants one of these two.
+  #
+  # A handoff is not a parent link, so a chain can alternate:
+  #   A --sub-flow--> B --handoff--> C --sub-flow--> D
+  # Neither link alone spans that, which is why both walks alternate rather than
+  # following one FK.
+
+  # Backward, to the workflow the agent actually started in.
+  def run_origin
+    frame = self
+    seen = Set.new
+    loop do
+      frame = frame.root_scenario
+      # Guard the walk rather than trusting the data: a handoff cycle is refused
+      # at publish, but a primitive several readers depend on must not hang if
+      # one ever gets through.
+      break frame unless frame.handed_off_from && seen.add?(frame.id)
+
+      frame = frame.handed_off_from
+    end
+  end
+
+  # Forward, to the frame the run currently lives on.
+  #
+  # Alternates both links, for the mirror of the reason run_origin does. One hop
+  # is not enough — for A -> B -> C with B already handed on, `A.handed_off_to`
+  # is B and B is terminal — and neither is following `handed_off_to` alone:
+  # in `A --sub-flow--> B --handoff--> C` it is B that hands the run away, and
+  # settling the handoff terminates A as well. So `A.handed_off_to` is nil while
+  # the run is very much alive in C, and a caller that stopped at A rendered a
+  # finished run over the agent's live work.
+  #
+  # A stopped branch is not where the run is, so the descent skips it: the
+  # handed-to row can be abandoned (a rewind, a lost lock race) while a live one
+  # exists alongside it.
+  def run_head
+    frame = self
+    seen = Set.new([id])
+
+    loop do
+      nxt = frame.live_handed_off_to || handed_off_descendant_of(frame)
+      break frame unless nxt && seen.add?(nxt.id)
+
+      frame = nxt
+    end
+  end
+
+  # The handed-to run of this frame, ignoring branches that were abandoned.
+  def live_handed_off_to
+    branches = Scenario.where(handed_off_from_id: id).where.not(status: "stopped").order(:id)
+    # A frame the run is still on beats a finished one. Ordering by id alone
+    # picked the newest even when it was terminal and an older sibling was still
+    # active, which stranded the agent on a dead page.
+    branches.reject(&:terminal?).last || branches.last
+  end
+
+  private
+
+  # A handoff issued from *inside* this frame: the run left through a sub-flow
+  # of ours, so the forward link hangs off that child rather than off us.
+  def handed_off_descendant_of(frame)
+    # `each`, not `find_each`: find_each discards any order and logs a WARN
+    # about it on every call — and this runs on every runner GET, so it put a
+    # warning in the production log for a feature most runs never touch. At most
+    # a couple of rows, so batching buys nothing and the order becomes real.
+    frame.child_scenarios.where(outcome: "transferred").order(:id).each do |child|
+      found = child.live_handed_off_to || handed_off_descendant_of(child)
+      return found if found
+    end
+    nil
+  end
+
+  public
+
   # Check if scenario is complete
   def complete?
     return true if completed?
@@ -184,6 +278,42 @@ class Scenario < ApplicationRecord
       root.stop_frame! unless root == self
       root.unfinished_descendants.each(&:stop_frame!)
     end
+  end
+
+  # End this frame, and every frame waiting on it, because the run has been
+  # handed to another workflow and will never come back here.
+  #
+  # A handoff is not "this frame ends". `A -> sub-flow B -> handoff C` leaves A
+  # waiting for a return that will never come: `parked?` becomes true (its child
+  # is no longer active), and the Resume it offers calls
+  # `process_subflow_completion`, which picks the newest completed child and
+  # RESURRECTS A. Review found that shape twice at scenario.rb:314 and the
+  # handoff spike found it a third time, so the rule is enforced here rather than
+  # left to each caller.
+  #
+  # Only frames genuinely *waiting* are settled — `stop_frame!` already refuses
+  # to touch a terminal scenario, and an ancestor that ended on its own keeps the
+  # outcome it earned.
+  def hand_off!
+    transaction do
+      settle_as_transferred!
+      frame = parent_scenario
+      while frame
+        frame.settle_as_transferred!
+        frame = frame.parent_scenario
+      end
+    end
+  end
+
+  # One frame's half of that. Public so hand_off! can walk the chain; not a
+  # public API otherwise.
+  def settle_as_transferred!
+    return if terminal?
+
+    self.status = 'completed'
+    self.current_node_uuid = nil
+    record_completion('transferred')
+    save!
   end
 
   # True once the run reached an end state and its outcome is settled.

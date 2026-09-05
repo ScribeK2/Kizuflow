@@ -34,7 +34,7 @@ module StepFieldMap
     "message" => %i[can_resolve jumps],
     "escalate" => %i[target_type target_value priority reason_required],
     "resolve" => %i[resolution_type resolution_code notes_required survey_trigger],
-    "sub_flow" => %i[sub_flow_workflow_id variable_mapping],
+    "sub_flow" => %i[sub_flow_workflow_id variable_mapping sub_flow_returns],
     "form" => %i[options]
   }.freeze
 

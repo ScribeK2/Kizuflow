@@ -49,6 +49,21 @@ module RunnerShell
     # show, and its results are the root's.
     return runner_results_path(scenario.root_scenario) if scenario.stopped?
 
+    # Forward, when the run has been handed away from this frame (§T item 14).
+    # Without this a refresh, a browser Back, or a bookmark on the handing-off
+    # half falls through every branch below and renders _thread_complete with a
+    # results_url for the abandoned half — a finished run, for a run still going.
+    #
+    # Two traps, both named in the design doc and both live:
+    #   - `run_head` walks the whole chain, because one hop lands on a frame that
+    #     has itself already handed on, and Success Criterion 1 is "3+ linked
+    #     workflows".
+    #   - the test is `!terminal?`, not `active?`: `awaiting_subflow` is a
+    #     different enum member, so a head sitting inside a sub-flow would
+    #     otherwise get no redirect at all.
+    head = scenario.run_head
+    return runner_step_path(head) if head != scenario && !head.terminal?
+
     # A finished *child* is a finished sub-flow, not a finished run. Sending the
     # agent to the root's results would show a summary for a run still in
     # progress; the parent's step page is where they belong, and it offers
@@ -150,6 +165,23 @@ module RunnerShell
   # Rewinding, answered the same way as an answer: without a redirect, so the
   # page the agent is reading stays put.
   def rewind_runner(scenario)
+    # A frame the run was handed away from is not somewhere to go back to.
+    # `go_back` flips a scenario to `active` and restores its previous node, and
+    # doing that here reopened a half the run had already left — leaving it
+    # `active` while still carrying `outcome: "transferred"`, and letting a second
+    # answer spawn a second handed-to run alongside the live one.
+    #
+    # Keyed on the outcome rather than on `terminal?`: an ordinary completed run
+    # is rewindable and always has been, and only a transfer means "the run
+    # continues elsewhere".
+    if scenario.outcome == "transferred"
+      @scenario = scenario
+      @workflow = scenario.root_workflow
+      @open_step = nil
+      flash.now[:alert] = "This run continued in another workflow, so it cannot go back from here."
+      return render :back, formats: [:turbo_stream]
+    end
+
     ScenarioNavigator.new(scenario).go_back
 
     @scenario = scenario

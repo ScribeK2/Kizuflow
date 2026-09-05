@@ -24,6 +24,30 @@
   <%= render "steps/fields/sub_flow_preview", step: step %>
 </div>
 
+<%# Not inverted, though "tick the exception" was the first instinct. Rails'
+    check_box decides its checked state by comparing the attribute to
+    checked_value, and a boolean `false` does not match the string "false" — so
+    an inverted box rendered UNCHECKED on a step that really was a handoff.
+    Checked in the browser, not assumed.
+
+    So the box states the default and is unticked to hand the run over.
+
+    `data-action` is not optional here: the panel's inputs do not autosave
+    without one (see TODOS.md, "A Form step's field inputs never trigger an
+    autosave"), and a control that silently fails to save is worse than none. %>
+<div class="form-group mt-4">
+  <label class="flex items-center gap-2 cursor-pointer">
+    <%= form.check_box :sub_flow_returns, class: "form-checkbox",
+        data: { action: "change->inline-autosave#schedule" } %>
+    <span class="text-sm">Come back to this workflow when the sub-flow finishes</span>
+  </label>
+  <p class="form-hint">
+    Unticked, the run continues in the target workflow and ends there. This step
+    then becomes the end of this workflow, so it takes no outgoing connections and
+    needs no Resolve after it.
+  </p>
+</div>
+
 <div class="form-group mt-4">
   <label class="form-label">Variable Mapping <span class="font-normal">(optional)</span></label>
   <div class="variable-mapping-box card card--muted">

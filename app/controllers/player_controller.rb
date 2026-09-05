@@ -48,11 +48,16 @@ class PlayerController < ApplicationController
     # Re-checked, not trusted: asking for embed is not the same as the workflow
     # having enabled it.
     #
-    # Checked against the root workflow, not this frame's. Embed describes the
-    # run the visitor opened — like shared_access and purpose do — and a
-    # sub-flow's own workflow carries no share token, so reading it off the
+    # Checked against the workflow the run STARTED in, not this frame's. Embed
+    # describes the run the visitor opened — like shared_access and purpose do —
+    # and a sub-flow's own workflow carries no share token, so reading it off the
     # frame turned embed off the moment the run entered a sub-flow.
-    @embed_mode = params[:embed] == "1" && @scenario.root_workflow.embeddable?
+    #
+    # `root_workflow` fixed that for sub-flows and is not enough once a handoff
+    # exists: a handed-to run has no parent, so it IS its own root, and its
+    # workflow has no share token either. `run_origin` is the only reader that
+    # still reaches the workflow whose share link the visitor actually opened.
+    @embed_mode = params[:embed] == "1" && @scenario.run_origin.workflow.embeddable?
     assign_runner_step_state(@scenario)
   end
 

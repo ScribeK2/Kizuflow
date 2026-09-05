@@ -58,6 +58,15 @@ class Step < ApplicationRecord
   def condition_summary
     return "Terminal" if terminal? && is_a?(Steps::Resolve)
 
+    # A handoff ends this workflow too, but it ends it by going somewhere, so
+    # "Terminal" alone would lose the only interesting fact about the step.
+    # Without this it rendered with no summary at all — indistinguishable from
+    # the dead end the health panel warns about, which is the opposite of what
+    # it is.
+    if is_a?(Steps::SubFlow) && !sub_flow_returns
+      return "Continues in #{target_workflow&.title || 'another workflow'}"
+    end
+
     trans = transitions.includes(:target_step)
     return nil if trans.empty?
     return "-> #{trans.first.target_step&.title || 'Next Step'}" if trans.size == 1 && trans.first.condition.blank?

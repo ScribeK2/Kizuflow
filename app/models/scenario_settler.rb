@@ -115,7 +115,14 @@ class ScenarioSettler
   # question, and the run has still advanced into it. Conflating the two left
   # the run reported as sitting on the parent's invisible sub_flow node.
   def descend(current)
-    child = current.active_child_scenario
+    # SPIKE (Wave 2). `active_child_scenario` asks the parent FK, and a handed-to
+    # run has none — this is the first reader the doc's table predicted would
+    # break, and it breaks by returning nil, silently ending the run on the
+    # handoff node rather than moving into the target.
+    # `live_handed_off_to`, not `handed_off_to`: the association has no status
+    # scope, so an abandoned branch alongside a live one was chosen arbitrarily
+    # and the run resumed into a stopped frame.
+    child = current.active_child_scenario || current.live_handed_off_to
     return nil unless child
 
     [child, ScenarioStepProcessor::Outcome.advanced]

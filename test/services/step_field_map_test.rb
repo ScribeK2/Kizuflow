@@ -36,6 +36,11 @@ class StepFieldMapTest < ActionDispatch::IntegrationTest
     target_value: "team-a",
     priority: "urgent",
     reason_required: true,
+    # false on purpose. The column defaults to TRUE, so a field that gets erased
+    # anywhere in publish/restore, export/import or a controller PATCH comes back
+    # as true — and a fixture value of true would pass through the erasure
+    # without noticing. Only the non-default value tests anything.
+    sub_flow_returns: false,
     resolution_type: "success",
     resolution_code: "RES-42",
     notes_required: true,

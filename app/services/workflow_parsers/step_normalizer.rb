@@ -203,6 +203,15 @@ module WorkflowParsers
         normalized['target_workflow_id']    = step[:target_workflow_id]    || step['target_workflow_id']
         normalized['target_workflow_title'] = step[:target_workflow_title] || step['target_workflow_title']
         normalized['variable_mapping']      = step[:variable_mapping]      || step['variable_mapping'] || {}
+        # Deliberately not the `||` idiom every line above uses. The meaningful
+        # value of this flag is `false` — a handoff — and `step[:k] || step['k']`
+        # reads false as absent, dropping the field so the column's default of
+        # true silently turns an imported handoff back into a returning
+        # sub-flow. Asking `key?` is the only way a boolean survives this.
+        if step.key?(:sub_flow_returns) || step.key?('sub_flow_returns')
+          normalized['sub_flow_returns'] =
+            step.key?(:sub_flow_returns) ? step[:sub_flow_returns] : step['sub_flow_returns']
+        end
       when 'message'
         normalized['content']     = step[:content]     || step['content'] || ''
         normalized['can_resolve'] = step[:can_resolve] || step['can_resolve']

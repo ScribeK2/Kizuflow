@@ -141,6 +141,9 @@ class GraphValidator
     terminal_uuids.each do |uuid|
       node = @steps[uuid]
       next if node && node["type"] == "resolve"
+      # SPIKE (Wave 2 §T item 5). A non-returning sub_flow ends this workflow on
+      # purpose — it hands the run to another one. It is a legal terminal.
+      next if handoff?(node)
 
       add_finding(:terminal_not_resolve,
                   "Terminal node '#{node&.dig('title') || uuid}' is not a Resolve step. All terminal nodes must be Resolve steps.",
@@ -186,7 +189,16 @@ class GraphValidator
   end
 
   def terminal_resolve?(step)
+    return true if handoff?(step)
+
     step["type"] == "resolve" && transition_target_uuids(step).empty?
+  end
+
+  # SPIKE. A handoff is an exit from this workflow, so a step that can reach one
+  # can escape. Without this the reverse BFS reports :no_path_to_resolve for
+  # every step upstream of the handoff.
+  def handoff?(step)
+    step.is_a?(Hash) && step["type"] == "sub_flow" && step["sub_flow_returns"] == false
   end
 
   def transition_target_uuids(step)

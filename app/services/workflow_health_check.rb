@@ -140,7 +140,13 @@ class WorkflowHealthCheck
     steps_collection.each do |step|
       next if step.is_a?(Steps::Resolve)
 
-      if step.transitions.empty?
+      # A handoff has no outgoing connections by design — that is what makes it a
+      # tail call rather than an edge. Flagging it offered a `connect_next` Fix
+      # button that would ADD a transition and quietly turn it back into an
+      # ordinary sub-flow. `add_resolve_after` stopped firing for free once
+      # GraphValidator learned the flag, but this check is independent of the
+      # validator and had to be told separately.
+      if step.transitions.empty? && !handoff?(step)
         add_issue(issues, step.uuid, :warning, "No outgoing connections — dead end",
                   fixable: true, fix_type: "connect_next")
       end
@@ -148,6 +154,18 @@ class WorkflowHealthCheck
       if step.is_a?(Steps::Question) && step.title.blank?
         add_issue(issues, step.uuid, :warning, "Question text is required for publish",
                   fixable: false, code: :question_text_required)
+      end
+
+      # A handoff ends the workflow, so a transition leaving it goes nowhere: the
+      # runtime ignores it, but export emits it and the strict path then refuses
+      # the file with `unexpected_transitions`. Authorable by connecting a
+      # sub-flow first and unticking "come back" afterwards, which clears
+      # nothing.
+      if handoff?(step) && step.transitions.any?
+        add_issue(issues, step.uuid, :warning,
+                  "This step hands the run over, so its outgoing connection is never used " \
+                  "— and it makes the exported file unreadable. Remove the connection.",
+                  fixable: false, code: :handoff_has_transitions)
       end
 
       if step.is_a?(Steps::SubFlow) && step.sub_flow_workflow_id.blank?
@@ -186,6 +204,11 @@ class WorkflowHealthCheck
 
   def subflow_steps?
     steps_collection.any?(Steps::SubFlow)
+  end
+
+  # A sub_flow that hands the run over instead of returning to this workflow.
+  def handoff?(step)
+    step.is_a?(Steps::SubFlow) && !step.sub_flow_returns
   end
 
   # code: a stable symbol naming the problem, always present now that every
