@@ -170,4 +170,36 @@ class ScenarioHandoffTerminationTest < ActiveSupport::TestCase
     assert_nil sub.condition_summary,
                "it will come back and has nowhere to come back to — that is a real dead end"
   end
+
+  # --- the link has to survive retention, or admit that it did not ------------
+  #
+  # `CleanupScenariosJob` deletes with `delete_all`, and says why in its own
+  # comment: it bypasses callbacks, so `dependent:` cannot be relied on and the
+  # parent link is protected by a database FK with ON DELETE SET NULL instead.
+  # `handed_off_from_id` shipped with an index and no FK, so reaping a source
+  # left the column pointing at an id that no longer existed — and `run_origin`
+  # then resolved to the head itself, dropping the run's whole transcript.
+
+  test "reaping a handed-off source nullifies the link rather than dangling" do
+    source = scenario
+    head = Scenario.create!(workflow: @wf, user: @user, purpose: "simulation", status: "active",
+                            started_at: Time.current, handed_off_from: source,
+                            execution_path: [], results: {}, inputs: {})
+
+    # Exactly what the cleanup job does — no callbacks.
+    Scenario.where(id: source.id).delete_all
+
+    assert_nil head.reload.handed_off_from_id,
+               "a column pointing at a deleted row is an invariant this schema holds everywhere else"
+  end
+
+  test "the handoff link is protected the same way the parent link is" do
+    keys = ActiveRecord::Base.connection.foreign_keys("scenarios")
+    handoff = keys.find { |k| k.options[:column] == "handed_off_from_id" }
+    parent = keys.find { |k| k.options[:column] == "parent_scenario_id" }
+
+    assert handoff, "handed_off_from_id has no foreign key"
+    assert_equal parent.options[:on_delete], handoff.options[:on_delete],
+                 "the two self-references must behave the same when a row is reaped"
+  end
 end

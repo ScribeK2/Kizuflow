@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_05_084513) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_211416) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -311,6 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_05_084513) do
   add_foreign_key "group_workflows", "folders"
   add_foreign_key "group_workflows", "groups"
   add_foreign_key "group_workflows", "workflows"
+  add_foreign_key "scenarios", "scenarios", column: "handed_off_from_id", on_delete: :nullify
   add_foreign_key "scenarios", "scenarios", column: "parent_scenario_id", on_delete: :nullify
   add_foreign_key "scenarios", "users"
   add_foreign_key "scenarios", "workflow_versions", on_delete: :nullify
