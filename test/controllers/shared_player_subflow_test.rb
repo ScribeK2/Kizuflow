@@ -108,4 +108,66 @@ class SharedPlayerSubflowTest < ActionDispatch::IntegrationTest
     assert_select "body.player-layout--embed", 0,
                   "asking for embed is not the same as being allowed it"
   end
+
+  # --- the same bug, one level further out: across a handoff -----------------
+  #
+  # `embed_mode` and `shared_access` are properties of the run the visitor
+  # opened, not of whichever workflow the run happens to be in. Reading them off
+  # the frame turned embed off the moment a sub-flow opened, which is why the
+  # controller reaches for the root. A handoff breaks that reach again: the
+  # handed-to run has no parent, so it IS its own root, and its workflow carries
+  # no share token of its own.
+
+  def shared_handoff_run
+    target = Workflow.create!(title: "Handed To", user: @owner, status: "published")
+    tq = Steps::Question.create!(workflow: target, title: "TQ", position: 0,
+                                 variable_name: "tv", question: "Target question?")
+    tr = Steps::Resolve.create!(workflow: target, title: "TDone", position: 1, resolution_type: "success")
+    Transition.create!(step: tq, target_step: tr, position: 0)
+    target.update!(start_step: tq)
+
+    source = Workflow.create!(title: "Shared Source", user: @owner, status: "published")
+    sq = Steps::Question.create!(workflow: source, title: "SQ", position: 0,
+                                 variable_name: "sv", question: "Source question?")
+    ho = Steps::SubFlow.create!(workflow: source, title: "Continue in Handed To", position: 1,
+                                sub_flow_workflow_id: target.id, sub_flow_returns: false)
+    Transition.create!(step: sq, target_step: ho, position: 0)
+    source.update!(start_step: sq, share_token: SecureRandom.hex(8), embed_enabled: true)
+
+    run = Scenario.create!(workflow: source, user: @owner, purpose: "live", shared_access: true,
+                           started_at: Time.current, current_node_uuid: sq.uuid,
+                           execution_path: [], results: {}, inputs: {})
+    head = ScenarioSettler.new(run).settle("yes").scenario
+    [source, head]
+  end
+
+  test "the handed-to workflow is not itself embeddable" do
+    _source, head = shared_handoff_run
+
+    assert_not head.workflow.embeddable?,
+               "precondition: the target carries no share token, which is what makes this a trap"
+    assert_equal head, head.run_origin.run_head
+  end
+
+  # Through the controller, not the helper: the bug is which workflow
+  # PlayerController asks, and only a request proves what it asked.
+  test "embed mode survives a handoff, because it describes the run not the frame" do
+    source, head = shared_handoff_run
+    assert_predicate source, :embeddable?, "precondition: the run was opened through a share link"
+
+    get player_scenario_step_path(head, embed: "1")
+
+    assert_response :success
+    assert_match(/player-layout--embed/, response.body,
+                 "embed was granted by the workflow the visitor opened; a handoff must not " \
+                 "revoke it just because the target has no share token of its own")
+  end
+
+  test "a handed-to run keeps shared access, so an anonymous visitor is not locked out" do
+    _source, head = shared_handoff_run
+
+    assert_predicate head, :shared_access?,
+                     "shared_access describes the run; losing it at the boundary would 403 " \
+                     "the visitor mid-run"
+  end
 end

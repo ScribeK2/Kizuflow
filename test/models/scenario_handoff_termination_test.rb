@@ -132,4 +132,42 @@ class ScenarioHandoffTerminationTest < ActiveSupport::TestCase
 
     assert_equal "active", other.reload.status, "only the chain waiting on this run ends"
   end
+
+  # --- how a handoff step reads in the builder --------------------------------
+  #
+  # `condition_summary` prints "Terminal" only for a Resolve, and a handoff has
+  # no transitions, so the step row and the flow diagram rendered it as a step
+  # that simply goes nowhere — indistinguishable from the dead end the health
+  # panel warns about.
+
+  test "a handoff step reads as terminal, naming where it hands off to" do
+    target = Workflow.create!(title: "Escalation Path", user: @user)
+    Steps::Resolve.create!(workflow: target, position: 0, title: "Done", resolution_type: "success")
+    target.update!(start_step: target.steps.first)
+
+    source = Workflow.create!(title: "Src #{SecureRandom.hex(3)}", user: @user)
+    handoff = Steps::SubFlow.create!(workflow: source, position: 0, title: "Continue",
+                                     sub_flow_workflow_id: target.id, sub_flow_returns: false)
+
+    assert_predicate handoff, :terminal?
+    assert_equal "Continues in Escalation Path", handoff.condition_summary,
+                 "a handoff ends this workflow on purpose; saying nothing reads as a dead end"
+  end
+
+  test "a returning sub_flow with no transitions still reads as unfinished" do
+    target = Workflow.create!(title: "Sub Routine", user: @user)
+    Steps::Resolve.create!(workflow: target, position: 0, title: "Done", resolution_type: "success")
+    target.update!(start_step: target.steps.first)
+
+    source = Workflow.create!(title: "Src #{SecureRandom.hex(3)}", user: @user)
+    # save(validate: false) because GraphValidator refuses this shape, which is
+    # the point of the test. That also skips the before_validation that mints the
+    # uuid, so it is supplied here.
+    sub = Steps::SubFlow.new(workflow: source, position: 0, title: "Into Sub",
+                             uuid: SecureRandom.uuid, sub_flow_workflow_id: target.id)
+    sub.save!(validate: false)
+
+    assert_nil sub.condition_summary,
+               "it will come back and has nowhere to come back to — that is a real dead end"
+  end
 end

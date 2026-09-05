@@ -140,7 +140,13 @@ class WorkflowHealthCheck
     steps_collection.each do |step|
       next if step.is_a?(Steps::Resolve)
 
-      if step.transitions.empty?
+      # A handoff has no outgoing connections by design — that is what makes it a
+      # tail call rather than an edge. Flagging it offered a `connect_next` Fix
+      # button that would ADD a transition and quietly turn it back into an
+      # ordinary sub-flow. `add_resolve_after` stopped firing for free once
+      # GraphValidator learned the flag, but this check is independent of the
+      # validator and had to be told separately.
+      if step.transitions.empty? && !handoff?(step)
         add_issue(issues, step.uuid, :warning, "No outgoing connections — dead end",
                   fixable: true, fix_type: "connect_next")
       end
@@ -186,6 +192,11 @@ class WorkflowHealthCheck
 
   def subflow_steps?
     steps_collection.any?(Steps::SubFlow)
+  end
+
+  # A sub_flow that hands the run over instead of returning to this workflow.
+  def handoff?(step)
+    step.is_a?(Steps::SubFlow) && !step.sub_flow_returns
   end
 
   # code: a stable symbol naming the problem, always present now that every

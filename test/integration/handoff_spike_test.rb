@@ -332,6 +332,36 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
                  "a handoff step ends the workflow on purpose; it is not a dead end to be fixed"
   end
 
+  # The other half of SC 8, and the one that actually bites. `add_resolve_after`
+  # stopped firing for free when GraphValidator learned the flag, but the
+  # step-level "no outgoing connections" check is independent of the validator
+  # and still flagged a handoff — offering a `connect_next` Fix button that would
+  # ADD a transition to a tail call, which is precisely what makes it not one.
+  test "SC8: a handoff is not flagged as a dead end" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, _q, handoff = handing_off_workflow("Source", target: target)
+
+    issues = WorkflowHealthCheck.new(source).call.issues[handoff.uuid] || []
+
+    assert_empty issues.select { |i| i[:fix_type] == "connect_next" },
+                 "a Fix button that adds a transition to a handoff corrupts it"
+    assert_empty issues.select { |i| i[:message].to_s.match?(/dead end/i) },
+                 "having no outgoing connections is the definition of a tail call, not a fault"
+  end
+
+  test "a returning sub_flow with no connections is still a dead end" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source = Workflow.create!(title: "Ordinary", user: @user)
+    sub = Steps::SubFlow.new(workflow: source, position: 0, title: "Into Target",
+                             uuid: SecureRandom.uuid, sub_flow_workflow_id: target.id)
+    sub.save!(validate: false)
+
+    issues = WorkflowHealthCheck.new(source).call.issues[sub.uuid] || []
+
+    assert_predicate issues.select { |i| i[:fix_type] == "connect_next" }, :any?,
+                     "it will come back and has nowhere to come back to — the warning is right here"
+  end
+
   # --- Wave 1 item 4 — a handoff chain has no stack ---------------------------
   #
   # MAX_DEPTH measures sub-flow *nesting*. A tail call does not nest, so a flat
