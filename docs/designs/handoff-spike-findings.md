@@ -144,10 +144,22 @@ in `scenario_step_processor.rb`, which works but is written as a `while` over
 **1. Make the ancestor termination real.** The spike proves the rule — a handoff
 ends every frame waiting on it — but implements it with `update_columns`, which
 skips validations, callbacks and `lock_version`. Move it to a `Scenario` method
-beside `stop!` (which already does a cascade correctly and is the model to
-follow), and decide the status honestly: those frames did not *complete*, the run
-left them. `stop!` uses `stopped` with outcome `abandoned`; neither fits. This is
-a data-model decision, not a refactor, and everything below reads it.
+beside `stop!`, which already does a cascade correctly and is the model to follow.
+
+**Correction to an earlier draft of this section:** it called the status an open
+data-model decision. It is not — `workflow-handoff.md` §T item 3 already decided
+it, and the reasoning holds: `status: "completed"` (the only member of
+`TERMINAL_STATUSES` that reads correctly, making `terminal?` true so
+`stop_frame!` cannot overwrite the outcome, `parked?` false, and both cleanup
+scopes applicable) with `outcome: "transferred"`, `current_node_uuid: nil`,
+`completed_at: Time.current`. Putting "transferred" on `outcome` rather than
+`status` is what keeps reporting honest — a handed-off run is not a completed
+one, and `outcome` is the column that says how a run ended.
+
+**What the spike actually does is a subset of that**, and the gap is the work:
+it sets `status` and `completed_at` but neither `outcome` nor
+`current_node_uuid: nil`. `Scenario::OUTCOMES` (`:75`) must gain `"transferred"`
+first — verified: `update!` with it is refused today by the inclusion validation.
 
 **2. The thread splice (SC 2).** The single biggest user-visible gap, and the
 feature's whole purpose. `run_origin` exists for this. The head's
@@ -181,9 +193,13 @@ the export document.
 **6. The builder UI.** A checkbox on the sub-flow step editor, plus the step row
 and flow diagram rendering a handoff as terminal (`Step#terminal?` is
 `transitions.empty?`, and `condition_summary` prints "Terminal" only for
-`Steps::Resolve`). **Note the live P2:** the Form field inputs have no
-`data-action` and never autosave — check whether the sub-flow panel's inputs
-share that defect before adding another control to a panel that may not save it.
+`Steps::Resolve`).
+
+Checked, so this is smaller than it looked: the sub-flow panel does **not** share
+the Form fields' no-autosave P2. `_sub_flow.html.erb:11` already carries
+`change->inline-autosave#schedule` on its select, so the pattern for a new
+checkbox is right there — it just has to be given its own `data-action`, since
+that defect is precisely a missing one.
 
 ## Dropped from §T
 
