@@ -30,6 +30,11 @@ class GraphHashBuilder
         "id" => step.uuid,
         "type" => step.type.demodulize.underscore,
         "title" => step.title,
+        # SPIKE (Wave 2 §T item 4). Without this every consumer of the graph
+        # hash is blind to the flag, and a handoff step reads as an ordinary
+        # sub_flow with no transitions — which GraphValidator refuses twice, at
+        # save time, so a handoff workflow could not even be created.
+        "sub_flow_returns" => step.is_a?(Steps::SubFlow) ? step.sub_flow_returns : nil,
         "transitions" => step.transitions.map do |t|
           { "target_uuid" => t.target_step&.uuid, "condition" => t.condition }
         end

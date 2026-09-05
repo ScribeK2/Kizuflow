@@ -7,6 +7,13 @@ class Scenario < ApplicationRecord
   # Parent/child scenario associations for sub-flows
   belongs_to :parent_scenario, class_name: 'Scenario', optional: true
   has_many :child_scenarios, class_name: 'Scenario', foreign_key: 'parent_scenario_id', inverse_of: :parent_scenario, dependent: :destroy
+  # SPIKE (Wave 2). Deliberately NOT parent/child: a parent is waiting to be
+  # returned to, and the whole point of a tail call is that nobody is waiting.
+  # `dependent: :nullify` because the handed-to run outlives the half that
+  # started it — destroying the source must not take the live run with it.
+  belongs_to :handed_off_from, class_name: 'Scenario', optional: true
+  has_one :handed_off_to, class_name: 'Scenario', foreign_key: 'handed_off_from_id',
+          inverse_of: :handed_off_from, dependent: :nullify
   has_many :step_responses, dependent: :destroy
 
   # String-backed enum — maps to existing column values with no migration needed.

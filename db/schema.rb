@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_02_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_084513) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -95,6 +95,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_130000) do
     t.integer "current_step_index", default: 0, null: false
     t.integer "duration_seconds"
     t.json "execution_path"
+    t.integer "handed_off_from_id"
     t.json "inputs"
     t.integer "lock_version", default: 0, null: false
     t.string "outcome"
@@ -111,6 +112,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_130000) do
     t.integer "workflow_id", null: false
     t.integer "workflow_version_id"
     t.index ["current_node_uuid"], name: "index_scenarios_on_current_node_uuid"
+    t.index ["handed_off_from_id"], name: "index_scenarios_on_handed_off_from_id"
     t.index ["outcome"], name: "index_scenarios_on_outcome"
     t.index ["parent_scenario_id"], name: "index_scenarios_on_parent_scenario_id"
     t.index ["purpose", "started_at"], name: "index_scenarios_on_purpose_and_started_at"
@@ -170,6 +172,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_130000) do
     t.string "reference_url"
     t.string "resolution_code"
     t.string "resolution_type"
+    t.boolean "sub_flow_returns", default: true, null: false
     t.integer "sub_flow_workflow_id"
     t.boolean "survey_trigger", default: false
     t.string "target_type"
