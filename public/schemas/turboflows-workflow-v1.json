@@ -22,8 +22,8 @@
     "workflows": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 1,
-      "description": "This version accepts exactly one workflow per file.",
+      "maxItems": 25,
+      "description": "One or more workflows, up to 25. They are imported together as one set, so a sub_flow step may name a workflow defined elsewhere in this same file by its title — it does not have to exist or be published first.",
       "items": {
         "$ref": "#/$defs/workflow"
       }
@@ -400,7 +400,11 @@
               "format": "uri"
             },
             "variable_mapping": {
-              "type": "object"
+              "type": "object",
+              "description": "Variables to hand to the sub-flow, as {\"name_in_this_workflow\": \"name_inside_the_sub_flow\"}. Only mapped variables are seeded, so a sub-flow that interpolates {{a_variable}} it was not given renders blank.",
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "target_workflow_title": {
               "type": "string",
@@ -478,8 +482,48 @@
                   },
                   "position": {
                     "type": "integer"
+                  },
+                  "select_options": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Choices for a field whose field_type is \"select\". Required for select, meaningless on any other type.",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "label",
+                        "value"
+                      ],
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
                   }
-                }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "field_type": {
+                          "const": "select"
+                        }
+                      },
+                      "required": [
+                        "field_type"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "select_options"
+                      ]
+                    }
+                  }
+                ]
               }
             },
             "instructions": {

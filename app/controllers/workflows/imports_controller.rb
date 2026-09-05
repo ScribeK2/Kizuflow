@@ -3,6 +3,8 @@ module Workflows
     before_action :authenticate_user!
     before_action :ensure_editor_or_admin!
 
+    MAX_IMPORT_BYTES = 10.megabytes
+
     # GET /workflows/import
     def new
       # Show import form
@@ -18,7 +20,7 @@ module Workflows
       uploaded_file = params[:file]
       file_content = uploaded_file.read.force_encoding("UTF-8")
 
-      if file_content.bytesize > 10.megabytes
+      if file_content.bytesize > MAX_IMPORT_BYTES
         redirect_to new_workflow_import_path, alert: "File is too large. Maximum size is 10MB."
         return
       end
@@ -55,6 +57,16 @@ module Workflows
     # again: re-validate rather than trusting the report that produced the page.
     def commit
       content = params[:content].to_s
+
+      # The upload is capped at 10MB in #create; this round-trips through a
+      # hidden form field, so it is fresh user input and needs the same bound.
+      # It was re-validated but not re-bounded, and a bundle now fits far more
+      # into one payload than a single workflow did.
+      if content.bytesize > MAX_IMPORT_BYTES
+        redirect_to new_workflow_import_path, alert: "File is too large. Maximum size is 10MB."
+        return
+      end
+
       report = StrictImportValidator.new(user: current_user, content:).validate
 
       return render_report(content, report, :unprocessable_entity) unless report.valid?
@@ -62,7 +74,7 @@ module Workflows
       result = WorkflowImporter.new(current_user, format: :json, content:, strict_report: report).call
 
       if result.success?
-        redirect_to workflow_path(result.workflow), notice: import_summary(result)
+        redirect_to import_destination(result), notice: import_summary(result)
       else
         redirect_to new_workflow_import_path,
                     alert: "Failed to import workflow: #{truncate_for_flash(result.errors)}"
@@ -86,12 +98,32 @@ module Workflows
       render :report, status: status
     end
 
+    # Where to land after a successful strict import.
+    #
+    # One workflow goes to that workflow, as it always has. A set has no single
+    # right answer, and picking the first would hide the other four — so it goes
+    # to the list, where the whole set is visible and the notice names it.
+    def import_destination(result)
+      result.multiple? ? workflows_path : workflow_path(result.workflow)
+    end
+
     def import_summary(result)
+      return bundle_summary(result) if result.multiple?
+
       workflow = result.workflow
       parts = ["Imported #{workflow.steps.count} steps as a draft"]
       parts << "in #{workflow.groups.map(&:name).to_sentence}" if workflow.groups.any?
       parts << "tagged #{workflow.tags.map(&:name).to_sentence}" if workflow.tags.any?
       "#{parts.join(', ')}."
+    end
+
+    # Counts across the set, and the titles, because after importing five
+    # workflows at once "which ones?" is the immediate question.
+    def bundle_summary(result)
+      workflows = result.workflows
+      steps = workflows.sum { |workflow| workflow.steps.count }
+      titles = workflows.map(&:title).to_sentence
+      "Imported #{workflows.size} workflows (#{steps} steps) as drafts: #{titles}."
     end
 
     def detect_file_format(filename, content_type)

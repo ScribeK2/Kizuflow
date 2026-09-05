@@ -16,6 +16,7 @@ class StrictImportCorpusTest < ActiveSupport::TestCase
     invalid_enum_value graph_invalid invalid_condition_syntax
     unknown_sub_flow_target ambiguous_sub_flow_target sub_flow_target_not_published
     unknown_group group_not_permitted unknown_folder
+    missing_select_options duplicate_workflow_title
   ].freeze
 
   setup do
@@ -45,6 +46,19 @@ class StrictImportCorpusTest < ActiveSupport::TestCase
                            "Corpus Draft Target"]).destroy_all
     User.where("email LIKE ?", "corpus-%").destroy_all
     Group.where(name: ["Corpus Group", "Corpus Forbidden"]).destroy_all
+  end
+
+  test "a bundle fixture validates, and its sub_flow target resolves inside the file" do
+    report = validate_file("valid_bundle.json")
+
+    assert_predicate report, :valid?, report.errors.inspect
+    assert_equal 2, report.workflows_data.size
+    assert_predicate report, :multiple?
+
+    sub_flow = report.workflows_data.first["steps"].find { |s| s["type"] == "sub_flow" }
+    assert_equal "Corpus Bundle Child", sub_flow["target_workflow_title"],
+                 "an in-bundle target keeps its title: no id exists until the importer writes it"
+    assert_nil sub_flow["target_workflow_id"]
   end
 
   test "the valid fixture exercises all seven step types and validates cleanly" do

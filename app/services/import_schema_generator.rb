@@ -13,6 +13,20 @@ class ImportSchemaGenerator
   SCHEMA_PATH = Rails.public_path.join("schemas/turboflows-workflow-v1.json")
   SCHEMA_URL = "/schemas/turboflows-workflow-v1.json".freeze
 
+  # How many workflows one file may carry.
+  #
+  # Was 1, which meant a set of linked workflows could not be expressed at all:
+  # a sub_flow target has to name a workflow that already exists AND is
+  # published, so a five-workflow domain took nine operations in an order the
+  # operator had to derive. Raising it is backward compatible — a one-workflow
+  # file still validates — and it is what lets a generated set arrive as one
+  # deliverable.
+  #
+  # Capped rather than unbounded: the whole bundle is validated and written in
+  # one transaction, and the 10MB upload limit is a poor proxy for how much work
+  # that is. Twenty-five is well past any real domain and still bounded.
+  MAX_WORKFLOWS_PER_FILE = 25
+
   # Importable but editable in no builder UI, so excluded from the dialect an
   # agent writes. See spec D9. (`variable_mapping` is deliberately NOT here — the
   # sub_flow editor does render it, in app/views/steps/fields/_sub_flow.html.erb.)
@@ -60,8 +74,11 @@ class ImportSchemaGenerator
         "workflows" => {
           "type" => "array",
           "minItems" => 1,
-          "maxItems" => 1,
-          "description" => "This version accepts exactly one workflow per file.",
+          "maxItems" => MAX_WORKFLOWS_PER_FILE,
+          "description" => "One or more workflows, up to #{MAX_WORKFLOWS_PER_FILE}. " \
+                           "They are imported together as one set, so a sub_flow step may " \
+                           "name a workflow defined elsewhere in this same file by its " \
+                           "title — it does not have to exist or be published first.",
           "items" => { "$ref" => "#/$defs/workflow" }
         }
       },
@@ -153,7 +170,7 @@ class ImportSchemaGenerator
 
     case field
     when :options then options_property(type)
-    when :variable_mapping then { "type" => "object" }
+    when :variable_mapping then variable_mapping_property
     when :can_resolve, :reason_required, :notes_required, :survey_trigger
       { "type" => "boolean" }
     when :instructions, :content, :notes, :description
@@ -203,7 +220,66 @@ class ImportSchemaGenerator
           "label" => { "type" => "string" },
           "field_type" => { "type" => "string", "enum" => Steps::Form::VALID_FIELD_TYPES },
           "required" => { "type" => "boolean" },
-          "position" => { "type" => "integer" }
+          "position" => { "type" => "integer" },
+          "select_options" => select_options_property
+        },
+        # StrictImportValidator makes a choiceless select a hard error, and the
+        # prompt tells the agent to validate against this schema before handing
+        # the file over. A schema looser than the validator sends it away with a
+        # file that passes locally and is refused on upload — the round trip the
+        # strict dialect exists to remove.
+        "allOf" => [
+          {
+            "if" => {
+              "properties" => { "field_type" => { "const" => "select" } },
+              "required" => %w[field_type]
+            },
+            "then" => { "required" => %w[select_options] }
+          }
+        ]
+      }
+    }
+  end
+
+  # Which of this run's variables the sub-flow can see, and what it calls them.
+  #
+  # Published as a bare `{"type" => "object"}` until 2026-09-04, with one word
+  # in the prompt and no description here. An agent authoring against the schema
+  # could not tell the direction, so it omitted the key entirely and every
+  # generated sub-flow re-asked for data the parent had already collected.
+  # The direction is `{parent_name => child_name}` — see
+  # ScenarioStepProcessor#process_subflow_step, which seeds
+  # `child_results[child_var] = @scenario.results[parent_var]`.
+  def variable_mapping_property
+    {
+      "type" => "object",
+      "description" => "Variables to hand to the sub-flow, as " \
+                       '{"name_in_this_workflow": "name_inside_the_sub_flow"}. ' \
+                       "Only mapped variables are seeded, so a sub-flow that " \
+                       "interpolates {{a_variable}} it was not given renders blank.",
+      "additionalProperties" => { "type" => "string" }
+    }
+  end
+
+  # The choice list for a field of type "select". Same {label, value} shape a
+  # question's options use, because it is the same idea one level down.
+  #
+  # Its absence is what made `field_type: "select"` unusable: the enum accepted
+  # it, and there was nowhere to say what the choices were, so it imported as a
+  # dropdown with no entries.
+  def select_options_property
+    {
+      "type" => "array",
+      "minItems" => 1,
+      "description" => 'Choices for a field whose field_type is "select". ' \
+                       "Required for select, meaningless on any other type.",
+      "items" => {
+        "type" => "object",
+        "additionalProperties" => false,
+        "required" => %w[label value],
+        "properties" => {
+          "label" => { "type" => "string" },
+          "value" => { "type" => "string" }
         }
       }
     }

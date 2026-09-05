@@ -14,6 +14,68 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     @workflow = Workflow.create!(title: "Health Test", user: @user, status: "draft")
   end
 
+  # A choiceless select is not only a broken dropdown at run time. An export
+  # carries schema_version, so it re-imports down the strict path where
+  # StrictImportValidator refuses it — and nothing could write select_options
+  # before 2026-09-04, so every select authored until then is in this state.
+  # The health panel is where an operator finds which workflows to fix.
+  test "a select field with no choices is flagged on its step" do
+    form = Steps::Form.create!(
+      workflow: @workflow, uuid: SecureRandom.uuid, position: 0, title: "Collect",
+      options: [{ "name" => "method", "label" => "How paid", "field_type" => "select" }]
+    )
+    resolve = Steps::Resolve.create!(
+      workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+      title: "Done", resolution_type: "success"
+    )
+    Transition.create!(step: form, target_step: resolve, position: 0)
+    @workflow.update!(start_step: form)
+
+    issues = WorkflowHealthCheck.new(@workflow.reload).call.issues[form.uuid]
+    choiceless = issues.find { |i| i[:code] == :select_options_required }
+
+    assert choiceless, "expected a select_options_required warning, got #{issues.inspect}"
+    assert_equal :warning, choiceless[:severity]
+    assert_match(/How paid/, choiceless[:message], "name the field so it can be found")
+  end
+
+  test "a select field whose choices are not label/value pairs is flagged too" do
+    form = Steps::Form.create!(
+      workflow: @workflow, uuid: SecureRandom.uuid, position: 0, title: "Collect",
+      options: [{ "name" => "method", "label" => "How paid", "field_type" => "select",
+                  "select_options" => %w[IVR Link] }]
+    )
+    resolve = Steps::Resolve.create!(
+      workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+      title: "Done", resolution_type: "success"
+    )
+    Transition.create!(step: form, target_step: resolve, position: 0)
+    @workflow.update!(start_step: form)
+
+    issues = WorkflowHealthCheck.new(@workflow.reload).call.issues[form.uuid]
+
+    assert(issues.any? { |i| i[:code] == :select_options_required },
+           "a string array renders blank options, same as none at all")
+  end
+
+  test "a select field with real choices is not flagged" do
+    form = Steps::Form.create!(
+      workflow: @workflow, uuid: SecureRandom.uuid, position: 0, title: "Collect",
+      options: [{ "name" => "method", "label" => "How paid", "field_type" => "select",
+                  "select_options" => [{ "label" => "IVR", "value" => "ivr" }] }]
+    )
+    resolve = Steps::Resolve.create!(
+      workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+      title: "Done", resolution_type: "success"
+    )
+    Transition.create!(step: form, target_step: resolve, position: 0)
+    @workflow.update!(start_step: form)
+
+    issues = WorkflowHealthCheck.new(@workflow.reload).call.issues[form.uuid]
+
+    assert_not(issues.any? { |i| i[:code] == :select_options_required })
+  end
+
   test "clean workflow returns no issues" do
     q = Steps::Question.create!(
       workflow: @workflow, uuid: SecureRandom.uuid, position: 0,

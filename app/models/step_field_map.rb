@@ -59,11 +59,21 @@ module StepFieldMap
   #
   # `options` is the union of two shapes, deliberately. It means answer choices
   # on a question ({label, value}) and field definitions on a form ({name, label,
-  # field_type, required, position}), and `permit` cannot vary a nested shape by
-  # step type at this level. Permitting only the question shape silently stripped
-  # every form field's name, type and required flag on save — the builder kept
-  # the label and nothing else. Permitting a key is not requiring it, so a
-  # question's options are unaffected.
+  # field_type, required, position, select_options}), and `permit` cannot vary a
+  # nested shape by step type at this level. Permitting only the question shape
+  # silently stripped every form field's name, type and required flag on save —
+  # the builder kept the label and nothing else. Permitting a key is not
+  # requiring it, so a question's options are unaffected.
+  #
+  # `select_options` is the choice list for a form field of type "select", and
+  # its absence here was the same failure one level deeper.
+  # `scenarios/_form_step` has always rendered `field["select_options"]`, but
+  # nothing could ever write it: this permit list dropped it on save, the
+  # published schema rejected it as an additional property, and the builder
+  # offered no control for it. A "select" field therefore rendered an empty
+  # dropdown in every case — a read with no writer, of the kind
+  # `project_dead_code_reachability` describes. Nested one level, because a
+  # choice list belongs to a field, not to the step.
   #
   # The schema published to external agents does distinguish the two, per type —
   # see ImportSchemaGenerator#question_options_property / #form_options_property.
@@ -75,7 +85,12 @@ module StepFieldMap
   # filtered a real array away — latent rather than live, since no UI authors
   # jumps yet.
   NESTED_SHAPES = {
-    options: [%i[label value name field_type required position]],
+    # `select_options_raw` is the builder's transport, not a stored field:
+    # Steps::Form consumes it in a before_validation and never persists it. It is
+    # here because `options` posts unindexed, so a nested array inside one entry
+    # would break Rails' grouping — see Steps::Form#normalize_select_options.
+    options: [[:label, :value, :name, :field_type, :required, :position,
+               :select_options_raw, { select_options: %i[label value] }]],
     output_fields: [%i[name value]],
     jumps: [%i[condition next_step_id]],
     variable_mapping: {}

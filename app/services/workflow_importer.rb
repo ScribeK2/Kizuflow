@@ -1,7 +1,36 @@
 class WorkflowImporter
-  Result = Data.define(:success, :workflow, :errors, :warnings, :incomplete_steps_count) do
+  # A bundle whose sub_flow references form a cycle. Carries SubflowValidator's
+  # findings rather than one message, because it names each cycle it found.
+  class CircularBundle < StandardError
+    attr_reader :findings
+
+    def initialize(findings)
+      @findings = Array(findings)
+      super(@findings.join("; "))
+    end
+  end
+
+  # The validator promised an in-bundle title resolves and the importer could not
+  # find it. Raised rather than skipped so the bundle rolls back loudly instead of
+  # writing a sub_flow that points at nothing.
+  class BundleTargetUnresolved < StandardError; end
+
+  # Which SubflowValidator findings refuse an import outright. See
+  # #circular_sub_flow_errors for why all three, and what went wrong with one.
+  REFUSING_SUBFLOW_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing].freeze
+
+  # `workflows` is every workflow this import created, in file order. The strict
+  # dialect accepts a set in one file; the lenient formats are single-workflow by
+  # nature, so they build a one-element array.
+  #
+  # `workflow` stays as the first, because most callers genuinely want "the
+  # workflow this import made" and every lenient path has exactly one. Anything
+  # that reports on the import must use `workflows`.
+  Result = Data.define(:success, :workflows, :errors, :warnings, :incomplete_steps_count) do
     def success? = success
     def incomplete_steps? = incomplete_steps_count.to_i.positive?
+    def workflow = workflows&.first
+    def multiple? = workflows.to_a.size > 1
   end
 
   def initialize(user, format:, content:, strict_report: nil)
@@ -53,7 +82,7 @@ class WorkflowImporter
       unless workflow.save
         return Result.new(
           success: false,
-          workflow:,
+          workflows: [workflow],
           errors: workflow.errors.full_messages,
           warnings:,
           incomplete_steps_count: incomplete_count
@@ -95,7 +124,7 @@ class WorkflowImporter
 
     Result.new(
       success: true,
-      workflow:,
+      workflows: [workflow],
       errors: [],
       warnings:,
       incomplete_steps_count: incomplete_count
@@ -108,37 +137,163 @@ class WorkflowImporter
 
   # A strict report has already been parsed, normalised and validated — every
   # group resolved, every sub-flow target found, every graph rule checked — so
-  # writing is all that is left. It reuses the placement the validator already
+  # writing is all that is left. It reuses the placements the validator already
   # resolved rather than resolving twice, and shares create_ar_steps with the
   # lenient path because the normalized shape is deliberately the same.
+  #
+  # Every workflow in the file is created BEFORE any step is built.
+  #
+  # That ordering is what removes the need to sort the bundle by dependency: a
+  # sub_flow step needs its target's id at the moment it is built, and after the
+  # first pass every id in the bundle exists. A file where A runs B and B runs A
+  # therefore writes fine; whether that is a legal *runtime* shape is
+  # SubflowValidator's question, asked below once the graph is real.
+  #
+  # The whole bundle is one transaction. A file is a single deliverable, and half
+  # an imported set is worse than none — the missing half is exactly what the
+  # other half's sub_flow steps point at.
   def import_strict(strict_report)
     raise ArgumentError, "strict_report must be valid" unless strict_report.valid?
 
-    data = strict_report.workflow_data
-    workflow = @user.workflows.build(
+    data_set = strict_report.workflows_data
+    workflows = []
+    # Two variables, not one. Keying "did a save fail" off `save_errors.any?`
+    # reported SUCCESS for a save that returned false without populating errors —
+    # which is exactly what a `before_save` throwing :abort does, and Workflow
+    # already runs one (`set_draft_expiration`). The result was a success Result
+    # carrying records the transaction had just rolled back.
+    save_failed = false
+    save_errors = []
+
+    # requires_new: so this is always a real transaction or savepoint. Joined to
+    # an enclosing one it would be a no-op: `raise ActiveRecord::Rollback` would
+    # be swallowed without rolling anything back, and the method would still
+    # return failure — reporting a rollback that never happened. Nothing wraps
+    # this today; the flag removes the class rather than relying on that.
+    ActiveRecord::Base.transaction(requires_new: true) do
+      workflows = data_set.map { |data| build_strict_workflow(data) }
+
+      workflows.each do |workflow|
+        next if workflow.save
+
+        save_failed = true
+        save_errors = workflow.errors.full_messages
+        raise ActiveRecord::Rollback
+      end
+
+      titles = workflows.index_by { |workflow| workflow.title.to_s.strip.downcase }
+
+      data_set.each_with_index do |data, index|
+        resolve_bundle_sub_flow_targets(data["steps"], titles)
+        create_ar_steps(workflows[index], data["steps"], data["start_step_id"])
+        strict_report.placements[index].apply!(workflows[index])
+      end
+
+      Workflow.where(id: workflows.map(&:id)).update_all(draft_expires_at: nil)
+      workflows.each(&:reload)
+
+      circular = circular_sub_flow_errors(workflows)
+      raise CircularBundle, circular if circular.any?
+    end
+
+    if save_failed
+      return failure(save_errors.presence ||
+                     ["A workflow in this file could not be saved, and reported no reason."])
+    end
+
+    Result.new(success: true, workflows:, errors: [],
+               warnings: strict_report.warnings.pluck(:message), incomplete_steps_count: 0)
+  rescue CircularBundle => e
+    failure(e.findings)
+  rescue StandardError => e
+    failure([e.message])
+  end
+
+  def build_strict_workflow(data)
+    @user.workflows.build(
       title: data["title"],
       description: data["description"] || "",
       graph_mode: true,
       is_public: false,
       status: "draft"
     )
+  end
 
-    ActiveRecord::Base.transaction do
-      unless workflow.save
-        return Result.new(success: false, workflow:, errors: workflow.errors.full_messages,
-                          warnings: [], incomplete_steps_count: 0)
+  # Bind the sub_flow targets the validator deliberately left as titles.
+  #
+  # It could not resolve them: an in-bundle target names a workflow that did not
+  # exist when the file was checked. Anything pointing outside the bundle already
+  # carries target_workflow_id and is untouched here.
+  def resolve_bundle_sub_flow_targets(steps, titles_to_workflows)
+    Array(steps).each do |step|
+      next unless step["type"] == "sub_flow"
+
+      # Only a title still present is this method's business. The validator
+      # resolves an out-of-bundle target itself, setting target_workflow_id and
+      # deleting the title, so a step arriving without one is already bound.
+      raw_title = step["target_workflow_title"]
+      next if raw_title.blank?
+
+      target = titles_to_workflows[raw_title.to_s.strip.downcase]
+
+      # Skipping quietly here is how a sub_flow imported bound to nothing while
+      # the import reported success. The validator has already decided this title
+      # names a workflow in this file, so a miss means the two disagree about
+      # what the title IS — which happened for real: a JSON `true` compared as
+      # "true" and saved as "t", because ActiveModel casts the column. That is a
+      # bug, not a condition to step over, and it rolls the bundle back.
+      unless target
+        raise BundleTargetUnresolved,
+              "sub_flow target #{step['target_workflow_title'].inspect} was accepted as " \
+              "in-bundle but matches no workflow this import created " \
+              "(have: #{titles_to_workflows.keys.inspect})"
       end
 
-      create_ar_steps(workflow, data["steps"], data["start_step_id"])
-      strict_report.placement.apply!(workflow)
-      Workflow.where(id: workflow.id).update_all(draft_expires_at: nil)
-      workflow.reload
+      step["target_workflow_id"] = target.id
+      step.delete("target_workflow_title")
     end
+  end
 
-    Result.new(success: true, workflow:, errors: [],
-               warnings: strict_report.warnings.pluck(:message), incomplete_steps_count: 0)
-  rescue StandardError => e
-    failure([e.message])
+  # Sub-flow shape is a runtime question, so it is asked of the saved graph
+  # rather than of the file. Inside one transaction, so a bad bundle writes
+  # nothing.
+  #
+  # All three codes refuse. This filtered to `:circular_subflow` alone for a
+  # while, because refusing a chain deeper than MAX_DEPTH looked like refusing a
+  # legal file — MAX_WORKFLOWS_PER_FILE is 25 and MAX_DEPTH is 10, so a chain of
+  # 11 validated clean and was then rolled back whole. The real defect there was
+  # the *message*, which called a chain circular. Letting it through instead was
+  # worse: `Workflow#validate_subflow_circular_references` copies every
+  # SubflowValidator error onto the record on every save, so a deep chain
+  # imported successfully and then could never be saved again, with no fix
+  # available from the builder. WorkflowHealthCheck files max-depth as a
+  # :warning, which is the inconsistency — the model validation is the policy,
+  # and it is hard.
+  #
+  # `:subflow_target_missing` refuses for a narrower reason: a published target
+  # can be deleted between the preview request and the commit POST, and without
+  # it the bundle writes a dangling sub_flow_workflow_id and reports success.
+  def circular_sub_flow_errors(workflows)
+    workflows.flat_map { |workflow| SubflowValidator.new(workflow.id).tap(&:valid?).findings }
+             .select { |finding| REFUSING_SUBFLOW_CODES.include?(finding.code) }
+             .map { |finding| subflow_refusal_message(finding) }
+             .uniq
+  end
+
+  # SubflowValidator's own message is written for a single workflow being
+  # edited. In an import the operator is holding a file, so each one says what
+  # about the file is wrong and what to do to it.
+  def subflow_refusal_message(finding)
+    case finding.code
+    when :max_depth_exceeded
+      "Sub-flow nesting in this file is #{finding.details[:depth]} levels deep, and the limit is " \
+      "#{SubflowValidator::MAX_DEPTH}. This is a chain, not a cycle — shorten it or split the file."
+    when :subflow_target_missing
+      "A sub-flow target outside this file (ID: #{finding.details[:target_workflow_id]}) no longer " \
+      "exists. It may have been deleted since this file was checked; re-upload it."
+    else
+      finding.message
+    end
   end
 
   def create_parser
@@ -297,7 +452,7 @@ class WorkflowImporter
   def failure(errors, warnings: [])
     Result.new(
       success: false,
-      workflow: nil,
+      workflows: [],
       errors:,
       warnings:,
       incomplete_steps_count: 0

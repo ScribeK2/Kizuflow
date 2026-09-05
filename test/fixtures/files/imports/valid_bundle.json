@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "workflows": [
+    {
+      "title": "Corpus Bundle Router",
+      "description": "Routes into the procedure that arrives with it.",
+      "steps": [
+        {
+          "id": "run-child",
+          "type": "sub_flow",
+          "title": "Run the child",
+          "target_workflow_title": "Corpus Bundle Child",
+          "transitions": [
+            {
+              "target_id": "done"
+            }
+          ]
+        },
+        {
+          "id": "done",
+          "type": "resolve",
+          "title": "Routed",
+          "resolution_type": "success"
+        }
+      ]
+    },
+    {
+      "title": "Corpus Bundle Child",
+      "steps": [
+        {
+          "id": "child-done",
+          "type": "resolve",
+          "title": "Done",
+          "resolution_type": "success"
+        }
+      ]
+    }
+  ]
+}

@@ -9,8 +9,20 @@
 # unresolvable sub-flow target is a validation result, not an exception thrown
 # partway through a write.
 class StrictImportValidator
-  Report = Data.define(:errors, :warnings, :workflow_data, :placement) do
+  # `workflows_data` and `placements` are parallel arrays, one entry per workflow
+  # in the file, in file order. They were singular until the envelope accepted
+  # more than one workflow; the pair has to stay index-aligned because the
+  # importer applies placements[i] to the workflow it built from
+  # workflows_data[i].
+  Report = Data.define(:errors, :warnings, :workflows_data, :placements) do
     def valid? = errors.empty?
+
+    # The overwhelmingly common case is still one workflow, and the report view
+    # and several tests only ever want that one. Convenience, not a second
+    # contract: anything that writes must use the arrays.
+    def workflow_data = workflows_data&.first
+    def placement = placements&.first
+    def multiple? = workflows_data.to_a.size > 1
   end
 
   # The only condition forms ConditionEvaluator accepts. Quoted back to the agent
@@ -61,27 +73,34 @@ class StrictImportValidator
     check_schema_version(document)
     return report if @errors.any?
 
-    workflow = extract_single_workflow(document)
-    return report if workflow.nil?
+    workflows = extract_workflows(document)
+    return report if workflows.nil?
+
+    # Titles first: an in-bundle sub_flow target is resolved by title, so two
+    # workflows sharing one in the same file makes every reference to it
+    # ambiguous. Checked before anything reads the titles.
+    validate_bundle_titles(workflows)
 
     # Placement is checked before the structural gate because it does not depend
     # on the steps at all. A file with a bad step AND a bad group would otherwise
     # cost two round trips to learn about the group — and telling an agent
     # everything at once is the point of this path.
-    placement = validate_placement(workflow)
+    placements = workflows.map.with_index { |workflow, i| validate_placement(workflow, path_for(i)) }
 
     # The passes below DO depend on sound structure: the graph validator cannot
     # traverse dangling targets, and the semantic checks read fields that a
     # malformed step may not have. So structure gates them.
-    validate_structure(workflow)
-    return report(placement:) if @errors.any?
+    workflows.each_with_index { |workflow, i| validate_structure(workflow, path_for(i)) }
+    return report(placements:) if @errors.any?
 
-    normalized = normalize(workflow)
-    validate_graph(normalized)
-    validate_semantics(normalized)
+    normalized = workflows.map { |workflow| normalize(workflow) }
+    normalized.each_with_index do |workflow, i|
+      validate_graph(workflow, path_for(i))
+      validate_semantics(workflow, path_for(i))
+    end
     resolve_sub_flow_targets(normalized)
 
-    report(workflow_data: normalized, placement:)
+    report(workflows_data: normalized, placements:)
   end
 
   private
@@ -110,7 +129,12 @@ class StrictImportValidator
               expected: [ImportSchemaGenerator::SCHEMA_VERSION])
   end
 
-  def extract_single_workflow(document)
+  # The JSON path for one workflow in the file. Every per-workflow check takes
+  # this rather than hardcoding `workflows[0]`, which is what every path in here
+  # did while the envelope only ever held one.
+  def path_for(index) = "workflows[#{index}]"
+
+  def extract_workflows(document)
     workflows = document["workflows"]
 
     unless workflows.is_a?(Array)
@@ -118,22 +142,59 @@ class StrictImportValidator
                        "The file must carry a 'workflows' array.")
     end
 
-    if workflows.length != 1
-      return add_error("workflows", "envelope_invalid", workflows.length,
-                       "schema_version #{ImportSchemaGenerator::SCHEMA_VERSION} accepts " \
-                       "exactly one workflow per file; this file has #{workflows.length}.")
+    if workflows.empty?
+      return add_error("workflows", "envelope_invalid", 0,
+                       "The file carries no workflows.")
     end
 
-    workflow = workflows.first
-    return workflow if workflow.is_a?(Hash)
+    if workflows.length > ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE
+      return add_error("workflows", "envelope_invalid", workflows.length,
+                       "A file carries at most " \
+                       "#{ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE} workflows; " \
+                       "this one has #{workflows.length}.")
+    end
 
-    add_error("workflows[0]", "envelope_invalid", workflow.class.name,
-              "Each entry in 'workflows' must be an object.")
+    malformed = workflows.each_with_index.reject { |workflow, _| workflow.is_a?(Hash) }
+    malformed.each do |workflow, index|
+      add_error(path_for(index), "envelope_invalid", workflow.class.name,
+                "Each entry in 'workflows' must be an object.")
+    end
+
+    malformed.any? ? nil : workflows
+  end
+
+  # Two workflows in one file cannot share a title.
+  #
+  # Not a tidiness rule: a sub_flow step names its target by title, and inside a
+  # bundle that title is resolved against the file itself, so a duplicate makes
+  # every reference to it ambiguous with no way for the agent to disambiguate.
+  # Titles that merely collide with an existing published workflow are fine —
+  # the bundle wins, see #resolve_sub_flow_targets.
+  def validate_bundle_titles(workflows)
+    seen = {}
+
+    workflows.each_with_index do |workflow, index|
+      title = workflow["title"].to_s.strip
+      next if title.blank?
+
+      key = title.downcase
+      if seen.key?(key)
+        add_error("#{path_for(index)}.title", "duplicate_workflow_title", title,
+                  "Two workflows in this file are titled #{title.inspect} " \
+                  "(also at #{path_for(seen[key])}). A sub_flow target inside a file is " \
+                  "resolved by title, so the two cannot be told apart.")
+      else
+        seen[key] = index
+      end
+    end
   end
 
   # --- external references -----------------------------------------------------
 
-  def validate_placement(workflow)
+  # Placement is per workflow, never bundle-wide: WorkflowPlacement already
+  # resolves one workflow's groups, folder and tags, and a bundle-level default
+  # with per-workflow overrides is a configuration surface nobody has asked for.
+  def validate_placement(workflow, path)
     placement = WorkflowPlacement.new(
       user: @user,
       groups: workflow["groups"] || [],
@@ -142,7 +203,7 @@ class StrictImportValidator
     )
 
     placement.resolve.errors.each do |error|
-      add_error("workflows[0].#{error[:path]}", error[:code], error[:value], error[:message])
+      add_error("#{path}.#{error[:path]}", error[:code], error[:value], error[:message])
     end
 
     placement
@@ -159,24 +220,56 @@ class StrictImportValidator
   # import B whose sub_flow targets A" fails where it used to work, and telling
   # the user A does not exist would send them off to re-author a workflow they
   # already have.
-  def resolve_sub_flow_targets(workflow)
-    Array(workflow["steps"]).each_with_index do |step, index|
-      next unless step["type"] == "sub_flow"
+  # A target may now name a workflow defined in this same file, which is the
+  # whole point of accepting more than one: the chicken-and-egg that made a
+  # linked set unimportable was that a target had to exist AND be published
+  # first.
+  #
+  # An in-bundle match is left as `target_workflow_title` and NOT resolved to an
+  # id, because no id exists yet — nothing has been written. WorkflowImporter
+  # creates every workflow in the bundle before it builds any steps, and
+  # resolves the remaining titles against what it just created.
+  #
+  # The bundle wins over a published workflow of the same title. The file in
+  # front of you is the more specific statement of intent, and the alternative —
+  # refusing as ambiguous — would make a title collision with any existing
+  # workflow break a self-contained bundle.
+  def resolve_sub_flow_targets(workflows)
+    bundle_titles = workflows.filter_map { |w| w["title"].to_s.strip.downcase.presence }.to_set
 
-      title = step["target_workflow_title"].to_s.strip
-      path = "workflows[0].steps[#{index}].target_workflow_title"
-      published = visible_published_workflows(title)
+    workflows.each_with_index do |workflow, w_index|
+      Array(workflow["steps"]).each_with_index do |step, index|
+        next unless step["type"] == "sub_flow"
 
-      if published.one?
-        step["target_workflow_id"] = published.first.id
-        step.delete("target_workflow_title")
-      elsif published.many?
-        add_error(path, "ambiguous_sub_flow_target", title,
-                  "#{published.count} published workflows are titled #{title.inspect} " \
-                  "(#{published.map { |w| "##{w.id}" }.join(', ')}). Rename one, or import " \
-                  "this workflow without the sub-flow step and set the target in the builder.")
-      else
-        report_missing_sub_flow_target(title, path)
+        title = step["target_workflow_title"].to_s.strip
+        path = "#{path_for(w_index)}.steps[#{index}].target_workflow_title"
+
+        if bundle_titles.include?(title.downcase)
+          # The bundle wins, deliberately — but say so. Silently rebinding every
+          # sub_flow from an existing published workflow to a new draft of the
+          # same name, with the report page saying nothing, is the wrong-result-
+          # no-error shape this dialect exists to remove.
+          if visible_published_workflows(title).exists?
+            add_warning(path, "shadowed_published_target", title,
+                        "A published workflow is also titled #{title.inspect}. This sub-flow " \
+                        "will run the copy defined in this file, not the published one.")
+          end
+          next
+        end
+
+        published = visible_published_workflows(title)
+
+        if published.one?
+          step["target_workflow_id"] = published.first.id
+          step.delete("target_workflow_title")
+        elsif published.many?
+          add_error(path, "ambiguous_sub_flow_target", title,
+                    "#{published.count} published workflows are titled #{title.inspect} " \
+                    "(#{published.map { |w| "##{w.id}" }.join(', ')}). Rename one, or import " \
+                    "this workflow without the sub-flow step and set the target in the builder.")
+        else
+          report_missing_sub_flow_target(title, path)
+        end
       end
     end
   end
@@ -200,7 +293,8 @@ class StrictImportValidator
     else
       add_error(path, "unknown_sub_flow_target", title,
                 "No published workflow is titled #{title.inspect}. A sub-flow target must " \
-                "already exist and be published.")
+                "either already exist and be published, or be defined as another workflow " \
+                "in this same file.")
     end
   end
 
@@ -216,13 +310,13 @@ class StrictImportValidator
   # The variable and option checks are warnings: a variable can legitimately
   # arrive from scenario inputs rather than an upstream question, so treating
   # either as an error would reject valid files.
-  def validate_semantics(workflow)
+  def validate_semantics(workflow, workflow_path)
     steps = workflow["steps"]
     defined = defined_variables(steps)
     options = options_by_variable(steps)
 
     steps.each_with_index do |step, index|
-      path = "workflows[0].steps[#{index}]"
+      path = "#{workflow_path}.steps[#{index}]"
       validate_interpolations(step, path, defined)
 
       Array(step["transitions"]).each_with_index do |transition, t_index|
@@ -303,7 +397,7 @@ class StrictImportValidator
   # to a Resolve, not a cycle as such.
   #
   # Runs on the normalized workflow, because GraphValidator reads target_uuid.
-  def validate_graph(workflow)
+  def validate_graph(workflow, workflow_path)
     steps = workflow["steps"]
     keyed = steps.index_by { |step| step["id"] }
     start_id = workflow["start_step_id"] || steps.first["id"]
@@ -312,25 +406,26 @@ class StrictImportValidator
     return if validator.valid?
 
     validator.findings.each do |finding|
-      add_error("workflows[0]", "graph_invalid", finding.code.to_s, finding.message)
+      add_error(workflow_path, "graph_invalid", finding.code.to_s, finding.message)
     end
   end
 
   # --- structure -------------------------------------------------------------
 
-  def validate_structure(workflow)
-    validate_workflow_title(workflow)
+  def validate_structure(workflow, workflow_path)
+    validate_workflow_fields(workflow, workflow_path)
+    validate_workflow_title(workflow, workflow_path)
 
     steps = workflow["steps"]
     unless steps.is_a?(Array) && steps.any?
-      return add_error("workflows[0].steps", "envelope_invalid", nil,
+      return add_error("#{workflow_path}.steps", "envelope_invalid", nil,
                        "A workflow needs at least one step.")
     end
 
     seen_ids = {}
 
     steps.each_with_index do |step, index|
-      path = "workflows[0].steps[#{index}]"
+      path = "#{workflow_path}.steps[#{index}]"
       unless step.is_a?(Hash)
         next add_error(path, "envelope_invalid", step.class.name,
                        "Each step must be an object.")
@@ -343,24 +438,55 @@ class StrictImportValidator
       validate_fields(step, type, path)
       validate_required(step, type, path)
       validate_enums(step, path)
+      validate_form_fields(step, type, path)
       validate_step_transitions(step, type, path)
     end
 
-    validate_transition_targets(steps, seen_ids.keys)
+    validate_transition_targets(steps, seen_ids.keys, workflow_path)
   end
 
   # Workflow validates title presence and a 255-character maximum. Without this
   # the dry run would report "valid" and the commit would then fail on an AR
   # validation, breaking the promise the report rests on: it says exactly what
   # committing would say.
-  def validate_workflow_title(workflow)
+  # The keys a workflow object may carry, from the same schema branch the steps
+  # are checked against.
+  #
+  # Nothing checked the workflow envelope at all: `validate_fields` runs per
+  # step, so a misspelled workflow-level key was silently ignored. An agent
+  # writing `start_step` instead of `start_step_id` got no error and a workflow
+  # that quietly started at its first step — a silent drop, in the dialect whose
+  # whole purpose is that a file cannot fail quietly.
+  def validate_workflow_fields(workflow, workflow_path)
+    allowed = workflow_schema_properties.keys
+
+    workflow.each_key do |key|
+      next if allowed.include?(key)
+
+      add_error("#{workflow_path}.#{key}", "unknown_field", workflow[key],
+                "#{key} is not a field on a workflow.", expected: allowed.sort)
+    end
+  end
+
+  def validate_workflow_title(workflow, workflow_path)
     title = workflow["title"]
 
+    # Type-checked, not just coerced. A JSON `true` passes `.to_s` as "true" and
+    # every downstream comparison uses that, but ActiveModel casts the column to
+    # "t" on save — so an in-bundle sub_flow target matched at validation time
+    # and bound to nothing at import time, with the import reporting success.
+    # Two titles that differ before the cast and collide after it also defeated
+    # the duplicate-title check that in-bundle resolution depends on.
+    if !title.nil? && !title.is_a?(String)
+      return add_error("#{workflow_path}.title", "invalid_workflow_title", title,
+                       "A workflow title must be a string, not #{title.class.name.downcase}.")
+    end
+
     if title.blank?
-      add_error("workflows[0].title", "invalid_workflow_title", title,
+      add_error("#{workflow_path}.title", "invalid_workflow_title", title,
                 "A workflow needs a title.")
     elsif title.to_s.length > 255
-      add_error("workflows[0].title", "invalid_workflow_title", title.to_s.truncate(60),
+      add_error("#{workflow_path}.title", "invalid_workflow_title", title.to_s.truncate(60),
                 "A workflow title is at most 255 characters; this one is #{title.to_s.length}.")
     end
   end
@@ -434,6 +560,45 @@ class StrictImportValidator
     end
   end
 
+  # A select field has to say what it offers.
+  #
+  # Nothing could supply `select_options` before 2026-09-04 — the permit list
+  # dropped it, the schema rejected it as an additional property, and the
+  # builder had no control for it — so a select field always rendered an empty
+  # dropdown. Now that the key exists, an omission is a real authoring mistake
+  # and it produces a step the agent cannot answer, which is an error rather
+  # than a warning for the same reason an unparseable condition is.
+  def validate_form_fields(step, type, path)
+    return unless type == "form"
+    return unless step["options"].is_a?(Array)
+
+    step["options"].each_with_index do |field, index|
+      next unless field.is_a?(Hash) && field["field_type"] == "select"
+      next if usable_choices?(field["select_options"])
+
+      add_error("#{path}.options[#{index}].select_options", "missing_select_options",
+                field["select_options"],
+                "Field #{field['name'].inspect} is a select and lists no usable choices. " \
+                "Give it select_options as [{\"label\": ..., \"value\": ...}] — a " \
+                "select with none renders an empty dropdown nobody can answer.")
+    end
+  end
+
+  # Choices the runner can actually render.
+  #
+  # Presence is not enough, and checking only for a non-empty Array was the first
+  # version of this. `["IVR", "Link"]` is a plausible shape for an agent to reach
+  # for and it passed — then `scenarios/_form_step` evaluates `opt["value"] ||
+  # opt["label"]` against a String, which is String#[] doing a substring lookup
+  # and answering nil for both. The result is a dropdown of blank options: the
+  # exact thing this code exists to refuse, reached by a shape the published
+  # schema already forbids. The validator is the half that writes, so it is the
+  # half that has to agree.
+  def usable_choices?(choices)
+    choices.is_a?(Array) && choices.any? &&
+      choices.all? { |c| c.is_a?(Hash) && c["label"].present? && c["value"].present? }
+  end
+
   def validate_step_transitions(step, type, path)
     transitions = step["transitions"]
 
@@ -452,17 +617,19 @@ class StrictImportValidator
               "This dialect does not infer them.")
   end
 
-  def validate_transition_targets(steps, known_ids)
+  def validate_transition_targets(steps, known_ids, workflow_path)
     steps.each_with_index do |step, index|
       next unless step.is_a?(Hash) && step["transitions"].is_a?(Array)
 
       step["transitions"].each_with_index do |transition, t_index|
-        path = "workflows[0].steps[#{index}].transitions[#{t_index}].target_id"
+        path = "#{workflow_path}.steps[#{index}].transitions[#{t_index}].target_id"
         target = transition.is_a?(Hash) ? transition["target_id"] : nil
         next if known_ids.include?(target)
 
+        # "in this workflow", not "in this file": a file may now hold several,
+        # and a transition never crosses between them — that is what sub_flow is.
         add_error(path, "dangling_transition_target", target,
-                  "No step in this file has id #{target.inspect}.")
+                  "No step in this workflow has id #{target.inspect}.")
       end
     end
   end
@@ -496,9 +663,16 @@ class StrictImportValidator
     @allowed_keys[type] ||= schema_branch(type)["properties"].keys
   end
 
-  def schema_branch(type)
+  def workflow_schema_properties
+    schema.dig("$defs", "workflow", "properties")
+  end
+
+  def schema
     @schema ||= ImportSchemaGenerator.call
-    @schema["$defs"]["step"]["oneOf"].find { |b| b["properties"]["type"]["const"] == type }
+  end
+
+  def schema_branch(type)
+    schema["$defs"]["step"]["oneOf"].find { |b| b["properties"]["type"]["const"] == type }
   end
 
   # --- reporting -------------------------------------------------------------
@@ -516,7 +690,7 @@ class StrictImportValidator
     nil
   end
 
-  def report(workflow_data: nil, placement: nil)
-    Report.new(errors: @errors, warnings: @warnings, workflow_data:, placement:)
+  def report(workflows_data: nil, placements: nil)
+    Report.new(errors: @errors, warnings: @warnings, workflows_data:, placements:)
   end
 end
