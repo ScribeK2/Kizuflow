@@ -208,6 +208,23 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
   # chain of handoffs must not be refused for a depth that does not exist. The
   # import-time refusal was restored in 4ccee4fd, which makes this live.
 
+  # SC 5 — the other half of W1.4, and the one that makes it dangerous to fix
+  # carelessly. Depth must stop counting handoff hops; cycle detection must NOT.
+  test "SC5: a handoff cycle is still detected" do
+    a = Workflow.create!(title: "Cycle A", user: @user)
+    b = Workflow.create!(title: "Cycle B", user: @user)
+    Steps::SubFlow.create!(workflow: a, position: 0, title: "To B",
+                           sub_flow_workflow_id: b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: b, position: 0, title: "To A",
+                           sub_flow_workflow_id: a.id, sub_flow_returns: false)
+
+    validator = SubflowValidator.new(a.id)
+
+    assert_not validator.valid?, "a handoff cycle is still an infinite run"
+    assert_predicate validator.findings.select { |f| f.code == :circular_subflow }, :any?,
+                     "exempting handoffs from DEPTH must not exempt them from CYCLES"
+  end
+
   test "W1.4: a flat handoff chain longer than MAX_DEPTH is not refused for depth" do
     depth = SubflowValidator::MAX_DEPTH + 3
     workflows = (0...depth).map { |i| Workflow.create!(title: "Hop #{i}", user: @user) }

@@ -49,6 +49,21 @@ module RunnerShell
     # show, and its results are the root's.
     return runner_results_path(scenario.root_scenario) if scenario.stopped?
 
+    # Forward, when the run has been handed away from this frame (§T item 14).
+    # Without this a refresh, a browser Back, or a bookmark on the handing-off
+    # half falls through every branch below and renders _thread_complete with a
+    # results_url for the abandoned half — a finished run, for a run still going.
+    #
+    # Two traps, both named in the design doc and both live:
+    #   - `run_head` walks the whole chain, because one hop lands on a frame that
+    #     has itself already handed on, and Success Criterion 1 is "3+ linked
+    #     workflows".
+    #   - the test is `!terminal?`, not `active?`: `awaiting_subflow` is a
+    #     different enum member, so a head sitting inside a sub-flow would
+    #     otherwise get no redirect at all.
+    head = scenario.run_head
+    return runner_step_path(head) if head != scenario && !head.terminal?
+
     # A finished *child* is a finished sub-flow, not a finished run. Sending the
     # agent to the root's results would show a summary for a run still in
     # progress; the parent's step page is where they belong, and it offers

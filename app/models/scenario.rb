@@ -13,7 +13,7 @@ class Scenario < ApplicationRecord
   # started it — destroying the source must not take the live run with it.
   belongs_to :handed_off_from, class_name: 'Scenario', optional: true
   has_one :handed_off_to, class_name: 'Scenario', foreign_key: 'handed_off_from_id',
-          inverse_of: :handed_off_from, dependent: :nullify
+                          inverse_of: :handed_off_from, dependent: :nullify
   has_many :step_responses, dependent: :destroy
 
   # String-backed enum — maps to existing column values with no migration needed.
@@ -164,6 +164,49 @@ class Scenario < ApplicationRecord
   # The top-level workflow — always the root parent's workflow.
   def root_workflow
     root_scenario.workflow
+  end
+
+  # Where the run started, and where it lives now.
+  #
+  # These exist because four separate readers each worked out "where does this
+  # run live" from `parent_scenario_id` or `root_scenario`, and three review
+  # rounds plus one spike each found a different one wrong — twice at the same
+  # line. `root_scenario` answers a narrower question (the top of *one* parent
+  # chain) and is kept for callers that genuinely mean that; anything asking
+  # about the run as a whole wants one of these two.
+  #
+  # A handoff is not a parent link, so a chain can alternate:
+  #   A --sub-flow--> B --handoff--> C --sub-flow--> D
+  # Neither link alone spans that, which is why both walks alternate rather than
+  # following one FK.
+
+  # Backward, to the workflow the agent actually started in.
+  def run_origin
+    frame = self
+    seen = Set.new
+    loop do
+      frame = frame.root_scenario
+      # Guard the walk rather than trusting the data: a handoff cycle is refused
+      # at publish, but a primitive several readers depend on must not hang if
+      # one ever gets through.
+      break frame unless frame.handed_off_from && seen.add?(frame.id)
+
+      frame = frame.handed_off_from
+    end
+  end
+
+  # Forward, to the frame the run currently lives on.
+  #
+  # One hop is not enough: for A -> B -> C with B already handed on,
+  # `A.handed_off_to` is B and B is terminal, so a caller that stops there finds
+  # a dead frame. Walk to the tail.
+  def run_head
+    frame = self
+    seen = Set.new([id])
+    while (nxt = frame.handed_off_to) && seen.add?(nxt.id)
+      frame = nxt
+    end
+    frame
   end
 
   # Check if scenario is complete

@@ -111,13 +111,30 @@ class SubflowValidator
   # Checks JSONB first (in-memory, no extra query) during transition period.
   # @param workflow [Workflow] The workflow to extract from
   # @return [Array<Integer>] Array of target workflow IDs
-  def extract_subflow_target_ids(workflow)
+  # SPIKE (Wave 2 / Wave 1 item 4). `returning_only:` is the whole difference
+  # between the two questions this validator asks.
+  #
+  # A cycle is a cycle either way: A hands off to B hands off to A is an
+  # infinite run, so cycle detection follows EVERY edge.
+  #
+  # Depth is different. MAX_DEPTH exists because each nested sub-flow is a live
+  # stack frame waiting to be returned to. A tail call leaves no frame — the
+  # handing-off half is terminal before the target starts — so a flat chain of
+  # handoffs has no nesting to exceed, and counting it refused a legal file for
+  # a stack that does not exist. Live since 4ccee4fd restored the import-time
+  # refusal.
+  def extract_subflow_target_ids(workflow, returning_only: false)
     if workflow.read_attribute(:steps).is_a?(Array)
-      workflow.read_attribute(:steps)
-              .select { |s| SUBFLOW_TYPES.include?(s["type"]) && s["target_workflow_id"].present? }
-              .map { |s| s["target_workflow_id"].to_i }
+      workflow.read_attribute(:steps).filter_map do |s|
+        next unless SUBFLOW_TYPES.include?(s["type"]) && s["target_workflow_id"].present?
+        next if returning_only && s["sub_flow_returns"] == false
+
+        s["target_workflow_id"].to_i
+      end
     else
-      Steps::SubFlow.where(workflow_id: workflow.id).pluck(:sub_flow_workflow_id).compact
+      scope = Steps::SubFlow.where(workflow_id: workflow.id)
+      scope = scope.where(sub_flow_returns: true) if returning_only
+      scope.pluck(:sub_flow_workflow_id).compact
     end
   end
 
@@ -219,7 +236,7 @@ class SubflowValidator
 
     on_path.add(workflow.id)
 
-    target_ids = extract_subflow_target_ids(workflow)
+    target_ids = extract_subflow_target_ids(workflow, returning_only: true)
     depth = if target_ids.empty?
               1
             else
