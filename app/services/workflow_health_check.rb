@@ -156,6 +156,18 @@ class WorkflowHealthCheck
                   fixable: false, code: :question_text_required)
       end
 
+      # A handoff ends the workflow, so a transition leaving it goes nowhere: the
+      # runtime ignores it, but export emits it and the strict path then refuses
+      # the file with `unexpected_transitions`. Authorable by connecting a
+      # sub-flow first and unticking "come back" afterwards, which clears
+      # nothing.
+      if handoff?(step) && step.transitions.any?
+        add_issue(issues, step.uuid, :warning,
+                  "This step hands the run over, so its outgoing connection is never used " \
+                  "— and it makes the exported file unreadable. Remove the connection.",
+                  fixable: false, code: :handoff_has_transitions)
+      end
+
       if step.is_a?(Steps::SubFlow) && step.sub_flow_workflow_id.blank?
         add_issue(issues, step.uuid, :warning, "Sub-flow target is required for publish",
                   fixable: false, code: :subflow_target_required)

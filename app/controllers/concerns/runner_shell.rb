@@ -165,6 +165,23 @@ module RunnerShell
   # Rewinding, answered the same way as an answer: without a redirect, so the
   # page the agent is reading stays put.
   def rewind_runner(scenario)
+    # A frame the run was handed away from is not somewhere to go back to.
+    # `go_back` flips a scenario to `active` and restores its previous node, and
+    # doing that here reopened a half the run had already left — leaving it
+    # `active` while still carrying `outcome: "transferred"`, and letting a second
+    # answer spawn a second handed-to run alongside the live one.
+    #
+    # Keyed on the outcome rather than on `terminal?`: an ordinary completed run
+    # is rewindable and always has been, and only a transfer means "the run
+    # continues elsewhere".
+    if scenario.outcome == "transferred"
+      @scenario = scenario
+      @workflow = scenario.root_workflow
+      @open_step = nil
+      flash.now[:alert] = "This run continued in another workflow, so it cannot go back from here."
+      return render :back, formats: [:turbo_stream]
+    end
+
     ScenarioNavigator.new(scenario).go_back
 
     @scenario = scenario

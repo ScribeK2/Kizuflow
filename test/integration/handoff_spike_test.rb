@@ -1,20 +1,20 @@
 require "test_helper"
 
-# SPIKE — not shippable. The regression tests for Wave 2's tail call, written
-# BEFORE the tail call exists.
+# The regression tests for the handoff tail call.
 #
-# Why they are written first: docs/designs/workflow-handoff.md § "The finding
-# that should change how you build this". Three review rounds produced three
-# criticals, all of one shape — a reader that infers run structure from
-# `parent_scenario_id`/`root_scenario` instead of being told it — and every one
-# was found by reading code, never by reasoning about the design. Twice at
-# `scenario.rb:314`. So an enumeration of change sites in this subsystem cannot
-# be trusted, and the doc's instruction is: write these, then spike, and let the
-# failures name the sites.
+# Written before the feature existed, and kept as its guard. Their reason is
+# `docs/designs/handoff-spike-findings.md`: three review rounds on this subsystem
+# produced three criticals, all of one shape — a reader that infers run structure
+# from `parent_scenario_id`/`root_scenario` instead of being told it — and every
+# one was found by reading code, never by reasoning about the design. A fourth
+# and a fifth were found by running these.
 #
-# These will fail on a missing column until the spike migration lands. That is
-# intended. The point is that they exist before the change, so a failure cannot
-# be re-read afterwards as "not what I meant".
+# Two of them once passed with NO handoff implemented at all, because a
+# non-returning sub_flow still descended like an ordinary one and the run did
+# land on the target's first step — as a child. The assertions that actually
+# separate a tail call from a call are that the handed-to run has no
+# `parent_scenario_id`, carries `handed_off_from_id`, and leaves the source
+# `terminal?`. "The run reached the next workflow" proves nothing on its own.
 #
 # Numbering follows § Success Criteria in the design doc.
 class HandoffSpikeTest < ActionDispatch::IntegrationTest
@@ -243,6 +243,50 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
                  "(\"Inner\" still appears elsewhere in the stream, as the sub-flow marker)"
   end
 
+  # --- a handed-off run cannot be rewound out of the handoff ------------------
+  #
+  # Review finding, 2026-09-05. `ScenarioNavigator#go_back` flips a scenario back
+  # to `active` and restores its previous node, and nothing stopped it doing that
+  # to a frame the run had already left. That produced a source sitting at
+  # `status: "active"` while still carrying `outcome: "transferred"`, and
+  # answering it again spawned a SECOND handed-to run alongside the live one —
+  # two live branches of one run, with `handed_off_to` picking between them
+  # arbitrarily.
+  #
+  # Not reachable from a single tab, because after the handoff the open card
+  # belongs to the target and its history is empty. Reachable by a direct POST,
+  # and by a stale second tab still showing the source.
+
+  test "a run that has been handed off refuses to go back" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, source_q, = handing_off_workflow("Source", target: target)
+    run = start_run(source, source_q)
+    answer(run)
+
+    before = run.reload.attributes.slice("status", "outcome", "current_node_uuid")
+
+    post back_scenario_path(run)
+
+    assert_equal before, run.reload.attributes.slice("status", "outcome", "current_node_uuid"),
+                 "the run is not here any more; rewinding this frame reopens a half it already left"
+    assert_predicate run, :terminal?
+  end
+
+  test "going back does not fork the run into two live branches" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, source_q, = handing_off_workflow("Source", target: target)
+    run = start_run(source, source_q)
+    answer(run)
+
+    post back_scenario_path(run)
+    answer(run)
+
+    live = Scenario.where(handed_off_from_id: run.id).where.not(status: "stopped")
+
+    assert_equal 1, live.count,
+                 "one run has one live head: #{live.pluck(:id, :status).inspect}"
+  end
+
   # --- SC 6 — export/import round-trips a terminal handoff --------------------
   #
   # A handoff step has no transitions: that is what makes it a tail call rather
@@ -318,6 +362,39 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
                "the exemption is for a tail call only — a returning sub-flow that goes nowhere " \
                "is still the dangling step the rule was written for"
     assert_includes report.errors.pluck(:code), "missing_transitions"
+  end
+
+  # --- a handoff that kept its transitions ------------------------------------
+  #
+  # Review finding, 2026-09-05. Authorable in the builder: add a Sub-Flow,
+  # connect it to a next step, THEN untick "come back". Nothing clears the
+  # transition. It publishes clean — GraphValidator treats any handoff as a legal
+  # terminal — and the runtime ignores the transitions correctly, but export
+  # emits them and the strict path then refuses the file with
+  # `unexpected_transitions`. That would be a third round-trip exception, so it
+  # is surfaced where the other authoring problems are instead.
+
+  test "a handoff that still carries transitions is flagged" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, source_q, handoff = handing_off_workflow("Source", target: target)
+    tail = Steps::Resolve.create!(workflow: source, position: 2, title: "Unreachable",
+                                  resolution_type: "success")
+    Transition.create!(step: handoff, target_step: tail, position: 0)
+    source.update!(start_step: source_q)
+
+    issues = WorkflowHealthCheck.new(source.reload).call.issues[handoff.uuid] || []
+
+    assert_includes issues.pluck(:code), :handoff_has_transitions,
+                    "it exports to a file the app then refuses to read back"
+  end
+
+  test "a handoff with no transitions is not flagged" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, _q, handoff = handing_off_workflow("Source", target: target)
+
+    issues = WorkflowHealthCheck.new(source).call.issues[handoff.uuid] || []
+
+    assert_not_includes issues.pluck(:code), :handoff_has_transitions
   end
 
   # --- SC 8 — the health panel must not call a handoff a dead end -------------

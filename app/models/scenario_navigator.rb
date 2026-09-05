@@ -27,6 +27,17 @@ class ScenarioNavigator
   # destroyed them. Back is hidden for those rather than offering a control that
   # loses data. The mixed population ages out with scenario retention.
   def can_go_back?
+    # A frame the run was handed away from is not somewhere to go back to.
+    # `go_back` flips a scenario to `active` and restores its previous node, and
+    # doing that to a transferred half left it `active` while still carrying
+    # `outcome: "transferred"` — and answering it again spawned a second live
+    # handed-to run alongside the first, forking one run into two.
+    #
+    # Enforced here rather than in the shell that calls it, for the same reason
+    # `Scenario#hand_off!` owns the ancestor cascade: this subsystem's recurring
+    # failure is each caller working out the run's shape for itself.
+    return false if @scenario.outcome == "transferred"
+
     entries = @scenario.execution_path
     entries.present? && entries.all? { |entry| entry.key?("results_delta") }
   end

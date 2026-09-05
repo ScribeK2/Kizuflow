@@ -23,11 +23,19 @@ class ScenarioRunOriginTest < ActiveSupport::TestCase
     @wf = Workflow.create!(title: "W #{SecureRandom.hex(3)}", user: @user)
   end
 
-  def scenario(parent: nil, handed_off_from: nil, status: "active")
+  def scenario(parent: nil, handed_off_from: nil, status: "active", outcome: nil)
     Scenario.create!(workflow: @wf, user: @user, purpose: "simulation", status: status,
                      started_at: Time.current, parent_scenario: parent,
-                     handed_off_from: handed_off_from,
+                     handed_off_from: handed_off_from, outcome: outcome,
                      execution_path: [], results: {}, inputs: {})
+  end
+
+  # A frame that handed the run away, as Scenario#hand_off! leaves it: terminal,
+  # and carrying the outcome that says which kind of ending this was. The
+  # outcome is the load-bearing part — it is how the forward walk tells "this
+  # sub-flow handed the run on" from "this sub-flow finished normally".
+  def transferred(parent: nil)
+    scenario(parent: parent, status: "completed", outcome: "transferred")
   end
 
   # --- run_origin -------------------------------------------------------------
@@ -127,5 +135,69 @@ class ScenarioRunOriginTest < ActiveSupport::TestCase
       assert_not_nil a.run_origin
       assert_not_nil a.run_head
     end
+  end
+
+  # --- the forward walk has to alternate too ----------------------------------
+  #
+  # Review finding, 2026-09-05. `run_origin` alternates both links precisely
+  # because neither spans a mixed chain — and the forward walk was written
+  # without the mirror of that reasoning. `A --sub-flow--> B --handoff--> C`
+  # settles BOTH A and B, and it is B that carries `handed_off_to`, not A. So
+  # `A.run_head` returned A, which is terminal, and a GET on A rendered a
+  # finished run while the agent's work was live in C.
+  #
+  # The original tests only covered flat handoff chains, which is why this held.
+
+  test "the head is found from a frame whose sub-flow did the handing off" do
+    a = transferred                    # was awaiting B, settled by the handoff
+    b = transferred(parent: a)         # B handed the run away
+    c = scenario(handed_off_from: b)   # the live run
+
+    assert_equal c, a.run_head,
+                 "A.handed_off_to is nil — it was B that handed off, and A only waited on B"
+    assert_equal c, b.run_head
+  end
+
+  # `run_head` follows HANDOFFS forward, and stops at the frame the run was
+  # handed to. It deliberately does not descend into that frame's live sub-flow:
+  # RunnerShell#runner_step_redirect already has a branch for an active child,
+  # and duplicating it here would give two readers of the same fact — which is
+  # the pattern this whole primitive exists to remove.
+  test "a mixed chain resolves to the same handed-to frame from every frame before it" do
+    a = transferred
+    b = transferred(parent: a)
+    c = scenario(handed_off_from: b, status: "awaiting_subflow")
+    _d = scenario(parent: c)
+
+    assert_equal [c, c, c], [a.run_head, b.run_head, c.run_head],
+                 "every frame before the boundary agrees which frame the run was handed to"
+  end
+
+  test "origin and head are still inverses across a mixed chain" do
+    a = transferred
+    b = transferred(parent: a)
+    c = scenario(handed_off_from: b)
+
+    assert_equal a, c.run_origin
+    assert_equal c, a.run_head
+  end
+
+  test "an ordinary sub-flow run does not chase a handoff that never happened" do
+    a = scenario(status: "awaiting_subflow")
+    b = scenario(parent: a)
+
+    assert_equal a, a.run_head,
+                 "nothing was handed off here; the run lives where it always did"
+    assert_equal b, b.run_head
+  end
+
+  # A frame whose handed-to run was abandoned must not be followed into it.
+  test "the head ignores a stopped branch" do
+    a = scenario(status: "completed")
+    dead = scenario(handed_off_from: a, status: "stopped")
+    live = scenario(handed_off_from: a)
+
+    assert_equal live, a.run_head,
+                 "a stopped branch is not where the run is: #{dead.id} is abandoned"
   end
 end

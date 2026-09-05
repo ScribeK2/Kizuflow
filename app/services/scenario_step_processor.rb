@@ -361,7 +361,15 @@ class ScenarioStepProcessor
       begin
         @scenario.hand_off!
       rescue ActiveRecord::StaleObjectError
+        # The target and the settling of this half are one fact — "the run is
+        # now over there" — and this is where they can come apart. A lost race
+        # used to leave the target alive with a source that had never been
+        # handed off, so `handed_off_to` had two live rows to choose between and
+        # the run had forked. The returning path is protected from the same
+        # shape by its stale-child sweep, which cannot see a handoff child
+        # because that child has no parent_scenario_id.
         Rails.logger.warn "[Scenario ##{@scenario.id}] Stale object on handoff — concurrent modification detected"
+        child_scenario.destroy
         return Outcome.halted(:conflict)
       end
       return Outcome.awaiting_subflow

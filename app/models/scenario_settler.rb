@@ -119,7 +119,10 @@ class ScenarioSettler
     # run has none — this is the first reader the doc's table predicted would
     # break, and it breaks by returning nil, silently ending the run on the
     # handoff node rather than moving into the target.
-    child = current.active_child_scenario || current.handed_off_to
+    # `live_handed_off_to`, not `handed_off_to`: the association has no status
+    # scope, so an abandoned branch alongside a live one was chosen arbitrarily
+    # and the run resumed into a stopped frame.
+    child = current.active_child_scenario || current.live_handed_off_to
     return nil unless child
 
     [child, ScenarioStepProcessor::Outcome.advanced]

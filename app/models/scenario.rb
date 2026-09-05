@@ -203,17 +203,47 @@ class Scenario < ApplicationRecord
 
   # Forward, to the frame the run currently lives on.
   #
-  # One hop is not enough: for A -> B -> C with B already handed on,
-  # `A.handed_off_to` is B and B is terminal, so a caller that stops there finds
-  # a dead frame. Walk to the tail.
+  # Alternates both links, for the mirror of the reason run_origin does. One hop
+  # is not enough — for A -> B -> C with B already handed on, `A.handed_off_to`
+  # is B and B is terminal — and neither is following `handed_off_to` alone:
+  # in `A --sub-flow--> B --handoff--> C` it is B that hands the run away, and
+  # settling the handoff terminates A as well. So `A.handed_off_to` is nil while
+  # the run is very much alive in C, and a caller that stopped at A rendered a
+  # finished run over the agent's live work.
+  #
+  # A stopped branch is not where the run is, so the descent skips it: the
+  # handed-to row can be abandoned (a rewind, a lost lock race) while a live one
+  # exists alongside it.
   def run_head
     frame = self
     seen = Set.new([id])
-    while (nxt = frame.handed_off_to) && seen.add?(nxt.id)
+
+    loop do
+      nxt = frame.live_handed_off_to || handed_off_descendant_of(frame)
+      break frame unless nxt && seen.add?(nxt.id)
+
       frame = nxt
     end
-    frame
   end
+
+  # The handed-to run of this frame, ignoring branches that were abandoned.
+  def live_handed_off_to
+    Scenario.where(handed_off_from_id: id).where.not(status: "stopped").order(:id).last
+  end
+
+  private
+
+  # A handoff issued from *inside* this frame: the run left through a sub-flow
+  # of ours, so the forward link hangs off that child rather than off us.
+  def handed_off_descendant_of(frame)
+    frame.child_scenarios.where(outcome: "transferred").order(:id).find_each do |child|
+      found = child.live_handed_off_to || handed_off_descendant_of(child)
+      return found if found
+    end
+    nil
+  end
+
+  public
 
   # Check if scenario is complete
   def complete?
