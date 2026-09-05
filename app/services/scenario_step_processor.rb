@@ -346,34 +346,23 @@ class ScenarioStepProcessor
     path_entry["target_workflow_title"] = target_workflow.title
     @scenario.append_path_entry(path_entry)
 
-    # A handoff ends this half. `completed` makes terminal? true, which is what
-    # stops stop_frame! overwriting its outcome and keeps it out of the
-    # resumable set — the §N failure the design doc names.
-    @scenario.status = handoff ? 'completed' : 'awaiting_subflow'
-    @scenario.completed_at = Time.current if handoff
-
-    # SPIKE FINDING (the §N coupling, and the biggest one).
-    #
-    # Ending this frame is not enough. If a sub-flow hands the run away, every
-    # ancestor still sitting in awaiting_subflow is waiting for a return that
-    # will never come — A -> sub-flow B -> handoff C leaves A `parked?` (its
-    # child B is no longer active), offering a Resume that calls
-    # process_subflow_completion, which picks the newest *completed* child and
-    # RESURRECTS A. That is the scenario.rb:314 failure the design doc found
-    # twice, and nulling the handed-to parent FK does not touch it, because the
-    # damage is on the ancestor's side.
-    #
-    # So a handoff is not "this frame ends" but "every frame waiting on this one
-    # ends". Which means the run's history now spans a chain the parent FK no
-    # longer describes — the strongest argument yet for run_origin being a real
-    # primitive rather than a tidy-up.
+    # A handoff ends this half, and every frame waiting on it. Scenario#hand_off!
+    # owns that rule and the exact end state (§T item 3): status "completed" so
+    # terminal? is true and parked? false, outcome "transferred" so reporting can
+    # tell a handoff from a completion, and no current node.
     if handoff
-      frame = @scenario.parent_scenario
-      while frame
-        frame.update_columns(status: 'completed', completed_at: Time.current) if frame.status == 'awaiting_subflow'
-        frame = frame.parent_scenario
+      # NB: path_entry is already appended four lines above — appending again
+      # here duplicated the handoff step on the transcript.
+      begin
+        @scenario.hand_off!
+      rescue ActiveRecord::StaleObjectError
+        Rails.logger.warn "[Scenario ##{@scenario.id}] Stale object on handoff — concurrent modification detected"
+        return Outcome.halted(:conflict)
       end
+      return Outcome.awaiting_subflow
     end
+
+    @scenario.status = 'awaiting_subflow'
     begin
       @scenario.save
     rescue ActiveRecord::StaleObjectError

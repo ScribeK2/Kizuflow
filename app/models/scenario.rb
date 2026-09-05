@@ -72,7 +72,13 @@ class Scenario < ApplicationRecord
   validates :purpose, inclusion: { in: PURPOSES }, allow_nil: false
 
   # Valid outcomes
-  OUTCOMES = %w[completed resolved escalated abandoned error].freeze
+  # "transferred" is the handoff ending. It lives on `outcome`, not `status`,
+  # because the two columns answer different questions: `status` says whether the
+  # frame is finished (and must stay one of the enum's members so `terminal?`,
+  # `parked?` and the cleanup scopes keep working), while `outcome` says how it
+  # ended. A run that handed its work to another workflow did not *complete*, and
+  # reporting has to be able to tell those apart.
+  OUTCOMES = %w[completed resolved escalated abandoned error transferred].freeze
   validates :outcome, inclusion: { in: OUTCOMES }, allow_nil: true
 
   # Cleanup scopes
@@ -234,6 +240,42 @@ class Scenario < ApplicationRecord
       root.stop_frame! unless root == self
       root.unfinished_descendants.each(&:stop_frame!)
     end
+  end
+
+  # End this frame, and every frame waiting on it, because the run has been
+  # handed to another workflow and will never come back here.
+  #
+  # A handoff is not "this frame ends". `A -> sub-flow B -> handoff C` leaves A
+  # waiting for a return that will never come: `parked?` becomes true (its child
+  # is no longer active), and the Resume it offers calls
+  # `process_subflow_completion`, which picks the newest completed child and
+  # RESURRECTS A. Review found that shape twice at scenario.rb:314 and the
+  # handoff spike found it a third time, so the rule is enforced here rather than
+  # left to each caller.
+  #
+  # Only frames genuinely *waiting* are settled — `stop_frame!` already refuses
+  # to touch a terminal scenario, and an ancestor that ended on its own keeps the
+  # outcome it earned.
+  def hand_off!
+    transaction do
+      settle_as_transferred!
+      frame = parent_scenario
+      while frame
+        frame.settle_as_transferred!
+        frame = frame.parent_scenario
+      end
+    end
+  end
+
+  # One frame's half of that. Public so hand_off! can walk the chain; not a
+  # public API otherwise.
+  def settle_as_transferred!
+    return if terminal?
+
+    self.status = 'completed'
+    self.current_node_uuid = nil
+    record_completion('transferred')
+    save!
   end
 
   # True once the run reached an end state and its outcome is settled.
