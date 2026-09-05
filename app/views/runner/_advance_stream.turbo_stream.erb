@@ -23,6 +23,20 @@
   <% end %>
 <% end %>
 
+<%#
+  The run's header, which lives outside the thread in each shell's own chrome.
+
+  Sent on every answer rather than only when it changes: `root_workflow` is the
+  same expression both shells use to set it, so streaming it unconditionally
+  means a streamed header and a refreshed one cannot disagree. It is the right
+  reader for "which script am I following" — a sub-flow child resolves to its
+  parent's workflow, because a sub-flow is internal to the run, while a
+  handed-to run has no parent and resolves to itself.
+%>
+<%= turbo_stream.update "runner-workflow-title" do %><%=
+  truncate(scenario.root_workflow.title, length: 60, omission: "...")
+%><% end %>
+
 <%= turbo_stream.replace "runner-card-current" do %>
   <% tail.each do |entry| %>
     <% if entry["kind"] == "group_start" %>

@@ -190,6 +190,59 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
     assert_not_nil Scenario.find_by(workflow: c, user: @user), "the run should now live on C"
   end
 
+  # --- the run header names the workflow the agent is in now ------------------
+  #
+  # Decided 2026-09-05 (design doc Open Q2). The run header flips at the
+  # boundary, because on a live call what matters is which script you are
+  # following. The transcript stays continuous underneath it.
+  #
+  # Why this needs a stream rather than falling out of the redirect: the answer
+  # is a Turbo Stream that replaces only the thread tail, so without an explicit
+  # update the header keeps naming the previous workflow for the whole rest of
+  # the run — a fresh GET already renders it correctly, which is how the app
+  # came to answer this question both ways in one session.
+
+  test "the run header flips to the handed-to workflow in the same response" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, source_q, = handing_off_workflow("Source", target: target)
+    run = start_run(source, source_q)
+
+    answer(run)
+
+    header = response.body[%r{target="runner-workflow-title"><template>(.*?)</template>}m, 1].to_s
+
+    assert_equal "Target", header.strip,
+                 "the header is outside the thread, so the stream has to rename it explicitly"
+  end
+
+  test "an ordinary sub-flow does not flip the header" do
+    child = Workflow.create!(title: "Inner", user: @user)
+    cr = Steps::Resolve.create!(workflow: child, position: 0, title: "Inner Done",
+                                resolution_type: "success")
+    child.update!(start_step: cr)
+
+    parent = Workflow.create!(title: "Outer", user: @user)
+    pq = Steps::Question.create!(workflow: parent, position: 0, title: "First",
+                                 question: "First?", variable_name: "pv")
+    sf = Steps::SubFlow.create!(workflow: parent, position: 1, title: "Into Inner",
+                                sub_flow_workflow_id: child.id)
+    pr = Steps::Resolve.create!(workflow: parent, position: 2, title: "Outer Done",
+                                resolution_type: "success")
+    Transition.create!(step: pq, target_step: sf, position: 0)
+    Transition.create!(step: sf, target_step: pr, position: 0)
+    parent.update!(start_step: pq)
+
+    run = start_run(parent, pq)
+    answer(run)
+
+    header = response.body[%r{target="runner-workflow-title"><template>(.*?)</template>}m, 1].to_s
+
+    assert_equal "Outer", header.strip,
+                 "a sub-flow is internal to the run; the agent has not changed script, " \
+                 "so the header keeps naming the workflow they started in " \
+                 "(\"Inner\" still appears elsewhere in the stream, as the sub-flow marker)"
+  end
+
   # --- SC 8 — the health panel must not call a handoff a dead end -------------
 
   test "SC8: the health panel does not offer add_resolve_after on a handoff step" do

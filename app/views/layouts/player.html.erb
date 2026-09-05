@@ -28,7 +28,10 @@
   <header class="player-header">
     <div class="player-header__brand">
       <%= render "shared/brand_icon", css_class: "player-header__icon" %>
-      <div class="player-header__title">
+      <%# Same id as the Scenario shell's h1: the two headers are genuinely
+          different chrome, but "which workflow is this run in" is one fact, and
+          one streamed update has to be able to rename both. %>
+      <div class="player-header__title" id="runner-workflow-title">
         <% if content_for?(:workflow_title) %>
           <%= yield(:workflow_title) %>
         <% else %>
