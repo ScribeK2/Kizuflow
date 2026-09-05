@@ -610,6 +610,22 @@ class StrictImportValidator
       return
     end
 
+    # A sub_flow that does not return ends this workflow, so it takes no
+    # transitions for the same reason a resolve does not. Without this the app
+    # exported a workflow containing a handoff to a file it would then refuse to
+    # read back.
+    #
+    # Scoped to the flag being explicitly false: a returning sub_flow with no
+    # transitions is still the dangling step this rule was written for.
+    if type == "sub_flow" && step["sub_flow_returns"] == false
+      if transitions.present?
+        add_error("#{path}.transitions", "unexpected_transitions", transitions,
+                  "A sub_flow with sub_flow_returns false hands the run over and " \
+                  "must have no transitions.")
+      end
+      return
+    end
+
     return if transitions.is_a?(Array) && transitions.any?
 
     add_error("#{path}.transitions", "missing_transitions", transitions,

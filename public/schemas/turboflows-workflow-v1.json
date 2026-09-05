@@ -379,8 +379,7 @@
             "id",
             "type",
             "title",
-            "target_workflow_title",
-            "transitions"
+            "target_workflow_title"
           ],
           "properties": {
             "id": {
@@ -424,7 +423,33 @@
             "type": {
               "const": "sub_flow"
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "sub_flow_returns": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "sub_flow_returns"
+                ]
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "transitions"
+                  ]
+                }
+              },
+              "else": {
+                "required": [
+                  "transitions"
+                ]
+              }
+            }
+          ]
         },
         {
           "type": "object",

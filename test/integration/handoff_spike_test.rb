@@ -243,6 +243,83 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
                  "(\"Inner\" still appears elsewhere in the stream, as the sub-flow marker)"
   end
 
+  # --- SC 6 — export/import round-trips a terminal handoff --------------------
+  #
+  # A handoff step has no transitions: that is what makes it a tail call rather
+  # than an edge. But the dialect requires transitions on every non-resolve step
+  # and the published schema puts `minItems: 1` on them, so before this the app
+  # exported a file it would refuse to read back — the same class of defect as
+  # the two round-trip exceptions already documented in AGENTS.md.
+
+  def exported_document(workflow)
+    {
+      schema_version: ImportSchemaGenerator::SCHEMA_VERSION,
+      exported_at: Time.current.iso8601,
+      workflows: [{
+        title: workflow.title, description: "", groups: [], folder: nil, tags: [],
+        start_step_id: workflow.start_step&.uuid || workflow.steps.first&.uuid,
+        steps: StepSerializer.call(workflow, dialect: :strict)
+      }]
+    }.to_json
+  end
+
+  test "SC6: a workflow ending in a handoff exports to a file the app accepts" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, = handing_off_workflow("Source", target: target)
+    target.update!(status: "published")
+
+    report = StrictImportValidator.new(user: @user, content: exported_document(source)).validate
+
+    assert_predicate report, :valid?,
+                     "the app must be able to read back what it just wrote: #{report.errors.inspect}"
+  end
+
+  test "SC6: the flag survives the strict round trip, not just the lenient one" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    source, = handing_off_workflow("Source", target: target)
+    target.update!(status: "published")
+
+    content = exported_document(source)
+    report = StrictImportValidator.new(user: @user, content: content).validate
+    assert_predicate report, :valid?, report.errors.inspect
+
+    result = WorkflowImporter.new(@user, format: :json, content: content, strict_report: report).call
+    assert_predicate result, :success?, result.errors.inspect
+
+    imported = result.workflow.steps.find { |s| s.is_a?(Steps::SubFlow) }
+    # `refute` rather than `assert_equal false` only because the column is
+    # NOT NULL, so nil is not a third possibility here.
+    assert_not imported.sub_flow_returns,
+               "a handoff that comes back as a returning sub-flow is a silently different workflow"
+  end
+
+  # The exemption must be scoped to the flag, not to the step type. Fed as a
+  # literal document rather than an exported workflow, because this shape cannot
+  # be saved at all — GraphValidator refuses it, which is the point.
+  test "an ordinary sub_flow with no transitions is still refused" do
+    target, = terminal_workflow("Target", question_title: "Second")
+    target.update!(status: "published")
+
+    doc = {
+      schema_version: "1",
+      workflows: [{
+        title: "Ordinary", start_step_id: "sf",
+        steps: [
+          { id: "sf", type: "sub_flow", title: "Into Target",
+            target_workflow_title: "Target", sub_flow_returns: true },
+          { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+        ]
+      }]
+    }.to_json
+
+    report = StrictImportValidator.new(user: @user, content: doc).validate
+
+    assert_not report.valid?,
+               "the exemption is for a tail call only — a returning sub-flow that goes nowhere " \
+               "is still the dangling step the rule was written for"
+    assert_includes report.errors.pluck(:code), "missing_transitions"
+  end
+
   # --- SC 8 — the health panel must not call a handoff a dead end -------------
 
   test "SC8: the health panel does not offer add_resolve_after on a handoff step" do

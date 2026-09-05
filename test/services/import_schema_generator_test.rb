@@ -136,7 +136,33 @@ class ImportSchemaGeneratorTest < ActiveSupport::TestCase
                      step_branch("form")["properties"]["options"]
   end
 
+  # A handoff step takes no transitions — that is what makes it a tail call. The
+  # published schema put `minItems: 1` on transitions and listed them as required
+  # for every non-resolve type, so it forbade the exact shape the feature exists
+  # to let an agent emit (design doc §R item 9).
+  test "the schema does not require transitions on a handoff step" do
+    schema = ImportSchemaGenerator.new.call
+    sub_flow = step_def(schema, "sub_flow")
+
+    assert_not_includes sub_flow["required"], "transitions",
+                        "requiring them unconditionally is what forbade a terminal handoff"
+
+    conditional = Array(sub_flow["allOf"]).find { |c| c.dig("if", "properties", "sub_flow_returns") }
+
+    assert conditional, "the requirement is conditional on the flag, not simply dropped"
+    assert_equal({ "const" => false }, conditional.dig("if", "properties", "sub_flow_returns"))
+    assert_includes conditional.dig("else", "required"), "transitions",
+                    "a RETURNING sub_flow must still need a transition, or the exemption " \
+                    "would let every dangling sub-flow through"
+  end
+
   private
+
+  def step_def(schema, type)
+    defs = schema["$defs"] || schema["definitions"]
+    candidates = defs.values.flat_map { |d| d["oneOf"] || d["anyOf"] || [d] }
+    candidates.compact.find { |d| d.dig("properties", "type", "const") == type }
+  end
 
   def step_branch(type)
     @schema["$defs"]["step"]["oneOf"].find { |b| b["properties"]["type"]["const"] == type }

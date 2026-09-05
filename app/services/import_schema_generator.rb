@@ -125,11 +125,34 @@ class ImportSchemaGenerator
     properties = common_properties.merge(type_properties(type))
     properties["transitions"] = transitions_property unless type == "resolve"
 
-    {
+    definition = {
       "type" => "object",
       "additionalProperties" => false,
       "required" => required_for(type),
       "properties" => properties.merge("type" => { "const" => type })
+    }
+    definition["allOf"] = [handoff_transitions_rule] if type == "sub_flow"
+    definition
+  end
+
+  # A sub_flow's transitions are required only when it returns.
+  #
+  # `transitions` used to be required for every non-resolve type, with
+  # `minItems: 1` on the property, so the published schema forbade the exact
+  # shape this feature exists to let an agent emit — a step that hands the run
+  # over and therefore ends the workflow.
+  #
+  # Expressed as a condition rather than by dropping the requirement, because a
+  # RETURNING sub_flow with nowhere to go is still the dangling step the rule was
+  # written for. The `else` is what keeps that true.
+  def handoff_transitions_rule
+    {
+      "if" => {
+        "properties" => { "sub_flow_returns" => { "const" => false } },
+        "required" => %w[sub_flow_returns]
+      },
+      "then" => { "not" => { "required" => %w[transitions] } },
+      "else" => { "required" => %w[transitions] }
     }
   end
 
@@ -313,8 +336,13 @@ class ImportSchemaGenerator
     }
   end
 
+  # sub_flow is excluded here and handled by handoff_transitions_rule instead:
+  # whether it needs transitions depends on the value of sub_flow_returns, which
+  # a flat required list cannot express.
   def required_for(type)
+    unconditional_transitions = %w[resolve sub_flow].exclude?(type)
+
     (%w[id type title] + REQUIRED_BY_TYPE.fetch(type, []) +
-      (type == "resolve" ? [] : %w[transitions])).uniq
+      (unconditional_transitions ? %w[transitions] : [])).uniq
   end
 end
