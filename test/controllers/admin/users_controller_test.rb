@@ -496,6 +496,27 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'deactivating a signed-in user ends the session they already hold' do
+    # Blocking new sign-ins is not enough for an offboarding control: the person
+    # being offboarded is usually signed in at the moment you do it. Devise's
+    # activatable hook re-checks active_for_authentication? on every request, so
+    # the next one bounces — asserted here because that is a property of Devise's
+    # configuration, not of our code, and a change to either could silently
+    # remove it.
+    # An editor, because WorkflowsController bounces a regular user from
+    # /workflows anyway — the precondition has to be a page the subject can
+    # actually load, or the assertion below proves nothing.
+    post user_session_path, params: { user: { email: @editor.email, password: 'password123!' } }
+    get workflows_path
+
+    assert_response :success, 'precondition: the user is signed in and browsing'
+
+    @editor.deactivate!
+    get workflows_path
+
+    assert_redirected_to new_user_session_path
+  end
+
   test 'a deactivated user cannot sign in' do
     @user.deactivate!
     post user_session_path, params: { user: { email: @user.email, password: 'password123!' } }
