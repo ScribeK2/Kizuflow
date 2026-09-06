@@ -336,10 +336,25 @@ does not become a wall of pastel and the eye finds real problems instantly.
 
 | Class | Use when | Visual |
 |-------|----------|--------|
-| `.flash` | Notification bar | Fixed top-right, slide-in animation |
-| `.flash--notice` | Success/info message | Green/positive accent |
-| `.flash--alert` | Error message | Red/negative accent |
-| `.toast` | Toast notification | Fixed bottom-right, smaller |
+| `.flash` | Notification bar | Fixed **bottom-right**, slide-in, click or × to dismiss, 5s auto-dismiss |
+| `.flash__body` | The visible box — **required** | Carries the fill, padding, radius and text colour. A `.flash` without one is unstyled text floating over the page |
+| `.flash__close` | Dismiss affordance | Icon button, inherits the body's text colour |
+| `.flash--notice` | Success/info message | `--color-positive` fill, `--color-on-positive` text |
+| `.flash--alert` | Error message | `--color-negative` fill, `--color-on-negative` text |
+
+**Never render a flash by hand.** `render "shared/flash_messages"` — every layout
+uses it. There were three copies before, and the Player's had drifted into a bare
+`<div class="flash flash--alert">` with no `.flash__body`, so flashes on the
+surface agents live in rendered as unstyled ink text over the page.
+
+**Why bottom-right.** The header is 4rem tall, so the old `top: 5rem` put the
+toast on the page's top-right action zone — and a flash usually reports on the
+very action whose button it covered (a failed publish hid Publish and Export).
+Every corner was measured and every corner has controls in some page, so the goal
+is not "no overlap" but "only overlap what survives the 5s dismissal". Bottom-right
+covers repeated table rows, never a unique primary action. It stays click-to-dismiss
+rather than `pointer-events: none`: click-through trades a blocked control for an
+accidentally fired one.
 
 ### Navigation (`navigation.css`)
 
@@ -400,7 +415,6 @@ apology. If the page header already has a filled button, the empty-state CTA is
 
 - **Inline field errors:** Add `.is-invalid` to the control and display error text in a `<span class="form-error" role="alert">` below it. Defined for `.form-input`, `.form-textarea` and `.form-select` (red border) and for `.form-checkbox`/`.form-radio` (red outline — a native checkbox draws its own box, so a border-color is invisible on it). The runner's form step is the worked example: `scenarios/_form_step`.
 - **Flash errors:** Use `.flash--alert` for page-level errors.
-- **Toast errors:** Use `.toast--error` for async operation failures.
 
 ### Utility Classes vs. Component Classes
 
@@ -696,7 +710,7 @@ For page types not covered by a recipe, read these exemplary views. They demonst
 | `dropdowns.css` | components | Dropdown menus |
 | `tables.css` | components | Data tables |
 | `badges.css` | components | Badges, pills, dots |
-| `flash.css` | components | Flash messages, toasts |
+| `flash.css` | components | Flash messages |
 | `icons.css` | components | Icon sizing |
 | `tooltips.css` | components | Tooltip positioning |
 | `skeleton.css` | components | Loading skeletons |

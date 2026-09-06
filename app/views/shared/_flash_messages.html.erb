@@ -1,0 +1,30 @@
+<%# One flash, rendered by every layout.
+
+    There used to be three copies. The application and devise layouts carried
+    identical markup; the Player's was a bare div with the flash and variant
+    classes interpolated straight from the flash type, and no .flash__body —
+    which is where the fill, padding and radius live — so a Player flash
+    rendered as unstyled ink text floating over the page. Three copies is how
+    that happens, and the Player is the surface agents live in.
+
+    Iterating flash rather than naming notice and alert means a flash type
+    nobody anticipated still renders as a message instead of vanishing.
+
+    Careful with ERB comments here: an example containing a closing tag ends the
+    comment early and dumps the remainder of it into the page as literal text. %>
+<% flash.each do |type, message| %>
+  <% next if message.blank? %>
+  <div class="flash flash--<%= %w[alert error].include?(type.to_s) ? "alert" : "notice" %>"
+       data-controller="alert"
+       data-alert-duration-value="5000"
+       data-action="click->alert#dismiss">
+    <div class="flash__body" role="alert">
+      <span class="flash__text"><%= message %></span>
+      <button type="button" class="flash__close" data-action="click->alert#dismiss"
+              aria-label="Dismiss message">
+        <%= icon "x-mark", class: "icon icon--xs" %>
+      </button>
+      <div class="flash__progress animate-shrink" data-alert-target="progress"></div>
+    </div>
+  </div>
+<% end %>
