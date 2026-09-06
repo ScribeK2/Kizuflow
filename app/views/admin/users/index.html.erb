@@ -98,7 +98,7 @@
                   <td>
                     <div class="flex items-center gap-2">
                       <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
-                        <%= form.select :role, options_for_select(User.roles.map { |key, _| [key.capitalize, key] }, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
+                        <%= form.select :role, options_for_select(User::ROLE_OPTIONS, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
                       <% end %>
                       <button type="button"
                               class="btn btn--secondary btn--sm flex items-center gap-1"
@@ -341,7 +341,7 @@
       </div>
       <div class="dialog__body">
         <p class="text-sm mb-3">Select the new role for the selected users:</p>
-        <%= form.select :role, options_for_select([["Admin", "admin"], ["Editor", "editor"], ["Regular", "user"]]), {}, { class: "form-select" } %>
+        <%= form.select :role, options_for_select(User::ROLE_OPTIONS), {}, { class: "form-select" } %>
       </div>
       <div class="dialog__footer">
         <button type="button" class="btn btn--plain" data-action="click->admin-users#closeRoleModal">Cancel</button>

@@ -23,11 +23,26 @@ class Admin::UsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_role = params[:role]
 
-    if User::ROLES.include?(new_role)
-      @user.update(role: new_role)
+    # Same self-guard as reset_password below: the list sorts newest-first, so a
+    # freshly created admin's own row is the first one on the page, and the
+    # select auto-submits on change with no confirmation.
+    if @user == current_user
+      Rails.logger.warn "[ADMIN SECURITY] #{current_user.email} attempted to change their own role"
+      redirect_to admin_users_path,
+                  alert: 'You cannot change your own role. Ask another administrator to do it.'
+      return
+    end
+
+    unless User::ASSIGNABLE_ROLES.include?(new_role)
+      redirect_to admin_users_path, alert: 'Invalid role specified.'
+      return
+    end
+
+    if @user.update(role: new_role)
       redirect_to admin_users_path, notice: "User #{@user.email} role updated to #{new_role.capitalize}."
     else
-      redirect_to admin_users_path, alert: 'Invalid role specified.'
+      redirect_to admin_users_path,
+                  alert: "Failed to update #{@user.email}: #{@user.errors.full_messages.join(', ')}"
     end
   end
 
@@ -122,11 +137,11 @@ class Admin::UsersController < Admin::BaseController
 
   def bulk_update_role
     new_role = params[:role]
-    unless User::ROLES.include?(new_role)
+    unless User::ASSIGNABLE_ROLES.include?(new_role)
       redirect_to admin_users_path(filter_params), alert: "Invalid role."
       return
     end
-    user_ids = resolve_user_ids
+    user_ids = resolve_user_ids.excluding(current_user.id.to_s, current_user.id)
     User.where(id: user_ids).find_each { |u| u.update!(role: new_role) }
     redirect_to admin_users_path(filter_params), notice: "#{user_ids.size} user(s) updated to #{new_role}."
   end

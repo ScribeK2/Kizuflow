@@ -471,4 +471,122 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal ascending.sort, ascending
     assert_equal ascending.reverse, descending
   end
+
+  # -- Slice 2a: one source of truth for a role value --------------------------
+  #
+  # The row select was built from `User.roles` KEYS (admin/editor/regular) while
+  # update_role validated against `User::ROLES` (admin/editor/user). "regular"
+  # never matched, so demoting a single user to Regular was impossible and
+  # reported "Invalid role specified." Admin<->Editor worked, which is why it
+  # survived. The bulk dialog hardcoded the DB value and worked, so the same
+  # action succeeded in bulk and failed per-row.
+
+  test 'admin demotes an editor to regular from the row select' do
+    sign_in @admin
+    patch update_role_admin_user_path(@editor), params: { role: 'regular' }
+
+    assert_redirected_to admin_users_path
+    assert_nil flash[:alert]
+    @editor.reload
+
+    assert_predicate @editor, :regular?
+    assert_equal 'user', @editor.role_before_type_cast,
+                 'the enum must still persist the column value, not the key'
+  end
+
+  test 'admin promotes a regular user to editor' do
+    sign_in @admin
+    patch update_role_admin_user_path(@user), params: { role: 'editor' }
+
+    assert_redirected_to admin_users_path
+    @user.reload
+
+    assert_predicate @user, :editor?
+  end
+
+  test 'the row role select offers exactly the values update_role accepts' do
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    offered = css_select("form[action='#{update_role_admin_user_path(@user)}'] select option")
+              .pluck('value')
+
+    assert_not_empty offered, "no role select rendered for #{@user.email}"
+    assert_equal User::ASSIGNABLE_ROLES.sort, offered.sort,
+                 'every option the row renders must be a role update_role accepts'
+  end
+
+  test 'the bulk role dialog offers exactly the values bulk_update_role accepts' do
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    offered = css_select("form[action='#{bulk_update_role_admin_users_path}'] select option")
+              .pluck('value')
+
+    assert_not_empty offered, 'no bulk role select rendered'
+    assert_equal User::ASSIGNABLE_ROLES.sort, offered.sort
+  end
+
+  test 'bulk role change to regular still works' do
+    sign_in @admin
+    patch bulk_update_role_admin_users_path, params: { user_ids: [@editor.id], role: 'regular' }
+
+    @editor.reload
+
+    assert_predicate @editor, :regular?
+  end
+
+  test 'admin cannot change their own role' do
+    sign_in @admin
+    patch update_role_admin_user_path(@admin), params: { role: 'regular' }
+
+    assert_redirected_to admin_users_path
+    @admin.reload
+
+    assert_predicate @admin, :admin?, 'an admin must not be able to strip their own access'
+    assert_match(/own role/i, flash[:alert].to_s)
+  end
+
+  test 'the role filter works for regular, where the key and the column value differ' do
+    sign_in @admin
+    # The pre-existing filter test only covered role=admin, where the enum key
+    # and the column value are the same string — so it could not catch the
+    # selects being rewired from values to keys. "regular" maps to "user".
+    get admin_users_path(role: 'regular', per_page: 100)
+
+    assert_response :success
+    emails = css_select('tbody tr td:nth-child(1) span.font-medium, tbody tr td:nth-child(2) span.font-medium')
+             .map { |cell| cell.text.strip }
+
+    assert_includes emails, @user.email, 'a regular user must appear under the Regular filter'
+    assert_not_includes emails, @admin.email
+    assert_not_includes emails, @editor.email
+  end
+
+  test 'the role filter select offers exactly the values the filter accepts' do
+    sign_in @admin
+    get admin_users_path
+
+    offered = css_select("form.admin-filter-toolbar select[name='role'] option")
+              .pluck('value').compact_blank
+
+    assert_not_empty offered
+    assert_equal User::ASSIGNABLE_ROLES.sort, offered.sort
+  end
+
+  test 'update_role reports failure when the record cannot be saved' do
+    sign_in @admin
+    # An unrecognised time zone makes the record invalid, so `update` returns
+    # false. The action used to ignore that and report success anyway.
+    @user.update_column(:time_zone, 'Not/AZone')
+
+    patch update_role_admin_user_path(@user), params: { role: 'editor' }
+
+    assert_redirected_to admin_users_path
+    assert_nil flash[:notice], 'a failed save must not report success'
+    assert_match(/fail/i, flash[:alert].to_s)
+    @user.reload
+
+    assert_predicate @user, :regular?
+  end
 end

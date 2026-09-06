@@ -14,9 +14,9 @@
         autocomplete: "off" %>
     </div>
 
-    <%# Use DB values (User::ROLES) so bulk_update_role validation works consistently %>
+    <%# One source of truth with the row select and update_role — see User::ROLE_OPTIONS %>
     <%= form.select :role,
-      options_for_select([["All Roles", ""], ["Admin", "admin"], ["Editor", "editor"], ["Regular", "user"]], params[:role]),
+      options_for_select([["All Roles", ""]] + User::ROLE_OPTIONS, params[:role]),
       {},
       { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
 
