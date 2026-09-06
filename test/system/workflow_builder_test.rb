@@ -179,7 +179,7 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     end
 
     assert_eventually(timeout: 10) do
-      form.reload.options.map { |f| f["name"] } == %w[channel urgency]
+      form.reload.options.pluck("name") == %w[channel urgency]
     end
   end
 
