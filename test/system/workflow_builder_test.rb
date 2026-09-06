@@ -123,6 +123,66 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     assert_text "Renamed by autosave"
   end
 
+  # A Form step's field inputs carried no data-action at all, so editing a
+  # field's label, name, required flag or its select choices fired no request.
+  # The edit persisted only if the operator ALSO touched the step title or
+  # instructions, whose save carried the whole `options` array along with it —
+  # which is why the form builder looked like it worked.
+  #
+  # Only a browser can catch this: every server-side test posts the params
+  # directly and so asserts nothing about whether anything would have posted
+  # them. That is exactly how it shipped.
+  test "editing a form field autosaves without touching the step title" do
+    form = Steps::Form.create!(
+      workflow: @workflow, title: "Collect details", position: 1,
+      options: [{ "name" => "channel", "label" => "Channel", "field_type" => "text",
+                  "required" => false, "position" => 0 }]
+    )
+    Transition.create!(step: form, target_step: @resolve, position: 0)
+    @workflow.update!(start_step: form)
+
+    visit_builder_in_edit_mode
+    step_row(form.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[options][][label]", with: "Channel", wait: 5
+      fill_in "step[options][][label]", with: "Contact channel"
+    end
+
+    assert_eventually(timeout: 10) do
+      form.reload.options.first["label"] == "Contact channel"
+    end
+  end
+
+  # The rows "Add Field" builds are created in JavaScript rather than rendered
+  # from the template, so a fix applied only to the ERB would leave them silently
+  # unsaveable while the existing rows worked — a worse failure than the uniform
+  # one it replaced. The autosave action lives on the wrapper and these events
+  # bubble, which is what makes one declaration cover both.
+  test "a field added in the builder is saved too" do
+    form = Steps::Form.create!(
+      workflow: @workflow, title: "Collect details", position: 1,
+      options: [{ "name" => "channel", "label" => "Channel", "field_type" => "text",
+                  "required" => false, "position" => 0 }]
+    )
+    Transition.create!(step: form, target_step: @resolve, position: 0)
+    @workflow.update!(start_step: form)
+
+    visit_builder_in_edit_mode
+    step_row(form.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[options][][label]", with: "Channel", wait: 5
+      click_button "Add Field"
+      all("input[name='step[options][][name]']").last.set("urgency")
+      all("input[name='step[options][][label]']").last.set("Urgency")
+    end
+
+    assert_eventually(timeout: 10) do
+      form.reload.options.map { |f| f["name"] } == %w[channel urgency]
+    end
+  end
+
   test "a large workflow renders every step row" do
     # The deleted version of this asserted a 5 second wall-clock budget. That is
     # the kind of timing assertion that fails for reasons unrelated to the code,

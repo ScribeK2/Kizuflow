@@ -9,7 +9,18 @@
   <p class="form-hint">Explain what information the CSR should collect and why</p>
 </div>
 
+<%# The autosave action sits HERE, on the wrapper, not on each input.
+    `input` and `change` both bubble, so one declaration covers every field
+    control — and, crucially, the rows `form-field-builder#addField` builds in
+    JavaScript, which would otherwise need the attribute added in a second place
+    and stay silently unsaveable when someone forgot.
+
+    Until this, none of these inputs carried a data-action at all: editing a
+    field's label, name, required flag or its select choices fired no request,
+    and the edit persisted only if the operator also touched the step title or
+    instructions, whose values rode along in that save. %>
 <div data-controller="form-field-builder"
+     data-action="input->inline-autosave#schedule change->inline-autosave#schedule"
      data-form-field-builder-field-types-value="<%= Steps::Form::VALID_FIELD_TYPES.to_json %>">
   <label class="form-label">Form Fields</label>
 

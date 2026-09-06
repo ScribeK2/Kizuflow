@@ -32,10 +32,21 @@ export default class extends Controller {
     inputs.append(nameInput, labelInput, typeSelect, requiredLabel, choicesInput, positionInput, removeBtn)
     row.appendChild(inputs)
     this.fieldListTarget.appendChild(row)
+    this.scheduleSave()
   }
 
   removeField(event) {
     event.target.closest(".form-field-row").remove()
+    this.scheduleSave()
+  }
+
+  // Adding or deleting a field is a change to `options` like any other, but
+  // neither fires an input or change event, so neither reaches the autosave
+  // action on the wrapper. Dispatching a bubbling change is how they join it —
+  // rather than reaching for the autosave controller directly, which would tie
+  // this controller to that one.
+  scheduleSave() {
+    this.element.dispatchEvent(new Event("change", { bubbles: true }))
   }
 
   // A select field is the only one with choices to author. The input stays in
@@ -61,6 +72,9 @@ export default class extends Controller {
     const select = document.createElement("select")
     select.name = "step[options][][field_type]"
     select.className = "form-select form-select--sm"
+    // The ERB version carries this; the JS one did not, so choosing "select" on
+    // a freshly added row never revealed its choices box.
+    select.dataset.action = "change->form-field-builder#toggleChoices"
     this.fieldTypesValue.forEach(t => {
       const opt = document.createElement("option")
       opt.value = t
