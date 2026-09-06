@@ -341,7 +341,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Invalid role.", flash[:alert]
   end
 
-  test "bulk_deactivate locks selected users" do
+  test "bulk_deactivate deactivates selected users" do
     sign_in @admin
     patch bulk_deactivate_admin_users_path, params: {
       user_ids: [@user.id]
@@ -349,7 +349,10 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_users_path
     @user.reload
-    assert_predicate @user, :access_locked?, "User should be locked"
+    # This used to assert `access_locked?` — the mechanism, not the outcome —
+    # which is why it stayed green while deactivation silently expired after an
+    # hour on the Devise unlock timer.
+    assert_predicate @user, :deactivated?, "User should be deactivated"
   end
 
   test "non-admin cannot access bulk_deactivate" do
@@ -470,6 +473,117 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_operator ascending.size, :>=, 2, "need at least two rows for ordering to mean anything"
     assert_equal ascending.sort, ascending
     assert_equal ascending.reverse, descending
+  end
+
+  # -- Slice 2b: deactivation has to actually deactivate ------------------------
+  #
+  # "Deactivate" called Devise `lock_access!`, and devise.rb sets
+  # `unlock_strategy = :both` with `unlock_in = 1.hour` — so a deactivated user
+  # could sign in again 61 minutes later, while the confirm dialog promised
+  # "They will not be able to sign in." There was also no way to reactivate
+  # anyone, and the badge could not tell an admin's deliberate offboarding from
+  # Devise's automatic five-failed-attempts lockout.
+
+  test 'deactivation survives the devise unlock window' do
+    sign_in @admin
+    patch deactivate_admin_user_path(@user)
+
+    assert_predicate @user.reload, :deactivated?
+
+    travel 2.hours do
+      assert_predicate @user.reload, :deactivated?,
+                       'deactivation must not expire on the Devise unlock timer'
+    end
+  end
+
+  test 'a deactivated user cannot sign in' do
+    @user.deactivate!
+    post user_session_path, params: { user: { email: @user.email, password: 'password123!' } }
+
+    assert_redirected_to new_user_session_path
+    follow_redirect!
+
+    assert_match(/deactivated/i, response.body,
+                 'the refusal must say why, not just bounce them to the form')
+    get admin_root_path
+
+    assert_redirected_to new_user_session_path, 'a deactivated user must have no session'
+  end
+
+  test 'an admin can reactivate a deactivated user' do
+    @user.deactivate!
+    sign_in @admin
+    patch reactivate_admin_user_path(@user)
+
+    assert_redirected_to admin_users_path
+    assert_not_predicate @user.reload, :deactivated?
+  end
+
+  test 'a failed login lockout is not reported as deactivated' do
+    @user.lock_access!(send_instructions: false)
+
+    assert_predicate @user, :access_locked?
+    assert_not_predicate @user, :deactivated?,
+                         'a Devise lockout is not an administrative deactivation'
+  end
+
+  test 'the listing distinguishes a deactivated user from a locked-out one' do
+    @user.deactivate!
+    @editor.lock_access!(send_instructions: false)
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    deactivated_row = css_select("tbody tr:has(form[action='#{update_role_admin_user_path(@user)}'])").first.text
+    locked_row = css_select("tbody tr:has(form[action='#{update_role_admin_user_path(@editor)}'])").first.text
+
+    assert_match(/deactivated/i, deactivated_row)
+    assert_no_match(/deactivated/i, locked_row,
+                    'a failed-login lockout must not be labelled Deactivated')
+  end
+
+  test 'bulk deactivate uses the same durable mechanism as the per-user action' do
+    sign_in @admin
+    patch bulk_deactivate_admin_users_path, params: { user_ids: [@user.id] }
+
+    assert_predicate @user.reload, :deactivated?
+
+    travel 2.hours do
+      assert_predicate @user.reload, :deactivated?
+    end
+  end
+
+  test 'admin cannot deactivate their own account' do
+    sign_in @admin
+    patch deactivate_admin_user_path(@admin)
+
+    assert_not_predicate @admin.reload, :deactivated?
+    assert_match(/your own/i, flash[:alert].to_s)
+  end
+
+  test 'deactivating an already deactivated user is a no-op' do
+    @user.deactivate!
+    first_stamp = @user.reload.deactivated_at
+    sign_in @admin
+
+    travel 1.hour do
+      patch deactivate_admin_user_path(@user)
+
+      assert_predicate @user.reload, :deactivated?
+      assert_equal first_stamp.to_i, @user.deactivated_at.to_i,
+                   're-deactivating must not restamp the record'
+    end
+  end
+
+  test 'reactivating clears a devise lockout as well' do
+    @user.deactivate!
+    @user.lock_access!(send_instructions: false)
+    sign_in @admin
+    patch reactivate_admin_user_path(@user)
+    @user.reload
+
+    assert_not_predicate @user, :deactivated?
+    assert_not_predicate @user, :access_locked?,
+                         'reactivating must not leave the user locked out by failed attempts'
   end
 
   # -- Slice 2b: the users table stays legible in bulk mode ---------------------

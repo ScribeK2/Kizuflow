@@ -63,6 +63,27 @@ class Admin::UsersController < Admin::BaseController
     redirect_to admin_users_path, notice: "Groups updated for #{@user.email}."
   end
 
+  def deactivate
+    @user = User.find(params[:id])
+
+    if @user == current_user
+      redirect_to admin_users_path,
+                  alert: 'You cannot deactivate your own account. Ask another administrator to do it.'
+      return
+    end
+
+    @user.deactivate!
+    Rails.logger.info "[ADMIN ACTION] #{current_user.email} deactivated #{@user.email} (ID: #{@user.id})"
+    redirect_to admin_users_path, notice: "#{@user.email} was deactivated and can no longer sign in."
+  end
+
+  def reactivate
+    @user = User.find(params[:id])
+    @user.reactivate!
+    Rails.logger.info "[ADMIN ACTION] #{current_user.email} reactivated #{@user.email} (ID: #{@user.id})"
+    redirect_to admin_users_path, notice: "#{@user.email} was reactivated and can sign in again."
+  end
+
   def reset_password
     @user = User.find(params[:id])
 
@@ -147,13 +168,14 @@ class Admin::UsersController < Admin::BaseController
   end
 
   def bulk_deactivate
-    user_ids = resolve_user_ids
+    user_ids = resolve_user_ids.excluding(current_user.id.to_s, current_user.id)
     count = 0
     User.where(id: user_ids).find_each do |u|
-      u.lock_access!(send_instructions: false)
+      u.deactivate!
       count += 1
     end
-    redirect_to admin_users_path(filter_params), notice: "#{count} user(s) deactivated."
+    redirect_to admin_users_path(filter_params),
+                notice: "#{count} user(s) deactivated. They can no longer sign in."
   end
 
   private

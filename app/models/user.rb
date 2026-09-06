@@ -94,6 +94,40 @@ class User < ApplicationRecord
   end
 
   # Check if user can create workflows
+  # -- Administrative deactivation --
+  #
+  # Deliberately NOT Devise's `lock_access!`. `unlock_strategy = :both` with
+  # `unlock_in = 1.hour` means a lock expires on a timer, so offboarding someone
+  # that way silently wore off after an hour, and the listing could not tell a
+  # deliberate deactivation from a five-failed-attempts lockout. `deactivated_at`
+  # answers only the first question; `locked_at` keeps answering the second.
+  def deactivated?
+    deactivated_at.present?
+  end
+
+  def deactivate!
+    return if deactivated?
+
+    update!(deactivated_at: Time.current)
+  end
+
+  # Also clears a Devise lockout: an admin putting someone back to work should
+  # not have to notice that they were separately locked out by failed logins.
+  def reactivate!
+    update!(deactivated_at: nil)
+    unlock_access! if access_locked?
+  end
+
+  # Devise consults this on every sign-in and on every request for a remembered
+  # session, so a deactivated user is turned away rather than merely hidden.
+  def active_for_authentication?
+    super && !deactivated?
+  end
+
+  def inactive_message
+    deactivated? ? :deactivated : super
+  end
+
   def can_create_workflows?
     admin? || editor?
   end
