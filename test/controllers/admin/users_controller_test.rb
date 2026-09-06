@@ -472,6 +472,44 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal ascending.reverse, descending
   end
 
+  # -- Slice 2b: the users table stays legible in bulk mode ---------------------
+  #
+  # The table is `table-layout: fixed` with a <colgroup>. Entering bulk mode used
+  # to set `display: table-cell` on every `.bulk-select-column`, including the
+  # <col> element — which must be `table-column`. The browser then dropped it
+  # from the column list and every width applied one column to the left: the
+  # checkbox column took 339px while Email collapsed to 97px, so the Role text
+  # rendered on top of the email and the role select squeezed to 54px.
+
+  test 'the colgroup declares exactly one col per header cell' do
+    sign_in @admin
+    get admin_users_path
+
+    cols = css_select('table.table > colgroup > col').size
+    headers = css_select('table.table > thead > tr > th').size
+
+    assert_operator cols, :>, 0, 'expected a colgroup'
+    assert_equal headers, cols,
+                 'a fixed-layout table needs one <col> per column, or every width shifts'
+  end
+
+  test 'each row renders the role exactly once' do
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    row = css_select("tbody tr:has(form[action='#{update_role_admin_user_path(@user)}'])").first
+
+    assert row, 'could not find the row for the test user'
+    selects = row.css("select[name='role']").size
+    # The badge duplicated what the select already says, and cost the width the
+    # bulk-mode checkbox column needed.
+    badges = row.css('span.badge').map { |b| b.text.strip.downcase }
+                .count { |t| User::ASSIGNABLE_ROLES.include?(t) }
+
+    assert_equal 1, selects, 'expected exactly one role control per row'
+    assert_equal 0, badges, 'the role must not also be printed as a badge'
+  end
+
   # -- Slice 2a: one source of truth for a role value --------------------------
   #
   # The row select was built from `User.roles` KEYS (admin/editor/regular) while

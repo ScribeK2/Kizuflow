@@ -31,19 +31,19 @@
 
       <% if @users.any? %>
         <div class="table-wrap">
-          <table class="table" style="table-layout: fixed;">
+          <table class="table" style="table-layout: fixed;" data-admin-users-target="table">
             <colgroup>
-              <col class="bulk-select-column" style="display: none; width: 3rem;">
-              <col style="width: 28%;">
+              <col class="bulk-select-column" style="width: 3rem;">
+              <col style="width: 26%;">
+              <col style="width: 12%;">
+              <col style="width: 14%;">
               <col style="width: 8%;">
-              <col style="width: 14%;">
-              <col style="width: 10%;">
-              <col style="width: 14%;">
+              <col style="width: 12%;">
               <col>
             </colgroup>
             <thead>
               <tr>
-                <th class="bulk-select-column" style="display: none;">
+                <th class="bulk-select-column">
                   <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox">
                 </th>
                 <th aria-sort="<%= sortable_column_aria_sort(:email, current_sort: @sort) %>">
@@ -66,7 +66,7 @@
             <tbody>
               <% @users.each do |user| %>
                 <tr class="<%= 'admin-user-row--deactivated' if user.access_locked? %>">
-                  <td class="bulk-select-column" style="display: none;">
+                  <td class="bulk-select-column">
                     <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox">
                   </td>
                   <td>
@@ -74,9 +74,12 @@
                     <% if user.access_locked? %><span class="badge badge--muted ml-1">Deactivated</span><% end %>
                   </td>
                   <td>
-                    <span class="badge <%= user.avatar_role_badge_classes %>">
-                      <%= user.role.capitalize %>
-                    </span>
+                    <%# The role control lives in the Role column, not in Actions. It used
+                        to be both: a badge here and a select there, saying the same thing
+                        twice and costing the width bulk mode needs for its checkbox. %>
+                    <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
+                      <%= form.select :role, options_for_select(User::ROLE_OPTIONS, user.role), {}, { class: "form-select form-select--sm", "aria-label": "Role for #{user.email}", data: { action: "change->auto-submit#submit" } } %>
+                    <% end %>
                   </td>
                   <td>
                     <% if user.groups.any? %>
@@ -97,9 +100,6 @@
                   </td>
                   <td>
                     <div class="flex items-center gap-2">
-                      <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
-                        <%= form.select :role, options_for_select(User::ROLE_OPTIONS, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
-                      <% end %>
                       <button type="button"
                               class="btn btn--secondary btn--sm flex items-center gap-1"
                               data-action="click->admin-users#openGroupModal"

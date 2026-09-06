@@ -632,13 +632,6 @@
   gap: 0.375rem;
 }
 
-.admin-pagination__per-page .form-select--sm {
-  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
-  font-size: var(--text-sm);
-  width: auto;
-  min-width: 4rem;
-}
-
 .admin-pagination__pages {
   display: flex;
   gap: 0.25rem;
@@ -749,4 +742,31 @@
   padding: 0.0625rem 0.375rem;
   border-radius: var(--radius-full);
 }
+
+/* Bulk-select column visibility.
+ *
+ * This lives in CSS, not in the Stimulus controller, because a <col> must be
+ * `display: table-column` while its <th>/<td> must be `table-cell`. The
+ * controller used to set `table-cell` on every `.bulk-select-column`, the <col>
+ * included; the browser then dropped that <col> from the column list and every
+ * width in the fixed-layout colgroup applied one column to the left — the
+ * checkbox column took 339px, Email collapsed to 97px, and the role control
+ * squeezed to 54px. Toggling one class means the two element types can never be
+ * given the same display value again.
+ */
+col.bulk-select-column,
+th.bulk-select-column,
+td.bulk-select-column {
+  display: none;
+}
+
+.table.is-bulk-mode col.bulk-select-column {
+  display: table-column;
+}
+
+.table.is-bulk-mode th.bulk-select-column,
+.table.is-bulk-mode td.bulk-select-column {
+  display: table-cell;
+}
+
 }
