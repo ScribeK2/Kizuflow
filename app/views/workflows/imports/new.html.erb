@@ -1,281 +1,294 @@
-<div class="page-content">
-  <div class="wf-page-header mb-6">
-    <div>
-      <h1 class="page-header-section__title">Import Workflow</h1>
-      <p class="page-header-section__subtitle">Upload a JSON, CSV, YAML, or Markdown file to import a workflow.</p>
-    </div>
-    <%= link_to workflows_path, class: "btn btn--plain btn--circle" do %>
-      <%= icon "x-mark", class: "icon" %>
-    <% end %>
-  </div>
+<%#
+  The import page.
 
-  <div class="card mb-6">
-    <div class="card__body flex-col-gap-6">
-      <%= form_with url: workflow_import_path, method: :post, local: true, multipart: true, html: { class: "flex-col-gap-6" }, data: { controller: "file-upload", turbo: false } do |form| %>
-        <div class="form-group">
-          <label class="form-label">Select File</label>
+  The strict dialect leads, because it is the one the app can check before it
+  writes anything, the one export emits, and the one an AI is asked to produce.
+  The lenient formats still work and are still documented, but they are the
+  fallback now rather than the headline — the page used to teach `target_uuid`
+  and `start_node_uuid` in four worked examples while hiding `schema_version`
+  inside a collapsed block, which is backwards.
+
+  Nothing here is transcribed from the models. The step-type table, the field
+  lists and the enums live in the generated prompt below, which
+  ImportSchemaGenerator derives from StepFieldMap and the VALID_* constants. The
+  hand-written copies that used to sit at the bottom of this page had rotted:
+  they were missing the `form` step type entirely, named a field `reason` that
+  is really `reason_required`, and listed four of the seven resolution types.
+%>
+<% content_for(:title) { "Import a workflow — TurboFlows" } %>
+
+<div class="page-content">
+  <div class="page-main">
+    <div class="page-header-section flex items-start justify-between gap-4">
+      <div>
+        <h1 class="page-header-section__title">Import a workflow</h1>
+        <p class="page-header-section__subtitle">
+          Upload a file, or have an AI write one. Everything imported lands as a
+          draft for you to review — nothing is published until you say so.
+        </p>
+      </div>
+      <%= link_to workflows_path, class: "btn btn--plain btn--circle", aria: { label: "Close" } do %>
+        <%= icon "x-mark", class: "icon" %>
+      <% end %>
+    </div>
+
+    <div class="card mb-6">
+      <div class="card__body">
+        <%= form_with url: workflow_import_path, method: :post, local: true, multipart: true,
+                      html: { class: "flex-col-gap-4" },
+                      data: { controller: "file-upload", turbo: false } do |form| %>
           <div class="file-dropzone"
                data-file-upload-target="dropZone"
                data-action="dragover->file-upload#dragOver dragleave->file-upload#dragLeave drop->file-upload#drop">
             <div class="file-dropzone__empty" data-file-upload-target="emptyState">
-              <%= icon "cloud-arrow-up", class: "icon icon--xl mx-auto mb-3" %>
-              <div class="text-sm mb-1">
+              <%= icon "cloud-arrow-up", class: "icon icon--xl file-dropzone__icon" %>
+              <div class="text-sm">
                 <label for="file" class="cursor-pointer font-medium">
                   <span>Upload a file</span>
                   <%= form.file_field :file, id: "file", accept: ".json,.csv,.yaml,.yml,.md,.markdown", class: "sr-only", required: true, data: { action: "change->file-upload#fileSelected", file_upload_target: "fileInput" } %>
                 </label>
                 <span> or drag and drop</span>
               </div>
-              <p class="text-xs">JSON, CSV, YAML, or Markdown files up to 10MB</p>
+              <p class="text-xs file-dropzone__hint">
+                JSON, CSV, YAML or Markdown, up to
+                <%= number_to_human_size(Workflows::ImportsController::MAX_IMPORT_BYTES) %>
+              </p>
             </div>
-            <div class="is-hidden text-center" data-file-upload-target="fileSelected">
-              <%= icon "check-circle", class: "icon icon--xl mx-auto mb-3 text-success" %>
+            <div class="is-hidden file-dropzone__selected" data-file-upload-target="fileSelected">
+              <%= icon "check-circle", class: "icon icon--xl file-dropzone__icon" %>
               <p class="font-medium" data-file-upload-target="fileName">No file selected</p>
-              <p class="text-xs" data-file-upload-target="fileSize"></p>
-              <button type="button" data-action="click->file-upload#clearFile" class="btn btn--plain btn--sm mt-2">
+              <p class="text-xs file-dropzone__hint" data-file-upload-target="fileSize"></p>
+              <button type="button" data-action="click->file-upload#clearFile" class="btn btn--plain btn--sm">
                 Remove file
               </button>
             </div>
           </div>
-        </div>
 
-        <div class="alert alert--info">
-          <h3 class="font-medium mb-2">Supported Formats</h3>
-          <ul class="text-sm list-disc pl-5 flex-col-gap-1">
-            <li><strong>JSON:</strong> Native export format with full Graph Mode support (recommended). Also carries <code>groups</code>, <code>folder</code>, and <code>tags</code>, so the workflow lands in the place it names</li>
-            <li><strong>CSV:</strong> Spreadsheet format with columns for step data and transitions</li>
-            <li><strong>YAML:</strong> Structured configuration format with hierarchical steps. Also carries <code>groups</code>, <code>folder</code>, and <code>tags</code>, so the workflow lands in the place it names</li>
-            <li><strong>Markdown:</strong> Documentation format with step headers and field definitions</li>
-          </ul>
-          <p class="text-xs mt-2">CSV and Markdown are flat formats — they do not carry placement, so an import from either always lands ungrouped. Every import lands as a draft for review, regardless of format.</p>
-        </div>
-
-        <%# Generating this with an AI agent. Collapsed because most imports are a
-            file someone already has; open, it is the whole contract. %>
-        <details class="card mb-4" data-controller="clipboard">
-          <summary style="cursor: pointer; padding: var(--space-3) var(--space-4);">
-            <strong>Generating this with an AI?</strong>
-            <span class="text-xs" style="color: var(--color-ink-muted);">
-              — copy a spec your agent can follow
-            </span>
-          </summary>
-          <div class="card__body" style="padding-top: 0;">
-            <p class="text-sm mb-3">
-              Paste this into whatever agent is writing the file. It describes the
-              strict JSON dialect, which is checked before anything is created — you
-              get a preview and a list of problems rather than a half-built workflow.
-            </p>
-            <div class="flex items-center justify-between mb-2">
-              <%= link_to "View the JSON Schema", ImportSchemaGenerator::SCHEMA_URL,
-                          class: "list-section__link" %>
-              <button type="button" class="btn btn--secondary btn--sm"
-                      data-action="click->clipboard#copy" data-clipboard-target="button">
-                Copy prompt
-              </button>
-            </div>
-            <pre style="max-height: 20rem; overflow: auto; padding: var(--space-3); background: var(--color-canvas-alt); border-radius: var(--radius); border: 1px solid var(--color-border);"><code data-clipboard-target="source"><%= ImportPromptGenerator.call %></code></pre>
+          <div class="flex justify-end gap-3">
+            <%= link_to "Cancel", workflows_path, class: "btn btn--plain" %>
+            <%= form.submit "Import", class: "btn btn--primary" %>
           </div>
-        </details>
-
-        <div class="alert alert--info">
-          <h3 class="font-medium mb-2">Graph Mode Workflows</h3>
-          <ul class="text-sm list-disc pl-5 flex-col-gap-1">
-            <li>All imports use Graph Mode with explicit step transitions</li>
-            <li>Each step requires a unique ID and defines its outgoing transitions</li>
-            <li>Supported step types: <code>question</code>, <code>action</code>, <code>message</code>, <code>escalate</code>, <code>sub_flow</code>, <code>resolve</code></li>
-            <li>Use <code>resolve</code> steps to end workflows (success, transfer, ticket, manager_escalation)</li>
-          </ul>
-        </div>
-
-        <div class="alert alert--warning">
-          <h3 class="font-medium mb-2">Import Notes</h3>
-          <ul class="text-sm list-disc pl-5 flex-col-gap-1">
-            <li>Steps with missing required fields will still be imported</li>
-            <li>If incomplete steps or warnings are found, you'll be redirected to the edit page to review</li>
-            <li>Workflows are imported as private by default</li>
-            <li>Graph structure is validated after import (unreachable steps, dead ends with no path to a Resolve step)</li>
-          </ul>
-        </div>
-
-        <div class="flex justify-end gap-3">
-          <%= link_to "Cancel", workflows_path, class: "btn btn--plain" %>
-          <%= form.submit "Import Workflow", class: "btn btn--primary" %>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     </div>
-  </div>
 
-  <div class="card mb-6">
-    <div class="card__body">
-      <h2 class="font-bold mb-4">File Format Examples</h2>
+    <%# The AI path leads. This is the dialect export emits and the only one that
+        is checked before anything is written, so it is what the page teaches. %>
+    <section class="list-section mb-6">
+      <div class="list-section__head">
+        <h2 class="list-section__title">Writing a file with an AI</h2>
+        <%= link_to "View the JSON Schema", ImportSchemaGenerator::SCHEMA_URL,
+                    class: "list-section__link" %>
+      </div>
 
-      <div class="flex-col-gap-6">
-        <%# JSON Format Example %>
-        <div>
-          <h3 class="font-medium text-sm mb-1">JSON Format (Recommended)</h3>
-          <p class="text-xs mb-2">Full Graph Mode structure with explicit transitions between steps.</p>
-          <pre class="code-block"><code>{
-  "title": "Customer Support Flow",
-  "description": "Handle customer inquiries with routing and resolution",
-  "graph_mode": true,
-  "start_node_uuid": "step-1",
-  "steps": [
-    {
-      "id": "step-1",
-      "type": "question",
-      "title": "Get Customer Name",
-      "question": "What is your name?",
-      "answer_type": "text",
-      "variable_name": "customer_name",
-      "transitions": [
-        { "target_uuid": "step-2" }
-      ]
-    },
-    {
-      "id": "step-2",
-      "type": "question",
-      "title": "Select Issue Type",
-      "question": "What type of issue are you experiencing?",
-      "answer_type": "multiple_choice",
-      "variable_name": "issue_type",
-      "options": [
-        { "label": "Billing", "value": "billing" },
-        { "label": "Technical", "value": "technical" },
-        { "label": "Other", "value": "other" }
-      ],
-      "transitions": [
-        { "target_uuid": "step-3", "condition": "issue_type == 'billing'", "label": "Billing Issue" },
-        { "target_uuid": "step-4", "condition": "issue_type == 'technical'", "label": "Technical Issue" },
-        { "target_uuid": "step-5", "condition": "issue_type == 'other'", "label": "Other Issue" }
-      ]
-    },
-    {
-      "id": "step-6",
-      "type": "resolve",
-      "title": "Complete Interaction",
-      "resolution_type": "success"
-    }
-  ]
-}</code></pre>
-        </div>
-
-        <%# CSV Format Example %>
-        <div>
-          <h3 class="font-medium text-sm mb-1">CSV Format</h3>
-          <p class="text-xs mb-2">
-            Spreadsheet format. Use semicolons to separate multiple transitions: <code>target:condition</code>.
-            Options use format: <code>Label:value,Label2:value2</code> or JSON array.
+      <div class="card" data-controller="clipboard">
+        <div class="card__body">
+          <p class="text-sm mb-3">
+            A JSON file whose top level carries
+            <code>"schema_version": "<%= ImportSchemaGenerator::SCHEMA_VERSION %>"</code>
+            takes a strict path: it is checked in full before anything is created,
+            and you get a preview or a numbered list of problems rather than a
+            half-built workflow. One file may carry up to
+            <%= ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE %> workflows, so a
+            linked set imports together and a sub-flow can name another workflow
+            in the same file.
           </p>
-          <pre class="code-block"><code>workflow_title,id,type,title,question,answer_type,variable_name,options,instructions,content,target_type,priority,reason,resolution_type,transitions
-Customer Support,step-1,question,Get Name,What is your name?,text,customer_name,,,,,,,,step-2
-,step-2,question,Issue Type,What type of issue?,multiple_choice,issue_type,"Billing:billing,Technical:technical,Other:other",,,,,,,step-3:issue_type == 'billing';step-4:issue_type == 'technical';step-5
-,step-6,resolve,Complete,,,,,,,,,success,</code></pre>
+          <p class="text-sm mb-3">
+            Paste the block below into whatever agent is writing the file. It is
+            generated from the same schema the file is validated against, so it
+            cannot describe a format the app no longer accepts.
+          </p>
+          <div class="flex justify-end mb-2">
+            <button type="button" class="btn btn--secondary btn--sm"
+                    data-action="click->clipboard#copy" data-clipboard-target="button">
+              Copy prompt
+            </button>
+          </div>
+          <pre class="code-block" style="max-height: 24rem; overflow: auto; padding: var(--space-3); background: var(--color-canvas-alt); border-radius: var(--radius); border: 1px solid var(--color-border);"><code data-clipboard-target="source"><%= ImportPromptGenerator.call %></code></pre>
         </div>
+      </div>
+    </section>
 
-        <%# YAML Format Example %>
-        <div>
-          <h3 class="font-medium text-sm mb-1">YAML Format</h3>
-          <p class="text-xs mb-2">Structured format with nested arrays for options and transitions.</p>
-          <pre class="code-block"><code>title: "Customer Support Flow"
-description: "Handle customer inquiries"
-graph_mode: true
-start_node_uuid: "step-1"
+    <section class="list-section mb-6">
+      <div class="list-section__head">
+        <h2 class="list-section__title">What happens when you upload</h2>
+      </div>
+
+      <div class="list-section__body">
+        <div class="list-row">
+          <div class="list-row__body">
+            <div class="list-row__title">A strict file — one carrying <code>schema_version</code></div>
+            <p class="list-row__sub">
+              Nothing is written on upload. You get a preview of every workflow in
+              the file, or a report naming each problem, where it is, and what was
+              expected. A second confirmation commits the whole file in one
+              transaction; if any part of it fails, none of it lands.
+            </p>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row__body">
+            <div class="list-row__title">Any other file</div>
+            <p class="list-row__sub">
+              Imported straight away, and tolerantly: steps missing required
+              fields still land so you can finish them by hand. If anything is
+              incomplete, the builder opens with the Health panel showing what
+              needs attention.
+            </p>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row__body">
+            <div class="list-row__title">Either way</div>
+            <p class="list-row__sub">
+              The workflow lands as a private draft and stays one until you
+              publish it. Imported drafts are never swept by the draft cleanup, so
+              there is no deadline. Graph structure is checked on import —
+              unreachable steps, and steps with no path to a Resolve — and again
+              on publish, where it has to pass.
+            </p>
+          </div>
+        </div>
+        <div class="list-row">
+          <div class="list-row__body">
+            <div class="list-row__title">Where it lands</div>
+            <p class="list-row__sub">
+              JSON and YAML files can name <code>groups</code>, a <code>folder</code>
+              and <code>tags</code>, and the workflow is placed accordingly. CSV
+              and Markdown are flat formats that carry none of that, so an import
+              from either always lands ungrouped.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <%# Collapsed: still supported, still documented, no longer the headline.
+        Each example below was run through WorkflowImporter and imports with no
+        errors and no warnings. The four that used to live here did not — every
+        one of them transitioned to steps that were not in the file. %>
+    <details class="card">
+      <summary style="cursor: pointer; padding: var(--space-4);">
+        <strong>Other formats: CSV, YAML and Markdown</strong>
+        <span class="text-xs" style="color: var(--color-ink-muted);">
+          — accepted, but not checked before they are written
+        </span>
+      </summary>
+      <div class="card__body" style="padding-top: 0;">
+        <p class="text-sm mb-4">
+          These are parsed leniently: unknown fields are ignored, missing ones are
+          filled in, and problems surface as warnings after the workflow exists
+          rather than as a report before it does. Each example below is complete
+          and imports cleanly — the same four-step flow written three ways.
+        </p>
+
+        <div class="flex-col-gap-6">
+          <div>
+            <h3 class="font-medium text-sm mb-1">YAML</h3>
+            <p class="text-xs mb-2" style="color: var(--color-ink-muted);">
+              Nested arrays for options and transitions. Transitions name their
+              target with <code>target_uuid</code>, which is the step's
+              <code>id</code> — not the <code>target_id</code> the strict dialect
+              uses.
+            </p>
+            <pre class="code-block"><code>title: "Password Reset"
+description: "Send a customer a password reset link."
+tags: ["support", "accounts"]
+start_node_uuid: "confirm"
 steps:
-  - id: "step-1"
+  - id: "confirm"
     type: question
-    title: "Get Customer Name"
-    question: "What is your name?"
-    answer_type: text
-    variable_name: customer_name
+    title: "Confirm the account"
+    question: "Can the customer confirm the email on file?"
+    answer_type: yes_no
+    variable_name: confirmed
     transitions:
-      - target_uuid: "step-2"</code></pre>
-        </div>
+      - target_uuid: "reset"
+        condition: "confirmed == 'yes'"
+      - target_uuid: "verify"
+  - id: "verify"
+    type: message
+    title: "Verify identity first"
+    content: "Ask two security questions before continuing."
+    transitions:
+      - target_uuid: "reset"
+  - id: "reset"
+    type: action
+    title: "Send the reset link"
+    instructions: "Send a password reset link to the address on file."
+    transitions:
+      - target_uuid: "sent"
+  - id: "sent"
+    type: resolve
+    title: "Reset link sent"
+    resolution_type: success</code></pre>
+          </div>
 
-        <%# Markdown Format Example %>
-        <div>
-          <h3 class="font-medium text-sm mb-1">Markdown Format</h3>
-          <p class="text-xs mb-2">
-            Documentation-friendly format. Options use comma-separated <code>Label:value</code> format.
-            Transitions can include conditions in parentheses.
-          </p>
-          <pre class="code-block"><code># Customer Support Flow
+          <div>
+            <h3 class="font-medium text-sm mb-1">CSV</h3>
+            <p class="text-xs mb-2" style="color: var(--color-ink-muted);">
+              One row per step. <code>type</code> and <code>title</code> are the
+              only required columns. Separate multiple transitions with
+              semicolons, and write a conditional one as
+              <code>target:condition</code>. Options are
+              <code>Label:value,Label2:value2</code> or a JSON array.
+            </p>
+            <pre class="code-block"><code>workflow_title,id,type,title,question,answer_type,variable_name,options,instructions,content,resolution_type,transitions
+Password Reset,confirm,question,Confirm the account,Can the customer confirm the email on file?,yes_no,confirmed,,,,,reset:confirmed == 'yes';verify
+,verify,message,Verify identity first,,,,,,Ask two security questions before continuing.,,reset
+,reset,action,Send the reset link,,,,,Send a password reset link to the address on file.,,,sent
+,sent,resolve,Reset link sent,,,,,,,success,</code></pre>
+          </div>
 
-Handle customer inquiries with routing and resolution.
+          <div>
+            <h3 class="font-medium text-sm mb-1">Markdown</h3>
+            <p class="text-xs mb-2" style="color: var(--color-ink-muted);">
+              The H1 is the workflow title and each <code>##</code> heading is a
+              step, named by its heading text. Transitions name steps by title.
+              A condition must be written <code>(if …)</code> — parentheses
+              without the <code>if</code> are read as a transition
+              <em>label</em>, which imports without complaint and never branches.
+            </p>
+            <pre class="code-block"><code># Password Reset
 
-## Step 1: Get Customer Name
+Send a customer a password reset link.
+
+## Confirm the account
 Type: question
-Question: What is your name?
-Answer Type: text
-Variable: customer_name
-Transitions: Step 2</code></pre>
-        </div>
+Question: Can the customer confirm the email on file?
+Answer Type: yes_no
+Variable: confirmed
+Transitions: Send the reset link (if confirmed == 'yes'), Verify identity first
 
-      </div>
-    </div>
-  </div>
+## Verify identity first
+Type: message
+Content: Ask two security questions before continuing.
+Transitions: Send the reset link
 
-  <%# Step Types Reference %>
-  <div class="card">
-    <div class="card__body">
-      <h2 class="font-bold mb-4">Step Types Reference</h2>
-      <div class="grid grid-cols-2 gap-3" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
-        <div class="card card--muted p-3">
-          <h4 class="font-medium text-sm">question</h4>
-          <p class="text-xs mt-1">Collect user input.</p>
-          <p class="text-xs mt-1">
-            Required: <code>question</code><br>
-            Optional: <code>answer_type</code>, <code>variable_name</code>, <code>options</code>
-          </p>
-        </div>
-        <div class="card card--muted p-3">
-          <h4 class="font-medium text-sm">action</h4>
-          <p class="text-xs mt-1">Display instructions for the agent to follow.</p>
-          <p class="text-xs mt-1">Required: <code>instructions</code></p>
-        </div>
-        <div class="card card--muted p-3">
-          <h4 class="font-medium text-sm">message</h4>
-          <p class="text-xs mt-1">Display a message or announcement.</p>
-          <p class="text-xs mt-1">Optional: <code>content</code></p>
-        </div>
-        <div class="card card--muted p-3">
-          <h4 class="font-medium text-sm">escalate</h4>
-          <p class="text-xs mt-1">Escalate to a department, supervisor, channel, or ticket.</p>
-          <p class="text-xs mt-1">
-            Required: <code>target_type</code><br>
-            Optional: <code>target_value</code>, <code>priority</code>, <code>reason</code>
-          </p>
-        </div>
-        <div class="card card--muted p-3">
-          <h4 class="font-medium text-sm">sub_flow</h4>
-          <p class="text-xs mt-1">Execute another published workflow as a sub-flow.</p>
-          <p class="text-xs mt-1">
-            Required: <code>target_workflow_id</code> or <code>target_workflow_title</code>
-          </p>
-        </div>
-        <div class="card card--muted p-3">
-          <h4 class="font-medium text-sm">resolve</h4>
-          <p class="text-xs mt-1">End the workflow with a resolution status. Terminal step with no outgoing transitions.</p>
-          <p class="text-xs mt-1">
-            Required: <code>resolution_type</code>
-          </p>
+## Send the reset link
+Type: action
+Instructions: Send a password reset link to the address on file.
+Transitions: Reset link sent
+
+## Reset link sent
+Type: resolve
+Resolution Type: success</code></pre>
+          </div>
+
+          <div>
+            <h3 class="font-medium text-sm mb-1">JSON without <code>schema_version</code></h3>
+            <p class="text-xs" style="color: var(--color-ink-muted);">
+              Also accepted, and parsed the same lenient way as the formats above:
+              transitions use <code>target_uuid</code> and the start step is
+              <code>start_node_uuid</code>. Add
+              <code>"schema_version": "<%= ImportSchemaGenerator::SCHEMA_VERSION %>"</code>
+              to the top level and the file takes the strict path instead, where
+              the keys are <code>target_id</code> and <code>start_step_id</code>.
+              A workflow exported from TurboFlows is already in the strict form.
+            </p>
+          </div>
         </div>
       </div>
-
-      <div class="alert alert--info mt-4">
-        <h4 class="font-medium text-sm">Transitions</h4>
-        <p class="text-xs mt-1">
-          Each step (except <code>resolve</code>) must define <code>transitions</code> to specify which step(s) come next.
-          Use conditional transitions to route based on variables: <code>"condition": "variable_name == 'value'"</code>.
-        </p>
-      </div>
-
-      <div class="alert alert--success mt-3">
-        <h4 class="font-medium text-sm">Sub-flow Title Resolution</h4>
-        <p class="text-xs mt-1">
-          Sub-flow steps can reference a target workflow by title using <code>target_workflow_title</code> instead of <code>target_workflow_id</code>.
-          The title is matched case-insensitively against published workflows only.
-        </p>
-      </div>
-    </div>
+    </details>
   </div>
 </div>

@@ -377,4 +377,53 @@
 .option-item:hover .option-item__delete {
   opacity: 1;
 }
+
+/* ============================================================================
+   File Dropzone (import upload, file-answer preview)
+   ============================================================================ */
+
+/* The class was on both `workflows/imports/new` and `workflows/_preview_pane`
+   and defined nowhere, so the import page's primary control rendered as a bare
+   icon and a line of text with no box, no padding and no centring. */
+.file-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-8) var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas-alt);
+  text-align: center;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+
+.file-dropzone:hover {
+  border-color: var(--color-primary);
+}
+
+.file-dropzone.is-dragover {
+  border-color: var(--color-primary);
+  border-style: solid;
+  background: var(--color-primary-soft);
+}
+
+.file-dropzone__empty,
+.file-dropzone__selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.file-dropzone__icon {
+  color: var(--color-ink-muted);
+}
+
+.file-dropzone__hint {
+  color: var(--color-ink-muted);
+}
+
 }
