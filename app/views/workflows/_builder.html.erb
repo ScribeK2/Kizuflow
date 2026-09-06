@@ -22,6 +22,13 @@
   <%# === Header === %>
   <div class="builder__header">
     <div class="builder__header-left">
+      <%# The only way out of the builder used to be the centre logo menu — no
+          breadcrumb, no back link, no cancel. UIGUIDE Recipe 2 puts a .page-back
+          on a detail page for exactly this reason. %>
+      <%= link_to workflows_path, class: "page-back builder__back", aria: { label: "Back to workflows" } do %>
+        <%= icon "chevron-left", class: "icon icon--xs" %>
+        Workflows
+      <% end %>
       <div class="builder__title-wrapper">
         <input type="text"
                class="builder__title"
@@ -131,8 +138,7 @@
     <%# Slide-In Panel (empty frame, loaded on demand) %>
     <div class="builder__panel">
       <turbo-frame id="builder-panel"
-                   data-builder-target="panel"
-                   data-action="turbo:frame-load->builder#panelLoaded">
+                   data-builder-target="panel">
       </turbo-frame>
     </div>
   </div>

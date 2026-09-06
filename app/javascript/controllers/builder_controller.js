@@ -77,7 +77,6 @@ export default class extends Controller {
   }
 
   closePanel() {
-    this.element.classList.remove("builder--panel-open")
     this.clearSelectedRow()
 
     if (this.hasPanelTarget) {
@@ -88,8 +87,11 @@ export default class extends Controller {
     }
   }
 
-  panelLoaded() {
-    this.element.classList.add("builder--panel-open")
+  // Whether the panel is open, read from the same fact the CSS uses: does the
+  // frame have content. Nothing has to remember to set a flag, so no injection
+  // path can leave the two disagreeing.
+  get panelOpen() {
+    return this.hasPanelTarget && this.panelTarget.children.length > 0
   }
 
   saveTitle(event) {
@@ -134,7 +136,7 @@ export default class extends Controller {
   }
 
   handleKeydown(event) {
-    if (event.key === "Escape" && this.element.classList.contains("builder--panel-open")) {
+    if (event.key === "Escape" && this.panelOpen) {
       this.closePanel()
     }
   }

@@ -17,33 +17,24 @@ class WorkflowHealthCheck
     new(workflow).call
   end
 
-  def initialize(workflow)
-    @workflow = workflow
-  end
+  # A step with no outgoing transitions produces three findings that are the same
+  # sentence: "has no path to a Resolve step", "terminal step is not a Resolve
+  # step", and "no outgoing connections". A Question and a Resolve with no line
+  # between them reported four issues across two severities, which reads as a
+  # badly broken workflow rather than "you have not drawn the connection yet".
+  #
+  # Nothing is hidden. The remaining issue is still an error, still blocks the
+  # publish, and still carries the Fix. The findings dropped are true only
+  # *because* the step has no transitions, which is what the survivor says.
+  RESTATED_BY_NO_TRANSITIONS = %i[no_path_to_resolve terminal_not_resolve].freeze
 
-  def call
-    issues = Hash.new { |h, k| h[k] = [] }
-
-    run_graph_validation(issues)
-    run_subflow_validation(issues) if subflow_steps?
-    run_step_validations(issues)
-
-    summary = { errors: 0, warnings: 0, total: 0 }
+  def collapse_no_transition_restatements(issues)
     issues.each_value do |step_issues|
-      step_issues.each do |issue|
-        summary[:total] += 1
-        if issue[:severity] == :error
-          summary[:errors] += 1
-        else
-          summary[:warnings] += 1
-        end
-      end
+      next unless step_issues.any? { |i| i[:code] == :no_outgoing_transitions }
+
+      step_issues.reject! { |i| RESTATED_BY_NO_TRANSITIONS.include?(i[:code]) }
     end
-
-    Result.new(issues: issues.to_h, summary:)
   end
-
-  private
 
   # Build the graph hash from already-loaded AR records to avoid duplicate queries.
   # BaseController#eager_load_steps preloads transitions + target_step.
@@ -84,31 +75,68 @@ class WorkflowHealthCheck
     validator.findings.each { |finding| classify_graph_finding(finding, issues) }
   end
 
-  def classify_graph_finding(finding, issues)
-    case finding.code
-    when :no_path_to_resolve
-      # Attach to the step itself; the message already says what's missing.
-      add_issue(issues, finding.step_uuid, :error, finding.message, fixable: false, code: finding.code)
+  # How each graph finding reads in the panel. Severity is deliberately absent:
+  # WorkflowPublisher blocks on GraphValidator#valid?, which is just
+  # "@findings.any?", so every finding the validator produces stops a publish and
+  # all of them are errors. This table decides wording and fixability only.
+  #
+  # It used to be a case statement that also chose a severity per code, and
+  # :unreachable_step had been given :warning. The builder therefore showed no
+  # Publish badge and listed "every step can reach a Resolve step" under
+  # Passing, and then publish refused with "Step 'X' is not reachable from the
+  # start node". One validator, two opinions. A code added to GraphValidator now
+  # surfaces as an error without anyone remembering to classify it.
+  GRAPH_FINDING_PRESENTATION = {
+    transition_target_missing: { message: "Transition references a deleted step" },
+    unreachable_step: { message: "Not reachable from the start step" },
+    no_terminal_nodes: { message: "Workflow has no ending steps", on: :workflow },
+    terminal_not_resolve: { message: "Terminal step is not a Resolve step",
+                            fixable: true, fix_type: "add_resolve_after" }
+    # :no_path_to_resolve falls through to the validator's own message, which
+    # already names the step and what is missing.
+    #
+    # :no_steps and :start_node_missing are unreachable from here — the caller
+    # returns early on an empty graph, and start_uuid always falls back to a real
+    # step. They are deliberately not surfaced, as before.
+  }.freeze
 
-    when :transition_target_missing
-      add_issue(issues, finding.step_uuid, :error, "Transition references a deleted step",
-                fixable: false, code: finding.code)
+  def initialize(workflow)
+    @workflow = workflow
+  end
 
-    when :unreachable_step
-      add_issue(issues, finding.step_uuid, :warning, "Not reachable from the start step",
-                fixable: false, code: finding.code)
+  def call
+    issues = Hash.new { |h, k| h[k] = [] }
 
-    when :no_terminal_nodes
-      add_issue(issues, :workflow, :error, "Workflow has no ending steps", fixable: false, code: finding.code)
+    run_graph_validation(issues)
+    run_subflow_validation(issues) if subflow_steps?
+    run_step_validations(issues)
+    collapse_no_transition_restatements(issues)
 
-    when :terminal_not_resolve
-      add_issue(issues, finding.step_uuid, :error, "Terminal step is not a Resolve step",
-                fixable: true, fix_type: "add_resolve_after", code: finding.code)
-
-      # :no_steps and :start_node_missing are unreachable from here — the caller
-      # returns early on an empty graph, and start_uuid always falls back to a
-      # real step. They are deliberately not surfaced, as before.
+    summary = { errors: 0, warnings: 0, total: 0 }
+    issues.each_value do |step_issues|
+      step_issues.each do |issue|
+        summary[:total] += 1
+        if issue[:severity] == :error
+          summary[:errors] += 1
+        else
+          summary[:warnings] += 1
+        end
+      end
     end
+
+    Result.new(issues: issues.to_h, summary:)
+  end
+
+  private
+
+  def classify_graph_finding(finding, issues)
+    presentation = GRAPH_FINDING_PRESENTATION.fetch(finding.code, {})
+    target = presentation[:on] == :workflow ? :workflow : finding.step_uuid
+
+    add_issue(issues, target, :error, presentation.fetch(:message, finding.message),
+              fixable: presentation.fetch(:fixable, false),
+              fix_type: presentation[:fix_type],
+              code: finding.code)
   end
 
   def run_subflow_validation(issues)
@@ -147,8 +175,17 @@ class WorkflowHealthCheck
       # GraphValidator learned the flag, but this check is independent of the
       # validator and had to be told separately.
       if step.transitions.empty? && !handoff?(step)
-        add_issue(issues, step.uuid, :warning, "No outgoing connections — dead end",
-                  fixable: true, fix_type: "connect_next")
+        # An error, not a warning: a non-Resolve step with no outgoing
+        # transitions is a terminal that is not a Resolve, which is exactly what
+        # publish refuses. It also *replaces* the graph findings for this step —
+        # see collapse_no_transition_restatements.
+        # `add_resolve_after`, not `connect_next`. Since this issue now stands in
+        # for the terminal-not-Resolve finding too, its Fix has to work when
+        # there is no next step to connect to — `connect_next` answers that with
+        # "No next step to connect to." `add_resolve_after` wires the step to a
+        # Resolve that already exists, or creates one, so it is right either way.
+        add_issue(issues, step.uuid, :error, "No outgoing connections — the run ends here without resolving",
+                  fixable: true, fix_type: "add_resolve_after", code: :no_outgoing_transitions)
       end
 
       if step.is_a?(Steps::Question) && step.title.blank?

@@ -39,7 +39,15 @@ module Workflows
       respond_with_updated_steps
     end
 
+    # "This step has no way to reach a Resolve." The cheapest true fix is to wire
+    # it to a Resolve that already exists — the fix used to build a new one every
+    # time, so a Question and a Resolve with no transition between them became
+    # two Resolve steps with the original left stranded, and the workflow passed
+    # its error check with a dead step in it.
     def add_resolve_after(step)
+      existing = @workflow.steps.where(type: "Steps::Resolve").where.not(id: step.id).ordered.first
+      return connect_to(step, existing) if existing
+
       new_position = step.position + 1
 
       # Shift positions of steps that come after
@@ -52,7 +60,11 @@ module Workflows
         resolution_type: "success"
       )
 
-      Transition.create!(step: step, target_step: resolve_step, position: step.transitions.count)
+      connect_to(step, resolve_step)
+    end
+
+    def connect_to(step, target)
+      Transition.create!(step: step, target_step: target, position: step.transitions.count)
 
       respond_with_updated_steps
     end
@@ -74,7 +86,11 @@ module Workflows
               "builder-panel",
               partial: "workflows/health_panel_inner",
               locals: { workflow: @workflow, health: }
-            )
+            ),
+            # A fix can add a step, so the toolbar count has to move with it.
+            # steps#create streams this; this action did not, which left the
+            # toolbar reading "2 steps" above three rows.
+            turbo_stream.update("step-count-text", helpers.pluralize(steps.size, "step"))
           ]
         end
         format.html { redirect_to workflow_path(@workflow, edit: true), notice: "Fix applied." }
