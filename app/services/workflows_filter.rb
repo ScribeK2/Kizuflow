@@ -43,15 +43,20 @@ class WorkflowsFilter
   private
 
   def build_base_scope
+    # Every branch resolves through the viewer's permission scope. The draft
+    # branches used to hardcode `@user.workflows.drafts` for every role, so the
+    # Drafts tab sat in a strip whose siblings were org-wide while it silently
+    # showed only your own — an admin got "No workflows" against 23 real drafts,
+    # and the sidebar count flipped to 0. See Workflow.drafts_visible_to.
     @workflows = case status_filter
                  when "draft"
-                   @user.workflows.drafts
+                   Workflow.drafts_visible_to(@user)
                  when "published"
                    Workflow.visible_to(@user)
                  else
                    published_ids = Workflow.visible_to(@user).select(:id)
-                   own_draft_ids = @user.workflows.drafts.select(:id)
-                   Workflow.where(id: published_ids).or(Workflow.where(id: own_draft_ids))
+                   draft_ids = Workflow.drafts_visible_to(@user).select(:id)
+                   Workflow.where(id: published_ids).or(Workflow.where(id: draft_ids))
                  end
 
     @workflows = @workflows.includes(:user, group_workflows: :group)
