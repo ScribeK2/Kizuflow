@@ -126,40 +126,50 @@ module Dashboard
       @draft_count ||= Workflow.drafts_visible_to(user).count
     end
 
-    def company_scenario_total
-      @company_scenario_total ||= Scenario.count
+    # The SME dashboard's numbers all obey one boundary: the workflows this
+    # viewer can open. For an admin that is the whole library, so their figures
+    # are unchanged.
+    #
+    # These were `company_*` and were unconditional `Scenario.*` calls. "The
+    # company" is not a scope the app has anywhere else, and an editor with no
+    # group assignments was shown "Published Workflows 0" beside "Total
+    # Scenarios 116" — then, once the activity feed became org-wide to fix the
+    # admin's empty-feed contradiction, a list naming five workflows they had no
+    # access to. Renamed as well as rescoped, because `company_` was what made
+    # the unscoped query look deliberate.
+    #
+    # `recent_scenarios` and `scenario_active` keep their personal scope: the CSR
+    # dashboard uses them, and there "your runs" is the whole point.
+    def visible_scenarios
+      @visible_scenarios ||= Scenario.where(workflow_id: accessible_workflow_ids)
     end
 
-    def company_completion_rate
-      total = company_scenario_total
+    def visible_scenario_total
+      @visible_scenario_total ||= visible_scenarios.count
+    end
+
+    def visible_completion_rate
+      total = visible_scenario_total
       return 0 if total.zero?
 
-      completed = Scenario.where(status: "completed").count
+      completed = visible_scenarios.where(status: "completed").count
       ((completed * 100.0) / total).round
     end
 
-    def company_scenarios_this_week
-      @company_scenarios_this_week ||= Scenario
+    def visible_scenarios_this_week
+      @visible_scenarios_this_week ||= visible_scenarios
                                        .where(created_at: Time.current.beginning_of_week..)
                                        .count
     end
 
-    # The SME dashboard's stat cards are company-wide, so the feed and the chip
-    # beside them have to be too. They used to be `recent_scenarios` and
-    # `scenario_active` — both scoped to the current user — which is how a fresh
-    # admin came to see "Total Scenarios 115" beside "No activity yet: scenarios
-    # run by your team will appear here". The copy said team; the query said me.
-    #
-    # `recent_scenarios` and `scenario_active` keep their personal scope, because
-    # the CSR dashboard uses them and there "your runs" is the whole point.
-    def company_recent_scenarios
-      @company_recent_scenarios ||= Scenario.includes(:workflow)
-                                            .order(created_at: :desc)
-                                            .limit(5)
+    def visible_recent_scenarios
+      @visible_recent_scenarios ||= visible_scenarios.includes(:workflow)
+                                                     .order(created_at: :desc)
+                                                     .limit(5)
     end
 
-    def company_scenario_active
-      @company_scenario_active ||= Scenario.where(status: "active").count
+    def visible_scenario_active
+      @visible_scenario_active ||= visible_scenarios.where(status: "active").count
     end
 
     def scenario_active
@@ -182,6 +192,14 @@ module Dashboard
     end
 
     private
+
+    # Every workflow this viewer can reach: the published ones they may see plus
+    # the drafts they may see. For an admin, the whole library.
+    def accessible_workflow_ids
+      @accessible_workflow_ids ||= Workflow.where(id: Workflow.visible_to(user).select(:id))
+                                           .or(Workflow.where(id: Workflow.drafts_visible_to(user).select(:id)))
+                                           .select(:id)
+    end
 
     def user_scenarios
       @user_scenarios ||= Scenario.where(user: user)

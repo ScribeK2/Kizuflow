@@ -22,30 +22,30 @@
         <p class="stat-cell__value"><%= @dashboard.published_workflow_count %></p>
       </div>
 
-      <div class="stat-cell" aria-label="Scenarios this week: <%= @dashboard.company_scenarios_this_week %>">
+      <div class="stat-cell" aria-label="Scenarios this week: <%= @dashboard.visible_scenarios_this_week %>">
         <div class="stat-cell__head">
           <span class="stat-cell__label">Scenarios This Week</span>
-          <% if @dashboard.company_scenario_active.positive? %>
-            <span class="stat-cell__chip"><%= @dashboard.company_scenario_active %> live</span>
+          <% if @dashboard.visible_scenario_active.positive? %>
+            <span class="stat-cell__chip"><%= @dashboard.visible_scenario_active %> live</span>
           <% end %>
         </div>
-        <p class="stat-cell__value"><%= @dashboard.company_scenarios_this_week %></p>
+        <p class="stat-cell__value"><%= @dashboard.visible_scenarios_this_week %></p>
       </div>
 
-      <div class="stat-cell" aria-label="Total scenarios: <%= @dashboard.company_scenario_total %>">
+      <div class="stat-cell" aria-label="Total scenarios: <%= @dashboard.visible_scenario_total %>">
         <div class="stat-cell__head">
           <span class="stat-cell__label">Total Scenarios</span>
         </div>
-        <p class="stat-cell__value"><%= number_with_delimiter(@dashboard.company_scenario_total) %></p>
+        <p class="stat-cell__value"><%= number_with_delimiter(@dashboard.visible_scenario_total) %></p>
       </div>
 
-      <div class="stat-cell" aria-label="Completion rate: <%= @dashboard.company_completion_rate %>%">
+      <div class="stat-cell" aria-label="Completion rate: <%= @dashboard.visible_completion_rate %>%">
         <div class="stat-cell__head">
           <span class="stat-cell__label">Completion Rate</span>
         </div>
-        <p class="stat-cell__value"><%= @dashboard.company_completion_rate %>%</p>
+        <p class="stat-cell__value"><%= @dashboard.visible_completion_rate %>%</p>
         <div class="stat-cell__bar" aria-hidden="true">
-          <span style="width: <%= @dashboard.company_completion_rate %>%"></span>
+          <span style="width: <%= @dashboard.visible_completion_rate %>%"></span>
         </div>
       </div>
     </div>
@@ -121,13 +121,13 @@
             admin saw "Total Scenarios 115" beside "No activity yet — scenarios
             run by your team will appear here". The copy was right; the query
             was not. %>
-        <% if @dashboard.company_recent_scenarios.any? %>
-          <span class="list-section__count"><%= @dashboard.company_recent_scenarios.size %></span>
+        <% if @dashboard.visible_recent_scenarios.any? %>
+          <span class="list-section__count"><%= @dashboard.visible_recent_scenarios.size %></span>
         <% end %>
       </div>
 
       <div class="list-section__body">
-        <%= render "dashboard/activity_feed", scenarios: @dashboard.company_recent_scenarios,
+        <%= render "dashboard/activity_feed", scenarios: @dashboard.visible_recent_scenarios,
               empty_text: "Scenarios run by your team will appear here as they happen." %>
       </div>
     </section>
