@@ -274,6 +274,7 @@ the noise this system removes.
 | `.form-label.is-required` | Required field | Appends red " *" |
 | `.form-input` | Text inputs, textareas | Canvas-alt bg, 1.5px border, inset shadow |
 | `.form-select` | Select dropdowns | Same as form-input + arrow |
+| `.form-select--sm` | Compact select inside a dense row (admin table, pagination) | Tighter padding, `width: auto`. Sized like `.btn--sm` is to `.btn` |
 | `.form-hint` | Help text below input | text-xs, muted color |
 
 **Focus:** Inputs get `var(--focus-ring)` (2px solid primary) on `:focus-visible`.

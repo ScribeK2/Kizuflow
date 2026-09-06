@@ -23,11 +23,26 @@ class Admin::UsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_role = params[:role]
 
-    if User::ROLES.include?(new_role)
-      @user.update(role: new_role)
+    # Same self-guard as reset_password below: the list sorts newest-first, so a
+    # freshly created admin's own row is the first one on the page, and the
+    # select auto-submits on change with no confirmation.
+    if @user == current_user
+      Rails.logger.warn "[ADMIN SECURITY] #{current_user.email} attempted to change their own role"
+      redirect_to admin_users_path,
+                  alert: 'You cannot change your own role. Ask another administrator to do it.'
+      return
+    end
+
+    unless User::ASSIGNABLE_ROLES.include?(new_role)
+      redirect_to admin_users_path, alert: 'Invalid role specified.'
+      return
+    end
+
+    if @user.update(role: new_role)
       redirect_to admin_users_path, notice: "User #{@user.email} role updated to #{new_role.capitalize}."
     else
-      redirect_to admin_users_path, alert: 'Invalid role specified.'
+      redirect_to admin_users_path,
+                  alert: "Failed to update #{@user.email}: #{@user.errors.full_messages.join(', ')}"
     end
   end
 
@@ -46,6 +61,27 @@ class Admin::UsersController < Admin::BaseController
     end
 
     redirect_to admin_users_path, notice: "Groups updated for #{@user.email}."
+  end
+
+  def deactivate
+    @user = User.find(params[:id])
+
+    if @user == current_user
+      redirect_to admin_users_path,
+                  alert: 'You cannot deactivate your own account. Ask another administrator to do it.'
+      return
+    end
+
+    @user.deactivate!
+    Rails.logger.info "[ADMIN ACTION] #{current_user.email} deactivated #{@user.email} (ID: #{@user.id})"
+    redirect_to admin_users_path, notice: "#{@user.email} was deactivated and can no longer sign in."
+  end
+
+  def reactivate
+    @user = User.find(params[:id])
+    @user.reactivate!
+    Rails.logger.info "[ADMIN ACTION] #{current_user.email} reactivated #{@user.email} (ID: #{@user.id})"
+    redirect_to admin_users_path, notice: "#{@user.email} was reactivated and can sign in again."
   end
 
   def reset_password
@@ -122,23 +158,24 @@ class Admin::UsersController < Admin::BaseController
 
   def bulk_update_role
     new_role = params[:role]
-    unless User::ROLES.include?(new_role)
+    unless User::ASSIGNABLE_ROLES.include?(new_role)
       redirect_to admin_users_path(filter_params), alert: "Invalid role."
       return
     end
-    user_ids = resolve_user_ids
+    user_ids = resolve_user_ids.excluding(current_user.id.to_s, current_user.id)
     User.where(id: user_ids).find_each { |u| u.update!(role: new_role) }
     redirect_to admin_users_path(filter_params), notice: "#{user_ids.size} user(s) updated to #{new_role}."
   end
 
   def bulk_deactivate
-    user_ids = resolve_user_ids
+    user_ids = resolve_user_ids.excluding(current_user.id.to_s, current_user.id)
     count = 0
     User.where(id: user_ids).find_each do |u|
-      u.lock_access!(send_instructions: false)
+      u.deactivate!
       count += 1
     end
-    redirect_to admin_users_path(filter_params), notice: "#{count} user(s) deactivated."
+    redirect_to admin_users_path(filter_params),
+                notice: "#{count} user(s) deactivated. They can no longer sign in."
   end
 
   private

@@ -98,6 +98,8 @@ Rails.application.routes.draw do
         patch :update_role
         patch :update_groups
         post :reset_password
+        patch :deactivate
+        patch :reactivate
       end
     end
     resource :smtp_setting, only: %i[show update], path: "email" do
