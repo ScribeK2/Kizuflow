@@ -607,6 +607,18 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
                          'reactivating must not leave the user locked out by failed attempts'
   end
 
+  test 'the bulk deactivate form is Turbo-driven so it can carry a confirmation' do
+    sign_in @admin
+    get admin_users_path
+
+    form = css_select("form[action='#{bulk_deactivate_admin_users_path}']").first
+
+    assert form, 'expected the bulk deactivate form'
+    assert_nil form['data-turbo'],
+               'a form opted out of Turbo cannot use data-turbo-confirm, which is ' \
+               'why this action fell back to the browser\'s own confirm()'
+  end
+
   # -- Slice 2b: the users table stays legible in bulk mode ---------------------
   #
   # The table is `table-layout: fixed` with a <colgroup>. Entering bulk mode used

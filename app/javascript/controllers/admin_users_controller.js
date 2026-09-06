@@ -117,7 +117,14 @@ export default class extends Controller {
   bulkDeactivate() {
     const count = this.selectedUserIds.length
     if (count === 0) return
-    if (!confirm(`Are you sure you want to deactivate ${count} user${count > 1 ? "s" : ""}? They will not be able to sign in.`)) return
+
+    // Turbo asks, using the app's own dialog. This used to call the browser's
+    // confirm() — the only control on this screen that did, and it said "They
+    // will not be able to sign in", which was untrue until deactivation stopped
+    // expiring after an hour.
+    const plural = count === 1 ? "" : "s"
+    this.deactivateFormTarget.dataset.turboConfirm =
+      `Deactivate ${count} user${plural}? They will not be able to sign in until an administrator reactivates them.`
 
     this._injectUserIds(this.deactivateFormTarget)
     this.deactivateFormTarget.requestSubmit()

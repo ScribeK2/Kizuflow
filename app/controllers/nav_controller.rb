@@ -25,8 +25,15 @@ class NavController < ApplicationController
         description: w.description_text.to_s.truncate(120),
         tags: w.tags.pluck(:name),
         status: w.status,
+        # A regular user cannot open the builder or the execution landing page, so
+        # every result used to resolve to the bare Player index — twelve
+        # workflows, one destination. Picking "UI Escalate" from search landed on
+        # a list, with no sign it had heard which one you chose. Starting a run
+        # is a POST (it creates a Scenario), so the result cannot link straight
+        # into one; it carries the title instead, and the Player index prefills
+        # its own filter with it, leaving the chosen workflow one click away.
         path: if current_user.regular?
-                play_path # Regular users go to Player index
+                play_path(q: w.title)
               elsif can_edit
                 workflow_path(w)
               else

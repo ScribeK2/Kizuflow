@@ -5,6 +5,12 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["input", "card", "empty"]
 
+  // A value can arrive prefilled from ?q= — a Cmd+K result naming the workflow
+  // the user picked — so filter once on load rather than waiting for a keystroke.
+  connect() {
+    if (this.hasInputTarget && this.inputTarget.value.trim() !== "") this.filter()
+  }
+
   filter() {
     const query = this.inputTarget.value.trim().toLowerCase()
     let visible = 0

@@ -368,7 +368,13 @@
 </div>
 
 <%# Bulk Deactivate Form (hidden) %>
-<%= form_with url: bulk_deactivate_admin_users_path, method: :patch, local: true, data: { admin_users_target: "deactivateForm" }, style: "display:none" do |form| %>
+<%# Turbo-driven so `data-turbo-confirm` fires, matching the per-user Deactivate
+    and Reactivate buttons. This was `local: true` with a native confirm() in the
+    Stimulus controller — the one place in this screen that asked with browser
+    chrome instead of the app's own dialog. The count is filled in by
+    admin_users#bulkDeactivate, which knows how many rows are selected. %>
+<%= form_with url: bulk_deactivate_admin_users_path, method: :patch,
+              data: { admin_users_target: "deactivateForm" }, style: "display:none" do |form| %>
 <% end %>
 
 </div>

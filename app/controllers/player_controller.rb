@@ -7,6 +7,9 @@ class PlayerController < ApplicationController
   before_action :set_scenario, only: %i[step next_step back show stop]
 
   def index
+    # Prefills the client-side filter, so a Cmd+K result can name the workflow
+    # the user picked instead of dropping them on an unfiltered list.
+    @query = params[:q].to_s
     # Use subquery for "has steps" filter to avoid group/includes conflict
     ids_with_steps = Step.select(:workflow_id).distinct
     @workflows = Workflow.published

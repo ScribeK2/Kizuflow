@@ -644,6 +644,42 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # An editor saw "All Workflows 0" in the sidebar and, directly beneath it,
+  # "Uncategorized 12" — then clicking Uncategorized showed "No workflows". The
+  # count came from every GroupWorkflow row in the group, regardless of who was
+  # looking. Found by walking the app as an editor.
+  test "a group count matches the list that group opens" do
+    editor = User.create!(email: "grp-ed-#{SecureRandom.hex(4)}@example.com",
+                          password: "password123!", password_confirmation: "password123!", role: "editor")
+    owner = User.create!(email: "grp-own-#{SecureRandom.hex(4)}@example.com",
+                         password: "password123!", password_confirmation: "password123!", role: "editor")
+    group = Group.create!(name: "Hidden Group #{SecureRandom.hex(3)}")
+    hidden = Workflow.create!(title: "Not for the editor", user: owner, status: "published", is_public: false)
+    hidden.groups << group
+
+    assert_not_includes Workflow.visible_to(editor), hidden,
+                        "precondition: this editor cannot see the workflow"
+
+    sign_in editor
+    get workflows_path(group_id: group.id)
+
+    assert_response :success
+
+    # This group's own row. Other groups legitimately have their own counts, so
+    # the assertion has to be about the one whose workflow is hidden.
+    row = css_select("a[href*='group_id=#{group.id}']").first
+
+    assert row, "expected the group to appear in the sidebar"
+    badge = row.css(".badge").first
+
+    assert_nil badge,
+               "the group holds nothing this editor can open, so it must not " \
+               "advertise a count: got #{badge&.text&.strip.inspect}"
+
+    # And the list agrees.
+    assert_no_match(/#{Regexp.escape(hidden.title)}/, response.body)
+  end
+
   # -- Slice 1: the Drafts tab is scoped like its siblings ----------------------
   #
   # `workflows_filter.rb` hardcoded `@user.workflows.drafts` for every role, so

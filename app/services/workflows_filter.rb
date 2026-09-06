@@ -129,7 +129,11 @@ class WorkflowsFilter
                               .order(:position, :name)
 
     all_sidebar_groups = @accessible_groups.to_a + @accessible_groups.flat_map(&:children)
-    Group.precompute_workflows_counts(all_sidebar_groups) if all_sidebar_groups.any?
+    return if all_sidebar_groups.empty?
+
+    # Scoped to what this viewer can actually open, and to the tab they are on,
+    # so a group's number and the list it opens are the same number.
+    Group.precompute_workflows_counts(all_sidebar_groups, visible_ids: @workflows.reselect(:id))
   end
 
   def paginate
