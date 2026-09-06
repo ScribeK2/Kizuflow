@@ -1,10 +1,26 @@
 @layer components {
 /* flash.css — Flash message components */
 
+/* Bottom-right, not top-right.
+ *
+ * The header is 4rem tall, so `top: 5rem` put the toast exactly on the page's
+ * top-right action zone — and a flash usually reports on the very action whose
+ * button it was covering. A failed publish hid Publish and Export; an admin
+ * error hid Back to Dashboard.
+ *
+ * Measuring all three candidate corners found interactive elements in every one
+ * of them, so "no overlap" is not achievable and was the wrong goal. The right
+ * one is "only overlap things that survive the 5s dismissal": bottom-right
+ * covers repeated table rows and a persistent Add-a-step bar, never a unique
+ * primary action.
+ *
+ * Deliberately still click-to-dismiss rather than `pointer-events: none`. Click
+ * -through would mean a viewer who taps the toast to clear it instead fires
+ * whatever sits beneath — trading a blocked control for an accidental one. */
 .flash {
   position: fixed;
-  top: 5rem;
-  right: 1rem;
+  bottom: 1.5rem;
+  right: 1.5rem;
   z-index: var(--z-toast);
   max-width: 28rem;
   animation: slideInRight 0.3s ease-out;
@@ -13,33 +29,57 @@
 
 .flash__body {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
-  color: oklch(1 0 0);
 }
 
+/* `--color-on-*`, never a literal white. In dark mode the semantic tokens are
+   *light* fills (L 0.80) because they are sized for text, so white on them
+   measured 1.95:1 for alert and 1.80:1 for notice — below even the 3:1
+   large-text floor, which made every error and success message in the app
+   unreadable in dark mode. The on-tokens give 10.32:1 and 11.18:1 and swap
+   automatically, which is why the explicit [data-theme="dark"] blocks that used
+   to sit here (restating the same background) are gone. */
 .flash--notice .flash__body {
   background: var(--color-positive);
+  color: var(--color-on-positive);
 }
 
 .flash--alert .flash__body {
   background: var(--color-negative);
-}
-
-
-[data-theme="dark"] .flash--notice .flash__body {
-  background: var(--color-positive);
-}
-
-[data-theme="dark"] .flash--alert .flash__body {
-  background: var(--color-negative);
+  color: var(--color-on-negative);
 }
 
 .flash__text {
+  flex: 1;
   font-size: var(--text-sm);
   font-weight: 500;
+}
+
+/* An explicit affordance for something that was only ever dismissable by
+   clicking the box, which nothing told you. */
+.flash__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  opacity: 0.75;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.flash__close:hover {
+  opacity: 1;
 }
 
 .flash__progress {
@@ -47,44 +87,12 @@
   bottom: 0;
   left: 0;
   height: 2px;
-  background: var(--color-primary);
+  /* currentColor is the on-token for this variant, so the countdown reads on
+     both the light and the dark fill without a second hardcoded value. */
+  background: currentColor;
+  opacity: 0.5;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   animation: shrinkWidth 5s linear forwards;
 }
 
-/* ============================================================================
-   Toast Notifications (JS-generated collaboration notifications)
-   ============================================================================ */
-
-.toast {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: var(--z-toast);
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: oklch(1 0 0);
-  box-shadow: var(--shadow-lg);
-  animation: slideInRight 0.3s ease-out;
-  max-width: 24rem;
-}
-
-.toast--info {
-  background: var(--color-link);
-}
-
-.toast--success {
-  background: var(--color-positive);
-}
-
-.toast--warning {
-  background: var(--color-warning);
-  color: var(--color-on-warning);
-}
-
-.toast--error {
-  background: var(--color-negative);
-}
 }
