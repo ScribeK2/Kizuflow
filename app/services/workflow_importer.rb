@@ -55,8 +55,12 @@ class WorkflowImporter
     steps_data = workflow_data[:steps] || []
     incomplete_count = steps_data.count { |step| step["_import_incomplete"] }
 
+    # BaseParser#parse already ran GraphValidator over these same steps, with the
+    # same start-node fallback, and recorded the result in parser.warnings. This
+    # ran it a second time and concatenated the identical strings, so every graph
+    # warning was reported twice — and the flash's "and N more..." counted the
+    # duplicates.
     warnings = parser.warnings.dup
-    warnings.concat(validate_parsed_graph(steps_data, workflow_data[:start_node_uuid])) if workflow_data[:graph_mode] != false
 
     placement = WorkflowPlacement.new(
       user: @user,
@@ -434,26 +438,6 @@ class WorkflowImporter
     when "form"     then Steps::Form
     else Steps::Action
     end
-  end
-
-  def validate_parsed_graph(steps_data, start_node_uuid)
-    errors = []
-    return errors if steps_data.blank?
-
-    graph_steps = steps_data.each_with_object({}) do |step, hash|
-      hash[step["id"]] = step if step.is_a?(Hash) && step["id"]
-    end
-
-    effective_start = start_node_uuid || steps_data.first&.dig("id")
-
-    validator = GraphValidator.new(graph_steps, effective_start)
-    unless validator.valid?
-      validator.errors.each { |e| errors << "Graph validation: #{e}" }
-    end
-
-    errors
-  rescue NameError
-    []
   end
 
   def failure(errors, warnings: [])

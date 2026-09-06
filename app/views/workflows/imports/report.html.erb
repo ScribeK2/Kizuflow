@@ -129,7 +129,10 @@
       <% if @report.valid? %>
         <%= form_with url: commit_workflow_import_path, method: :post do |f| %>
           <%= hidden_field_tag :content, @content %>
-          <%= f.submit "Import workflow", class: "btn btn--primary" %>
+          <%# A set is the whole point of the strict dialect, so the button says how
+            many it is about to create rather than always claiming one. %>
+        <%= f.submit(previewed.size > 1 ? "Import #{previewed.size} workflows" : "Import workflow",
+                     class: "btn btn--primary") %>
         <% end %>
       <% end %>
     </div>

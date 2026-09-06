@@ -53,13 +53,56 @@ class ImportPromptGenerator
               "type": "message",
               "title": "Check the speed",
               "content": "<p>Run a speed test with the customer and note the result.</p>",
-              "transitions": [{ "target_id": "resolved" }]
+              "transitions": [{ "target_id": "hand-to-diagnostics" }]
+            },
+            {
+              "id": "hand-to-diagnostics",
+              "type": "sub_flow",
+              "title": "Continue in slow-connection diagnostics",
+              "target_workflow_title": "Slow Connection Diagnostics",
+              "sub_flow_returns": false
             },
             {
               "id": "resolved",
               "type": "resolve",
               "title": "Issue resolved",
               "resolution_type": "success"
+            }
+          ]
+        },
+        {
+          "title": "Slow Connection Diagnostics",
+          "description": "Follow-up when the connection works but is slower than it should be.",
+          "tags": ["support", "connectivity"],
+          "steps": [
+            {
+              "id": "wired-or-wifi",
+              "type": "question",
+              "title": "Wired or wireless?",
+              "question": "Is the customer on Wi-Fi or plugged in with a cable?",
+              "answer_type": "multiple_choice",
+              "variable_name": "connection",
+              "options": [
+                { "label": "Wi-Fi", "value": "wifi" },
+                { "label": "Wired", "value": "wired" }
+              ],
+              "transitions": [
+                { "target_id": "move-closer", "condition": "connection == 'wifi'" },
+                { "target_id": "book-engineer" }
+              ]
+            },
+            {
+              "id": "move-closer",
+              "type": "action",
+              "title": "Move closer to the router",
+              "instructions": "<p>Ask the customer to stand next to the router and run the speed test again.</p>",
+              "transitions": [{ "target_id": "book-engineer" }]
+            },
+            {
+              "id": "book-engineer",
+              "type": "resolve",
+              "title": "Book an engineer",
+              "resolution_type": "ticket"
             }
           ]
         }
@@ -113,8 +156,9 @@ class ImportPromptGenerator
     <<~MD
       ## Step types
 
-      Every step needs `id`, `type`, `title`, and — except for `resolve` —
-      at least one transition.
+      Every step needs `id`, `type`, `title`, and at least one transition. Two
+      kinds of step end the workflow instead and take none: `resolve`, and a
+      `sub_flow` with `sub_flow_returns: false` (see Handoffs below).
 
       | type | also required | optional |
       |---|---|---|
@@ -132,10 +176,11 @@ class ImportPromptGenerator
       digits, hyphen or underscore. Readable slugs like `verify-account` beat
       UUIDs — transitions reference them, so you can check your own work.
 
-      **Transitions are explicit.** Every step except `resolve` needs at least
-      one. Nothing is inferred. A `resolve` step must have none at all.
-      `target_id` names another step's `id` in the same workflow. A transition
-      never crosses from one workflow to another — that is what `sub_flow` is for.
+      **Transitions are explicit.** Every step needs at least one, and nothing is
+      inferred. The exceptions are the two steps that end a workflow: a `resolve`
+      step and a handed-off `sub_flow` must have none at all. `target_id` names
+      another step's `id` in the same workflow. A transition never crosses from
+      one workflow to another — that is what `sub_flow` is for.
 
       **Loops are allowed** — "didn't work, try again" is a normal shape. What is
       refused is a loop with no way out: from every step, some path must still be
@@ -164,6 +209,14 @@ class ImportPromptGenerator
       renders as an empty dropdown the agent cannot answer, so do not encode the
       choices in the label text.
 
+      **Handoffs.** A `sub_flow` normally *calls* its target: the sub-flow runs,
+      then the agent comes back to this workflow and follows this step's
+      transitions. Set `sub_flow_returns: false` and it *hands over* instead —
+      the run moves to the target and never comes back, so the step ends this
+      workflow. A handed-off step therefore takes no transitions and needs no
+      `resolve` after it. Use it to point an agent at the next script rather than
+      dead-ending them; use the default when you need the answers back.
+
       **Sub-flows** name their target by `target_workflow_title`. That title may
       be another workflow **in this same file** — which is the reason to put a
       linked set in one file, since it then needs nothing to exist beforehand.
@@ -182,9 +235,13 @@ class ImportPromptGenerator
     <<~MD
       ## A complete example
 
-      Note the retry loop: `did-it-work` sends the agent back to `restart-router`,
-      and the flow is still valid because `resolved` stays reachable from every
-      step.
+      Two workflows in one file. Note three things: the retry loop, where
+      `did-it-work` sends the agent back to `restart-router` and the flow is
+      still valid because a `resolve` stays reachable from every step; the
+      handoff, where `hand-to-diagnostics` ends the first workflow by moving the
+      run to the second rather than returning to it; and that the second workflow
+      is named by title from inside the same file, so neither has to exist
+      beforehand.
 
       ```json
       #{EXAMPLE.strip}

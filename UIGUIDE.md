@@ -275,8 +275,16 @@ the noise this system removes.
 | `.form-input` | Text inputs, textareas | Canvas-alt bg, 1.5px border, inset shadow |
 | `.form-select` | Select dropdowns | Same as form-input + arrow |
 | `.form-hint` | Help text below input | text-xs, muted color |
+| `.file-dropzone` | File upload drop target | Centred column, dashed hairline, canvas-alt fill; `.is-dragover` turns it solid + primary-soft |
+| `.file-dropzone__empty` / `__selected` | The two states inside it | Stacked, centred; toggle with `.is-hidden` |
+| `.file-dropzone__icon` / `__hint` | Icon and sub-label | Muted ink |
 
 **Focus:** Inputs get `var(--focus-ring)` (2px solid primary) on `:focus-visible`.
+**Dropzone:** `.file-dropzone` was used by `workflows/imports/new` and
+`workflows/_preview_pane` for a long time with **no rule anywhere** — the import
+page's primary control rendered as a bare icon and a line of text, no box, no
+padding, no centring, and it read as broken. A class that looks like a component
+is not one until a rule exists; check `getComputedStyle`, not the markup.
 **Stimulus:** Forms with autosave use `data-controller="inline-autosave"`.
 
 ### Dialogs (`dialogs.css`)

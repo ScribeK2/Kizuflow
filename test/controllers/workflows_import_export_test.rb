@@ -90,16 +90,63 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
   # Import Page Tests
   # ============================================================================
 
-  test "import page shows Graph Mode information" do
+  # This used to assert the page said "Graph Mode", against a section headed
+  # "Graph Mode Workflows". There is no other mode — every workflow is a graph —
+  # so that section was telling the reader about a distinction the app does not
+  # have, and it went. What is asserted instead is what the page must not get
+  # wrong: it names every step type the app accepts, and it teaches the strict
+  # envelope rather than only the lenient one.
+  #
+  # The step types come from the generated prompt, not from copy in the view, so
+  # this passes for the same reason it cannot drift: adding a step type to
+  # Workflow::VALID_STEP_TYPES puts it on the page. `form` and `sub_flow` were
+  # both missing from the hand-written reference this replaced.
+  test "import page documents every step type the app accepts" do
     get new_workflow_import_path
 
     assert_response :success
 
-    assert_match(/Graph Mode/, response.body)
+    Workflow::VALID_STEP_TYPES.each do |type|
+      assert_match(/\b#{Regexp.escape(type)}\b/, response.body, "#{type} is not documented on the import page")
+    end
+
     assert_match(/transitions/, response.body)
-    # Should show the new step types, not legacy decision/checkpoint
-    assert_match(/question.*action.*message.*escalate.*resolve/i, response.body)
-    assert_no_match(/type.*decision/i, response.body.gsub(/Legacy Format Support.*$/m, '')) # Decision only in legacy section
+    assert_no_match(/\bcheckpoint\b/i, response.body)
+  end
+
+  test "import page teaches the strict dialect, not only the lenient one" do
+    get new_workflow_import_path
+
+    assert_response :success
+
+    assert_match(/schema_version/, response.body)
+    assert_match(ImportSchemaGenerator::SCHEMA_URL, response.body)
+    assert_match(ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE.to_s, response.body)
+    # The copyable agent prompt itself, not a description of it.
+    assert_match(/Writing a TurboFlows workflow file/, response.body)
+  end
+
+  # Every example on the page is claimed to import cleanly. That claim is the
+  # kind that rots silently, so it is checked rather than trusted: the four that
+  # used to be here all transitioned to steps that were not in the file, and
+  # anyone who copied one got a workflow they could not publish.
+  test "the lenient examples on the import page import with no warnings" do
+    get new_workflow_import_path
+
+    assert_response :success
+
+    blocks = response.body.scan(%r{<pre class="code-block"><code>(.*?)</code></pre>}m).flatten
+    assert_equal 3, blocks.size, "expected the YAML, CSV and Markdown examples"
+
+    formats = %i[yaml csv markdown]
+    blocks.zip(formats).each do |raw, format|
+      content = CGI.unescapeHTML(raw)
+      result = WorkflowImporter.new(@editor, format: format, content: content).call
+
+      assert_predicate result, :success?, "#{format} example failed: #{result.errors.inspect}"
+      assert_empty result.warnings, "#{format} example imported with warnings"
+      assert_not result.incomplete_steps?, "#{format} example has incomplete steps"
+    end
   end
 
   # ============================================================================
