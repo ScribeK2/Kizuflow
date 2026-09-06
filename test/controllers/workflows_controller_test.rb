@@ -641,6 +641,60 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # -- Slice 1: the Drafts tab is scoped like its siblings ----------------------
+  #
+  # `workflows_filter.rb` hardcoded `@user.workflows.drafts` for every role, so
+  # the Drafts tab sat in a strip whose other tabs were org-wide while it showed
+  # only your own. An admin saw "No workflows" against 23 real drafts, the
+  # sidebar count flipped to 0, and /admin/data_health reported the true total
+  # on another page.
+
+  test "the drafts tab shows every draft to an admin" do
+    admin = User.create!(email: "d-admin-#{SecureRandom.hex(4)}@example.com",
+                         password: "password123!", password_confirmation: "password123!", role: "admin")
+    other = User.create!(email: "d-editor-#{SecureRandom.hex(4)}@example.com",
+                         password: "password123!", password_confirmation: "password123!", role: "editor")
+    theirs = Workflow.create!(title: "Draft belonging to a colleague", user: other, status: "draft")
+
+    sign_in admin
+    get workflows_path(status: "draft", per_page: 100)
+
+    assert_response :success
+    assert_match theirs.title, response.body,
+                 "an admin must be able to see the drafts they are responsible for"
+  end
+
+  test "the drafts tab shows an editor only their own" do
+    editor = User.create!(email: "d-mine-#{SecureRandom.hex(4)}@example.com",
+                          password: "password123!", password_confirmation: "password123!", role: "editor")
+    other = User.create!(email: "d-theirs-#{SecureRandom.hex(4)}@example.com",
+                         password: "password123!", password_confirmation: "password123!", role: "editor")
+    mine = Workflow.create!(title: "My own draft", user: editor, status: "draft")
+    theirs = Workflow.create!(title: "Colleague unpublished draft", user: other, status: "draft")
+
+    sign_in editor
+    get workflows_path(status: "draft", per_page: 100)
+
+    assert_response :success
+    assert_match mine.title, response.body
+    assert_no_match(/#{Regexp.escape(theirs.title)}/, response.body,
+                    "a draft is unpublished work; group membership does not share it")
+  end
+
+  test "an empty drafts tab says the filter is empty, not the library" do
+    admin = User.create!(email: "d-empty-#{SecureRandom.hex(4)}@example.com",
+                         password: "password123!", password_confirmation: "password123!", role: "admin")
+    Workflow.drafts.destroy_all
+
+    sign_in admin
+    get workflows_path(status: "draft")
+
+    assert_response :success
+    assert_no_match(/Get started by creating a new workflow/, response.body,
+                    "a filtered view finding nothing must not claim the library is empty")
+    assert_match(/No drafts/i, response.body)
+  end
+
   private
 
   # Only the flat workflow list — "ul li" would also pick up the group sidebar.
