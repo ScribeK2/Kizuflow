@@ -150,6 +150,30 @@ Dark mode is automatic. Use token names and they swap values via `[data-theme="d
 - **No external fonts or CDN links** — system fonts only
 - **No raw px/rem for spacing** — use `var(--space-N)` tokens
 
+### The unstyled-button trap
+
+`reset.css` neutralises `background`, `border` and `padding` on every `<button>`
+(and `input[type=submit|button]`), not just `font` and `color`. Without that, a
+button whose class forgot a fill and a border rendered as the browser's own
+chrome — grey ButtonFace, outset bevel, square corners.
+
+**Why it kept shipping:** the markup looks fine, and in light mode
+`rgb(239, 239, 239)` hides against a pale surface. Only in dark mode, where the
+UA value stays light while the tokens go dark, does it read obviously wrong. It
+landed three times — `.file-dropzone`, `.dark-mode-toggle`, then
+`.scenario-exec-toggle` and `.wf-status-tabs__tab` together. The last of those
+made the Analytics filter segments read *inverted* in dark mode: the unselected
+ones were light blocks, the selected one dark.
+
+**What this does and does not buy you.** The reset is a floor, so a forgotten
+declaration is no longer catastrophic. It is not a substitute for saying what an
+element looks like: declare a component's resting `background` in its own rule.
+`.wf-status-tabs__tab` is the cautionary case — it set a background only in its
+`.is-active` variant, so it rendered correctly as an `<a>` and wrong as a
+`<button>`, from one missing line.
+
+`test/integration/button_chrome_reset_test.rb` guards both halves.
+
 ### Surfaces Deliberately Excluded
 
 Some surfaces were left out of the northwest-palette migration on purpose. They
@@ -375,7 +399,7 @@ so `.tab-bar` drops into any existing tablist with no JS change.
 | Skeletons | `.skeleton`, `.skeleton--text`, `--heading`, `--card` | `skeleton.css` | Shimmer animation, use for loading states |
 | Pagination | `.pagination-bar`, `.pagination`, `.pagination__item`, `.is-active` | `pagination.css` | `.pagination-bar` is a three-zone grid: summary left, numbered nav centred, page-size right |
 | Icons | `.icon`, `.icon--xs/sm/lg/xl` | `icons.css` | Inline-flex sizing (0.75 to 2rem) |
-| Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — an unstyled button falls back to raw browser chrome, since `reset.css` neutralises only its font and colour |
+| Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — a class styled only in a sheet that layout does not load matches nothing at all. (It used to *also* fall back to raw browser chrome; `reset.css` now neutralises button background, border and padding, so that half is closed — see § The unstyled-button trap) |
 
 ### Empty States
 
