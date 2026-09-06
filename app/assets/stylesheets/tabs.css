@@ -75,7 +75,16 @@
 .status-filter__tab,
 .wf-status-tabs__tab {
   padding: var(--space-2) var(--space-4);
+  /* Declared, not inherited. This class is rendered both as an <a> (the
+     workflows status strip) and as a <button> (the analytics filters). Only the
+     .is-active variant below set a background, so as a link the inactive state
+     fell through to `transparent` and looked right, while as a button it took
+     the UA's ButtonFace — light grey in both themes, which hid against the
+     track in light mode and made the *unselected* segments read as selected in
+     dark mode. A component should not depend on the reset for its own state. */
+  background: transparent;
   border: 1px solid transparent;
+  cursor: pointer;
   border-radius: var(--radius);
   font-size: var(--text-sm);
   font-weight: 500;
