@@ -341,7 +341,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Invalid role.", flash[:alert]
   end
 
-  test "bulk_deactivate locks selected users" do
+  test "bulk_deactivate deactivates selected users" do
     sign_in @admin
     patch bulk_deactivate_admin_users_path, params: {
       user_ids: [@user.id]
@@ -349,7 +349,10 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_users_path
     @user.reload
-    assert_predicate @user, :access_locked?, "User should be locked"
+    # This used to assert `access_locked?` — the mechanism, not the outcome —
+    # which is why it stayed green while deactivation silently expired after an
+    # hour on the Devise unlock timer.
+    assert_predicate @user, :deactivated?, "User should be deactivated"
   end
 
   test "non-admin cannot access bulk_deactivate" do
@@ -470,5 +473,305 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_operator ascending.size, :>=, 2, "need at least two rows for ordering to mean anything"
     assert_equal ascending.sort, ascending
     assert_equal ascending.reverse, descending
+  end
+
+  # -- Slice 2b: deactivation has to actually deactivate ------------------------
+  #
+  # "Deactivate" called Devise `lock_access!`, and devise.rb sets
+  # `unlock_strategy = :both` with `unlock_in = 1.hour` — so a deactivated user
+  # could sign in again 61 minutes later, while the confirm dialog promised
+  # "They will not be able to sign in." There was also no way to reactivate
+  # anyone, and the badge could not tell an admin's deliberate offboarding from
+  # Devise's automatic five-failed-attempts lockout.
+
+  test 'deactivation survives the devise unlock window' do
+    sign_in @admin
+    patch deactivate_admin_user_path(@user)
+
+    assert_predicate @user.reload, :deactivated?
+
+    travel 2.hours do
+      assert_predicate @user.reload, :deactivated?,
+                       'deactivation must not expire on the Devise unlock timer'
+    end
+  end
+
+  test 'deactivating a signed-in user ends the session they already hold' do
+    # Blocking new sign-ins is not enough for an offboarding control: the person
+    # being offboarded is usually signed in at the moment you do it. Devise's
+    # activatable hook re-checks active_for_authentication? on every request, so
+    # the next one bounces — asserted here because that is a property of Devise's
+    # configuration, not of our code, and a change to either could silently
+    # remove it.
+    # An editor, because WorkflowsController bounces a regular user from
+    # /workflows anyway — the precondition has to be a page the subject can
+    # actually load, or the assertion below proves nothing.
+    post user_session_path, params: { user: { email: @editor.email, password: 'password123!' } }
+    get workflows_path
+
+    assert_response :success, 'precondition: the user is signed in and browsing'
+
+    @editor.deactivate!
+    get workflows_path
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test 'a deactivated user cannot sign in' do
+    @user.deactivate!
+    post user_session_path, params: { user: { email: @user.email, password: 'password123!' } }
+
+    assert_redirected_to new_user_session_path
+    follow_redirect!
+
+    assert_match(/deactivated/i, response.body,
+                 'the refusal must say why, not just bounce them to the form')
+    get admin_root_path
+
+    assert_redirected_to new_user_session_path, 'a deactivated user must have no session'
+  end
+
+  test 'an admin can reactivate a deactivated user' do
+    @user.deactivate!
+    sign_in @admin
+    patch reactivate_admin_user_path(@user)
+
+    assert_redirected_to admin_users_path
+    assert_not_predicate @user.reload, :deactivated?
+  end
+
+  test 'a failed login lockout is not reported as deactivated' do
+    @user.lock_access!(send_instructions: false)
+
+    assert_predicate @user, :access_locked?
+    assert_not_predicate @user, :deactivated?,
+                         'a Devise lockout is not an administrative deactivation'
+  end
+
+  test 'the listing distinguishes a deactivated user from a locked-out one' do
+    @user.deactivate!
+    @editor.lock_access!(send_instructions: false)
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    deactivated_row = css_select("tbody tr:has(form[action='#{update_role_admin_user_path(@user)}'])").first.text
+    locked_row = css_select("tbody tr:has(form[action='#{update_role_admin_user_path(@editor)}'])").first.text
+
+    assert_match(/deactivated/i, deactivated_row)
+    assert_no_match(/deactivated/i, locked_row,
+                    'a failed-login lockout must not be labelled Deactivated')
+  end
+
+  test 'bulk deactivate uses the same durable mechanism as the per-user action' do
+    sign_in @admin
+    patch bulk_deactivate_admin_users_path, params: { user_ids: [@user.id] }
+
+    assert_predicate @user.reload, :deactivated?
+
+    travel 2.hours do
+      assert_predicate @user.reload, :deactivated?
+    end
+  end
+
+  test 'admin cannot deactivate their own account' do
+    sign_in @admin
+    patch deactivate_admin_user_path(@admin)
+
+    assert_not_predicate @admin.reload, :deactivated?
+    assert_match(/your own/i, flash[:alert].to_s)
+  end
+
+  test 'deactivating an already deactivated user is a no-op' do
+    @user.deactivate!
+    first_stamp = @user.reload.deactivated_at
+    sign_in @admin
+
+    travel 1.hour do
+      patch deactivate_admin_user_path(@user)
+
+      assert_predicate @user.reload, :deactivated?
+      assert_equal first_stamp.to_i, @user.deactivated_at.to_i,
+                   're-deactivating must not restamp the record'
+    end
+  end
+
+  test 'reactivating clears a devise lockout as well' do
+    @user.deactivate!
+    @user.lock_access!(send_instructions: false)
+    sign_in @admin
+    patch reactivate_admin_user_path(@user)
+    @user.reload
+
+    assert_not_predicate @user, :deactivated?
+    assert_not_predicate @user, :access_locked?,
+                         'reactivating must not leave the user locked out by failed attempts'
+  end
+
+  test 'the bulk deactivate form is Turbo-driven so it can carry a confirmation' do
+    sign_in @admin
+    get admin_users_path
+
+    form = css_select("form[action='#{bulk_deactivate_admin_users_path}']").first
+
+    assert form, 'expected the bulk deactivate form'
+    assert_nil form['data-turbo'],
+               'a form opted out of Turbo cannot use data-turbo-confirm, which is ' \
+               'why this action fell back to the browser\'s own confirm()'
+  end
+
+  # -- Slice 2b: the users table stays legible in bulk mode ---------------------
+  #
+  # The table is `table-layout: fixed` with a <colgroup>. Entering bulk mode used
+  # to set `display: table-cell` on every `.bulk-select-column`, including the
+  # <col> element — which must be `table-column`. The browser then dropped it
+  # from the column list and every width applied one column to the left: the
+  # checkbox column took 339px while Email collapsed to 97px, so the Role text
+  # rendered on top of the email and the role select squeezed to 54px.
+
+  test 'the colgroup declares exactly one col per header cell' do
+    sign_in @admin
+    get admin_users_path
+
+    cols = css_select('table.table > colgroup > col').size
+    headers = css_select('table.table > thead > tr > th').size
+
+    assert_operator cols, :>, 0, 'expected a colgroup'
+    assert_equal headers, cols,
+                 'a fixed-layout table needs one <col> per column, or every width shifts'
+  end
+
+  test 'each row renders the role exactly once' do
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    row = css_select("tbody tr:has(form[action='#{update_role_admin_user_path(@user)}'])").first
+
+    assert row, 'could not find the row for the test user'
+    selects = row.css("select[name='role']").size
+    # The badge duplicated what the select already says, and cost the width the
+    # bulk-mode checkbox column needed.
+    badges = row.css('span.badge').map { |b| b.text.strip.downcase }
+                .count { |t| User::ASSIGNABLE_ROLES.include?(t) }
+
+    assert_equal 1, selects, 'expected exactly one role control per row'
+    assert_equal 0, badges, 'the role must not also be printed as a badge'
+  end
+
+  # -- Slice 2a: one source of truth for a role value --------------------------
+  #
+  # The row select was built from `User.roles` KEYS (admin/editor/regular) while
+  # update_role validated against `User::ROLES` (admin/editor/user). "regular"
+  # never matched, so demoting a single user to Regular was impossible and
+  # reported "Invalid role specified." Admin<->Editor worked, which is why it
+  # survived. The bulk dialog hardcoded the DB value and worked, so the same
+  # action succeeded in bulk and failed per-row.
+
+  test 'admin demotes an editor to regular from the row select' do
+    sign_in @admin
+    patch update_role_admin_user_path(@editor), params: { role: 'regular' }
+
+    assert_redirected_to admin_users_path
+    assert_nil flash[:alert]
+    @editor.reload
+
+    assert_predicate @editor, :regular?
+    assert_equal 'user', @editor.role_before_type_cast,
+                 'the enum must still persist the column value, not the key'
+  end
+
+  test 'admin promotes a regular user to editor' do
+    sign_in @admin
+    patch update_role_admin_user_path(@user), params: { role: 'editor' }
+
+    assert_redirected_to admin_users_path
+    @user.reload
+
+    assert_predicate @user, :editor?
+  end
+
+  test 'the row role select offers exactly the values update_role accepts' do
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    offered = css_select("form[action='#{update_role_admin_user_path(@user)}'] select option")
+              .pluck('value')
+
+    assert_not_empty offered, "no role select rendered for #{@user.email}"
+    assert_equal User::ASSIGNABLE_ROLES.sort, offered.sort,
+                 'every option the row renders must be a role update_role accepts'
+  end
+
+  test 'the bulk role dialog offers exactly the values bulk_update_role accepts' do
+    sign_in @admin
+    get admin_users_path(per_page: 100)
+
+    offered = css_select("form[action='#{bulk_update_role_admin_users_path}'] select option")
+              .pluck('value')
+
+    assert_not_empty offered, 'no bulk role select rendered'
+    assert_equal User::ASSIGNABLE_ROLES.sort, offered.sort
+  end
+
+  test 'bulk role change to regular still works' do
+    sign_in @admin
+    patch bulk_update_role_admin_users_path, params: { user_ids: [@editor.id], role: 'regular' }
+
+    @editor.reload
+
+    assert_predicate @editor, :regular?
+  end
+
+  test 'admin cannot change their own role' do
+    sign_in @admin
+    patch update_role_admin_user_path(@admin), params: { role: 'regular' }
+
+    assert_redirected_to admin_users_path
+    @admin.reload
+
+    assert_predicate @admin, :admin?, 'an admin must not be able to strip their own access'
+    assert_match(/own role/i, flash[:alert].to_s)
+  end
+
+  test 'the role filter works for regular, where the key and the column value differ' do
+    sign_in @admin
+    # The pre-existing filter test only covered role=admin, where the enum key
+    # and the column value are the same string — so it could not catch the
+    # selects being rewired from values to keys. "regular" maps to "user".
+    get admin_users_path(role: 'regular', per_page: 100)
+
+    assert_response :success
+    emails = css_select('tbody tr td:nth-child(1) span.font-medium, tbody tr td:nth-child(2) span.font-medium')
+             .map { |cell| cell.text.strip }
+
+    assert_includes emails, @user.email, 'a regular user must appear under the Regular filter'
+    assert_not_includes emails, @admin.email
+    assert_not_includes emails, @editor.email
+  end
+
+  test 'the role filter select offers exactly the values the filter accepts' do
+    sign_in @admin
+    get admin_users_path
+
+    offered = css_select("form.admin-filter-toolbar select[name='role'] option")
+              .pluck('value').compact_blank
+
+    assert_not_empty offered
+    assert_equal User::ASSIGNABLE_ROLES.sort, offered.sort
+  end
+
+  test 'update_role reports failure when the record cannot be saved' do
+    sign_in @admin
+    # An unrecognised time zone makes the record invalid, so `update` returns
+    # false. The action used to ignore that and report success anyway.
+    @user.update_column(:time_zone, 'Not/AZone')
+
+    patch update_role_admin_user_path(@user), params: { role: 'editor' }
+
+    assert_redirected_to admin_users_path
+    assert_nil flash[:notice], 'a failed save must not report success'
+    assert_match(/fail/i, flash[:alert].to_s)
+    @user.reload
+
+    assert_predicate @user, :regular?
   end
 end

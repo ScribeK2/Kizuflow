@@ -12,6 +12,7 @@
       <%= icon "magnifying-glass", class: "player-search__icon icon icon--sm" %>
       <input type="text"
              class="player-search__input"
+             value="<%= @query %>"
              placeholder="Search workflows..."
              autocomplete="off"
              aria-label="Search workflows"

@@ -31,19 +31,19 @@
 
       <% if @users.any? %>
         <div class="table-wrap">
-          <table class="table" style="table-layout: fixed;">
+          <table class="table" style="table-layout: fixed;" data-admin-users-target="table">
             <colgroup>
-              <col class="bulk-select-column" style="display: none; width: 3rem;">
-              <col style="width: 28%;">
+              <col class="bulk-select-column" style="width: 3rem;">
+              <col style="width: 26%;">
+              <col style="width: 12%;">
+              <col style="width: 14%;">
               <col style="width: 8%;">
-              <col style="width: 14%;">
-              <col style="width: 10%;">
-              <col style="width: 14%;">
+              <col style="width: 12%;">
               <col>
             </colgroup>
             <thead>
               <tr>
-                <th class="bulk-select-column" style="display: none;">
+                <th class="bulk-select-column">
                   <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox">
                 </th>
                 <th aria-sort="<%= sortable_column_aria_sort(:email, current_sort: @sort) %>">
@@ -65,18 +65,28 @@
             </thead>
             <tbody>
               <% @users.each do |user| %>
-                <tr class="<%= 'admin-user-row--deactivated' if user.access_locked? %>">
-                  <td class="bulk-select-column" style="display: none;">
+                <tr class="<%= 'admin-user-row--deactivated' if user.deactivated? %>">
+                  <td class="bulk-select-column">
                     <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox">
                   </td>
                   <td>
                     <span class="font-medium"><%= user.email %></span>
-                    <% if user.access_locked? %><span class="badge badge--muted ml-1">Deactivated</span><% end %>
+                    <%# Two states that both used to render as "Deactivated": an admin
+                        offboarding someone, and Devise locking them out after five failed
+                        sign-ins. Different causes, different fixes, different labels. %>
+                    <% if user.deactivated? %>
+                      <span class="badge badge--alert ml-1">Deactivated</span>
+                    <% elsif user.access_locked? %>
+                      <span class="badge badge--warning ml-1" title="Locked by failed sign-in attempts">Locked out</span>
+                    <% end %>
                   </td>
                   <td>
-                    <span class="badge <%= user.avatar_role_badge_classes %>">
-                      <%= user.role.capitalize %>
-                    </span>
+                    <%# The role control lives in the Role column, not in Actions. It used
+                        to be both: a badge here and a select there, saying the same thing
+                        twice and costing the width bulk mode needs for its checkbox. %>
+                    <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
+                      <%= form.select :role, options_for_select(User::ROLE_OPTIONS, user.role), {}, { class: "form-select form-select--sm", "aria-label": "Role for #{user.email}", data: { action: "change->auto-submit#submit" } } %>
+                    <% end %>
                   </td>
                   <td>
                     <% if user.groups.any? %>
@@ -97,9 +107,6 @@
                   </td>
                   <td>
                     <div class="flex items-center gap-2">
-                      <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
-                        <%= form.select :role, options_for_select(User.roles.map { |key, _| [key.capitalize, key] }, user.role), {}, { class: "form-select", data: { action: "change->auto-submit#submit" } } %>
-                      <% end %>
                       <button type="button"
                               class="btn btn--secondary btn--sm flex items-center gap-1"
                               data-action="click->admin-users#openGroupModal"
@@ -117,6 +124,15 @@
                         <%= icon "key", class: "icon icon--xs" %>
                         Reset
                       </button>
+                      <% if user.deactivated? %>
+                        <%= button_to "Reactivate", reactivate_admin_user_path(user), method: :patch,
+                              class: "btn btn--secondary btn--sm",
+                              form: { data: { turbo_confirm: "Let #{user.email} sign in again?" } } %>
+                      <% elsif user != current_user %>
+                        <%= button_to "Deactivate", deactivate_admin_user_path(user), method: :patch,
+                              class: "btn btn--negative btn--sm",
+                              form: { data: { turbo_confirm: "Deactivate #{user.email}? They will not be able to sign in until an administrator reactivates them." } } %>
+                      <% end %>
                     </div>
                   </td>
                 </tr>
@@ -341,7 +357,7 @@
       </div>
       <div class="dialog__body">
         <p class="text-sm mb-3">Select the new role for the selected users:</p>
-        <%= form.select :role, options_for_select([["Admin", "admin"], ["Editor", "editor"], ["Regular", "user"]]), {}, { class: "form-select" } %>
+        <%= form.select :role, options_for_select(User::ROLE_OPTIONS), {}, { class: "form-select" } %>
       </div>
       <div class="dialog__footer">
         <button type="button" class="btn btn--plain" data-action="click->admin-users#closeRoleModal">Cancel</button>
@@ -352,7 +368,13 @@
 </div>
 
 <%# Bulk Deactivate Form (hidden) %>
-<%= form_with url: bulk_deactivate_admin_users_path, method: :patch, local: true, data: { admin_users_target: "deactivateForm" }, style: "display:none" do |form| %>
+<%# Turbo-driven so `data-turbo-confirm` fires, matching the per-user Deactivate
+    and Reactivate buttons. This was `local: true` with a native confirm() in the
+    Stimulus controller — the one place in this screen that asked with browser
+    chrome instead of the app's own dialog. The count is filled in by
+    admin_users#bulkDeactivate, which knows how many rows are selected. %>
+<%= form_with url: bulk_deactivate_admin_users_path, method: :patch,
+              data: { admin_users_target: "deactivateForm" }, style: "display:none" do |form| %>
 <% end %>
 
 </div>

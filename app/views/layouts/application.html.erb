@@ -182,30 +182,7 @@
 
     <!-- Main Content with top padding for fixed nav -->
     <div class="page-content">
-      <!-- Flash Messages -->
-      <% if notice %>
-        <div class="flash flash--notice animate-slide-in-right"
-             data-controller="alert"
-             data-alert-duration-value="5000"
-             data-action="click->alert#dismiss">
-          <div class="flash__body" role="alert">
-            <span class="flash__text"><%= notice %></span>
-            <div class="flash__progress animate-shrink" data-alert-target="progress"></div>
-          </div>
-        </div>
-      <% end %>
-
-      <% if alert %>
-        <div class="flash flash--alert animate-slide-in-right"
-             data-controller="alert"
-             data-alert-duration-value="5000"
-             data-action="click->alert#dismiss">
-          <div class="flash__body" role="alert">
-            <span class="flash__text"><%= alert %></span>
-            <div class="flash__progress animate-shrink" data-alert-target="progress"></div>
-          </div>
-        </div>
-      <% end %>
+      <%= render "shared/flash_messages" %>
 
       <main class="page-main">
         <%= yield %>

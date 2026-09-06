@@ -65,7 +65,12 @@ module Workflows
       assert(a.reload.transitions.any? { |t| t.target_step_id == new_resolve.id })
     end
 
-    test "add_resolve_after shifts subsequent step positions" do
+    # This test used to assert that applying the fix to a workflow which already
+    # had a Resolve inserted a *second* one and shifted the first to position 3.
+    # That was the behaviour, and it was the bug: it produced two Resolve steps
+    # with the original stranded. The case it describes is exactly the one where
+    # duplicating is wrong, so it now asserts the connection instead.
+    test "add_resolve_after leaves positions alone when it can reuse an existing resolve" do
       q = Steps::Question.create!(
         workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
         title: "Ask", question: "What?", answer_type: "text"
@@ -86,7 +91,36 @@ module Workflows
            as: :turbo_stream
 
       assert_response :success
-      assert_equal 3, r.reload.position
+      assert_equal 2, r.reload.position, "nothing was inserted, so nothing should shift"
+      assert_equal [r.id], a.reload.transitions.map(&:target_step_id)
+    end
+
+    # The shifting itself still has to work, for the case where a Resolve really
+    # does get inserted in the middle.
+    test "add_resolve_after shifts subsequent positions when it does insert a step" do
+      q = Steps::Question.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
+        title: "Ask", question: "What?", answer_type: "text"
+      )
+      a = Steps::Action.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+        title: "Do thing"
+      )
+      tail = Steps::Message.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 2,
+        title: "Trailing step", content: "Bye"
+      )
+      Transition.create!(step: q, target_step: a, position: 0)
+      @workflow.update!(start_step: q)
+
+      assert_difference "Steps::Resolve.where(workflow: @workflow).count", 1 do
+        post workflow_health_fix_path(@workflow),
+             params: { fix_type: "add_resolve_after", step_uuid: a.uuid },
+             as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal 3, tail.reload.position, "the inserted Resolve must push later steps down"
     end
 
     test "connect_next with no next step returns alert" do
@@ -153,6 +187,68 @@ module Workflows
            as: :turbo_stream
 
       assert_redirected_to workflows_path
+    end
+
+    # -- Slice 3a/3b --------------------------------------------------------
+
+    # `steps#create` streams `step-count-text`; this action streamed the list and
+    # the health panel but not the count, so applying a fix that adds a step left
+    # the toolbar reading "2 steps" above three rows.
+    test "a fix that adds a step updates the step count in the toolbar" do
+      q = Steps::Question.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
+        title: "Ask", question: "What?", answer_type: "text"
+      )
+      @workflow.update!(start_step: q)
+
+      post workflow_health_fix_path(@workflow),
+           params: { fix_type: "add_resolve_after", step_uuid: q.uuid },
+           as: :turbo_stream
+
+      assert_response :success
+      assert_equal 2, @workflow.reload.steps.count
+      assert_match(/step-count-text/, response.body,
+                   "the fix changed the number of steps, so it has to refresh the count")
+      assert_match(/2 steps/, response.body)
+    end
+
+    # add_resolve_after used to create a new Resolve unconditionally. Given a
+    # workflow that already had one, it built a second and left the first
+    # stranded — two Resolve steps, one dead, and the workflow now publishable.
+    test "add_resolve_after connects to an existing reachable resolve instead of duplicating it" do
+      q = Steps::Question.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
+        title: "Ask", question: "What?", answer_type: "text"
+      )
+      existing = Steps::Resolve.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+        title: "Already here", resolution_type: "success"
+      )
+      @workflow.update!(start_step: q)
+
+      assert_no_difference "Steps::Resolve.where(workflow: @workflow).count" do
+        post workflow_health_fix_path(@workflow),
+             params: { fix_type: "add_resolve_after", step_uuid: q.uuid },
+             as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal [existing.id], q.reload.transitions.map(&:target_step_id),
+                   "the step must be wired to the Resolve that already existed"
+    end
+
+    test "add_resolve_after still creates one when the workflow has no resolve" do
+      q = Steps::Question.create!(
+        workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
+        title: "Ask", question: "What?", answer_type: "text"
+      )
+      @workflow.update!(start_step: q)
+
+      assert_difference "Steps::Resolve.where(workflow: @workflow).count", 1 do
+        post workflow_health_fix_path(@workflow),
+             params: { fix_type: "add_resolve_after", step_uuid: q.uuid },
+             as: :turbo_stream
+      end
     end
   end
 end

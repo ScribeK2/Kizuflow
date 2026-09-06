@@ -52,6 +52,39 @@ module WorkflowsHelper
   }.freeze
 
   # Get a user-friendly label for a step type
+  # The seven step types, in the order they are offered. One list: the type
+  # picker and the builder's empty state each had their own, and the empty
+  # state's was a three-item subset with no descriptions — so the first control
+  # a new author meets was the worse of the two, and it omitted Resolve, which
+  # every workflow is required to have.
+  STEP_TYPE_OPTIONS = [
+    { type: "question", name: "Question", desc: "Ask for information" },
+    { type: "action", name: "Action", desc: "Perform a task" },
+    { type: "message", name: "Message", desc: "Display information" },
+    { type: "form", name: "Form", desc: "Collect structured data" },
+    { type: "escalate", name: "Escalate", desc: "Transfer to another team" },
+    { type: "resolve", name: "Resolve", desc: "Mark as completed" },
+    { type: "sub_flow", name: "Sub-Flow", desc: "Run another workflow" }
+  ].freeze
+
+  # 1-based position in the workflow's ordered step list, keyed by uuid.
+  #
+  # Never render `step.position` directly. It is 0-based in workflows built by a
+  # service (import, templates) and 1-based in ones built through the UI, so the
+  # same builder called the first step "Step 0" in one workflow and "Step 1" in
+  # another — and the step rows, the "→ Step N" summaries and the health panel
+  # each read it separately, so fixing one left the others wrong.
+  # Computed, not memoised: a helper's instance variables live in the view
+  # context, so caching here would outlive the workflow it was built for.
+  # Callers that render a list compute it once and pass it down.
+  def step_ordinals(workflow)
+    workflow.steps.ordered.each_with_index.to_h { |step, index| [step.uuid, index + 1] }
+  end
+
+  def step_type_options
+    STEP_TYPE_OPTIONS
+  end
+
   def step_type_label(type)
     STEP_TYPE_LABELS[type] || type&.titleize || 'Step'
   end

@@ -5,7 +5,8 @@ export default class extends Controller {
     "bulkToggleBtn", "selectAll", "userCheckbox", "selectedCount",
     "bulkModal", "bulkForm", "resetModal", "resetEmail",
     "tempPasswordDisplay", "copyBtn", "doneBtn", "closeResetBtn",
-    "bulkBar", "bulkCount", "roleModal", "roleForm", "deactivateForm"
+    "bulkBar", "bulkCount", "roleModal", "roleForm", "deactivateForm",
+    "table"
   ]
 
   static values = { totalCount: Number }
@@ -24,10 +25,11 @@ export default class extends Controller {
     }
 
     this.bulkMode = !this.bulkMode
-    const columns = this.element.querySelectorAll(".bulk-select-column")
-    columns.forEach(col => {
-      col.style.display = this.bulkMode ? "table-cell" : "none"
-    })
+    // One class; admin.css decides the display value per element type. Setting
+    // it here meant the <col> got `table-cell` like its cells, which drops it
+    // from the table's column list and shifts every fixed-layout width one
+    // column left. See the .bulk-select-column rules in admin.css.
+    if (this.hasTableTarget) this.tableTarget.classList.toggle("is-bulk-mode", this.bulkMode)
 
     if (this.bulkMode) {
       this.bulkToggleBtnTarget.textContent = "Cancel Bulk Mode"
@@ -115,7 +117,14 @@ export default class extends Controller {
   bulkDeactivate() {
     const count = this.selectedUserIds.length
     if (count === 0) return
-    if (!confirm(`Are you sure you want to deactivate ${count} user${count > 1 ? "s" : ""}? They will not be able to sign in.`)) return
+
+    // Turbo asks, using the app's own dialog. This used to call the browser's
+    // confirm() — the only control on this screen that did, and it said "They
+    // will not be able to sign in", which was untrue until deactivation stopped
+    // expiring after an hour.
+    const plural = count === 1 ? "" : "s"
+    this.deactivateFormTarget.dataset.turboConfirm =
+      `Deactivate ${count} user${plural}? They will not be able to sign in until an administrator reactivates them.`
 
     this._injectUserIds(this.deactivateFormTarget)
     this.deactivateFormTarget.requestSubmit()

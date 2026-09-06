@@ -1,4 +1,10 @@
 class Group < ApplicationRecord
+  # The catch-all group for workflows with no explicit group assignment. Named
+  # once because three places matched the literal and one of them — the
+  # permission check — had quietly been left out of the rule the other two
+  # follow: that every user can see this group.
+  UNCATEGORIZED_NAME = "Uncategorized".freeze
+
   # Associations
   belongs_to :parent, class_name: 'Group', optional: true
   has_many :children, class_name: 'Group', foreign_key: 'parent_id', inverse_of: :parent, dependent: :nullify
@@ -25,7 +31,7 @@ class Group < ApplicationRecord
 
     # Also include Uncategorized group for backward compatibility (workflows without groups)
     # This ensures users can always see workflows in the Uncategorized group
-    uncategorized_group_id = Group.find_by(name: "Uncategorized")&.id
+    uncategorized_group_id = Group.find_by(name: UNCATEGORIZED_NAME)&.id
 
     # Combine both: user's assigned groups OR Uncategorized
     group_ids = [user_assigned_group_ids, uncategorized_group_id].flatten.compact.uniq
@@ -210,8 +216,14 @@ class Group < ApplicationRecord
 
   # Precompute workflows_count for a collection of groups in bulk
   # This avoids N+1 queries when rendering sidebar or lists
+  #
   # @param groups [Array<Group>] Groups to precompute counts for
-  def self.precompute_workflows_counts(groups)
+  # @param visible_ids [Enumerable<Integer>, nil] restrict the count to these
+  #   workflow ids. Without it the count is every workflow filed under the group,
+  #   which is not what the person reading the sidebar can open: an editor saw
+  #   "All Workflows 0" above "Uncategorized 12", clicked Uncategorized, and got
+  #   "No workflows". Pass the same scope the list itself uses.
+  def self.precompute_workflows_counts(groups, visible_ids: nil)
     return if groups.empty?
 
     all_group_ids = groups.map(&:id)
@@ -221,7 +233,9 @@ class Group < ApplicationRecord
     all_relevant_ids = (all_group_ids + all_descendant_ids).uniq
 
     # Single query: get all group_id => workflow_id pairs
-    gw_pairs = GroupWorkflow.where(group_id: all_relevant_ids).pluck(:group_id, :workflow_id)
+    gw_pairs = GroupWorkflow.where(group_id: all_relevant_ids)
+    gw_pairs = gw_pairs.where(workflow_id: visible_ids) if visible_ids
+    gw_pairs = gw_pairs.pluck(:group_id, :workflow_id)
 
     # Build group_id => [workflow_ids] lookup
     workflows_by_group = gw_pairs.each_with_object(Hash.new { |h, k| h[k] = Set.new }) do |(gid, wid), hash|
@@ -258,6 +272,15 @@ class Group < ApplicationRecord
     return true if user&.admin?
     return false unless user
 
+    # Uncategorized is offered to everyone by `Group.visible_to`, deliberately —
+    # it is where workflows with no group assignment live. This check did not
+    # carry the same exception, so the sidebar linked every user to a group the
+    # filter then refused: `apply_group_filter` skipped filtering entirely and
+    # the page showed the *unfiltered* list under a URL that claimed to be
+    # filtered. Granting view of the group leaks nothing, because the workflows
+    # in it are still scoped by `Workflow.visible_to`.
+    return true if name == UNCATEGORIZED_NAME
+
     user.groups.include?(self) || ancestors.any? { |ancestor| user.groups.include?(ancestor) }
   end
 
@@ -270,7 +293,7 @@ class Group < ApplicationRecord
   # Class method to get or create the default "Uncategorized" group
   # This group is used for workflows without explicit group assignments (backward compatibility)
   def self.uncategorized
-    find_or_create_by!(name: "Uncategorized") do |group|
+    find_or_create_by!(name: UNCATEGORIZED_NAME) do |group|
       group.description = "Default group for workflows without explicit group assignment"
       group.position = 0
     end

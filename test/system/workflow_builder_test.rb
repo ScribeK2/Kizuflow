@@ -64,8 +64,13 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     }.each do |label, klass|
       click_on "Add a step"
       click_on label
-      assert_selector step_row_selector_for(klass), wait: 5,
-                                                    count: 1
+      # Scoped to the list. `data-step-type` is carried by the row *and* by the
+      # editor panel, and creating a step now opens that panel — so an unscoped
+      # count matches twice. It only ever matched once because the panel was
+      # rendering 32px wide and Capybara did not consider it visible.
+      within "#steps-list" do
+        assert_selector step_row_selector_for(klass), wait: 5, count: 1
+      end
     end
   end
 
@@ -102,6 +107,44 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     within "turbo-frame#builder-panel" do
       assert_field "step[title]", with: "All done", wait: 5
     end
+  end
+
+  # The panel is loaded by two different mechanisms and only one of them used to
+  # open it. Clicking a row sets the frame's `src`, so Turbo fires
+  # `turbo:frame-load` and `builder#panelLoaded` runs. Creating a step injects
+  # the same partial with `turbo_stream.replace`, which fires no frame-load at
+  # all — so the editor's content arrived and the panel stayed shut: 32px wide,
+  # off the right edge of the viewport.
+  #
+  # Asserting the field is *present* does not catch that; it is present either
+  # way, and Capybara calls a 32px-wide field visible. The width is the
+  # assertion that bites.
+  test "adding a step opens its editor, not merely loads it" do
+    visit_builder_in_edit_mode
+
+    click_on "Add a step"
+    click_on "Question"
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[title]", wait: 5
+    end
+
+    assert_panel_width(:>, 200, "the editor loaded but the panel never opened")
+  end
+
+  test "closing the panel collapses it again" do
+    visit_builder_in_edit_mode
+    step_row(@resolve.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[title]", wait: 5
+    end
+
+    assert_panel_width(:>, 200, "precondition: the panel is open")
+
+    find("[data-action~='click->builder#closePanel']", match: :first).click
+
+    assert_panel_width(:==, 0, "closing must actually collapse the panel")
   end
 
   test "editing a step title autosaves and survives a reload" do
@@ -202,6 +245,31 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
   end
 
   private
+
+  # The panel animates over --duration-normal, so a width read the instant after
+  # a click catches it mid-transition. Poll like Capybara does rather than
+  # sleeping a fixed amount.
+  def assert_panel_width(operator, expected, message, timeout: 5)
+    deadline = Time.current + timeout
+    width = panel_body_width
+    while !width.public_send(operator, expected) && Time.current < deadline
+      sleep 0.1
+      width = panel_body_width
+    end
+
+    assert width.public_send(operator, expected), "#{message} (#{width}px wide)"
+  end
+
+  # Width of the panel's content box. 0 when closed, ~62% of the builder when
+  # open, and 32px in the bug this guards against.
+  def panel_body_width
+    page.evaluate_script(<<~JS)
+      (() => {
+        const b = document.querySelector('#builder-panel .builder__panel-body');
+        return b ? Math.round(b.getBoundingClientRect().width) : 0;
+      })()
+    JS
+  end
 
   def visit_builder_in_edit_mode
     visit workflow_path(@workflow, edit: true)

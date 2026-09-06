@@ -15,7 +15,7 @@ module Dashboard
     def workflows
       @workflows ||= if user.can_create_workflows?
                        visible_ids = Workflow.visible_to(user).select(:id)
-                       draft_ids = user.workflows.drafts.select(:id)
+                       draft_ids = Workflow.drafts_visible_to(user).select(:id)
                        Workflow.where(id: visible_ids).or(Workflow.where(id: draft_ids))
                                .includes(:tags).order(created_at: :desc).limit(5)
                      else
@@ -110,30 +110,66 @@ module Dashboard
 
     # -- SME-specific (company-wide) --
 
-    def workflow_count
-      @workflow_count ||= Workflow.visible_to(user).count
+    # Published workflows this viewer can see. Named for what it counts: the old
+    # `workflow_count` read like a total, and the view then tried to recover a
+    # published figure by subtracting drafts from it — but `visible_to` starts
+    # from the `published` scope, so there were never any drafts in it to
+    # subtract. An admin owning 11 drafts was shown "10 published" against 21.
+    def published_workflow_count
+      @published_workflow_count ||= Workflow.visible_to(user).count
     end
+    alias workflow_count published_workflow_count
 
+    # Drafts this viewer is allowed to see: org-wide for an admin, their own for
+    # an editor, none for anyone else. See Workflow.drafts_visible_to.
     def draft_count
-      @draft_count ||= user.workflows.drafts.count
+      @draft_count ||= Workflow.drafts_visible_to(user).count
     end
 
-    def company_scenario_total
-      @company_scenario_total ||= Scenario.count
+    # The SME dashboard's numbers all obey one boundary: the workflows this
+    # viewer can open. For an admin that is the whole library, so their figures
+    # are unchanged.
+    #
+    # These were `company_*` and were unconditional `Scenario.*` calls. "The
+    # company" is not a scope the app has anywhere else, and an editor with no
+    # group assignments was shown "Published Workflows 0" beside "Total
+    # Scenarios 116" — then, once the activity feed became org-wide to fix the
+    # admin's empty-feed contradiction, a list naming five workflows they had no
+    # access to. Renamed as well as rescoped, because `company_` was what made
+    # the unscoped query look deliberate.
+    #
+    # `recent_scenarios` and `scenario_active` keep their personal scope: the CSR
+    # dashboard uses them, and there "your runs" is the whole point.
+    def visible_scenarios
+      @visible_scenarios ||= Scenario.where(workflow_id: accessible_workflow_ids)
     end
 
-    def company_completion_rate
-      total = company_scenario_total
+    def visible_scenario_total
+      @visible_scenario_total ||= visible_scenarios.count
+    end
+
+    def visible_completion_rate
+      total = visible_scenario_total
       return 0 if total.zero?
 
-      completed = Scenario.where(status: "completed").count
+      completed = visible_scenarios.where(status: "completed").count
       ((completed * 100.0) / total).round
     end
 
-    def company_scenarios_this_week
-      @company_scenarios_this_week ||= Scenario
+    def visible_scenarios_this_week
+      @visible_scenarios_this_week ||= visible_scenarios
                                        .where(created_at: Time.current.beginning_of_week..)
                                        .count
+    end
+
+    def visible_recent_scenarios
+      @visible_recent_scenarios ||= visible_scenarios.includes(:workflow)
+                                                     .order(created_at: :desc)
+                                                     .limit(5)
+    end
+
+    def visible_scenario_active
+      @visible_scenario_active ||= visible_scenarios.where(status: "active").count
     end
 
     def scenario_active
@@ -156,6 +192,14 @@ module Dashboard
     end
 
     private
+
+    # Every workflow this viewer can reach: the published ones they may see plus
+    # the drafts they may see. For an admin, the whole library.
+    def accessible_workflow_ids
+      @accessible_workflow_ids ||= Workflow.where(id: Workflow.visible_to(user).select(:id))
+                                           .or(Workflow.where(id: Workflow.drafts_visible_to(user).select(:id)))
+                                           .select(:id)
+    end
 
     def user_scenarios
       @user_scenarios ||= Scenario.where(user: user)

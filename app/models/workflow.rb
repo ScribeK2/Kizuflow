@@ -103,6 +103,29 @@ class Workflow < ApplicationRecord
   # Group Access:
   # - Users assigned to a parent group can see workflows in child groups
   # - Workflows are visible if user is assigned to any group containing the workflow
+  # The draft counterpart to visible_to.
+  #
+  # visible_to answers "which published workflows may this person see", and its
+  # base scope is `published` — so there was no way to ask the same question
+  # about drafts, and every caller that needed one hardcoded
+  # `user.workflows.drafts`. That is correct for an editor and wrong for an
+  # admin: it hid every draft in the system from the only people who could act
+  # on them, on the dashboard, in the workflows list, and against a Data Health
+  # page that cheerfully reported the real total.
+  #
+  # Deliberately narrower than visible_to for non-admins: a draft is unpublished
+  # work, so group membership and `is_public` do not share it. An editor sees
+  # their own and nobody else's.
+  scope :drafts_visible_to, lambda { |user|
+    if user&.admin?
+      drafts
+    elsif user&.can_create_workflows?
+      drafts.where(user: user)
+    else
+      none
+    end
+  }
+
   scope :visible_to, lambda { |user|
     # Exclude drafts from main workflow list
     base_scope = published

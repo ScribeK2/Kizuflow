@@ -51,12 +51,19 @@
   flex: 1;
 }
 
-/* Execution path item toggle button */
+/* Execution path item toggle button.
+   Sets its own padding and cursor rather than inheriting the UA's — before the
+   reset neutralised button chrome, this rendered with a 2px outset black bevel
+   and a grey ButtonFace fill on every run's results page. */
 .scenario-exec-toggle {
   display: flex;
   align-items: center;
   width: 100%;
+  padding: var(--space-1) 0;
   text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 
 .scenario-exec-toggle__body {

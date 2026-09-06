@@ -31,14 +31,14 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     @user.update!(role: "editor")
     get root_path
     assert_response :success
-    assert_select "[aria-label*='Total workflows']"
+    assert_select "[aria-label*='Published workflows']"
   end
 
   test "admin renders SME dashboard" do
     @user.update!(role: "admin")
     get root_path
     assert_response :success
-    assert_select "[aria-label*='Total workflows']"
+    assert_select "[aria-label*='Published workflows']"
   end
 
   # -- CSR dashboard --

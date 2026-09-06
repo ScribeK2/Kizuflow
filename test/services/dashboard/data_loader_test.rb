@@ -114,47 +114,141 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
 
   # -- SME company-wide stats --
 
-  test "company_scenario_total counts all scenarios" do
+  test "visible_scenario_total counts all scenarios" do
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed")
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "simulation", status: "active")
 
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 2, loader.company_scenario_total
+    assert_equal 2, loader.visible_scenario_total
   end
 
-  test "company_completion_rate calculates across all users" do
+  test "visible_completion_rate calculates across all users" do
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed")
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "simulation", status: "completed")
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "active")
 
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 67, loader.company_completion_rate
+    assert_equal 67, loader.visible_completion_rate
   end
 
-  test "company_completion_rate returns 0 with no scenarios" do
+  test "visible_completion_rate returns 0 with no scenarios" do
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 0, loader.company_completion_rate
+    assert_equal 0, loader.visible_completion_rate
   end
 
-  test "company_scenarios_this_week counts all scenarios this week" do
+  test "visible_scenarios_this_week counts all scenarios this week" do
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed")
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "simulation", status: "active")
 
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 2, loader.company_scenarios_this_week
+    assert_equal 2, loader.visible_scenarios_this_week
   end
 
   # -- Shared --
+
+  # -- Slice 1: every number on a surface shares one scope ----------------------
+  #
+  # The SME dashboard mixed three company-wide stat cards with a personal
+  # activity feed, under copy reading "Scenarios run by your team". It also
+  # computed `published = workflow_count - draft_count`, subtracting the admin's
+  # own drafts from a number that came from `visible_to` and had therefore never
+  # contained a draft: an admin owning 11 drafts saw "10 published" when 21 were.
+
+  test "published_workflow_count never subtracts drafts from a published-only scope" do
+    2.times { |i| Workflow.create!(title: "Pub #{i}", user: @editor, status: "published") }
+    3.times { |i| Workflow.create!(title: "Mine #{i}", user: @admin, status: "draft") }
+
+    loader = Dashboard::DataLoader.new(@admin)
+
+    assert_equal Workflow.published.count, loader.published_workflow_count,
+                 "an admin sees every published workflow, regardless of how many drafts they own"
+  end
+
+  test "draft_count is org-wide for an admin" do
+    Workflow.create!(title: "Someone else's draft", user: @editor, status: "draft")
+    Workflow.create!(title: "My draft", user: @admin, status: "draft")
+
+    # Against the real total rather than a literal: an admin's figure is the
+    # org's figure, which is the whole point, and fixtures may add their own.
+    assert_equal Workflow.drafts.count, Dashboard::DataLoader.new(@admin).draft_count
+    assert_operator Dashboard::DataLoader.new(@admin).draft_count, :>=, 2
+  end
+
+  test "draft_count is own drafts only for an editor" do
+    Workflow.create!(title: "Admin draft", user: @admin, status: "draft")
+    Workflow.create!(title: "Editor draft", user: @editor, status: "draft")
+
+    assert_equal 1, Dashboard::DataLoader.new(@editor).draft_count,
+                 "an editor must not see a colleague's unpublished work"
+    assert_operator Workflow.drafts.count, :>, 1,
+                    "the assertion above is vacuous unless other drafts exist"
+  end
+
+  test "draft_count is zero for a regular user" do
+    Workflow.create!(title: "Editor draft", user: @editor, status: "draft")
+
+    assert_equal 0, Dashboard::DataLoader.new(@regular).draft_count
+  end
+
+  test "the scenario stats are scoped to workflows the viewer can open" do
+    mine = Workflow.create!(title: "Editor own", user: @editor, status: "published", is_public: true)
+    hidden = Workflow.create!(title: "Hidden from the editor", user: @admin, status: "published",
+                              is_public: false)
+    Group.create!(name: "Private #{SecureRandom.hex(3)}").tap { |g| hidden.groups << g }
+
+    Scenario.create!(workflow: mine, user: @admin, purpose: "live", started_at: Time.current,
+                     execution_path: [], results: {}, inputs: {})
+    secret = Scenario.create!(workflow: hidden, user: @admin, purpose: "live", started_at: Time.current,
+                              execution_path: [], results: {}, inputs: {})
+
+    loader = Dashboard::DataLoader.new(@editor)
+
+    assert_not_includes loader.visible_recent_scenarios, secret,
+                        "an editor must not be shown activity on a workflow they cannot open"
+    assert_not_includes Workflow.visible_to(@editor), hidden,
+                        "the assertion above is vacuous unless the workflow is really hidden"
+    assert_operator loader.visible_scenario_total, :<, Scenario.count,
+                    "a scoped total cannot equal the unscoped one when something is hidden"
+  end
+
+  test "an admin still sees every scenario, because they can open every workflow" do
+    assert_equal Scenario.count, Dashboard::DataLoader.new(@admin).visible_scenario_total
+  end
+
+  test "visible_recent_scenarios includes runs by other people" do
+    theirs = Scenario.create!(workflow: @workflow, user: @editor, purpose: "live",
+                              started_at: Time.current, execution_path: [], results: {}, inputs: {})
+
+    assert_includes Dashboard::DataLoader.new(@admin).visible_recent_scenarios, theirs,
+                    "the card next to this feed counts every scenario, so the feed must too"
+  end
+
+  test "recent_scenarios stays personal, because the CSR dashboard means yours" do
+    Scenario.create!(workflow: @workflow, user: @editor, purpose: "live",
+                     started_at: Time.current, execution_path: [], results: {}, inputs: {})
+
+    assert_empty Dashboard::DataLoader.new(@regular).recent_scenarios
+  end
+
+  test "visible_scenario_active counts live runs across everyone" do
+    Scenario.create!(workflow: @workflow, user: @editor, purpose: "live", status: "active",
+                     started_at: Time.current, execution_path: [], results: {}, inputs: {})
+
+    assert_equal 1, Dashboard::DataLoader.new(@admin).visible_scenario_active
+  end
 
   test "workflow_count returns visible workflows count" do
     loader = Dashboard::DataLoader.new(@editor)
     assert_operator loader.workflow_count, :>=, 1, "Expected at least 1 visible workflow"
   end
 
-  test "draft_count returns user drafts only" do
+  # Was "draft_count returns user drafts only" — true for an editor, and it stayed
+  # true, but it was silently also the rule for admins, which is what hid 23
+  # org-wide drafts from the only people who could act on them.
+  test "draft_count returns the drafts the viewer is allowed to see" do
     Workflow.create!(title: "Draft Flow", user: @editor, status: "draft")
-    loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 1, loader.draft_count
+
+    assert_equal 1, Dashboard::DataLoader.new(@editor).draft_count
   end
 
   test "workflows returns recent workflows" do

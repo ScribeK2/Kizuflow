@@ -380,4 +380,30 @@ class GroupTest < ActiveSupport::TestCase
 
     assert_not group.can_be_viewed_by?(user)
   end
+
+  # Group.visible_to deliberately offers Uncategorized to everyone — it is where
+  # workflows with no group assignment live, and the scope says so in a comment.
+  # can_be_viewed_by? did not carry the exception, so the sidebar linked every
+  # user to a group the filter then refused: WorkflowsFilter#apply_group_filter
+  # skipped filtering altogether and the page rendered the *unfiltered* list
+  # under a URL claiming to be filtered. Found by walking the app as an editor.
+  test "the group listing rule and the permission check agree" do
+    editor = User.create!(email: "grp-perm-#{SecureRandom.hex(4)}@example.com",
+                          password: "password123!", password_confirmation: "password123!", role: "editor")
+    uncategorized = Group.uncategorized
+
+    assert_includes Group.visible_to(editor), uncategorized,
+                    "precondition: the sidebar offers this group to every user"
+    assert uncategorized.can_be_viewed_by?(editor),
+           "a group the sidebar links to must be one the filter will accept"
+  end
+
+  test "an unrelated group is still refused" do
+    editor = User.create!(email: "grp-deny-#{SecureRandom.hex(4)}@example.com",
+                          password: "password123!", password_confirmation: "password123!", role: "editor")
+    other = Group.create!(name: "Someone Elses Group #{SecureRandom.hex(3)}")
+
+    assert_not other.can_be_viewed_by?(editor),
+               "the Uncategorized exception must not become a general grant"
+  end
 end

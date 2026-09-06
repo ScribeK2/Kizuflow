@@ -96,7 +96,7 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     assert_equal 0, result.summary[:warnings]
   end
 
-  test "step with no outgoing connections gets warning" do
+  test "step with no outgoing connections gets an error" do
     q = Steps::Question.create!(
       workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
       title: "Ask", question: "What?", answer_type: "text"
@@ -112,10 +112,12 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     assert_not result.clean?
     step_issues = result.issues[q.uuid]
     assert(step_issues.any? { |i| i[:message].include?("No outgoing connections") })
-    assert(step_issues.any? { |i| i[:severity] == :warning })
+    # An error, not a warning: publish refuses a terminal that is not a Resolve,
+    # and this issue now stands in for that finding.
+    assert(step_issues.any? { |i| i[:severity] == :error })
   end
 
-  test "dead-end step offers connect_next fix" do
+  test "dead-end step offers a fix that works whether or not a resolve exists" do
     q = Steps::Question.create!(
       workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
       title: "Ask", question: "What?", answer_type: "text"
@@ -130,7 +132,11 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     dead_end_issue = result.issues[q.uuid].find { |i| i[:message].include?("No outgoing connections") }
 
     assert dead_end_issue[:fixable]
-    assert_equal "connect_next", dead_end_issue[:fix_type]
+    # Was connect_next. This issue now also stands in for terminal-not-Resolve,
+    # so its Fix has to work when there is no next step to connect to —
+    # connect_next answers that case with "No next step to connect to", while
+    # add_resolve_after reuses an existing Resolve or creates one.
+    assert_equal "add_resolve_after", dead_end_issue[:fix_type]
   end
 
   test "terminal non-resolve step gets error with add_resolve_after fix" do
@@ -149,8 +155,14 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     action_issues = result.issues[a.uuid]
 
     assert_predicate action_issues, :present?
-    resolve_issue = action_issues.find { |i| i[:message].include?("not a Resolve step") }
-    assert resolve_issue, "Expected terminal-not-Resolve error on action step"
+    # The wording moved: a step with no outgoing transitions now reports that
+    # single fact rather than also restating it as "terminal step is not a
+    # Resolve step" and "has no path to a Resolve step". The contract this test
+    # exists for — the terminal step carries an error with a working Fix — is
+    # unchanged, so it is asserted on the fix rather than on the old sentence.
+    resolve_issue = action_issues.find { |i| i[:fix_type] == "add_resolve_after" }
+    assert resolve_issue, "Expected a fixable terminal error on the action step"
+    assert_equal :error, resolve_issue[:severity]
     assert resolve_issue[:fixable]
     assert_equal "add_resolve_after", resolve_issue[:fix_type]
   end
@@ -288,5 +300,57 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     )
 
     assert_not result.clean?
+  end
+
+  # -- Slice 3b: one answer to "can this publish?" -----------------------------
+
+  # WorkflowPublisher blocks on `GraphValidator#valid?`, which is simply
+  # "@findings.any?" — the validator has no severity concept, so every finding it
+  # produces stops a publish. The health check nonetheless singled out
+  # :unreachable_step and called it a warning, so the builder showed a clear
+  # Publish button and "Passing: every step can reach a Resolve step", and then
+  # publish refused with "Step 'X' is not reachable from the start node".
+  test "an unreachable step is an error, because publish refuses on it" do
+    user = User.create!(email: "sev-#{SecureRandom.hex(4)}@example.com",
+                        password: "password123!", password_confirmation: "password123!", role: "editor")
+    workflow = Workflow.create!(title: "Severity Flow", user: user, status: "draft")
+    q = Steps::Question.create!(workflow: workflow, position: 0, title: "Ask",
+                                question: "What?", answer_type: "text")
+    resolve = Steps::Resolve.create!(workflow: workflow, position: 1, title: "Done",
+                                     resolution_type: "success")
+    orphan = Steps::Resolve.create!(workflow: workflow, position: 2, title: "Stranded",
+                                    resolution_type: "success")
+    Transition.create!(step: q, target_step: resolve, position: 0)
+    workflow.update!(start_step: q)
+
+    result = WorkflowHealthCheck.call(workflow)
+    severities = result.issues[orphan.uuid].to_a.pluck(:severity)
+
+    assert_includes severities, :error,
+                    "publish refuses on an unreachable step, so the panel must call it an error"
+
+    # And the two really do agree now.
+    publish = WorkflowPublisher.publish(workflow, user)
+
+    assert_not publish.success?, "precondition: publish refuses this workflow"
+    assert_operator result.summary[:errors], :>, 0,
+                    "the health panel must not report a publishable workflow when publish refuses"
+  end
+
+  # The structural guard. Not a list of codes to keep in sync — the point is that
+  # classify_graph_finding has no per-code severity decision left to drift.
+  test "no graph finding is ever classified as a warning" do
+    source = Rails.root.join("app/services/workflow_health_check.rb").read
+    body = source[/def classify_graph_finding.*?\n  end\n/m]
+
+    assert body, "classify_graph_finding not found"
+    assert_no_match(/:warning/, body, <<~MESSAGE)
+      classify_graph_finding names :warning.
+
+      Every GraphValidator finding blocks a publish (WorkflowPublisher calls
+      valid?, which is "@findings.any?"), so anything softer than :error means
+      the builder is telling people a workflow is publishable when it is not.
+      Severity belongs to the publisher's behaviour, not to a per-code opinion.
+    MESSAGE
   end
 end

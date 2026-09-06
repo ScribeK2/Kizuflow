@@ -89,10 +89,18 @@
           <%= icon "document-text", class: "empty-state__icon" %>
           <h3 class="empty-state__title">No workflows</h3>
           <p class="empty-state__text">
+            <%# A filtered view that finds nothing must say the filter is empty,
+                not that the library is. The Drafts tab used to fall through to
+                "Get started by creating a new workflow" while 23 drafts existed
+                — it just could not see them. %>
             <% if @search_query.present? %>
               No workflows found matching "<%= @search_query %>"<% if @selected_group %> in <%= @selected_group.name %><% end %>.
             <% elsif @selected_group.present? %>
               No workflows in <%= @selected_group.name %>.
+            <% elsif @status_filter == "draft" %>
+              No drafts<%= " you can see" unless current_user&.admin? %>. Workflows stay drafts until they are published.
+            <% elsif @status_filter == "published" %>
+              Nothing published yet. A workflow appears here once it is published.
             <% else %>
               <%= current_user&.can_edit_workflows? ? "Get started by creating a new workflow." : "No public workflows available at the moment." %>
             <% end %>

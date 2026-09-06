@@ -7,7 +7,6 @@
   - health: WorkflowHealthCheck::Result
 %>
 <turbo-frame id="builder-panel"
-              data-builder-target="panel"
-              data-action="turbo:frame-load->builder#panelLoaded">
+              data-builder-target="panel">
   <%= render "workflows/health_panel_inner", workflow: workflow, health: health %>
 </turbo-frame>

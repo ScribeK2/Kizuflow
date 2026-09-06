@@ -43,6 +43,33 @@ select {
   color: inherit;
 }
 
+/* Buttons additionally lose the browser's own chrome.
+ *
+ * This rule used to neutralise only `font` and `color`, which meant any button
+ * whose class forgot to set a background and a border rendered as raw UA
+ * chrome — grey ButtonFace fill, outset bevel, square corners. A class that
+ * looks like a component but styles nothing is invisible in review: it looks
+ * plausible in the markup, and `rgb(239,239,239)` in light mode hides against a
+ * pale surface. In dark mode the same value stays light and the element reads
+ * inverted, so the bug ships in the theme nobody develops in.
+ *
+ * It had happened three times — `.file-dropzone`, `.dark-mode-toggle`, and then
+ * `.scenario-exec-toggle` plus `.wf-status-tabs__tab` — so the fix belongs here
+ * rather than in each component. Every intentionally styled button in the app
+ * (`.btn` and friends) already sets its own fill and border, so nothing that
+ * currently looks right changes: measured across ~245 buttons on ten pages in
+ * both themes, exactly two classes relied on the defaults.
+ *
+ * `input[type=submit]` and `input[type=button]` are included because they take
+ * the same UA appearance. */
+button,
+input[type="submit"],
+input[type="button"] {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
 p,
 h1,
 h2,

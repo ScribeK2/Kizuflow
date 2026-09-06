@@ -150,6 +150,30 @@ Dark mode is automatic. Use token names and they swap values via `[data-theme="d
 - **No external fonts or CDN links** — system fonts only
 - **No raw px/rem for spacing** — use `var(--space-N)` tokens
 
+### The unstyled-button trap
+
+`reset.css` neutralises `background`, `border` and `padding` on every `<button>`
+(and `input[type=submit|button]`), not just `font` and `color`. Without that, a
+button whose class forgot a fill and a border rendered as the browser's own
+chrome — grey ButtonFace, outset bevel, square corners.
+
+**Why it kept shipping:** the markup looks fine, and in light mode
+`rgb(239, 239, 239)` hides against a pale surface. Only in dark mode, where the
+UA value stays light while the tokens go dark, does it read obviously wrong. It
+landed three times — `.file-dropzone`, `.dark-mode-toggle`, then
+`.scenario-exec-toggle` and `.wf-status-tabs__tab` together. The last of those
+made the Analytics filter segments read *inverted* in dark mode: the unselected
+ones were light blocks, the selected one dark.
+
+**What this does and does not buy you.** The reset is a floor, so a forgotten
+declaration is no longer catastrophic. It is not a substitute for saying what an
+element looks like: declare a component's resting `background` in its own rule.
+`.wf-status-tabs__tab` is the cautionary case — it set a background only in its
+`.is-active` variant, so it rendered correctly as an `<a>` and wrong as a
+`<button>`, from one missing line.
+
+`test/integration/button_chrome_reset_test.rb` guards both halves.
+
 ### Surfaces Deliberately Excluded
 
 Some surfaces were left out of the northwest-palette migration on purpose. They
@@ -274,6 +298,7 @@ the noise this system removes.
 | `.form-label.is-required` | Required field | Appends red " *" |
 | `.form-input` | Text inputs, textareas | Canvas-alt bg, 1.5px border, inset shadow |
 | `.form-select` | Select dropdowns | Same as form-input + arrow |
+| `.form-select--sm` | Compact select inside a dense row (admin table, pagination) | Tighter padding, `width: auto`. Sized like `.btn--sm` is to `.btn` |
 | `.form-hint` | Help text below input | text-xs, muted color |
 | `.file-dropzone` | File upload drop target | Centred column, dashed hairline, canvas-alt fill; `.is-dragover` turns it solid + primary-soft |
 | `.file-dropzone__empty` / `__selected` | The two states inside it | Stacked, centred; toggle with `.is-hidden` |
@@ -344,10 +369,25 @@ does not become a wall of pastel and the eye finds real problems instantly.
 
 | Class | Use when | Visual |
 |-------|----------|--------|
-| `.flash` | Notification bar | Fixed top-right, slide-in animation |
-| `.flash--notice` | Success/info message | Green/positive accent |
-| `.flash--alert` | Error message | Red/negative accent |
-| `.toast` | Toast notification | Fixed bottom-right, smaller |
+| `.flash` | Notification bar | Fixed **bottom-right**, slide-in, click or × to dismiss, 5s auto-dismiss |
+| `.flash__body` | The visible box — **required** | Carries the fill, padding, radius and text colour. A `.flash` without one is unstyled text floating over the page |
+| `.flash__close` | Dismiss affordance | Icon button, inherits the body's text colour |
+| `.flash--notice` | Success/info message | `--color-positive` fill, `--color-on-positive` text |
+| `.flash--alert` | Error message | `--color-negative` fill, `--color-on-negative` text |
+
+**Never render a flash by hand.** `render "shared/flash_messages"` — every layout
+uses it. There were three copies before, and the Player's had drifted into a bare
+`<div class="flash flash--alert">` with no `.flash__body`, so flashes on the
+surface agents live in rendered as unstyled ink text over the page.
+
+**Why bottom-right.** The header is 4rem tall, so the old `top: 5rem` put the
+toast on the page's top-right action zone — and a flash usually reports on the
+very action whose button it covered (a failed publish hid Publish and Export).
+Every corner was measured and every corner has controls in some page, so the goal
+is not "no overlap" but "only overlap what survives the 5s dismissal". Bottom-right
+covers repeated table rows, never a unique primary action. It stays click-to-dismiss
+rather than `pointer-events: none`: click-through trades a blocked control for an
+accidentally fired one.
 
 ### Navigation (`navigation.css`)
 
@@ -383,7 +423,7 @@ so `.tab-bar` drops into any existing tablist with no JS change.
 | Skeletons | `.skeleton`, `.skeleton--text`, `--heading`, `--card` | `skeleton.css` | Shimmer animation, use for loading states |
 | Pagination | `.pagination-bar`, `.pagination`, `.pagination__item`, `.is-active` | `pagination.css` | `.pagination-bar` is a three-zone grid: summary left, numbered nav centred, page-size right |
 | Icons | `.icon`, `.icon--xs/sm/lg/xl` | `icons.css` | Inline-flex sizing (0.75 to 2rem) |
-| Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — an unstyled button falls back to raw browser chrome, since `reset.css` neutralises only its font and colour |
+| Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — a class styled only in a sheet that layout does not load matches nothing at all. (It used to *also* fall back to raw browser chrome; `reset.css` now neutralises button background, border and padding, so that half is closed — see § The unstyled-button trap) |
 
 ### Empty States
 
@@ -408,7 +448,6 @@ apology. If the page header already has a filled button, the empty-state CTA is
 
 - **Inline field errors:** Add `.is-invalid` to the control and display error text in a `<span class="form-error" role="alert">` below it. Defined for `.form-input`, `.form-textarea` and `.form-select` (red border) and for `.form-checkbox`/`.form-radio` (red outline — a native checkbox draws its own box, so a border-color is invisible on it). The runner's form step is the worked example: `scenarios/_form_step`.
 - **Flash errors:** Use `.flash--alert` for page-level errors.
-- **Toast errors:** Use `.toast--error` for async operation failures.
 
 ### Utility Classes vs. Component Classes
 
@@ -704,7 +743,7 @@ For page types not covered by a recipe, read these exemplary views. They demonst
 | `dropdowns.css` | components | Dropdown menus |
 | `tables.css` | components | Data tables |
 | `badges.css` | components | Badges, pills, dots |
-| `flash.css` | components | Flash messages, toasts |
+| `flash.css` | components | Flash messages |
 | `icons.css` | components | Icon sizing |
 | `tooltips.css` | components | Tooltip positioning |
 | `skeleton.css` | components | Loading skeletons |

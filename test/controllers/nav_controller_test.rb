@@ -99,4 +99,36 @@ class NavControllerTest < ActionDispatch::IntegrationTest
     assert_includes titles, "My Flow"
     assert_not_includes titles, "Private Flow"
   end
+
+  # A regular user cannot open the builder or the execution landing page, so
+  # every search result used to resolve to the bare Player index: twelve
+  # workflows, one destination, and no sign the app had heard which one you
+  # picked. Confirmed live during the role pass —
+  # {"count": 12, "distinctPaths": ["/play"]}.
+  test "a regular user's search results name the workflow they picked" do
+    regular = User.create!(email: "nav-reg-#{SecureRandom.hex(4)}@example.com",
+                           password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(name: "Nav Group #{SecureRandom.hex(3)}")
+    regular.user_groups.create!(group: group)
+    owner = User.create!(email: "nav-own-#{SecureRandom.hex(4)}@example.com",
+                         password: "password123!", password_confirmation: "password123!", role: "editor")
+    a = Workflow.create!(title: "Alpha Flow #{SecureRandom.hex(3)}", user: owner, status: "published")
+    b = Workflow.create!(title: "Beta Flow #{SecureRandom.hex(3)}", user: owner, status: "published")
+    [a, b].each { |w| w.groups << group }
+
+    sign_in regular
+    get nav_search_data_path, as: :json
+
+    assert_response :success
+    rows = response.parsed_body.select { |r| [a.title, b.title].include?(r["title"]) }
+
+    assert_equal 2, rows.size, "precondition: both workflows are visible to this user"
+    assert_equal 2, rows.pluck("path").uniq.size,
+                 "two different workflows must not resolve to one destination"
+    rows.each do |row|
+      assert_includes row["path"], "/play"
+      assert_includes CGI.unescape(row["path"]), row["title"],
+                      "the result has to carry the workflow it names"
+    end
+  end
 end

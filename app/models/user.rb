@@ -19,6 +19,18 @@ class User < ApplicationRecord
   # :regular maps to DB value "user" to avoid User.user naming collision.
   enum :role, { admin: "admin", editor: "editor", regular: "user" }, default: "user"
 
+  # The admin role selects and the actions that consume them read from these two
+  # constants, so a rendered <option> and the validation that accepts it cannot
+  # disagree. They deliberately speak in enum **keys**: "regular" is the public
+  # name and "user" is the column value, and the enum maps between them on write.
+  #
+  # This replaced a `ROLES = %w[admin editor user]` list of column *values*. The
+  # row select was built from the keys and validated against that list, so
+  # "regular" never matched and demoting a single user to Regular was impossible
+  # — while the bulk dialog, which hardcoded "user", worked. Two lists, one rule.
+  ASSIGNABLE_ROLES = roles.keys.freeze
+  ROLE_OPTIONS = roles.keys.map { |key| [key.capitalize, key] }.freeze
+
   # -- Scopes for admin filtering --
   scope :search_by, lambda { |query|
     return all if query.blank?
@@ -54,9 +66,6 @@ class User < ApplicationRecord
     order(column => direction)
   }
 
-  # Keep ROLES for backward compatibility with any code referencing it
-  ROLES = %w[admin editor user].freeze
-
   # Devise notifications are queued, not delivered inline — see
   # send_devise_notification below.
   after_commit :send_pending_devise_notifications
@@ -85,6 +94,40 @@ class User < ApplicationRecord
   end
 
   # Check if user can create workflows
+  # -- Administrative deactivation --
+  #
+  # Deliberately NOT Devise's `lock_access!`. `unlock_strategy = :both` with
+  # `unlock_in = 1.hour` means a lock expires on a timer, so offboarding someone
+  # that way silently wore off after an hour, and the listing could not tell a
+  # deliberate deactivation from a five-failed-attempts lockout. `deactivated_at`
+  # answers only the first question; `locked_at` keeps answering the second.
+  def deactivated?
+    deactivated_at.present?
+  end
+
+  def deactivate!
+    return if deactivated?
+
+    update!(deactivated_at: Time.current)
+  end
+
+  # Also clears a Devise lockout: an admin putting someone back to work should
+  # not have to notice that they were separately locked out by failed logins.
+  def reactivate!
+    update!(deactivated_at: nil)
+    unlock_access! if access_locked?
+  end
+
+  # Devise consults this on every sign-in and on every request for a remembered
+  # session, so a deactivated user is turned away rather than merely hidden.
+  def active_for_authentication?
+    super && !deactivated?
+  end
+
+  def inactive_message
+    deactivated? ? :deactivated : super
+  end
+
   def can_create_workflows?
     admin? || editor?
   end

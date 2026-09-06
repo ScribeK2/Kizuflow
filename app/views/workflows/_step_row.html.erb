@@ -8,7 +8,14 @@
   Local variables:
   - step: AR Step object
   - workflow: Workflow object
+  - ordinals: { step uuid => 1-based position in the rendered list }, so the
+    badge and the "→ Step N" summary agree, and neither depends on the stored
+    `position` column — which is 0-based in service-built workflows and 1-based
+    in UI-built ones. Optional: callers that render a row on its own (Turbo
+    Stream appends) fall back to the step's own place in the workflow.
 %>
+<% ordinals = local_assigns.fetch(:ordinals) { step_ordinals(workflow) } %>
+<% ordinal = ordinals[step.uuid] || "?" %>
 <% type_label = step_type_label(step.step_type) %>
 <% targets = (step.transitions.loaded? ? step.transitions : step.transitions.includes(:target_step)).filter_map(&:target_step) %>
 
@@ -32,7 +39,7 @@
   <span class="builder__step-badge builder__step-badge--<%= step.step_type %>"
         aria-label="<%= type_label %>"
         title="<%= type_label %>">
-    <%= step.position %>
+    <%= ordinal %>
   </span>
 
   <div class="list-row__body">
@@ -51,7 +58,7 @@
     <% parts = [] %>
     <% parts << "Start" if step == workflow.start_step %>
     <% parts << "Terminal" if step.terminal? %>
-    <% parts << "→ #{targets.map { |t| "Step #{t.position}" }.join(", ")}" if targets.any? %>
+    <% parts << "→ #{targets.map { |t| "Step #{ordinals[t.uuid] || "?"}" }.join(", ")}" if targets.any? %>
     <%= parts.join(" · ") %>
   </span>
 

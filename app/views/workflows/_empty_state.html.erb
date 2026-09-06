@@ -24,17 +24,18 @@
 
   <div class="builder__quick-starts">
     <span class="builder__quick-starts-label">Start with</span>
-    <% [
-      { type: "question", label: "Question" },
-      { type: "action", label: "Action" },
-      { type: "message", label: "Message" }
-    ].each do |qs| %>
+    <%# All seven, from workflows_helper's one list. This offered Question,
+        Action and Message only — so the control a new author meets first was a
+        subset of the "Add a step" picker, with no descriptions, and without
+        Resolve, which every workflow must have before it can be published. %>
+    <% step_type_options.each do |qs| %>
       <%= button_to workflow_steps_path(workflow),
           method: :post,
           params: { step_type: qs[:type] },
           data: { turbo_stream: true },
+          title: qs[:desc],
           class: "btn btn--secondary btn--sm" do %>
-        <%= qs[:label] %>
+        <%= qs[:name] %>
       <% end %>
     <% end %>
 

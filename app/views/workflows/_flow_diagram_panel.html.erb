@@ -7,8 +7,7 @@
 %>
 <% levels ||= FlowDiagramService.call(workflow) %>
 <turbo-frame id="builder-panel"
-              data-builder-target="panel"
-              data-action="turbo:frame-load->builder#panelLoaded">
+              data-builder-target="panel">
   <div class="builder__panel-header">
     <div class="builder__panel-header-left">
       <strong>Flow Diagram</strong>

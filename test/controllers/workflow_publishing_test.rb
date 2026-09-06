@@ -55,7 +55,10 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
       post workflow_publishing_path(@workflow)
     end
 
-    assert_redirected_to workflow_path(@workflow)
+    # edit=true: a failed publish leaves the builder in edit mode. Dropping it
+    # swapped the header for Edit/Run Scenario/Export and took "Add a step"
+    # away, so the user was told to fix something and lost the tools to do it.
+    assert_redirected_to workflow_path(@workflow, edit: true)
     follow_redirect!
     assert_match(/no steps/i, response.body)
   end

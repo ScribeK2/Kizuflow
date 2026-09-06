@@ -7,15 +7,7 @@
 <div class="dropdown__menu builder__type-picker is-hidden"
      hidden
      data-step-list-target="typePicker">
-  <% [
-    { type: "question", name: "Question", desc: "Ask for information" },
-    { type: "action", name: "Action", desc: "Perform a task" },
-    { type: "message", name: "Message", desc: "Display information" },
-    { type: "form", name: "Form", desc: "Collect structured data" },
-    { type: "escalate", name: "Escalate", desc: "Transfer to another team" },
-    { type: "resolve", name: "Resolve", desc: "Mark as completed" },
-    { type: "sub_flow", name: "Sub-Flow", desc: "Run another workflow" }
-  ].each do |st| %>
+  <% step_type_options.each do |st| %>
     <%= button_to workflow_steps_path(workflow),
         method: :post,
         params: { step_type: st[:type] },

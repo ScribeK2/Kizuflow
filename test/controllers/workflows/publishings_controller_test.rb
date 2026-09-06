@@ -44,7 +44,10 @@ module Workflows
     test 'create without steps returns error' do
       post workflow_publishing_path(@workflow)
 
-      assert_redirected_to workflow_path(@workflow)
+      # edit=true: a failed publish must leave the builder in edit mode. Dropping
+      # it swapped the header for Edit/Run Scenario/Export and removed "Add a
+      # step", so the user was told to fix something and lost the tools to do it.
+      assert_redirected_to workflow_path(@workflow, edit: true)
       assert_match(/failed to publish/i, flash[:alert])
     end
 
