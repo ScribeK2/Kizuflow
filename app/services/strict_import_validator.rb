@@ -94,9 +94,15 @@ class StrictImportValidator
     return report(placements:) if @errors.any?
 
     normalized = workflows.map { |workflow| normalize(workflow) }
+
+    # What each workflow receives from its callers, before any of them is checked
+    # in isolation. Computed across the whole bundle because that is the only
+    # place a caller is visible — see #inherited_variables.
+    inherited = inherited_variables(normalized)
+
     normalized.each_with_index do |workflow, i|
       validate_graph(workflow, path_for(i))
-      validate_semantics(workflow, path_for(i))
+      validate_semantics(workflow, path_for(i), inherited[i])
     end
     resolve_sub_flow_targets(normalized)
 
@@ -310,9 +316,9 @@ class StrictImportValidator
   # The variable and option checks are warnings: a variable can legitimately
   # arrive from scenario inputs rather than an upstream question, so treating
   # either as an error would reject valid files.
-  def validate_semantics(workflow, workflow_path)
+  def validate_semantics(workflow, workflow_path, inherited = Set.new)
     steps = workflow["steps"]
-    defined = defined_variables(steps)
+    defined = defined_variables(steps) | inherited
     options = options_by_variable(steps)
 
     steps.each_with_index do |step, index|
@@ -361,6 +367,72 @@ class StrictImportValidator
 
   def defined_variables(steps)
     steps.filter_map { |step| step["variable_name"].presence }.to_set
+  end
+
+  # What each workflow in the bundle receives from whoever calls it.
+  #
+  # A sub-flow does not start empty. ScenarioStepProcessor seeds the child with
+  # `(@scenario.results || {}).dup` — the caller's whole bag — and only then
+  # applies `variable_mapping`, which therefore *renames* rather than selects.
+  # So a variable a caller set is genuinely defined inside its sub-flow, and
+  # checking each workflow in isolation reported a false `undefined_variable` on
+  # every correct bundle that passes data down. The schema and the agent prompt
+  # both claimed the opposite ("only mapped variables are seeded") until this was
+  # spiked against a real run.
+  #
+  # Transitive, because inheritance is: in A -> B -> C, C receives what B had,
+  # and B had everything A had. A one-hop version would still be wrong for the
+  # very shape the prompt asks agents to write when it tells them to split a
+  # domain into several workflows.
+  #
+  # Iterative to a fixed point rather than recursive, so a cyclic bundle
+  # terminates here instead of relying on SubflowValidator, which refuses cycles
+  # only later, at import. Sets grow monotonically and are bounded by the names
+  # in the file, so the loop always settles; the bundle is capped at
+  # ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE, so the cost is nil.
+  #
+  # Only in-bundle edges are followed. An out-of-bundle target is a published
+  # workflow that is not being validated here, so nothing it inherits matters.
+  def inherited_variables(workflows)
+    own = workflows.map { |workflow| defined_variables(Array(workflow["steps"])) }
+    index_by_title = {}
+    workflows.each_with_index do |workflow, i|
+      index_by_title[workflow["title"].to_s.strip.downcase] = i
+    end
+
+    inherited = Array.new(workflows.size) { Set.new }
+
+    loop do
+      changed = false
+
+      workflows.each_with_index do |workflow, caller_index|
+        Array(workflow["steps"]).each do |step|
+          next unless step["type"] == "sub_flow"
+
+          target = index_by_title[step["target_workflow_title"].to_s.strip.downcase]
+          next if target.nil?
+
+          incoming = own[caller_index] | inherited[caller_index] | renamed_variables(step)
+          before = inherited[target].size
+          inherited[target] |= incoming
+          changed ||= inherited[target].size != before
+        end
+      end
+
+      break unless changed
+    end
+
+    inherited
+  end
+
+  # The names a mapping creates inside the sub-flow. The hash is written
+  # {name_out_here => name_in_there} (ScenarioStepProcessor#process_subflow_step),
+  # so it is the values that exist on the far side.
+  def renamed_variables(step)
+    mapping = step["variable_mapping"]
+    return Set.new unless mapping.is_a?(Hash)
+
+    mapping.values.filter_map { |name| name.to_s.presence }.to_set
   end
 
   def options_by_variable(steps)

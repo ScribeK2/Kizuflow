@@ -281,10 +281,11 @@ class ImportSchemaGenerator
   def variable_mapping_property
     {
       "type" => "object",
-      "description" => "Variables to hand to the sub-flow, as " \
+      "description" => "Renames a variable for the sub-flow, as " \
                        '{"name_in_this_workflow": "name_inside_the_sub_flow"}. ' \
-                       "Only mapped variables are seeded, so a sub-flow that " \
-                       "interpolates {{a_variable}} it was not given renders blank.",
+                       "A sub-flow already inherits every variable collected so far " \
+                       "under its original name, so a mapping is only needed when the " \
+                       "sub-flow refers to one by a different name.",
       "additionalProperties" => { "type" => "string" }
     }
   end

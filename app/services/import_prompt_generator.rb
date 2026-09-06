@@ -60,7 +60,8 @@ class ImportPromptGenerator
               "type": "sub_flow",
               "title": "Continue in slow-connection diagnostics",
               "target_workflow_title": "Slow Connection Diagnostics",
-              "sub_flow_returns": false
+              "sub_flow_returns": false,
+              "variable_mapping": { "fully_down": "line_was_dead" }
             },
             {
               "id": "resolved",
@@ -102,7 +103,8 @@ class ImportPromptGenerator
               "id": "book-engineer",
               "type": "resolve",
               "title": "Book an engineer",
-              "resolution_type": "ticket"
+              "resolution_type": "ticket",
+              "description": "<p>Raise a ticket. Line reported fully dead: {{line_was_dead}}. Wi-Fi or wired: {{connection}}.</p>"
             }
           ]
         }
@@ -222,12 +224,16 @@ class ImportPromptGenerator
       linked set in one file, since it then needs nothing to exist beforehand.
       Otherwise it must match a workflow that already exists and is published.
       Two workflows in one file cannot share a title, because that is how a
-      target is matched. To hand variables to one, use
-      `variable_mapping`, written `{"name_here": "name_inside_the_sub_flow"}` —
-      the key is this workflow's name for the value, the value is the sub-flow's.
-      **Only mapped variables cross**, so a sub-flow that interpolates
-      `{{something}}` it was not given renders blank. Map everything the
-      sub-flow's text or conditions refer to.
+      target is matched.
+
+      **A sub-flow inherits every variable collected so far**, under the same
+      name, so you usually need nothing to pass data down. `variable_mapping`
+      *renames* one for the sub-flow, written
+      `{"name_here": "name_inside_the_sub_flow"}` — the key is this workflow's
+      name for the value, the value is the sub-flow's. Reach for it only when
+      the sub-flow is written against a different name, which is the normal case
+      for a sub-flow shared by several callers that each collect the same thing
+      under a name of their own.
     MD
   end
 
@@ -241,7 +247,10 @@ class ImportPromptGenerator
       handoff, where `hand-to-diagnostics` ends the first workflow by moving the
       run to the second rather than returning to it; and that the second workflow
       is named by title from inside the same file, so neither has to exist
-      beforehand.
+      beforehand. The `variable_mapping` on the handoff is a rename, not a
+      transfer: `fully_down` would have crossed anyway, but the second workflow
+      is written against `line_was_dead`, so the mapping is what makes
+      `{{line_was_dead}}` resolve.
 
       ```json
       #{EXAMPLE.strip}
