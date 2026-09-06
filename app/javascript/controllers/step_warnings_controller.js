@@ -108,8 +108,10 @@ export default class extends Controller {
     // Update publish badge
     this.renderPublishBadge(summary.errors)
 
-    // Update toolbar issues
-    this.renderToolbarIssues(summary.total)
+    // Update toolbar issues. The whole summary, not just the total: the badge
+    // beside Publish counts errors and this counted everything, so the same
+    // screen showed "4 issues" and "2" with nothing saying why they differed.
+    this.renderToolbarIssues(summary)
   }
 
   renderStepIcons(issues) {
@@ -184,7 +186,7 @@ export default class extends Controller {
     }
   }
 
-  renderToolbarIssues(total) {
+  renderToolbarIssues({ errors, warnings, total }) {
     if (!this.hasToolbarIssuesTarget) return
 
     if (total > 0) {
@@ -194,12 +196,17 @@ export default class extends Controller {
       this.clearElement(this.toolbarIssuesTarget)
 
       const pill = document.createElement("span")
-      pill.className = "badge badge--alert"
-      pill.textContent = total
+      // Errors lead, because they are what stops a publish, and the pill is
+      // amber when there is nothing blocking. Naming both is what reconciles
+      // this with the badge on Publish, which counts errors alone.
+      pill.className = errors > 0 ? "badge badge--alert" : "badge badge--warning"
+      pill.textContent = errors > 0 ? errors : warnings
       this.toolbarIssuesTarget.appendChild(pill)
-      this.toolbarIssuesTarget.appendChild(
-        document.createTextNode(` issue${total === 1 ? "" : "s"}`)
-      )
+
+      const label = errors > 0
+        ? ` error${errors === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""}`
+        : ` warning${warnings === 1 ? "" : "s"}`
+      this.toolbarIssuesTarget.appendChild(document.createTextNode(label))
     } else {
       this.toolbarIssuesTarget.hidden = true
       this.clearElement(this.toolbarIssuesTarget)

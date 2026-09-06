@@ -30,6 +30,14 @@
     min-width: 0;
   }
 
+  /* Sized to sit beside the title without competing with it. .page-back carries
+     the colour and hover; this only stops it shrinking when the title is long. */
+  .builder__back {
+    flex-shrink: 0;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
   .builder__title-wrapper {
     display: inline-flex;
     align-items: center;
@@ -164,7 +172,17 @@
     flex-direction: column;
   }
 
-  .builder--panel-open .builder__list {
+  /* The panel is open when its frame has content — a fact in the DOM, not a
+     class an event handler has to remember to add.
+   *
+   * It used to be `.builder--panel-open`, applied by `builder#panelLoaded`,
+   * which fires on `turbo:frame-load`. Clicking a step row sets the frame's
+   * `src`, so that event fires. Creating a step injects the very same partial
+   * with `turbo_stream.replace`, which fires no frame-load — so the editor's
+   * content arrived and the panel stayed collapsed at 32px, off the right edge.
+   * Deriving the state means every way of filling the frame opens it, including
+   * the next one somebody adds. */
+  .builder:has(#builder-panel > *) .builder__list {
     flex: 0 0 38%;
     max-width: 38%;
   }
@@ -306,8 +324,8 @@
   }
 
   /* Hide type label and connections when panel is open */
-  .builder--panel-open .builder__step-type,
-  .builder--panel-open .builder__step-connections {
+  .builder:has(#builder-panel > *) .builder__step-type,
+  .builder:has(#builder-panel > *) .builder__step-connections {
     display: none;
   }
 
@@ -416,7 +434,7 @@
                 transform var(--duration-normal) var(--ease-out);
   }
 
-  .builder--panel-open .builder__panel {
+  .builder:has(#builder-panel > *) .builder__panel {
     flex: 0 0 62%;
     transform: translateX(0);
   }

@@ -449,7 +449,13 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
 
     issues = WorkflowHealthCheck.new(source).call.issues[sub.uuid] || []
 
-    assert_predicate issues.select { |i| i[:fix_type] == "connect_next" }, :any?,
+    # The fix type moved from connect_next to add_resolve_after when the
+    # dead-end issue absorbed the terminal-not-Resolve finding: its Fix has to
+    # work when there is no next step to connect to. What this test guards is
+    # the contrast with the handoff above — a *returning* sub-flow with nowhere
+    # to come back to is a fault and must be flagged with a working fix — so it
+    # asserts fixability rather than one particular remedy.
+    assert_predicate issues.select { |i| i[:fixable] }, :any?,
                      "it will come back and has nowhere to come back to — the warning is right here"
   end
 

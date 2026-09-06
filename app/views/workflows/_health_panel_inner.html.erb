@@ -1,3 +1,5 @@
+<%# One numbering for the whole panel; see WorkflowsHelper#step_ordinals. %>
+<% ordinals = step_ordinals(workflow) %>
 <%#
   Health Panel Inner — content rendered inside the builder panel turbo-frame.
 
@@ -68,7 +70,7 @@
         <% errors.each do |uuid, issues| %>
           <% step = workflow.steps.find { |s| s.uuid == uuid } %>
           <% issues.select { |i| i[:severity] == :error }.each do |issue| %>
-            <%= render "workflows/health_issue", issue: issue, uuid: uuid, step: step, workflow: workflow %>
+            <%= render "workflows/health_issue", issue: issue, uuid: uuid, step: step, workflow: workflow, ordinals: ordinals %>
           <% end %>
         <% end %>
         </div>
@@ -84,7 +86,7 @@
         <% warnings.each do |uuid, issues| %>
           <% step = workflow.steps.find { |s| s.uuid == uuid } %>
           <% issues.select { |i| i[:severity] == :warning }.each do |issue| %>
-            <%= render "workflows/health_issue", issue: issue, uuid: uuid, step: step, workflow: workflow %>
+            <%= render "workflows/health_issue", issue: issue, uuid: uuid, step: step, workflow: workflow, ordinals: ordinals %>
           <% end %>
         <% end %>
         </div>
@@ -104,8 +106,13 @@
     <% passing_checks = [] %>
     <% issue_codes = health.issues.values.flatten.filter_map { |i| i[:code] } %>
     <% passing_checks << "Reachability from start" unless issue_codes.include?(:unreachable_step) %>
-    <% passing_checks << "Every step can reach a Resolve step" unless issue_codes.include?(:no_path_to_resolve) %>
-    <% passing_checks << "All terminals are Resolve steps" unless issue_codes.include?(:terminal_not_resolve) %>
+    <%# :no_outgoing_transitions stands in for both of these. A step with no
+        outgoing connections IS a terminal that is not a Resolve and has no path
+        to one — the health check collapses those three restatements into one
+        error, so listing the checks as passing while that error is on screen
+        would contradict it. %>
+    <% passing_checks << "Every step can reach a Resolve step" unless (issue_codes & %i[no_path_to_resolve no_outgoing_transitions]).any? %>
+    <% passing_checks << "All terminals are Resolve steps" unless (issue_codes & %i[terminal_not_resolve no_outgoing_transitions]).any? %>
     <% passing_checks << "No circular sub-flows" unless (issue_codes & %i[circular_subflow max_depth_exceeded subflow_target_missing]).any? %>
     <% passing_checks << "All required fields present" unless (issue_codes & %i[question_text_required subflow_target_required]).any? %>
     <% if passing_checks.any? %>
