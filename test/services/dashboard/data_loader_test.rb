@@ -114,34 +114,34 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
 
   # -- SME company-wide stats --
 
-  test "company_scenario_total counts all scenarios" do
+  test "visible_scenario_total counts all scenarios" do
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed")
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "simulation", status: "active")
 
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 2, loader.company_scenario_total
+    assert_equal 2, loader.visible_scenario_total
   end
 
-  test "company_completion_rate calculates across all users" do
+  test "visible_completion_rate calculates across all users" do
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed")
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "simulation", status: "completed")
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "active")
 
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 67, loader.company_completion_rate
+    assert_equal 67, loader.visible_completion_rate
   end
 
-  test "company_completion_rate returns 0 with no scenarios" do
+  test "visible_completion_rate returns 0 with no scenarios" do
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 0, loader.company_completion_rate
+    assert_equal 0, loader.visible_completion_rate
   end
 
-  test "company_scenarios_this_week counts all scenarios this week" do
+  test "visible_scenarios_this_week counts all scenarios this week" do
     Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed")
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "simulation", status: "active")
 
     loader = Dashboard::DataLoader.new(@editor)
-    assert_equal 2, loader.company_scenarios_this_week
+    assert_equal 2, loader.visible_scenarios_this_week
   end
 
   # -- Shared --
@@ -190,11 +190,36 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
     assert_equal 0, Dashboard::DataLoader.new(@regular).draft_count
   end
 
-  test "company_recent_scenarios includes runs by other people" do
+  test "the scenario stats are scoped to workflows the viewer can open" do
+    mine = Workflow.create!(title: "Editor own", user: @editor, status: "published", is_public: true)
+    hidden = Workflow.create!(title: "Hidden from the editor", user: @admin, status: "published",
+                              is_public: false)
+    Group.create!(name: "Private #{SecureRandom.hex(3)}").tap { |g| hidden.groups << g }
+
+    Scenario.create!(workflow: mine, user: @admin, purpose: "live", started_at: Time.current,
+                     execution_path: [], results: {}, inputs: {})
+    secret = Scenario.create!(workflow: hidden, user: @admin, purpose: "live", started_at: Time.current,
+                              execution_path: [], results: {}, inputs: {})
+
+    loader = Dashboard::DataLoader.new(@editor)
+
+    assert_not_includes loader.visible_recent_scenarios, secret,
+                        "an editor must not be shown activity on a workflow they cannot open"
+    assert_not_includes Workflow.visible_to(@editor), hidden,
+                        "the assertion above is vacuous unless the workflow is really hidden"
+    assert_operator loader.visible_scenario_total, :<, Scenario.count,
+                    "a scoped total cannot equal the unscoped one when something is hidden"
+  end
+
+  test "an admin still sees every scenario, because they can open every workflow" do
+    assert_equal Scenario.count, Dashboard::DataLoader.new(@admin).visible_scenario_total
+  end
+
+  test "visible_recent_scenarios includes runs by other people" do
     theirs = Scenario.create!(workflow: @workflow, user: @editor, purpose: "live",
                               started_at: Time.current, execution_path: [], results: {}, inputs: {})
 
-    assert_includes Dashboard::DataLoader.new(@admin).company_recent_scenarios, theirs,
+    assert_includes Dashboard::DataLoader.new(@admin).visible_recent_scenarios, theirs,
                     "the card next to this feed counts every scenario, so the feed must too"
   end
 
@@ -205,11 +230,11 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
     assert_empty Dashboard::DataLoader.new(@regular).recent_scenarios
   end
 
-  test "company_scenario_active counts live runs across everyone" do
+  test "visible_scenario_active counts live runs across everyone" do
     Scenario.create!(workflow: @workflow, user: @editor, purpose: "live", status: "active",
                      started_at: Time.current, execution_path: [], results: {}, inputs: {})
 
-    assert_equal 1, Dashboard::DataLoader.new(@admin).company_scenario_active
+    assert_equal 1, Dashboard::DataLoader.new(@admin).visible_scenario_active
   end
 
   test "workflow_count returns visible workflows count" do
