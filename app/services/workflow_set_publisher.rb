@@ -56,7 +56,37 @@ class WorkflowSetPublisher
     members.values
   end
 
+  def publish
+    members = closure
+
+    unauthorized = members.reject { |workflow| workflow.can_be_edited_by?(@user) }
+    if unauthorized.any?
+      return failure("You do not have permission to publish '#{unauthorized.first.title}'.",
+                     unauthorized.first)
+    end
+
+    ids = members.to_set(&:id)
+    outcome = nil
+
+    Workflow.transaction do
+      members.each do |workflow|
+        workflow.publishing_alongside = ids
+        result = WorkflowPublisher.publish(workflow, @user, changelog: @changelog)
+        next if result.success?
+
+        outcome = failure("#{workflow.title}: #{result.error}", workflow)
+        raise ActiveRecord::Rollback
+      end
+    end
+
+    outcome || Result.new(workflows: members, error: nil, failed_workflow: nil)
+  end
+
   private
+
+  def failure(message, workflow)
+    Result.new(workflows: [], error: message, failed_workflow: workflow)
+  end
 
   def target_ids(workflow)
     Steps::SubFlow.where(workflow_id: workflow.id)

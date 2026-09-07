@@ -78,4 +78,84 @@ class WorkflowSetPublisherTest < ActiveSupport::TestCase
     assert_not_includes ids, published.id, "a published target already satisfies the rule"
     assert_not_includes ids, behind.id, "and its own targets were checked when it published"
   end
+  test "a mutual pair publishes as a set where neither can publish alone" do
+    a = resolving_workflow("Pair A")
+    b = resolving_workflow("Pair B")
+    link(a, b, returns: false)
+    link(b, a, returns: false)
+
+    assert_not WorkflowPublisher.publish(a.reload, @user).success?,
+               "publishing one alone must still fail — that is the deadlock"
+
+    result = WorkflowSetPublisher.publish(a.reload, @user)
+
+    assert_predicate result, :success?, result.error
+    assert_equal %w[published published], [a.reload.status, b.reload.status]
+  end
+
+  test "after a successful set publish no published workflow points at a draft" do
+    a = resolving_workflow("Inv A")
+    b = resolving_workflow("Inv B")
+    link(a, b, returns: false)
+    link(b, a, returns: false)
+
+    assert_predicate WorkflowSetPublisher.publish(a.reload, @user), :success?
+
+    dangling = Steps::SubFlow.where.not(sub_flow_workflow_id: nil).select do |step|
+      step.workflow.published? && Workflow.find_by(id: step.sub_flow_workflow_id)&.draft?
+    end
+    assert_empty dangling, "the rule's timing moved; the rule did not"
+  end
+
+  test "one invalid member rolls the whole set back" do
+    a = resolving_workflow("Roll A")
+    b = resolving_workflow("Roll B")
+    link(a, b, returns: false)
+    link(b, a, returns: false)
+    # Deleting B's Resolve does NOT make it unpublishable: its handoff is a legal
+    # terminal and seeds escapability. An orphan Action is genuinely invalid —
+    # unreachable, and a terminal that is not a Resolve.
+    Steps::Action.create!(workflow: b, position: 9, title: "Dead End")
+
+    result = WorkflowSetPublisher.publish(a.reload, @user)
+
+    assert_not result.success?
+    assert_equal "draft", a.reload.status, "nothing publishes when one member fails"
+    assert_equal "draft", b.reload.status
+  end
+
+  test "the failure names the workflow that failed" do
+    a = resolving_workflow("Name A")
+    b = resolving_workflow("Name B")
+    link(a, b, returns: false)
+    link(b, a, returns: false)
+    # Deleting B's Resolve does NOT make it unpublishable: its handoff is a legal
+    # terminal and seeds escapability. An orphan Action is genuinely invalid —
+    # unreachable, and a terminal that is not a Resolve.
+    Steps::Action.create!(workflow: b, position: 9, title: "Dead End")
+
+    result = WorkflowSetPublisher.publish(a.reload, @user)
+
+    assert_not result.success?
+    assert_includes result.error, "Name B"
+    assert_equal b.id, result.failed_workflow.id
+  end
+
+  test "a member the user cannot edit refuses the whole operation" do
+    other = User.create!(
+      email: "other-#{SecureRandom.hex(4)}@example.com",
+      password: "password123!", password_confirmation: "password123!", role: "editor"
+    )
+    a = resolving_workflow("Perm A")
+    b = Workflow.create!(title: "Someone Elses Draft", user: other, status: "draft", graph_mode: true)
+    r = Steps::Resolve.create!(workflow: b, position: 0, title: "Done", resolution_type: "success")
+    b.update!(start_step: r)
+    link(a, b, returns: false)
+
+    result = WorkflowSetPublisher.publish(a.reload, @user)
+
+    assert_not result.success?
+    assert_includes result.error, "Someone Elses Draft"
+    assert_equal "draft", a.reload.status
+  end
 end
