@@ -47,8 +47,16 @@ class SubflowValidationTest < ActiveSupport::TestCase
     # preload_reachable_workflows: 1 root find + 10 extract queries + batch loads
     # validate_no_circular_subflows: up to 10 more extract queries
     # validate_max_depth: up to 10 more extract queries
-    # Total: ~40 queries for 10 workflows (bounded, not exponential)
-    assert_max_queries(45) do
+    # validate_escapable_across_workflows: up to 10 more handoff_target_ids
+    #   queries, one per cached workflow. This fixture is a pure returning
+    #   chain (every sub_flow step defaults to sub_flow_returns: true), so
+    #   handoff_edges comes back all-empty and the method returns immediately
+    #   after that scan — the per-workflow graph walk in
+    #   workflow_self_escapable? never runs. A mesh with a real handoff would
+    #   cost more; this fixture measures only the guard's own cost.
+    # Total measured: 50 queries for 10 workflows (bounded, not exponential;
+    # budget set with headroom above the measured count, same margin as before)
+    assert_max_queries(55) do
       validator.valid?
     end
   end
