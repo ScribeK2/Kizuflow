@@ -24,6 +24,15 @@ class SubflowValidator
   MAX_DEPTH = 10 # Maximum sub-flow nesting depth
   SUBFLOW_TYPES = %w[sub_flow sub-flow].freeze
 
+  # Which findings make a workflow unsaveable.
+  #
+  # An ALLOWLIST on purpose. Workflow#validate_subflow_circular_references used
+  # to copy every finding onto the record on every save, so adding a finding
+  # made workflows unsaveable by accident — that is how a too-deep import
+  # produced workflows that could never be saved or published again. A new
+  # finding is now inert at save time until it is named here deliberately.
+  SAVE_BLOCKING_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing].freeze
+
   # Initialize with the workflow ID to validate
   # @param workflow_id [Integer] The ID of the workflow to validate
   def initialize(workflow_id)

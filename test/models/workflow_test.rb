@@ -678,4 +678,19 @@ class WorkflowTest < ActiveSupport::TestCase
     step.update!(can_resolve: false)
     assert_not step.reload.can_resolve
   end
+
+  test "SAVE_BLOCKING_CODES names every code the validator can emit today" do
+    assert_equal %i[circular_subflow max_depth_exceeded subflow_target_missing].sort,
+                 SubflowValidator::SAVE_BLOCKING_CODES.sort
+  end
+
+  test "a circular sub-flow still blocks save" do
+    wf_a = Workflow.create!(title: "Save A", user: @user)
+    wf_b = Workflow.create!(title: "Save B", user: @user)
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Call B", sub_flow_workflow_id: wf_b.id)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Call A", sub_flow_workflow_id: wf_a.id)
+    wf_a.reload.title = "Renamed"
+    assert_not wf_a.save
+    assert(wf_a.errors[:steps].any? { |e| e.include?("Circular sub-flow reference") })
+  end
 end
