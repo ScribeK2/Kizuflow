@@ -38,4 +38,10 @@ class ImportPromptGeneratorTest < ActiveSupport::TestCase
   ensure
     User.where("email LIKE ?", "prompt-test-%").destroy_all
   end
+
+  test "the prompt states the sub-flow graph rules" do
+    assert_match(/hand off to each other/i, @prompt)
+    assert_match(/own reachable `?resolve`?/i, @prompt)
+    assert_includes @prompt, SubflowValidator::MAX_DEPTH.to_s
+  end
 end
