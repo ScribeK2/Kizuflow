@@ -41,7 +41,9 @@ class ImportPromptGeneratorTest < ActiveSupport::TestCase
 
   test "the prompt states the sub-flow graph rules" do
     assert_match(/hand off to each other/i, @prompt)
-    assert_match(/own reachable `?resolve`?/i, @prompt)
-    assert_includes @prompt, SubflowValidator::MAX_DEPTH.to_s
+    assert_includes @prompt, "chain of handoffs"
+    assert_includes @prompt, "eventually"
+    assert_includes @prompt, "reaches"
+    assert_includes @prompt, "#{SubflowValidator::MAX_DEPTH} levels deep"
   end
 end

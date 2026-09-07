@@ -191,10 +191,11 @@ class ImportPromptGenerator
       **Workflows may hand off to each other freely, including in a circle.**
       "Billing sends them to Domains, Domains sends them back" is a normal
       call-centre shape, and a handoff ends the current workflow rather than
-      nesting inside it. What is refused is different: **every workflow needs
-      its own reachable `resolve` step**, and a handoff does not count as one.
-      If the only way out of a workflow is a handoff, and the only way out of
-      that one is a handoff back, nobody can ever finish the call.
+      nesting inside it. A workflow that only hands off — no `resolve` of its
+      own — is fine too, as long as the chain of handoffs it starts eventually
+      reaches one. What is refused is the chain that never does: if the only way
+      out of a workflow is a handoff, and the only way out of that one is a
+      handoff back, nobody can ever finish the call.
 
       **A returning sub-flow may not cycle.** When `sub_flow_returns` is true
       (the default) the caller waits for the target, so A calling B calling A
