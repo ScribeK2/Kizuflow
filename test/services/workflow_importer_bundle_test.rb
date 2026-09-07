@@ -31,6 +31,11 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
       transitions: [{ target_id: next_id }] }
   end
 
+  def handoff_step(id, target_title)
+    { id: id, type: "sub_flow", title: "Hand to #{target_title}",
+      target_workflow_title: target_title, sub_flow_returns: false }
+  end
+
   def import(document)
     content = document.to_json
     report = StrictImportValidator.new(user: @user, content:).validate
@@ -317,5 +322,24 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
     assert_not result.multiple?
     assert_equal 1, result.workflows.size
     assert_equal "Solo", result.workflow.title, "the singular reader still points at it"
+  end
+
+  # --- refusing an unescapable bundle -------------------------------------------
+
+  test "refuses a bundle whose workflows can never reach a Resolve" do
+    document = {
+      schema_version: "1",
+      workflows: [
+        workflow("Loop A", steps: [handoff_step("a1", "Loop B")]),
+        workflow("Loop B", steps: [handoff_step("b1", "Loop A")])
+      ]
+    }
+
+    assert_no_difference "Workflow.count" do
+      report, result = import(document)
+      assert_predicate report, :valid?, "structurally legal; only the graph is not"
+      assert_not result.success?
+      assert(result.errors.any? { |e| e.include?("never reaches a Resolve step") })
+    end
   end
 end

@@ -17,7 +17,8 @@ class WorkflowImporter
 
   # Which SubflowValidator findings refuse an import outright. See
   # #circular_sub_flow_errors for why all three, and what went wrong with one.
-  REFUSING_SUBFLOW_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing].freeze
+  REFUSING_SUBFLOW_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing
+                              no_resolve_across_workflows].freeze
 
   # `workflows` is every workflow this import created, in file order. The strict
   # dialect accepts a set in one file; the lenient formats are single-workflow by
@@ -295,6 +296,10 @@ class WorkflowImporter
     when :subflow_target_missing
       "A sub-flow target outside this file (ID: #{finding.details[:target_workflow_id]}) no longer " \
       "exists. It may have been deleted since this file was checked; re-upload it."
+    when :no_resolve_across_workflows
+      "A workflow in this file never reaches a Resolve step, directly or through " \
+      "any workflow it hands off to. Give it a reachable Resolve, or point a handoff " \
+      "at a workflow that has one."
     else
       finding.message
     end
