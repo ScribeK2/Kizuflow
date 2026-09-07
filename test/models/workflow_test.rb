@@ -695,4 +695,52 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_not wf_a.save
     assert(wf_a.errors[:steps].any? { |e| e.include?("Circular sub-flow reference") })
   end
+  test "publishing_alongside lets a published workflow reference a draft in the same set" do
+    target = Workflow.create!(title: "Set Target", user: @user, status: "draft")
+    Steps::Resolve.create!(workflow: target, position: 0, title: "Done", resolution_type: "success")
+    source = Workflow.create!(title: "Set Source", user: @user, status: "draft")
+    call = Steps::SubFlow.create!(workflow: source, position: 0, title: "Call Target",
+                                  sub_flow_workflow_id: target.id)
+    done = Steps::Resolve.create!(workflow: source, position: 1, title: "Done",
+                                  resolution_type: "success")
+    Transition.create!(step: call, target_step: done, position: 0)
+    source.update!(start_step: call)
+
+    source.status = "published"
+    assert_not source.valid?, "without the set, a published workflow may not point at a draft"
+
+    source.publishing_alongside = Set[target.id]
+    assert_predicate source, :valid?, source.errors.full_messages.join(" | ")
+  end
+
+  test "publishing_alongside is nil by default and changes nothing" do
+    target = Workflow.create!(title: "Plain Target", user: @user, status: "draft")
+    Steps::Resolve.create!(workflow: target, position: 0, title: "Done", resolution_type: "success")
+    source = Workflow.create!(title: "Plain Source", user: @user, status: "draft")
+    call = Steps::SubFlow.create!(workflow: source, position: 0, title: "Call Target",
+                                  sub_flow_workflow_id: target.id)
+    done = Steps::Resolve.create!(workflow: source, position: 1, title: "Done",
+                                  resolution_type: "success")
+    Transition.create!(step: call, target_step: done, position: 0)
+    source.update!(start_step: call)
+
+    assert_nil source.publishing_alongside
+    source.status = "published"
+    assert_not source.valid?
+    assert(source.errors[:steps].any? { |e| e.include?("is not published") })
+  end
+
+  test "publishing_alongside does not excuse a blank or self-referencing target" do
+    wf = Workflow.create!(title: "Self Ref", user: @user, status: "draft")
+    step = Steps::SubFlow.new(workflow: wf, position: 0, title: "Call Self",
+                              sub_flow_workflow_id: wf.id, uuid: SecureRandom.uuid)
+    step.save(validate: false)
+    # No start_step assignment: a self-referencing workflow cannot be saved at
+    # all, which is the point. We only need #valid? to run the validation.
+    wf.publishing_alongside = Set[wf.id]
+    wf.status = "published"
+    wf.valid?
+    assert(wf.errors[:steps].any? { |e| e.include?("cannot reference itself") },
+           "the set excuses only the published-target rule, nothing else")
+  end
 end
