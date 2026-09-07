@@ -42,6 +42,21 @@ class GraphValidator
     @findings.map(&:message)
   end
 
+  # Can a run that enters at the start step reach a genuine Resolve without
+  # leaving this workflow?
+  #
+  # Distinct from #valid?'s escapability rule, which counts a handoff as an
+  # ending — correct there, because the run does continue. It is wrong for the
+  # cross-workflow question: a mesh whose every ending is a handoff has no
+  # reachable Resolve anywhere, and this validator only ever sees one workflow.
+  # SubflowValidator seeds its escapability walk from this.
+  def self_escapable?
+    return true if @steps.empty?
+    return true if @start_uuid.blank? || !@steps.key?(@start_uuid)
+
+    escapable_uuids(handoff_terminates: false).include?(@start_uuid)
+  end
+
   # Run all validations and return true if graph is valid
   def valid?
     @findings = []
@@ -171,13 +186,13 @@ class GraphValidator
 
   # Reverse BFS from the Resolve terminals. Linear, and cycle-safe by
   # construction since a node is enqueued at most once.
-  def escapable_uuids
+  def escapable_uuids(handoff_terminates: true)
     incoming = Hash.new { |h, k| h[k] = [] }
     @steps.each do |uuid, step|
       transition_target_uuids(step).each { |target| incoming[target] << uuid }
     end
 
-    frontier = @steps.select { |_uuid, step| terminal_resolve?(step) }.keys
+    frontier = @steps.select { |_uuid, step| terminal_resolve?(step, handoff_terminates:) }.keys
     escapable = frontier.to_set
 
     until frontier.empty?
@@ -188,8 +203,8 @@ class GraphValidator
     escapable
   end
 
-  def terminal_resolve?(step)
-    return true if handoff?(step)
+  def terminal_resolve?(step, handoff_terminates: true)
+    return true if handoff_terminates && handoff?(step)
 
     step["type"] == "resolve" && transition_target_uuids(step).empty?
   end

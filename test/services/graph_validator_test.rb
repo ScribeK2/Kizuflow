@@ -363,4 +363,36 @@ class GraphValidatorTest < ActiveSupport::TestCase
     assert no_terminals
     assert_nil no_terminals.step_uuid
   end
+
+  # ---------------------------------------------------------------------------
+  # self_escapable? — per-workflow "reaches a real Resolve" predicate
+  # ---------------------------------------------------------------------------
+
+  test "self_escapable? is false when the only ending is a handoff" do
+    steps = {
+      "start" => { "id" => "start", "type" => "question", "title" => "Q",
+                   "sub_flow_returns" => nil,
+                   "transitions" => [{ "target_uuid" => "hand", "condition" => nil }] },
+      "hand" => { "id" => "hand", "type" => "sub_flow", "title" => "Hand over",
+                  "sub_flow_returns" => false, "transitions" => [] }
+    }
+    validator = GraphValidator.new(steps, "start")
+    assert_not validator.self_escapable?
+    assert_predicate validator, :valid?, "a handoff is still a legal terminal for ordinary validation"
+  end
+
+  test "self_escapable? is true when a real Resolve is reachable" do
+    steps = {
+      "start" => { "id" => "start", "type" => "question", "title" => "Q",
+                   "sub_flow_returns" => nil,
+                   "transitions" => [{ "target_uuid" => "done", "condition" => nil }] },
+      "done" => { "id" => "done", "type" => "resolve", "title" => "Done",
+                  "sub_flow_returns" => nil, "transitions" => [] }
+    }
+    assert_predicate GraphValidator.new(steps, "start"), :self_escapable?
+  end
+
+  test "self_escapable? is true for an empty graph" do
+    assert_predicate GraphValidator.new({}, nil), :self_escapable?
+  end
 end
