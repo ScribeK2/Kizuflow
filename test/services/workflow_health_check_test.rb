@@ -337,6 +337,19 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
                     "the health panel must not report a publishable workflow when publish refuses"
   end
 
+  test "reports an inescapable handoff mesh as a warning" do
+    wf_a = Workflow.create!(title: "Health A", user: @user)
+    wf_b = Workflow.create!(title: "Health B", user: @user)
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    result = WorkflowHealthCheck.new(wf_a.reload).call
+    issue = result.issues.values.flatten.find { |i| i[:code] == :no_resolve_across_workflows }
+    assert issue, "expected a :no_resolve_across_workflows issue"
+    assert_equal :warning, issue[:severity]
+  end
+
   # The structural guard. Not a list of codes to keep in sync — the point is that
   # classify_graph_finding has no per-code severity decision left to drift.
   test "no graph finding is ever classified as a warning" do

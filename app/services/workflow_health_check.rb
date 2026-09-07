@@ -158,6 +158,13 @@ class WorkflowHealthCheck
         subflow_step = steps_collection.find { |s| s.is_a?(Steps::SubFlow) && s.sub_flow_workflow_id == missing_id }
         add_issue(issues, subflow_step&.uuid || :workflow, :error, "Sub-flow references a missing workflow",
                   fixable: false, code: finding.code)
+      when :no_resolve_across_workflows
+        # A warning, not an error: a bundle lands as drafts referencing drafts
+        # and is wired leaf-first, so this is the normal state of half-built
+        # work. Publish and import commit refuse it; the builder just shows it.
+        add_issue(issues, :workflow, :warning,
+                  "No path to a Resolve step from this workflow or any it hands off to",
+                  fixable: false, code: finding.code)
       end
     end
   end
