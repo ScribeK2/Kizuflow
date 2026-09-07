@@ -20,7 +20,9 @@ Rails.application.routes.draw do
     resource :settings, only: [:show], controller: "workflows/settings"
     resources :versions, only: [:index], controller: "workflows/versions"
     resource :execution, only: %i[new create], controller: "workflows/executions"
-    resource :publishing, only: [:create], controller: "workflows/publishings"
+    resource :publishing, only: [:create], controller: "workflows/publishings" do
+      get :confirm
+    end
     resources :taggings, only: %i[create destroy], controller: "workflows/taggings", param: :tag_id
     resource :share, only: %i[create destroy], controller: "workflows/shares"
     resource :pin, only: %i[create destroy], controller: "workflows/pins"

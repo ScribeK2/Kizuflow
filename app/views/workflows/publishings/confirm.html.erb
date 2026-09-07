@@ -1,0 +1,48 @@
+<% content_for(:title) { "Publish #{@workflow.title} — TurboFlows" } %>
+
+<div class="page-content">
+  <div class="page-main">
+    <div class="page-header-section">
+      <div>
+        <%= link_to workflow_path(@workflow), class: "page-back" do %>
+          Back to <%= @workflow.title %>
+        <% end %>
+        <h1 class="page-header-section__title">Publish <%= @members.size %> workflows together</h1>
+        <p class="page-header-section__ident">
+          These workflows reference each other, so they have to go live at the same time.
+          Publishing them one at a time is not possible — each would point at a draft.
+        </p>
+      </div>
+    </div>
+
+    <section class="list-section">
+      <div class="list-section__head">
+        <h2 class="list-section__title">Will be published</h2>
+        <span class="list-section__count"><%= @members.size %></span>
+      </div>
+
+      <div class="list-section__body">
+        <% @members.each do |member| %>
+          <div class="list-row">
+            <div class="list-row__body">
+              <div class="list-row__title">
+                <%= link_to member.title, workflow_path(member) %>
+                <% if member.id == @workflow.id %>
+                  <span class="badge badge--info">the one you clicked</span>
+                <% end %>
+              </div>
+              <p class="list-row__sub"><%= pluralize(member.steps.size, "step") %></p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <div class="flex items-center justify-end gap-3"
+         style="padding-top: var(--space-4); border-top: 1px solid var(--color-border);">
+      <%= link_to "Cancel", workflow_path(@workflow, edit: true), class: "btn btn--plain" %>
+      <%= button_to "Publish all #{@members.size}", workflow_publishing_path(@workflow),
+            method: :post, params: { publish_set: "1" }, class: "btn btn--primary" %>
+    </div>
+  </div>
+</div>
