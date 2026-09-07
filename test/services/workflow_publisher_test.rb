@@ -149,4 +149,17 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     assert_equal 2, @workflow.published_version.version_number
     assert_equal "New Step", @workflow.published_version.steps_snapshot[1]["title"]
   end
+
+  test "refuses to publish a workflow with no reachable Resolve anywhere" do
+    wf_a = Workflow.create!(title: "Pub A", user: @user, status: "draft")
+    wf_b = Workflow.create!(title: "Pub B", user: @user, status: "draft")
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    result = WorkflowPublisher.publish(wf_a.reload, @user)
+    assert_not result.success?
+    assert_match(/No path to a Resolve step/, result.error)
+    assert_equal "draft", wf_a.reload.status
+  end
 end
