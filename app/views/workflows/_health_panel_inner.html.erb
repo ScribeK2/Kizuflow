@@ -111,7 +111,13 @@
         to one — the health check collapses those three restatements into one
         error, so listing the checks as passing while that error is on screen
         would contradict it. %>
-    <% passing_checks << "Every step can reach a Resolve step" unless (issue_codes & %i[no_path_to_resolve no_outgoing_transitions]).any? %>
+    <%# :no_resolve_across_workflows belongs here for the same reason. It says no
+        Resolve is reachable from this workflow OR any workflow it hands off to,
+        which is a strictly broader contradiction of this row than
+        :no_path_to_resolve — and it is the finding that fires on the very shape
+        the cross-workflow check exists to catch. Without it the panel showed the
+        warning and this passing row at the same time. %>
+    <% passing_checks << "Every step can reach a Resolve step" unless (issue_codes & %i[no_path_to_resolve no_outgoing_transitions no_resolve_across_workflows]).any? %>
     <% passing_checks << "All terminals are Resolve steps" unless (issue_codes & %i[terminal_not_resolve no_outgoing_transitions]).any? %>
     <% passing_checks << "No circular sub-flows" unless (issue_codes & %i[circular_subflow max_depth_exceeded subflow_target_missing]).any? %>
     <% passing_checks << "All required fields present" unless (issue_codes & %i[question_text_required subflow_target_required]).any? %>

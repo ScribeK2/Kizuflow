@@ -190,6 +190,36 @@ module Workflows
     # must not suppress anything. WorkflowHealthCheck.call is stubbed because
     # no real validator produces this combination; the point is that the panel
     # no longer looks at `message` for these rows at all.
+    # The cross-workflow escapability warning contradicts this row directly: it
+    # says no Resolve is reachable from this workflow OR anything it hands off
+    # to. Before it was added to the exclusion list the panel rendered the
+    # warning and "Every step can reach a Resolve step" as passing, at once, on
+    # the exact shape the check exists to catch.
+    test "an inescapable handoff mesh suppresses the reach-a-Resolve passing row" do
+      synthetic = WorkflowHealthCheck::Result.new(
+        issues: {
+          "workflow" => [
+            { severity: :warning,
+              message: "No path to a Resolve step from this workflow or any it hands off to",
+              fixable: false, code: :no_resolve_across_workflows }
+          ]
+        },
+        summary: { errors: 0, warnings: 1, total: 1 }
+      )
+
+      original_call = WorkflowHealthCheck.method(:call)
+      WorkflowHealthCheck.define_singleton_method(:call) { |_workflow| synthetic }
+      begin
+        get workflow_health_path(@workflow)
+      ensure
+        WorkflowHealthCheck.define_singleton_method(:call, original_call)
+      end
+
+      assert_response :success
+      assert_not_includes response.body, "Every step can reach a Resolve step",
+                          "the panel must not claim this while reporting the opposite"
+    end
+
     test "passing checks key on code, not on message wording" do
       q = Steps::Question.create!(
         workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
