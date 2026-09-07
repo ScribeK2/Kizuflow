@@ -17,7 +17,8 @@ class WorkflowImporter
 
   # Which SubflowValidator findings refuse an import outright. See
   # #circular_sub_flow_errors for why all three, and what went wrong with one.
-  REFUSING_SUBFLOW_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing].freeze
+  REFUSING_SUBFLOW_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing
+                              no_resolve_across_workflows].freeze
 
   # `workflows` is every workflow this import created, in file order. The strict
   # dialect accepts a set in one file; the lenient formats are single-workflow by
@@ -268,9 +269,11 @@ class WorkflowImporter
   # 11 validated clean and was then rolled back whole. The real defect there was
   # the *message*, which called a chain circular. Letting it through instead was
   # worse: `Workflow#validate_subflow_circular_references` copies every
-  # SubflowValidator error onto the record on every save, so a deep chain
-  # imported successfully and then could never be saved again, with no fix
-  # available from the builder. WorkflowHealthCheck files max-depth as a
+  # save-blocking SubflowValidator finding onto the record on every save, so a
+  # deep chain imported successfully and then could never be saved again, with no
+  # fix available from the builder. Which findings block a save is now the
+  # explicit `SubflowValidator::SAVE_BLOCKING_CODES` allowlist; `max_depth_exceeded`
+  # is on it, so this rationale still holds. WorkflowHealthCheck files max-depth as a
   # :warning, which is the inconsistency — the model validation is the policy,
   # and it is hard.
   #
@@ -295,6 +298,10 @@ class WorkflowImporter
     when :subflow_target_missing
       "A sub-flow target outside this file (ID: #{finding.details[:target_workflow_id]}) no longer " \
       "exists. It may have been deleted since this file was checked; re-upload it."
+    when :no_resolve_across_workflows
+      "A workflow in this file never reaches a Resolve step, directly or through " \
+      "any workflow it hands off to. Give it a reachable Resolve, or point a handoff " \
+      "at a workflow that has one."
     else
       finding.message
     end

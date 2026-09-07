@@ -465,21 +465,59 @@ class HandoffSpikeTest < ActionDispatch::IntegrationTest
   # chain of handoffs must not be refused for a depth that does not exist. The
   # import-time refusal was restored in 4ccee4fd, which makes this live.
 
-  # SC 5 — the other half of W1.4, and the one that makes it dangerous to fix
-  # carelessly. Depth must stop counting handoff hops; cycle detection must NOT.
-  test "SC5: a handoff cycle is still detected" do
-    a = Workflow.create!(title: "Cycle A", user: @user)
-    b = Workflow.create!(title: "Cycle B", user: @user)
+  # SC 5 — the other half of W1.4, and revised from its original claim. It used
+  # to assert that a handoff cycle is ALWAYS refused as :circular_subflow —
+  # "Depth must stop counting handoff hops; cycle detection must NOT." That
+  # premise is exactly what this feature reversed on purpose: a handoff leaves
+  # no stack frame (Scenario#hand_off! settles the current frame rather than
+  # pushing one, and spawn_target creates the next scenario with
+  # parent_scenario: nil), so a pure-handoff cycle does not grow without bound
+  # the way a returning cycle does, and is no longer refused as circular. The
+  # real hazard a handoff cycle can still have is never reaching a Resolve at
+  # all, which is what validate_escapable_across_workflows checks directly,
+  # reporting :no_resolve_across_workflows instead.
+  #
+  # Both halves matter here. The original test's first assertion
+  # (`assert_not validator.valid?`) kept passing after the reversal landed,
+  # but for the wrong reason — it was true only because neither workflow in
+  # that fixture has a Resolve anywhere, so :no_resolve_across_workflows fires
+  # in place of :circular_subflow. A fix that only deleted the second
+  # assertion would have left this test green while asserting nothing about
+  # the actual reversal, so this covers both outcomes: an unescapable cycle is
+  # still refused (under the new code), and an escapable one is now accepted.
+  test "SC5: a handoff cycle is refused only when it can never reach a Resolve" do
+    a = Workflow.create!(title: "Cycle A, unescapable", user: @user)
+    b = Workflow.create!(title: "Cycle B, unescapable", user: @user)
     Steps::SubFlow.create!(workflow: a, position: 0, title: "To B",
                            sub_flow_workflow_id: b.id, sub_flow_returns: false)
     Steps::SubFlow.create!(workflow: b, position: 0, title: "To A",
                            sub_flow_workflow_id: a.id, sub_flow_returns: false)
 
-    validator = SubflowValidator.new(a.id)
+    unescapable = SubflowValidator.new(a.id)
 
-    assert_not validator.valid?, "a handoff cycle is still an infinite run"
-    assert_predicate validator.findings.select { |f| f.code == :circular_subflow }, :any?,
-                     "exempting handoffs from DEPTH must not exempt them from CYCLES"
+    assert_not unescapable.valid?, "neither side of this cycle can ever reach a Resolve"
+    assert_predicate unescapable.findings.select { |f| f.code == :no_resolve_across_workflows }, :any?,
+                     "the refusal must name the real hazard: no reachable Resolve"
+    assert_empty unescapable.findings.select { |f| f.code == :circular_subflow },
+                 "a pure-handoff cycle leaves no stack frame, so it is not circular by itself"
+
+    c = Workflow.create!(title: "Cycle C, escapable", user: @user)
+    d = Workflow.create!(title: "Cycle D, escapable", user: @user)
+    Steps::SubFlow.create!(workflow: c, position: 0, title: "To D",
+                           sub_flow_workflow_id: d.id, sub_flow_returns: false)
+    # Position 0 so it is `steps.first` — workflow_self_escapable? falls back
+    # to the first step when start_step is unset, same as the unescapable
+    # pair above, so this needs no explicit start_step and no graph-structure
+    # validation (which would otherwise demand "To C" be reachable from it).
+    Steps::Resolve.create!(workflow: d, position: 0, title: "Resolved in D",
+                           resolution_type: "success")
+    Steps::SubFlow.create!(workflow: d, position: 1, title: "To C",
+                           sub_flow_workflow_id: c.id, sub_flow_returns: false)
+
+    escapable = SubflowValidator.new(c.id)
+
+    assert_predicate escapable, :valid?,
+                     "D can reach a Resolve on its own, so the cycle through it can too: #{escapable.errors.join(' | ')}"
   end
 
   test "W1.4: a flat handoff chain longer than MAX_DEPTH is not refused for depth" do

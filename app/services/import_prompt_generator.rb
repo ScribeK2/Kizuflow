@@ -188,6 +188,20 @@ class ImportPromptGenerator
       refused is a loop with no way out: from every step, some path must still be
       able to reach a `resolve` step.
 
+      **Workflows may hand off to each other freely, including in a circle.**
+      "Billing sends them to Domains, Domains sends them back" is a normal
+      call-centre shape, and a handoff ends the current workflow rather than
+      nesting inside it. A workflow that only hands off — no `resolve` of its
+      own — is fine too, as long as the chain of handoffs it starts eventually
+      reaches one. What is refused is the chain that never does: if the only way
+      out of a workflow is a handoff, and the only way out of that one is a
+      handoff back, nobody can ever finish the call.
+
+      **A returning sub-flow may not cycle.** When `sub_flow_returns` is true
+      (the default) the caller waits for the target, so A calling B calling A
+      would nest forever. Those chains are also capped at
+      #{SubflowValidator::MAX_DEPTH} levels deep.
+
       **Rich text is HTML, not Markdown.** `instructions`, `content`, `notes` and
       `description` are stored as HTML — use `<p>`, `<strong>`, `<em>`,
       `<ul>/<ol>/<li>`, `<a href>`. Markdown is not converted and will render

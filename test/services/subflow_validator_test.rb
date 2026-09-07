@@ -251,4 +251,88 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     Workflow.where(user: user).destroy_all if user
     user&.destroy
   end
+
+  test "a handoff cycle A to B to A is not circular" do
+    wf_a = Workflow.create!(title: "HO A", user: @user)
+    wf_b = Workflow.create!(title: "HO B", user: @user)
+    Steps::Resolve.create!(workflow: wf_a, position: 0, title: "A done")
+    Steps::Resolve.create!(workflow: wf_b, position: 0, title: "B done")
+    Steps::SubFlow.create!(workflow: wf_a, position: 1, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 1, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
+
+  test "a mixed cycle (returning then handoff) is not circular" do
+    wf_a = Workflow.create!(title: "MX A", user: @user)
+    wf_b = Workflow.create!(title: "MX B", user: @user)
+    Steps::Resolve.create!(workflow: wf_a, position: 0, title: "A done")
+    Steps::Resolve.create!(workflow: wf_b, position: 0, title: "B done")
+    Steps::SubFlow.create!(workflow: wf_a, position: 1, title: "Call B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: true)
+    Steps::SubFlow.create!(workflow: wf_b, position: 1, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
+
+  # The regression this pass exists for. The dangling-target check used to live
+  # inside the cycle walk, which narrowed to returning edges when handoff cycles
+  # became legal — so a handoff to a deleted workflow reported nothing here while
+  # Workflow#validate_subflow_steps still reddened every save. That is the
+  # "autosave red, health panel clean" split workflow.rb records as a past bug.
+  test "reports a non-existent target behind a handoff, not just a returning call" do
+    wf = Workflow.create!(title: "Handoff To Ghost", user: @user)
+    step = Steps::SubFlow.new(workflow: wf, position: 0, title: "Hand to Ghost",
+                              sub_flow_workflow_id: 999_999, sub_flow_returns: false,
+                              uuid: SecureRandom.uuid)
+    step.save(validate: false)
+
+    validator = SubflowValidator.new(wf.id)
+
+    assert_not validator.valid?
+    assert(validator.findings.any? { |f| f.code == :subflow_target_missing },
+           "a handoff target that no longer exists must still be reported")
+    assert_equal 999_999,
+                 validator.findings.find { |f| f.code == :subflow_target_missing }
+                          .details[:target_workflow_id],
+                 "WorkflowHealthCheck maps the finding back to a step through this key"
+  end
+
+  test "refuses a handoff pair with no reachable Resolve" do
+    wf_a = Workflow.create!(title: "Trap A", user: @user)
+    wf_b = Workflow.create!(title: "Trap B", user: @user)
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_not validator.valid?
+    assert(validator.findings.any? { |f| f.code == :no_resolve_across_workflows })
+  end
+
+  test "accepts a handoff cycle when one workflow reaches a Resolve" do
+    wf_a = Workflow.create!(title: "Esc A", user: @user)
+    wf_b = Workflow.create!(title: "Esc B", user: @user)
+    Steps::Resolve.create!(workflow: wf_b, position: 0, title: "B done")
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 1, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
+
+  test "the new finding does not block a save" do
+    wf_a = Workflow.create!(title: "NoBlock A", user: @user)
+    wf_b = Workflow.create!(title: "NoBlock B", user: @user)
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    wf_a.reload.title = "Renamed while half-built"
+    assert wf_a.save, "Errors: #{wf_a.errors.full_messages.join(' | ')}"
+  end
 end

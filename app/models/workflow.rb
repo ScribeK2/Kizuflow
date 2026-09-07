@@ -525,11 +525,10 @@ class Workflow < ApplicationRecord
     return unless persisted? # Only check on existing workflows
 
     validator = SubflowValidator.new(id)
+    return if validator.valid?
 
-    unless validator.valid?
-      validator.errors.each do |error|
-        errors.add(:steps, error)
-      end
-    end
+    validator.findings
+             .select { |finding| SubflowValidator::SAVE_BLOCKING_CODES.include?(finding.code) }
+             .each { |finding| errors.add(:steps, finding.message) }
   end
 end

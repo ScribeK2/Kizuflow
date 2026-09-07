@@ -31,6 +31,25 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
       transitions: [{ target_id: next_id }] }
   end
 
+  def handoff_step(id, target_title)
+    { id: id, type: "sub_flow", title: "Hand to #{target_title}",
+      target_workflow_title: target_title, sub_flow_returns: false }
+  end
+
+  # One workflow in a mutually-routing mesh: a question that either hands off
+  # to another workflow in the mesh or resolves right here.
+  def mesh_workflow(title, handoff_target:, prefix:)
+    workflow(title, steps: [
+               { id: "#{prefix}1", type: "question", title: "Route it?",
+                 question: "Should this go to #{handoff_target}?", answer_type: "yes_no",
+                 variable_name: "#{prefix}_route",
+                 transitions: [{ target_id: "#{prefix}2", condition: "#{prefix}_route == 'yes'" },
+                               { target_id: "#{prefix}3" }] },
+               handoff_step("#{prefix}2", handoff_target),
+               resolve_step("#{prefix}3")
+             ])
+  end
+
   def import(document)
     content = document.to_json
     report = StrictImportValidator.new(user: @user, content:).validate
@@ -318,4 +337,60 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
     assert_equal 1, result.workflows.size
     assert_equal "Solo", result.workflow.title, "the singular reader still points at it"
   end
+
+  # --- refusing an unescapable bundle -------------------------------------------
+
+  test "refuses a bundle whose workflows can never reach a Resolve" do
+    document = {
+      schema_version: "1",
+      workflows: [
+        workflow("Loop A", steps: [handoff_step("a1", "Loop B")]),
+        workflow("Loop B", steps: [handoff_step("b1", "Loop A")])
+      ]
+    }
+
+    assert_no_difference "Workflow.count" do
+      report, result = import(document)
+      assert_predicate report, :valid?, "structurally legal; only the graph is not"
+      assert_not result.success?
+      assert(result.errors.any? { |e| e.include?("never reaches a Resolve step") })
+    end
+  end
+
+  # --- the shape that started this: a mutually-routing handoff mesh ------------
+  #
+  # A and B hand off to each other, C and D hand off to each other, and every
+  # one of the four has its own reachable Resolve. This is the four-workflow
+  # analog of the real 24-workflow call-centre bundle that was refused before
+  # SubflowValidator learned to tell an unescapable cycle from an escapable
+  # one.
+
+  test "imports a mutually-routing handoff mesh where every workflow can resolve" do
+    document = {
+      schema_version: "1",
+      workflows: [
+        mesh_workflow("Mesh A", handoff_target: "Mesh B", prefix: "a"),
+        mesh_workflow("Mesh B", handoff_target: "Mesh A", prefix: "b"),
+        mesh_workflow("Mesh C", handoff_target: "Mesh D", prefix: "c"),
+        mesh_workflow("Mesh D", handoff_target: "Mesh C", prefix: "d")
+      ]
+    }
+
+    assert_difference "Workflow.count", 4 do
+      report, result = import(document)
+      assert_predicate report, :valid?, report.errors.inspect
+      assert_predicate result, :success?, result&.errors.inspect
+    end
+  end
+
+  # There is deliberately no "each workflow in the mesh publishes" test here.
+  # A mutual handoff mesh imports and saves fine, but cannot currently be
+  # published at all: `Workflow#validate_subflow_steps` requires a sub_flow
+  # step's target to already be published, with no exemption for a handoff
+  # (`sub_flow_returns: false`), so A needs B published first and B needs A
+  # published first — no order satisfies that for a cycle. Whether a handoff
+  # should be exempt from that rule (an agent could then be handed into a
+  # still-draft workflow mid-call) or the mesh should publish as one atomic
+  # set is an open product question, not settled here. Do not add a test
+  # asserting the current deadlock as intended behaviour.
 end

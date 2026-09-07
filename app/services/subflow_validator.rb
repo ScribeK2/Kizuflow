@@ -1,10 +1,20 @@
-# Validates sub-flow references to prevent circular dependencies.
-# A circular dependency would cause infinite recursion during execution.
+# Validates the sub-flow graph: what nests, what cycles, and whether a run can
+# ever end.
 #
-# Example of circular dependency:
-#   Workflow A -> references Workflow B as sub-flow
-#   Workflow B -> references Workflow A as sub-flow
-#   This would cause infinite recursion: A -> B -> A -> B -> ...
+# A *returning* sub-flow (the default) nests — the caller waits for the target —
+# so a returning cycle is infinite recursion and is refused:
+#   Workflow A -> calls Workflow B, Workflow B -> calls Workflow A
+#   A -> B -> A -> B -> ...
+#
+# A *handoff* (`sub_flow_returns: false`) does not nest. `Scenario#hand_off!`
+# settles the frame and every ancestor waiting on it, and the handed-to scenario
+# is created with `parent_scenario: nil`. So a handoff cycle is a flat,
+# human-paced loop, not a stack, and mutual routing between workflows is legal.
+# Only an all-returning cycle is refused as circular.
+#
+# What replaces the blanket cycle rule is escapability: a set of workflows from
+# which no Resolve step is reachable traps the agent, and that is refused as
+# `:no_resolve_across_workflows`.
 #
 # Usage:
 #   validator = SubflowValidator.new(workflow_id)
@@ -23,6 +33,15 @@ class SubflowValidator
 
   MAX_DEPTH = 10 # Maximum sub-flow nesting depth
   SUBFLOW_TYPES = %w[sub_flow sub-flow].freeze
+
+  # Which findings make a workflow unsaveable.
+  #
+  # An ALLOWLIST on purpose. Workflow#validate_subflow_circular_references used
+  # to copy every finding onto the record on every save, so adding a finding
+  # made workflows unsaveable by accident — that is how a too-deep import
+  # produced workflows that could never be saved or published again. A new
+  # finding is now inert at save time until it is named here deliberately.
+  SAVE_BLOCKING_CODES = %i[circular_subflow max_depth_exceeded subflow_target_missing].freeze
 
   # Initialize with the workflow ID to validate
   # @param workflow_id [Integer] The ID of the workflow to validate
@@ -45,6 +64,10 @@ class SubflowValidator
     @on_path = Set.new
     @explored = Set.new
     @depth_cache = {}
+    # One edge list per (workflow, returning_only). Four passes ask the same two
+    # questions of the same workflows, and preload has already asked the first —
+    # without this, adding a pass costs a query per reachable workflow.
+    @edge_cache = {}
 
     root = Workflow.find_by(id: @workflow_id)
     return true unless root
@@ -52,8 +75,10 @@ class SubflowValidator
     # Batch-load all reachable workflows upfront
     @workflows_cache = preload_reachable_workflows(root)
 
+    validate_subflow_targets_exist
     validate_no_circular_subflows(root, [])
     validate_max_depth(root)
+    validate_escapable_across_workflows(root)
 
     @findings.empty?
   end
@@ -111,19 +136,26 @@ class SubflowValidator
   # Checks JSONB first (in-memory, no extra query) during transition period.
   # @param workflow [Workflow] The workflow to extract from
   # @return [Array<Integer>] Array of target workflow IDs
-  # SPIKE (Wave 2 / Wave 1 item 4). `returning_only:` is the whole difference
-  # between the two questions this validator asks.
+  # A cycle is refused only when EVERY edge in it is a returning call, which is
+  # what walking the returning-only subgraph gives us.
   #
-  # A cycle is a cycle either way: A hands off to B hands off to A is an
-  # infinite run, so cycle detection follows EVERY edge.
-  #
-  # Depth is different. MAX_DEPTH exists because each nested sub-flow is a live
-  # stack frame waiting to be returned to. A tail call leaves no frame — the
-  # handing-off half is terminal before the target starts — so a flat chain of
-  # handoffs has no nesting to exceed, and counting it refused a legal file for
-  # a stack that does not exist. Live since 4ccee4fd restored the import-time
-  # refusal.
+  # An earlier version followed every edge, on the reasoning that "A hands off
+  # to B hands off to A is an infinite run". It is not a *stack* — Scenario#hand_off!
+  # settles the current frame and every ancestor waiting on it, and spawn_target
+  # creates the next scenario with parent_scenario: nil. Nothing nests, so a
+  # mixed cycle is flat too. What actually makes a handoff mesh dangerous is
+  # having no reachable Resolve, and validate_escapable_across_workflows asks
+  # that directly. MAX_ITERATIONS does NOT cover this: it is per-frame, derived
+  # from execution_path.length, and resets on every hop.
   def extract_subflow_target_ids(workflow, returning_only: false)
+    key = [workflow.id, returning_only]
+    cached = @edge_cache[key]
+    return cached if cached
+
+    @edge_cache[key] = uncached_subflow_target_ids(workflow, returning_only:)
+  end
+
+  def uncached_subflow_target_ids(workflow, returning_only: false)
     if workflow.read_attribute(:steps).is_a?(Array)
       workflow.read_attribute(:steps).filter_map do |s|
         next unless SUBFLOW_TYPES.include?(s["type"]) && s["target_workflow_id"].present?
@@ -135,6 +167,26 @@ class SubflowValidator
       scope = Steps::SubFlow.where(workflow_id: workflow.id)
       scope = scope.where(sub_flow_returns: true) if returning_only
       scope.pluck(:sub_flow_workflow_id).compact
+    end
+  end
+
+  # Reported over ALL edges, not just returning ones, and in its own pass.
+  #
+  # This used to live inside validate_no_circular_subflows, which narrowed to
+  # returning edges when handoff cycles became legal — silently taking the
+  # dangling-target check with it. A handoff to a deleted workflow then reported
+  # nothing here while Workflow#validate_subflow_steps still reddened every save:
+  # the "autosave red, health panel clean" split that workflow.rb's own comment
+  # records as a past bug.
+  def validate_subflow_targets_exist
+    @workflows_cache.each_value do |workflow|
+      extract_subflow_target_ids(workflow).each do |target_id|
+        next if @workflows_cache.key?(target_id)
+
+        add_finding(:subflow_target_missing,
+                    "Sub-flow references non-existent workflow (ID: #{target_id})",
+                    details: { workflow_id: workflow.id, target_workflow_id: target_id })
+      end
     end
   end
 
@@ -185,13 +237,10 @@ class SubflowValidator
     @on_path.add(workflow.id)
     path.push(workflow.id)
 
-    extract_subflow_target_ids(workflow).each do |target_id|
+    extract_subflow_target_ids(workflow, returning_only: true).each do |target_id|
       target = @workflows_cache[target_id]
-      unless target
-        add_finding(:subflow_target_missing, "Sub-flow references non-existent workflow (ID: #{target_id})",
-                    details: { workflow_id: workflow.id, target_workflow_id: target_id })
-        next
-      end
+      next unless target
+
       validate_no_circular_subflows(target, path)
     end
 
@@ -245,5 +294,60 @@ class SubflowValidator
 
     on_path.delete(workflow.id)
     @depth_cache[workflow.id] = depth
+  end
+
+  # Can a run that enters `root` ever reach a Resolve step?
+  #
+  # GraphValidator guarantees this inside one workflow but counts a handoff as
+  # an ending, so a mesh whose every ending is a handoff satisfies it while
+  # having no Resolve anywhere. That is the one genuine hazard the old blanket
+  # cycle refusal was catching by accident, and this asks it directly.
+  #
+  # Scoped to handoffs on purpose. When nothing in the cache hands off, a run
+  # can never leave `root` at all, and whether it can reach a Resolve without
+  # leaving is entirely GraphValidator's question — it already answers it
+  # (:no_path_to_resolve), and WorkflowHealthCheck already surfaces that. This
+  # check exists for the mesh case GraphValidator can't see, not to duplicate
+  # it for every plain workflow with a dangling Action step.
+  #
+  # Seed with the workflows that reach a Resolve on their own, then spread
+  # backward along handoff edges: a workflow is escapable if it hands off to an
+  # escapable one. Only `root` is reported — every workflow in an import is
+  # validated as its own root, so nothing goes unchecked.
+  def validate_escapable_across_workflows(root)
+    handoff_edges = @workflows_cache.each_value.to_h { |wf| [wf.id, handoff_target_ids(wf)] }
+    return if handoff_edges.values.all?(&:empty?)
+
+    escapable = @workflows_cache.each_value.select { |wf| workflow_self_escapable?(wf) }
+                                .to_set(&:id)
+
+    loop do
+      before = escapable.size
+      @workflows_cache.each_value do |wf|
+        next if escapable.include?(wf.id)
+
+        escapable.add(wf.id) if handoff_edges[wf.id].any? { |id| escapable.include?(id) }
+      end
+      break if escapable.size == before
+    end
+
+    return if escapable.include?(root.id)
+
+    add_finding(:no_resolve_across_workflows,
+                "No path to a Resolve step from this workflow, or any workflow it hands off to.",
+                details: { workflow_id: root.id })
+  end
+
+  def workflow_self_escapable?(workflow)
+    steps = workflow.steps.includes(transitions: :target_step).to_a
+    return true if steps.empty?
+
+    start_uuid = workflow.start_step&.uuid || steps.first&.uuid
+    GraphValidator.new(GraphHashBuilder.call(steps), start_uuid).self_escapable?
+  end
+
+  def handoff_target_ids(workflow)
+    Steps::SubFlow.where(workflow_id: workflow.id, sub_flow_returns: false)
+                  .pluck(:sub_flow_workflow_id).compact
   end
 end

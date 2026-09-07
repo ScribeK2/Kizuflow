@@ -20,6 +20,7 @@ class WorkflowPublisher
 
     # Validate graph structure before publishing
     validate_ar_graph!
+    validate_subflow_escapability!
 
     version = nil
 
@@ -67,5 +68,17 @@ class WorkflowPublisher
     unless validator.valid?
       raise ActiveRecord::RecordInvalid.new(@workflow), validator.errors.join(", ")
     end
+  end
+
+  # Save validation deliberately ignores :no_resolve_across_workflows so a
+  # half-built bundle stays editable, which means publish has to ask for itself.
+  def validate_subflow_escapability!
+    validator = SubflowValidator.new(@workflow.id)
+    return if validator.valid?
+
+    finding = validator.findings.find { |f| f.code == :no_resolve_across_workflows }
+    return unless finding
+
+    raise ActiveRecord::RecordInvalid.new(@workflow), finding.message
   end
 end
