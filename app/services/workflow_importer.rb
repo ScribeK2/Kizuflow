@@ -269,9 +269,11 @@ class WorkflowImporter
   # 11 validated clean and was then rolled back whole. The real defect there was
   # the *message*, which called a chain circular. Letting it through instead was
   # worse: `Workflow#validate_subflow_circular_references` copies every
-  # SubflowValidator error onto the record on every save, so a deep chain
-  # imported successfully and then could never be saved again, with no fix
-  # available from the builder. WorkflowHealthCheck files max-depth as a
+  # save-blocking SubflowValidator finding onto the record on every save, so a
+  # deep chain imported successfully and then could never be saved again, with no
+  # fix available from the builder. Which findings block a save is now the
+  # explicit `SubflowValidator::SAVE_BLOCKING_CODES` allowlist; `max_depth_exceeded`
+  # is on it, so this rationale still holds. WorkflowHealthCheck files max-depth as a
   # :warning, which is the inconsistency — the model validation is the policy,
   # and it is hard.
   #

@@ -1,10 +1,20 @@
-# Validates sub-flow references to prevent circular dependencies.
-# A circular dependency would cause infinite recursion during execution.
+# Validates the sub-flow graph: what nests, what cycles, and whether a run can
+# ever end.
 #
-# Example of circular dependency:
-#   Workflow A -> references Workflow B as sub-flow
-#   Workflow B -> references Workflow A as sub-flow
-#   This would cause infinite recursion: A -> B -> A -> B -> ...
+# A *returning* sub-flow (the default) nests — the caller waits for the target —
+# so a returning cycle is infinite recursion and is refused:
+#   Workflow A -> calls Workflow B, Workflow B -> calls Workflow A
+#   A -> B -> A -> B -> ...
+#
+# A *handoff* (`sub_flow_returns: false`) does not nest. `Scenario#hand_off!`
+# settles the frame and every ancestor waiting on it, and the handed-to scenario
+# is created with `parent_scenario: nil`. So a handoff cycle is a flat,
+# human-paced loop, not a stack, and mutual routing between workflows is legal.
+# Only an all-returning cycle is refused as circular.
+#
+# What replaces the blanket cycle rule is escapability: a set of workflows from
+# which no Resolve step is reachable traps the agent, and that is refused as
+# `:no_resolve_across_workflows`.
 #
 # Usage:
 #   validator = SubflowValidator.new(workflow_id)
