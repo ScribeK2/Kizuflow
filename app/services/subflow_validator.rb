@@ -111,18 +111,17 @@ class SubflowValidator
   # Checks JSONB first (in-memory, no extra query) during transition period.
   # @param workflow [Workflow] The workflow to extract from
   # @return [Array<Integer>] Array of target workflow IDs
-  # SPIKE (Wave 2 / Wave 1 item 4). `returning_only:` is the whole difference
-  # between the two questions this validator asks.
+  # A cycle is refused only when EVERY edge in it is a returning call, which is
+  # what walking the returning-only subgraph gives us.
   #
-  # A cycle is a cycle either way: A hands off to B hands off to A is an
-  # infinite run, so cycle detection follows EVERY edge.
-  #
-  # Depth is different. MAX_DEPTH exists because each nested sub-flow is a live
-  # stack frame waiting to be returned to. A tail call leaves no frame — the
-  # handing-off half is terminal before the target starts — so a flat chain of
-  # handoffs has no nesting to exceed, and counting it refused a legal file for
-  # a stack that does not exist. Live since 4ccee4fd restored the import-time
-  # refusal.
+  # An earlier version followed every edge, on the reasoning that "A hands off
+  # to B hands off to A is an infinite run". It is not a *stack* — Scenario#hand_off!
+  # settles the current frame and every ancestor waiting on it, and spawn_target
+  # creates the next scenario with parent_scenario: nil. Nothing nests, so a
+  # mixed cycle is flat too. What actually makes a handoff mesh dangerous is
+  # having no reachable Resolve, and validate_escapable_across_workflows asks
+  # that directly. MAX_ITERATIONS does NOT cover this: it is per-frame, derived
+  # from execution_path.length, and resets on every hop.
   def extract_subflow_target_ids(workflow, returning_only: false)
     if workflow.read_attribute(:steps).is_a?(Array)
       workflow.read_attribute(:steps).filter_map do |s|
@@ -185,7 +184,7 @@ class SubflowValidator
     @on_path.add(workflow.id)
     path.push(workflow.id)
 
-    extract_subflow_target_ids(workflow).each do |target_id|
+    extract_subflow_target_ids(workflow, returning_only: true).each do |target_id|
       target = @workflows_cache[target_id]
       unless target
         add_finding(:subflow_target_missing, "Sub-flow references non-existent workflow (ID: #{target_id})",

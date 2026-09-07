@@ -251,4 +251,30 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     Workflow.where(user: user).destroy_all if user
     user&.destroy
   end
+
+  test "a handoff cycle A to B to A is not circular" do
+    wf_a = Workflow.create!(title: "HO A", user: @user)
+    wf_b = Workflow.create!(title: "HO B", user: @user)
+    Steps::Resolve.create!(workflow: wf_a, position: 0, title: "A done")
+    Steps::Resolve.create!(workflow: wf_b, position: 0, title: "B done")
+    Steps::SubFlow.create!(workflow: wf_a, position: 1, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 1, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
+
+  test "a mixed cycle (returning then handoff) is not circular" do
+    wf_a = Workflow.create!(title: "MX A", user: @user)
+    wf_b = Workflow.create!(title: "MX B", user: @user)
+    Steps::Resolve.create!(workflow: wf_a, position: 0, title: "A done")
+    Steps::Resolve.create!(workflow: wf_b, position: 0, title: "B done")
+    Steps::SubFlow.create!(workflow: wf_a, position: 1, title: "Call B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: true)
+    Steps::SubFlow.create!(workflow: wf_b, position: 1, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
 end
