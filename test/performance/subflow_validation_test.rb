@@ -43,20 +43,27 @@ class SubflowValidationTest < ActiveSupport::TestCase
   test "validating a 10-deep subflow chain uses bounded queries" do
     validator = SubflowValidator.new(@subflow_workflows.first.id)
 
-    # With AR steps, extract_subflow_target_ids queries each workflow individually.
-    # preload_reachable_workflows: 1 root find + 10 extract queries + batch loads
-    # validate_no_circular_subflows: up to 10 more extract queries
-    # validate_max_depth: up to 10 more extract queries
-    # validate_escapable_across_workflows: up to 10 more handoff_target_ids
-    #   queries, one per cached workflow. This fixture is a pure returning
-    #   chain (every sub_flow step defaults to sub_flow_returns: true), so
-    #   handoff_edges comes back all-empty and the method returns immediately
-    #   after that scan — the per-workflow graph walk in
-    #   workflow_self_escapable? never runs. A mesh with a real handoff would
-    #   cost more; this fixture measures only the guard's own cost.
-    # Total measured: 50 queries for 10 workflows (bounded, not exponential;
-    # budget set with headroom above the measured count, same margin as before)
-    assert_max_queries(55) do
+    # With AR steps, extract_subflow_target_ids queries each workflow
+    # individually — but the result is memoised per (workflow, returning_only),
+    # so each distinct question is asked once no matter how many passes ask it.
+    #
+    # preload_reachable_workflows:          1 root find + 10 extracts + batch loads
+    # validate_subflow_targets_exist:       0 — same all-edges lists preload built
+    # validate_no_circular_subflows:        10 extracts (returning_only)
+    # validate_max_depth:                   0 — same returning lists as the walk
+    # validate_escapable_across_workflows:  10 handoff_target_ids, one per cached
+    #   workflow. This fixture is a pure returning chain (sub_flow_returns
+    #   defaults to true), so handoff_edges comes back all-empty and the method
+    #   returns straight after that scan — the per-workflow graph walk in
+    #   workflow_self_escapable? never runs. A mesh with real handoffs costs
+    #   more; this fixture measures only the guard's own cost, and nothing here
+    #   covers the expensive path.
+    #
+    # Total measured: 40 queries for 10 workflows. Bounded, not exponential.
+    # Budget keeps the original +5 headroom. If this starts failing, look for a
+    # pass that asks a question the memo does not already hold — that is how the
+    # count grew before.
+    assert_max_queries(45) do
       validator.valid?
     end
   end

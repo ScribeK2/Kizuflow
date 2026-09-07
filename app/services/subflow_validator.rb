@@ -64,6 +64,10 @@ class SubflowValidator
     @on_path = Set.new
     @explored = Set.new
     @depth_cache = {}
+    # One edge list per (workflow, returning_only). Four passes ask the same two
+    # questions of the same workflows, and preload has already asked the first —
+    # without this, adding a pass costs a query per reachable workflow.
+    @edge_cache = {}
 
     root = Workflow.find_by(id: @workflow_id)
     return true unless root
@@ -144,6 +148,14 @@ class SubflowValidator
   # that directly. MAX_ITERATIONS does NOT cover this: it is per-frame, derived
   # from execution_path.length, and resets on every hop.
   def extract_subflow_target_ids(workflow, returning_only: false)
+    key = [workflow.id, returning_only]
+    cached = @edge_cache[key]
+    return cached if cached
+
+    @edge_cache[key] = uncached_subflow_target_ids(workflow, returning_only:)
+  end
+
+  def uncached_subflow_target_ids(workflow, returning_only: false)
     if workflow.read_attribute(:steps).is_a?(Array)
       workflow.read_attribute(:steps).filter_map do |s|
         next unless SUBFLOW_TYPES.include?(s["type"]) && s["target_workflow_id"].present?
