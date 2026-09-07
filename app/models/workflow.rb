@@ -46,6 +46,18 @@ class Workflow < ApplicationRecord
     joins(:steps).where(steps: { type: "Steps::SubFlow", sub_flow_workflow_id: target_workflow_id })
   end
 
+  # Workflow ids being published in the same operation as this one.
+  #
+  # nil in all normal use. WorkflowSetPublisher assigns it so a set of workflows
+  # that reference each other can go live together: a target inside the set
+  # satisfies the published-target rule in validate_subflow_steps, because by the
+  # end of that transaction it really is published. It relaxes the rule's TIMING,
+  # never the rule — nothing is left pointing at a draft afterwards.
+  #
+  # Deliberately an attribute and not a Current.* value: Current would apply to
+  # every save in the request, not only the ones the set publisher means.
+  attr_accessor :publishing_alongside
+
   # Steps stored as JSON - automatically serialized/deserialized
   validates :title, presence: true, length: { maximum: 255 }
   validate :validate_graph_structure, if: :should_validate_graph_structure?
@@ -510,7 +522,7 @@ class Workflow < ApplicationRecord
       # Publishing still enforces it. WorkflowPublisher assigns status before
       # validating, so `draft?` is already false by the time this runs and the
       # branch fires — which is what makes a bundle publish leaf-first.
-      if published? && !target_workflow.published?
+      if published? && !target_workflow.published? && !publishing_alongside?(target_workflow.id)
         errors.add(:steps, "Step #{step.position + 1}: Target workflow '#{target_workflow.title}' is not published")
       end
 
@@ -518,6 +530,12 @@ class Workflow < ApplicationRecord
         errors.add(:steps, "Step #{step.position + 1}: Sub-flow cannot reference itself")
       end
     end
+  end
+
+  # Only the published-target rule consults this. A blank target and a
+  # self-reference are still errors for a workflow inside a publishing set.
+  def publishing_alongside?(workflow_id)
+    publishing_alongside.present? && publishing_alongside.include?(workflow_id)
   end
 
   # Validate no circular sub-flow references exist
