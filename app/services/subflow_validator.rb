@@ -263,11 +263,21 @@ class SubflowValidator
   # having no Resolve anywhere. That is the one genuine hazard the old blanket
   # cycle refusal was catching by accident, and this asks it directly.
   #
+  # Scoped to handoffs on purpose. When nothing in the cache hands off, a run
+  # can never leave `root` at all, and whether it can reach a Resolve without
+  # leaving is entirely GraphValidator's question — it already answers it
+  # (:no_path_to_resolve), and WorkflowHealthCheck already surfaces that. This
+  # check exists for the mesh case GraphValidator can't see, not to duplicate
+  # it for every plain workflow with a dangling Action step.
+  #
   # Seed with the workflows that reach a Resolve on their own, then spread
   # backward along handoff edges: a workflow is escapable if it hands off to an
   # escapable one. Only `root` is reported — every workflow in an import is
   # validated as its own root, so nothing goes unchecked.
   def validate_escapable_across_workflows(root)
+    handoff_edges = @workflows_cache.each_value.to_h { |wf| [wf.id, handoff_target_ids(wf)] }
+    return if handoff_edges.values.all?(&:empty?)
+
     escapable = @workflows_cache.each_value.select { |wf| workflow_self_escapable?(wf) }
                                 .to_set(&:id)
 
@@ -276,7 +286,7 @@ class SubflowValidator
       @workflows_cache.each_value do |wf|
         next if escapable.include?(wf.id)
 
-        escapable.add(wf.id) if handoff_target_ids(wf).any? { |id| escapable.include?(id) }
+        escapable.add(wf.id) if handoff_edges[wf.id].any? { |id| escapable.include?(id) }
       end
       break if escapable.size == before
     end

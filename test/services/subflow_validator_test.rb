@@ -12,9 +12,7 @@ class SubflowValidatorTest < ActiveSupport::TestCase
 
   test "valid for workflow with no sub-flows" do
     wf = Workflow.create!(title: "No Subflows", user: @user)
-    action = Steps::Action.create!(workflow: wf, position: 0, title: "Action 1")
-    resolve = Steps::Resolve.create!(workflow: wf, position: 1, title: "Done")
-    Transition.create!(step: action, target_step: resolve, position: 0)
+    Steps::Action.create!(workflow: wf, position: 0, title: "Action 1")
     validator = SubflowValidator.new(wf.id)
     assert_predicate validator, :valid?
     assert_empty validator.errors
@@ -24,10 +22,7 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     child_wf = Workflow.create!(title: "Child", user: @user, status: "published", is_public: true)
     Steps::Action.create!(workflow: child_wf, position: 0, title: "Child Action")
     parent_wf = Workflow.create!(title: "Parent", user: @user)
-    call_child = Steps::SubFlow.create!(workflow: parent_wf, position: 0, title: "Call Child",
-                                        sub_flow_workflow_id: child_wf.id)
-    resolve = Steps::Resolve.create!(workflow: parent_wf, position: 1, title: "Done")
-    Transition.create!(step: call_child, target_step: resolve, position: 0)
+    Steps::SubFlow.create!(workflow: parent_wf, position: 0, title: "Call Child", sub_flow_workflow_id: child_wf.id)
     assert SubflowValidator.valid?(parent_wf.id)
   end
 
@@ -88,9 +83,7 @@ class SubflowValidatorTest < ActiveSupport::TestCase
 
   test "class methods valid? and errors_for work" do
     wf = Workflow.create!(title: "Class Method Test", user: @user)
-    action = Steps::Action.create!(workflow: wf, position: 0, title: "A1")
-    resolve = Steps::Resolve.create!(workflow: wf, position: 1, title: "Done")
-    Transition.create!(step: action, target_step: resolve, position: 0)
+    Steps::Action.create!(workflow: wf, position: 0, title: "A1")
     assert SubflowValidator.valid?(wf.id)
     assert_empty SubflowValidator.errors_for(wf.id)
   end
