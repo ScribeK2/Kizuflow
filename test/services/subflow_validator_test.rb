@@ -12,7 +12,9 @@ class SubflowValidatorTest < ActiveSupport::TestCase
 
   test "valid for workflow with no sub-flows" do
     wf = Workflow.create!(title: "No Subflows", user: @user)
-    Steps::Action.create!(workflow: wf, position: 0, title: "Action 1")
+    action = Steps::Action.create!(workflow: wf, position: 0, title: "Action 1")
+    resolve = Steps::Resolve.create!(workflow: wf, position: 1, title: "Done")
+    Transition.create!(step: action, target_step: resolve, position: 0)
     validator = SubflowValidator.new(wf.id)
     assert_predicate validator, :valid?
     assert_empty validator.errors
@@ -22,7 +24,10 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     child_wf = Workflow.create!(title: "Child", user: @user, status: "published", is_public: true)
     Steps::Action.create!(workflow: child_wf, position: 0, title: "Child Action")
     parent_wf = Workflow.create!(title: "Parent", user: @user)
-    Steps::SubFlow.create!(workflow: parent_wf, position: 0, title: "Call Child", sub_flow_workflow_id: child_wf.id)
+    call_child = Steps::SubFlow.create!(workflow: parent_wf, position: 0, title: "Call Child",
+                                        sub_flow_workflow_id: child_wf.id)
+    resolve = Steps::Resolve.create!(workflow: parent_wf, position: 1, title: "Done")
+    Transition.create!(step: call_child, target_step: resolve, position: 0)
     assert SubflowValidator.valid?(parent_wf.id)
   end
 
@@ -83,7 +88,9 @@ class SubflowValidatorTest < ActiveSupport::TestCase
 
   test "class methods valid? and errors_for work" do
     wf = Workflow.create!(title: "Class Method Test", user: @user)
-    Steps::Action.create!(workflow: wf, position: 0, title: "A1")
+    action = Steps::Action.create!(workflow: wf, position: 0, title: "A1")
+    resolve = Steps::Resolve.create!(workflow: wf, position: 1, title: "Done")
+    Transition.create!(step: action, target_step: resolve, position: 0)
     assert SubflowValidator.valid?(wf.id)
     assert_empty SubflowValidator.errors_for(wf.id)
   end
@@ -276,5 +283,40 @@ class SubflowValidatorTest < ActiveSupport::TestCase
                            sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
     validator = SubflowValidator.new(wf_a.id)
     assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
+
+  test "refuses a handoff pair with no reachable Resolve" do
+    wf_a = Workflow.create!(title: "Trap A", user: @user)
+    wf_b = Workflow.create!(title: "Trap B", user: @user)
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_not validator.valid?
+    assert(validator.findings.any? { |f| f.code == :no_resolve_across_workflows })
+  end
+
+  test "accepts a handoff cycle when one workflow reaches a Resolve" do
+    wf_a = Workflow.create!(title: "Esc A", user: @user)
+    wf_b = Workflow.create!(title: "Esc B", user: @user)
+    Steps::Resolve.create!(workflow: wf_b, position: 0, title: "B done")
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 1, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    validator = SubflowValidator.new(wf_a.id)
+    assert_predicate validator, :valid?, validator.errors.join(" | ")
+  end
+
+  test "the new finding does not block a save" do
+    wf_a = Workflow.create!(title: "NoBlock A", user: @user)
+    wf_b = Workflow.create!(title: "NoBlock B", user: @user)
+    Steps::SubFlow.create!(workflow: wf_a, position: 0, title: "Hand to B",
+                           sub_flow_workflow_id: wf_b.id, sub_flow_returns: false)
+    Steps::SubFlow.create!(workflow: wf_b, position: 0, title: "Hand to A",
+                           sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
+    wf_a.reload.title = "Renamed while half-built"
+    assert wf_a.save, "Errors: #{wf_a.errors.full_messages.join(' | ')}"
   end
 end

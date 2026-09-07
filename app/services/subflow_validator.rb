@@ -63,6 +63,7 @@ class SubflowValidator
 
     validate_no_circular_subflows(root, [])
     validate_max_depth(root)
+    validate_escapable_across_workflows(root)
 
     @findings.empty?
   end
@@ -253,5 +254,50 @@ class SubflowValidator
 
     on_path.delete(workflow.id)
     @depth_cache[workflow.id] = depth
+  end
+
+  # Can a run that enters `root` ever reach a Resolve step?
+  #
+  # GraphValidator guarantees this inside one workflow but counts a handoff as
+  # an ending, so a mesh whose every ending is a handoff satisfies it while
+  # having no Resolve anywhere. That is the one genuine hazard the old blanket
+  # cycle refusal was catching by accident, and this asks it directly.
+  #
+  # Seed with the workflows that reach a Resolve on their own, then spread
+  # backward along handoff edges: a workflow is escapable if it hands off to an
+  # escapable one. Only `root` is reported — every workflow in an import is
+  # validated as its own root, so nothing goes unchecked.
+  def validate_escapable_across_workflows(root)
+    escapable = @workflows_cache.each_value.select { |wf| workflow_self_escapable?(wf) }
+                                .to_set(&:id)
+
+    loop do
+      before = escapable.size
+      @workflows_cache.each_value do |wf|
+        next if escapable.include?(wf.id)
+
+        escapable.add(wf.id) if handoff_target_ids(wf).any? { |id| escapable.include?(id) }
+      end
+      break if escapable.size == before
+    end
+
+    return if escapable.include?(root.id)
+
+    add_finding(:no_resolve_across_workflows,
+                "No path to a Resolve step from this workflow, or any workflow it hands off to.",
+                details: { workflow_id: root.id })
+  end
+
+  def workflow_self_escapable?(workflow)
+    steps = workflow.steps.includes(transitions: :target_step).to_a
+    return true if steps.empty?
+
+    start_uuid = workflow.start_step&.uuid || steps.first&.uuid
+    GraphValidator.new(GraphHashBuilder.call(steps), start_uuid).self_escapable?
+  end
+
+  def handoff_target_ids(workflow)
+    Steps::SubFlow.where(workflow_id: workflow.id, sub_flow_returns: false)
+                  .pluck(:sub_flow_workflow_id).compact
   end
 end

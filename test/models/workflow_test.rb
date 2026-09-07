@@ -679,9 +679,11 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_not step.reload.can_resolve
   end
 
-  test "SAVE_BLOCKING_CODES names every code the validator can emit today" do
+  test "SAVE_BLOCKING_CODES omits the codes that must not block a save" do
     assert_equal %i[circular_subflow max_depth_exceeded subflow_target_missing].sort,
                  SubflowValidator::SAVE_BLOCKING_CODES.sort
+    assert_not_includes SubflowValidator::SAVE_BLOCKING_CODES, :no_resolve_across_workflows,
+                        "a half-built bundle is legitimately inescapable and must stay saveable"
   end
 
   test "a circular sub-flow still blocks save" do
