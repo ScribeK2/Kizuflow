@@ -278,6 +278,29 @@ class SubflowValidatorTest < ActiveSupport::TestCase
     assert_predicate validator, :valid?, validator.errors.join(" | ")
   end
 
+  # The regression this pass exists for. The dangling-target check used to live
+  # inside the cycle walk, which narrowed to returning edges when handoff cycles
+  # became legal — so a handoff to a deleted workflow reported nothing here while
+  # Workflow#validate_subflow_steps still reddened every save. That is the
+  # "autosave red, health panel clean" split workflow.rb records as a past bug.
+  test "reports a non-existent target behind a handoff, not just a returning call" do
+    wf = Workflow.create!(title: "Handoff To Ghost", user: @user)
+    step = Steps::SubFlow.new(workflow: wf, position: 0, title: "Hand to Ghost",
+                              sub_flow_workflow_id: 999_999, sub_flow_returns: false,
+                              uuid: SecureRandom.uuid)
+    step.save(validate: false)
+
+    validator = SubflowValidator.new(wf.id)
+
+    assert_not validator.valid?
+    assert(validator.findings.any? { |f| f.code == :subflow_target_missing },
+           "a handoff target that no longer exists must still be reported")
+    assert_equal 999_999,
+                 validator.findings.find { |f| f.code == :subflow_target_missing }
+                          .details[:target_workflow_id],
+                 "WorkflowHealthCheck maps the finding back to a step through this key"
+  end
+
   test "refuses a handoff pair with no reachable Resolve" do
     wf_a = Workflow.create!(title: "Trap A", user: @user)
     wf_b = Workflow.create!(title: "Trap B", user: @user)

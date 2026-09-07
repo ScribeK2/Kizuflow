@@ -61,6 +61,7 @@ class SubflowValidator
     # Batch-load all reachable workflows upfront
     @workflows_cache = preload_reachable_workflows(root)
 
+    validate_subflow_targets_exist
     validate_no_circular_subflows(root, [])
     validate_max_depth(root)
     validate_escapable_across_workflows(root)
@@ -147,6 +148,26 @@ class SubflowValidator
     end
   end
 
+  # Reported over ALL edges, not just returning ones, and in its own pass.
+  #
+  # This used to live inside validate_no_circular_subflows, which narrowed to
+  # returning edges when handoff cycles became legal — silently taking the
+  # dangling-target check with it. A handoff to a deleted workflow then reported
+  # nothing here while Workflow#validate_subflow_steps still reddened every save:
+  # the "autosave red, health panel clean" split that workflow.rb's own comment
+  # records as a past bug.
+  def validate_subflow_targets_exist
+    @workflows_cache.each_value do |workflow|
+      extract_subflow_target_ids(workflow).each do |target_id|
+        next if @workflows_cache.key?(target_id)
+
+        add_finding(:subflow_target_missing,
+                    "Sub-flow references non-existent workflow (ID: #{target_id})",
+                    details: { workflow_id: workflow.id, target_workflow_id: target_id })
+      end
+    end
+  end
+
   # Recursively check for circular sub-flow references.
   #
   # Three-colour DFS: `@on_path` is grey (an ancestor of the current node, so an
@@ -196,11 +217,8 @@ class SubflowValidator
 
     extract_subflow_target_ids(workflow, returning_only: true).each do |target_id|
       target = @workflows_cache[target_id]
-      unless target
-        add_finding(:subflow_target_missing, "Sub-flow references non-existent workflow (ID: #{target_id})",
-                    details: { workflow_id: workflow.id, target_workflow_id: target_id })
-        next
-      end
+      next unless target
+
       validate_no_circular_subflows(target, path)
     end
 
