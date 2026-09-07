@@ -159,7 +159,11 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
                            sub_flow_workflow_id: wf_a.id, sub_flow_returns: false)
     result = WorkflowPublisher.publish(wf_a.reload, @user)
     assert_not result.success?
-    assert_match(/No path to a Resolve step/, result.error)
+    # Anchored: GraphValidator's own message is "Step 'X' has no path to a
+    # Resolve step.", which differs from this one only by capitalisation.
+    # Unanchored, a reworded message on either side could make this pass for
+    # the wrong validator.
+    assert_match(/\ANo path to a Resolve step/, result.error)
     assert_equal "draft", wf_a.reload.status
   end
 end
