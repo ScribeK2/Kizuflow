@@ -201,8 +201,8 @@ class ScenarioExecutionTest < ApplicationSystemTestCase
   private
 
   def start_scenario
-    visit new_workflow_execution_path(@workflow)
-    click_on "Start Workflow"
+    visit workflow_path(@workflow)
+    click_on "Run Scenario"
     assert_selector RUNNER_STEP_CARD, wait: 5
     @scenario_record = Scenario.where(workflow: @workflow).order(:created_at).last
   end

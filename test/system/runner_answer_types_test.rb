@@ -20,8 +20,8 @@ class RunnerAnswerTypesTest < ApplicationSystemTestCase
     Transition.create!(step: q, target_step: r, position: 0)
     wf.update!(start_step: q)
     sign_in_as u
-    visit new_workflow_execution_path(wf)
-    click_on "Start Workflow"
+    visit workflow_path(wf)
+    click_on "Run Scenario"
     assert_current_step "Pick a tier"
 
     choose_answer "Gold"
@@ -48,8 +48,8 @@ class RunnerAnswerTypesTest < ApplicationSystemTestCase
     Transition.create!(step: q, target_step: r, position: 0)
     wf.update!(start_step: q)
     sign_in_as u
-    visit new_workflow_execution_path(wf)
-    click_on "Start Workflow"
+    visit workflow_path(wf)
+    click_on "Run Scenario"
     assert_current_step "Describe the issue"
 
     fill_in "answer", with: "disk full on the web node"

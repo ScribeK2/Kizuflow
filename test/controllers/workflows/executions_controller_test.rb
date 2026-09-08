@@ -26,10 +26,12 @@ module Workflows
       Bullet.enable = true
     end
 
-    test 'new renders start page' do
-      get new_workflow_execution_path(@workflow)
+    test "GET new does not start a run" do
+      assert_no_difference "Scenario.count" do
+        get new_workflow_execution_path(@workflow)
+      end
 
-      assert_response :success
+      assert_redirected_to workflow_path(@workflow)
     end
 
     test 'create creates scenario and redirects' do
@@ -41,7 +43,9 @@ module Workflows
 
       assert_equal @workflow.id, scenario.workflow_id
       assert_equal @editor.id, scenario.user_id
+      assert_equal "simulation", scenario.purpose
       assert_redirected_to step_scenario_path(scenario)
+      assert_nil flash[:notice]
     end
 
     test 'create requires authentication' do
@@ -65,9 +69,10 @@ module Workflows
       Steps::Question.create!(workflow: workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in admin
 
-      get new_workflow_execution_path(workflow)
-
-      assert_response :success
+      assert_difference "Scenario.count", 1 do
+        post workflow_execution_path(workflow)
+      end
+      assert_redirected_to step_scenario_path(Scenario.last)
     end
 
     test "editor should be able to run scenario on workflows they can view" do
@@ -83,13 +88,13 @@ module Workflows
       Steps::Question.create!(workflow: public_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in editor
 
-      get new_workflow_execution_path(own_workflow)
+      assert_difference "Scenario.count", 1 do
+        post workflow_execution_path(own_workflow)
+      end
 
-      assert_response :success
-
-      get new_workflow_execution_path(public_workflow)
-
-      assert_response :success
+      assert_difference "Scenario.count", 1 do
+        post workflow_execution_path(public_workflow)
+      end
     end
 
     test "editor should not be able to run scenario on other user's private workflow" do
@@ -103,7 +108,9 @@ module Workflows
       Steps::Question.create!(workflow: private_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in editor
 
-      get new_workflow_execution_path(private_workflow)
+      assert_no_difference "Scenario.count" do
+        post workflow_execution_path(private_workflow)
+      end
 
       assert_redirected_to workflows_path
       assert_equal "You don't have permission to view this workflow.", flash[:alert]

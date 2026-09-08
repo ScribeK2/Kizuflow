@@ -86,7 +86,8 @@
               </div>
               <div class="list-row__actions">
                 <% if workflow.published? %>
-                  <%= link_to "Run", new_workflow_execution_path(workflow), class: "btn btn--plain btn--sm",
+                  <%= button_to "Run", play_workflow_path(workflow), method: :post,
+                        class: "btn btn--plain btn--sm",
                         aria: { label: "Run workflow: #{workflow.title}" } %>
                 <% end %>
               </div>

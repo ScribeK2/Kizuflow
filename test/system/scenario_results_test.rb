@@ -77,8 +77,8 @@ class ScenarioResultsTest < ApplicationSystemTestCase
   private
 
   def complete_a_run
-    visit new_workflow_execution_path(@workflow)
-    click_on "Start Workflow"
+    visit workflow_path(@workflow)
+    click_on "Run Scenario"
     assert_selector RUNNER_STEP_CARD, wait: 5
     choose_answer "Yes"
     assert_current_step "Check hosting status"

@@ -1,7 +1,7 @@
 <%# Workflow list item partial with caching
     Cache key includes: workflow, current_user, selected_group, and folders
     Busts when: workflow updated, user permissions change, group context changes, or folders change %>
-<% cache ["wf-row-v2", workflow, current_user, @selected_group, current_user&.role, @folders&.map(&:id)] do %>
+<% cache ["wf-row-v3", workflow, current_user, @selected_group, current_user&.role, @folders&.map(&:id)] do %>
   <li class="wf-list-item wf-list-item--<%= workflow.dominant_step_type || 'default' %>" style="animation-delay: <%= local_assigns[:index].to_i * 0.05 %>s;">
     <div class="wf-list-item__body">
       <div class="wf-list-item__row">
@@ -33,7 +33,8 @@
         </div>
         <div class="wf-list-item__actions">
           <% if workflow.published? %>
-            <%= link_to new_workflow_execution_path(workflow), class: "btn btn--secondary btn--sm inline-flex items-center gap-1" do %>
+            <%= button_to play_workflow_path(workflow), method: :post,
+                  class: "btn btn--secondary btn--sm inline-flex items-center gap-1" do %>
               <%= icon "play", class: "icon icon--sm" %>
               Run
             <% end %>

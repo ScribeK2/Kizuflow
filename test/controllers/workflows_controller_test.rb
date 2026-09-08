@@ -63,8 +63,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     get workflows_path
 
     assert_select ".wf-list-item__title[href=?]", workflow_path(@workflow, edit: true)
-    assert_select "a[href=?]", new_workflow_execution_path(@workflow), text: /Run/
-    assert_select "a[href=?]", new_workflow_execution_path(draft), count: 0
+    assert_select "form[action=?]", play_workflow_path(@workflow)
+    assert_select "form[action=?]", play_workflow_path(draft), count: 0
   end
 
   test "index page-size control defaults to 24" do

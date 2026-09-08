@@ -58,7 +58,8 @@
       <% end %>
 
       <% if mode == "view" %>
-        <%= link_to new_workflow_execution_path(workflow), class: "btn btn--primary btn--sm" do %>
+        <%= button_to workflow_execution_path(workflow), method: :post,
+              class: "btn btn--primary btn--sm" do %>
           Run Scenario
         <% end %>
       <% end %>

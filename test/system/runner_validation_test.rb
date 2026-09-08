@@ -31,8 +31,8 @@ class RunnerValidationTest < ApplicationSystemTestCase
     wf.update!(start_step: form)
 
     sign_in_as u
-    visit new_workflow_execution_path(wf)
-    click_on "Start Workflow"
+    visit workflow_path(wf)
+    click_on "Run Scenario"
     assert_current_step "Verify the caller"
 
     # A required checkbox must carry the attribute, or the browser lets an
