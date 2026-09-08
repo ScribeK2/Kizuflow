@@ -13,6 +13,8 @@ require "test_helper"
 # `static values` key on the JS side — only a Capybara system test that drives
 # "+ Add Field" and asserts all seven `<option>`s render would close that gap.
 class StepsPanelEditStimulusValuesTest < ActionDispatch::IntegrationTest
+  include WorkflowsHelper
+
   setup do
     @editor = User.create!(
       email: "editor-panel-edit-#{SecureRandom.hex(4)}@example.com",
@@ -44,5 +46,31 @@ class StepsPanelEditStimulusValuesTest < ActionDispatch::IntegrationTest
     Steps::Question::VALID_ANSWER_TYPES.each do |type|
       assert_includes response.body, %(value="#{type}")
     end
+  end
+
+  test "the transitions editor carries sentence targets and variables JSON, not a raw custom field" do
+    earlier = Steps::Question.create!(
+      workflow: @workflow, position: 0, title: "Already verified?",
+      question: "Already?", answer_type: "yes_no", variable_name: "already_verified"
+    )
+    later = Steps::Question.create!(
+      workflow: @workflow, position: 1, title: "Did it work?",
+      question: "Work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(step: later, target_step: earlier, position: 0, condition: "already_verified == 'yes'")
+
+    get panel_edit_workflow_step_path(@workflow, later)
+
+    assert_response :success
+    assert_select "[data-condition-preset-target='sentenceContainer']"
+    assert_select "[data-condition-preset-target='sentenceVariable']"
+    assert_select "[data-condition-preset-target='sentenceOperator']"
+    assert_select "[data-condition-preset-target='sentenceValue']"
+    assert_select "[data-condition-preset-target='keepAsWritten']"
+    assert_select "[data-condition-preset-target='customInput']", count: 0
+    assert_no_match "e.g., answer ==", response.body
+
+    json = ERB::Util.html_escape(condition_sentence_variables(@workflow, later).to_json)
+    assert_includes response.body, %(data-condition-preset-variables-value="#{json}")
   end
 end
