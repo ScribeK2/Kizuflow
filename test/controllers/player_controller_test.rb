@@ -44,6 +44,19 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
     assert_select "body.player-layout"
   end
 
+  test "exit player leaves the player for the dashboard" do
+    sign_in @regular
+    get play_path
+    assert_select "a.player-link[href=?]", root_path, text: "Exit Player"
+  end
+
+  test "exit player from a run also leaves for the dashboard" do
+    sign_in @regular
+    post play_workflow_path(@workflow)
+    get player_scenario_step_path(Scenario.last)
+    assert_select "a.player-link[href=?]", root_path, text: "Exit Player"
+  end
+
   test "player index omits untitled published workflows" do
     untitled = Workflow.create!(title: "Untitled Workflow", user: @admin, status: "published", is_public: true)
     Steps::Resolve.create!(workflow: untitled, title: "Done", uuid: SecureRandom.uuid, position: 0, resolution_type: "success")
