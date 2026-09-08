@@ -56,6 +56,22 @@
   gap: 0.75rem;
 }
 
+.nav__link {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-subtle);
+  text-decoration: none;
+}
+
+.nav__link:hover {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.nav__link[aria-current="page"] {
+  color: var(--color-ink);
+}
+
 /* --- Search pill (left zone) --- */
 .nav__search-pill {
   display: inline-flex;

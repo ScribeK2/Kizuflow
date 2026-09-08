@@ -1,19 +1,5 @@
-<%# Navigation section (all roles) %>
-<div class="popup__section">
-  <div class="popup__section-title">Navigation</div>
-  <%= link_to root_path, class: "popup__item", data: { turbo_frame: "_top" } do %>
-    <%= icon "home", class: "icon icon--sm" %>
-    Home
-  <% end %>
-  <%= link_to workflows_path, class: "popup__item", data: { turbo_frame: "_top" } do %>
-    <%= icon "bars-3-bottom-left", class: "icon icon--sm" %>
-    Workflows
-  <% end %>
-</div>
-
 <%# Actions section (editors and admins) %>
 <% if current_user.can_create_workflows? %>
-  <div class="popup__divider"></div>
   <div class="popup__section">
     <div class="popup__section-title">Actions</div>
     <%= start_workflow_button "New Workflow",

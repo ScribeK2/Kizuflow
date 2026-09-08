@@ -52,10 +52,22 @@ class NavControllerTest < ActionDispatch::IntegrationTest
     sign_in @regular
     get nav_menu_path
     assert_response :success
-    assert_select "a[href='#{root_path}']"
-    assert_select "a[href='#{workflows_path}']"
     assert_select "form[action='#{workflows_path}'][method='post']", count: 0
     assert_select "a[href='#{admin_users_path}']", count: 0
+  end
+
+  test "editor layout has persistent Workflows and Play links" do
+    sign_in @editor
+    get root_path
+    assert_select "nav a.nav__link[href=?]", workflows_path, text: "Workflows"
+    assert_select "nav a.nav__link[href=?]", play_path, text: "Play"
+  end
+
+  test "regular layout has persistent Play and no Workflows link" do
+    sign_in @regular
+    get root_path
+    assert_select "nav a.nav__link[href=?]", play_path, text: "Play"
+    assert_select "nav a.nav__link[href=?]", workflows_path, count: 0
   end
 
   # --- search_data action ---

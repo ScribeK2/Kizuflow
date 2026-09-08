@@ -102,7 +102,7 @@
                 <span class="nav__brand-text">TurboFlows</span>
               <% end %>
 
-              <% if user_signed_in? %>
+              <% if user_signed_in? && (current_user.can_create_workflows? || current_user.can_access_admin?) %>
                 <div data-controller="nav-menu" data-nav-menu-src-value="<%= nav_menu_path %>">
                   <button type="button"
                           data-action="click->nav-menu#toggle"
@@ -124,6 +124,16 @@
 
           <%# === Right zone: Dark mode + avatar === %>
           <div class="nav__zone nav__zone--end">
+            <% if user_signed_in? %>
+              <% if current_user.can_edit_workflows? %>
+                <%= link_to "Workflows", workflows_path,
+                      class: "nav__link",
+                      aria: { current: ("page" if controller_path.start_with?("workflows")) } %>
+              <% end %>
+              <%= link_to "Play", play_path,
+                    class: "nav__link",
+                    aria: { current: ("page" if controller_name == "player") } %>
+            <% end %>
             <!-- Dark Mode Toggle -->
             <button
               type="button"
@@ -152,7 +162,9 @@
                 <div data-dropdown-target="menu" class="dropdown__menu is-hidden" role="menu">
                   <div class="dropdown__header">
                     <p class="dropdown__user-name"><%= current_user.display_label %></p>
-                    <p class="dropdown__user-email"><%= current_user.email %></p>
+                    <% if current_user.display_name.present? %>
+                      <p class="dropdown__user-email"><%= current_user.email %></p>
+                    <% end %>
                   </div>
                   <div class="dropdown__body">
                     <%= link_to edit_profile_path, class: "dropdown__item", role: "menuitem" do %>
