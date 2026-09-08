@@ -53,13 +53,15 @@
 
   <%# Status and outgoing connections sit inline rather than on a second line:
       a step list is scanned vertically, and a two-line row costs about a third
-      of the steps visible at once. Mirrors how .list-row__progress sits inline. %>
-  <span class="builder__step-meta">
-    <% parts = [] %>
-    <% parts << "Start" if step == workflow.start_step %>
-    <% parts << "Terminal" if step.terminal? %>
-    <% parts << step_connection_summary(targets, ordinals) if targets.any? %>
-    <%= parts.join(" · ") %>
+      of the steps visible at once. Mirrors how .list-row__progress sits inline.
+      title= keeps the full crumb readable once CSS ellipsizes it. %>
+  <% parts = [] %>
+  <% parts << "Start" if step == workflow.start_step %>
+  <% parts << "Terminal" if step.terminal? %>
+  <% parts << step_connection_summary(targets, ordinals) if targets.any? %>
+  <% meta = parts.join(" · ") %>
+  <span class="builder__step-meta"<% if meta.present? %> title="<%= meta %>"<% end %>>
+    <%= meta %>
   </span>
 
   <%# Warning Icon (populated by step_warnings_controller.js) %>

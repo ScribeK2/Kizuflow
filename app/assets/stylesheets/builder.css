@@ -158,6 +158,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
     padding: var(--space-3) var(--space-4);
     gap: var(--space-2);
     transition: flex-basis var(--duration-normal) var(--ease-out);
@@ -218,8 +219,18 @@
     padding-left: calc(var(--space-4) - 3px);
   }
 
+  /* Connection crumbs name their targets, so a branched step's meta can be
+     longer than the row. flex-shrink:0 + nowrap grew the whole builder past
+     the page edge. Shrink and ellipsize so the title stays the primary and
+     the list stays inside the column. max-width:50% is load-bearing: the
+     title's flex-basis is 0%, so without a cap the crumbs would take the
+     row and leave the title nothing. */
   .builder__step-meta {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: var(--text-xs);
     color: var(--color-ink-muted);
     white-space: nowrap;

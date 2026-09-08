@@ -29,6 +29,25 @@ class BuilderFlowTest < ActionDispatch::IntegrationTest
     assert_match "Publish", response.body
   end
 
+  test "step row meta carries the full connection crumb as a title" do
+    workflow = Workflow.create!(title: "Overflow crumbs", user: @user)
+    question = Steps::Question.create!(
+      workflow: workflow, position: 0,
+      title: "What do they want cancelled?", question: "What?"
+    )
+    resolve = Steps::Resolve.create!(
+      workflow: workflow, position: 1,
+      title: "Verify Client Account", resolution_type: "success"
+    )
+    Transition.create!(step: question, target_step: resolve, position: 0)
+    workflow.update!(start_step: question)
+
+    get workflow_path(workflow, edit: true)
+
+    assert_response :success
+    assert_select ".builder__step-meta[title=?]", "Start · → Verify Client Account · 2"
+  end
+
   test "adding a step via turbo stream appends step row" do
     workflow = workflows(:graph_mode_workflow)
     post workflow_steps_path(workflow),
