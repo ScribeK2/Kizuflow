@@ -109,6 +109,63 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     end
   end
 
+  test "a yes/no condition restores as the Yes preset, not Custom" do
+    question = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 1,
+      question: "Did it work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(step: question, target_step: @resolve, position: 0, condition: "verified == 'yes'")
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_selector "select[data-condition-preset-target='presetDropdown']", wait: 5
+      assert_eventually do
+        preset_dropdown.value == "yes"
+      end
+      assert_selector "[data-condition-preset-target='customContainer'].is-hidden", visible: :all
+    end
+  end
+
+  test "an option condition restores as that option, not Custom" do
+    question = Steps::Question.create!(
+      workflow: @workflow, title: "What product?", position: 1,
+      question: "What product?", answer_type: "dropdown", variable_name: "what",
+      options: [{ "label" => "Hosting", "value" => "hosting_email" }]
+    )
+    Transition.create!(step: question, target_step: @resolve, position: 0, condition: "what == 'hosting_email'")
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_selector "select[data-condition-preset-target='presetDropdown']", wait: 5
+      assert_eventually do
+        preset_dropdown.value == "option_0"
+      end
+      assert_selector "[data-condition-preset-target='customContainer'].is-hidden", visible: :all
+    end
+  end
+
+  test "an unmatched condition stays Custom" do
+    question = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 1,
+      question: "Did it work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(step: question, target_step: @resolve, position: 0, condition: "verified == 'maybe'")
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_selector "select[data-condition-preset-target='presetDropdown']", wait: 5
+      assert_eventually do
+        preset_dropdown.value == "__custom__"
+      end
+    end
+  end
+
   # The panel is loaded by two different mechanisms and only one of them used to
   # open it. Clicking a row sets the frame's `src`, so Turbo fires
   # `turbo:frame-load` and `builder#panelLoaded` runs. Creating a step injects
@@ -278,6 +335,10 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
 
   def step_row(uuid)
     find("[role='listitem'][data-step-uuid='#{uuid}']")
+  end
+
+  def preset_dropdown
+    find("select[data-condition-preset-target='presetDropdown']")
   end
 
   def assert_step_count(expected)

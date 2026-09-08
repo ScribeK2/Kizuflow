@@ -177,16 +177,18 @@ export default class extends Controller {
     if (stepType === 'question') {
       switch (answerType) {
         case 'yes_no':
+          // Lowercase: the runner stores "yes"/"no", and imports write the
+          // same. Capital Yes still restores via conditionsMatch.
           presets.push({
             id: 'yes',
             label: 'Yes',
-            condition: `${varName} == 'Yes'`,
+            condition: `${varName} == 'yes'`,
             displayLabel: 'Yes'
           })
           presets.push({
             id: 'no',
             label: 'No',
-            condition: `${varName} == 'No'`,
+            condition: `${varName} == 'no'`,
             displayLabel: 'No'
           })
           break
@@ -362,9 +364,11 @@ export default class extends Controller {
       return
     }
 
-    // Try to match against presets
+    // Try to match against presets. Exact === used to miss `== 'yes'`
+    // against a Yes preset written as `== 'Yes'`, which is how every
+    // imported yes/no branch opened as Custom.
     const matchedPreset = this.presets.find(p =>
-      p.condition && p.condition === condition
+      p.condition && this.conditionsMatch(p.condition, condition)
     )
 
     if (matchedPreset) {
@@ -390,6 +394,23 @@ export default class extends Controller {
     if (this.hasCustomInputTarget) {
       this.customInputTarget.value = condition
     }
+  }
+
+  /**
+   * Imports, this dropdown, and typed custom conditions disagree about
+   * quotes and Yes vs yes. Compare the meaning.
+   */
+  conditionsMatch(presetCondition, stored) {
+    return this.normalizeCondition(presetCondition) === this.normalizeCondition(stored)
+  }
+
+  normalizeCondition(condition) {
+    return condition
+      .trim()
+      .replace(/"/g, "'")
+      .replace(/\s+/g, " ")
+      .replace(/\s*([!=<>]+)\s*/g, " $1 ")
+      .toLowerCase()
   }
 
   /**
