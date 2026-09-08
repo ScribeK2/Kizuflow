@@ -39,6 +39,31 @@ class WorkflowPlacementTest < ActiveSupport::TestCase
     assert_equal [@child.id], result.group_ids
   end
 
+  # A nested group's own name is what people (and agents) actually write. The
+  # path walk starts at parent_id nil, so a single segment used to match only
+  # a root — "Tier 2" under "Support" was unknown_group even though it exists.
+  test "resolves a nested group by its own name when that name is unique" do
+    placement = WorkflowPlacement.new(user: @user, groups: [@child.name])
+
+    result = placement.resolve
+
+    assert_predicate result, :valid?
+    assert_equal [@child.id], result.group_ids
+  end
+
+  test "a bare name that matches two nested groups is unknown, not an arbitrary pick" do
+    other_root = Group.create!(name: "Support #{SecureRandom.hex(2)} Other")
+    twin = Group.create!(name: @child.name, parent: other_root)
+
+    result = WorkflowPlacement.new(user: @user, groups: [@child.name]).resolve
+
+    assert_not result.valid?
+    assert_equal "unknown_group", result.errors.first[:code]
+  ensure
+    twin&.destroy
+    other_root&.destroy
+  end
+
   test "preserves order so the first group becomes primary" do
     placement = WorkflowPlacement.new(user: @user, groups: ["#{@root.name} / #{@child.name}", @root.name])
 
@@ -66,6 +91,30 @@ class WorkflowPlacementTest < ActiveSupport::TestCase
 
     assert_not result.valid?
     assert_equal "group_not_permitted", result.errors.first[:code]
+  end
+
+  # Assignment to a parent is how group access works everywhere else
+  # (Workflow.visible_to, Group.can_be_viewed_by?, the builder's group picker).
+  # Placement used Group.visible_to, which is direct membership only, so an
+  # editor who can already file a workflow under the child in the UI was
+  # refused the same placement on import.
+  test "a user assigned to a parent group may place into a child group" do
+    parent_only = User.create!(
+      email: "placement-test-parent-#{SecureRandom.hex(4)}@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      role: "editor"
+    )
+    UserGroup.create!(user: parent_only, group: @root)
+
+    placement = WorkflowPlacement.new(
+      user: parent_only, groups: ["#{@root.name} / #{@child.name}"]
+    )
+
+    result = placement.resolve
+
+    assert_predicate result, :valid?
+    assert_equal [@child.id], result.group_ids
   end
 
   test "an administrator may place into any group" do

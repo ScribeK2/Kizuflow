@@ -124,6 +124,7 @@ class WorkflowsImportExportTest < ActionDispatch::IntegrationTest
     assert_match(ImportSchemaGenerator::MAX_WORKFLOWS_PER_FILE.to_s, response.body)
     # The copyable agent prompt itself, not a description of it.
     assert_match(/Writing a TurboFlows workflow file/, response.body)
+    assert_match(/\[\[&quot;Support&quot;, &quot;Tier 2&quot;\]\]/, response.body)
   end
 
   # Every example on the page is claimed to import cleanly. That claim is the

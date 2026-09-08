@@ -217,6 +217,20 @@ class WorkflowImporterTest < ActiveSupport::TestCase
     assert_equal %w[billing tier-2], result.workflow.tags.map(&:name).sort
   end
 
+  test "an import places the workflow in a nested group named by itself" do
+    child = Group.create!(name: "Importer Group Nested #{SecureRandom.hex(2)}", parent: @group)
+    json_data = {
+      title: "Nested Placement",
+      groups: [child.name],
+      steps: [{ id: "z", type: "resolve", title: "Done", resolution_type: "success" }]
+    }.to_json
+
+    result = WorkflowImporter.new(@user, format: :json, content: json_data).call
+
+    assert_predicate result, :success?
+    assert_equal [child.id], result.workflow.groups.map(&:id)
+  end
+
   # Two unknown groups, and a linear-format step list (which the parser
   # always flags with a "Converted from linear format to Graph Mode"
   # warning), are the probe: the pre-build `resolve` returns one distinct

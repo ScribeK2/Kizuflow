@@ -8,7 +8,10 @@
 # Group names are unique scoped to parent_id (see Group), which is what makes a
 # name path unambiguous. Paths arrive either slash-separated ("Support / Tier 2")
 # or as an array of segments (["Support", "Tier 2"]) — the second form is the
-# escape hatch for group names that themselves contain a slash.
+# escape hatch for group names that themselves contain a slash. A single
+# segment that matches exactly one group anywhere in the tree is also accepted,
+# because that is the name people write; two groups sharing a name still need
+# the path.
 class WorkflowPlacement
   class InvalidPlacement < StandardError; end
 
@@ -104,11 +107,28 @@ class WorkflowPlacement
     current_primary.folder_id
   end
 
-  # Walks the path one segment at a time. Group#name is unique per parent_id, so
-  # each step of the walk has at most one answer.
+  # Walks the path one segment at a time from the root. Group#name is unique
+  # per parent_id, so each step of the walk has at most one answer.
+  #
+  # A single segment that does not name a root is tried as a unique name
+  # anywhere in the tree: "Tier 2" under "Support" has no root named that, and
+  # requiring the full path made every nested group look missing. Two groups
+  # with the same name stay unknown — the path is what disambiguates them.
   def find_group(path)
-    segments(path).reduce(nil) do |parent, name|
-      match = Group.find_by(name: name.strip, parent_id: parent&.id)
+    segs = segments(path).map { |name| name.to_s.strip }.compact_blank
+    return nil if segs.empty?
+
+    walked = walk_from_root(segs)
+    return walked if walked
+    return nil unless segs.one?
+
+    matches = Group.where(name: segs.first).to_a
+    matches.one? ? matches.first : nil
+  end
+
+  def walk_from_root(segs)
+    segs.reduce(nil) do |parent, name|
+      match = Group.find_by(name: name, parent_id: parent&.id)
       return nil if match.nil?
 
       match
@@ -128,7 +148,7 @@ class WorkflowPlacement
   def permitted?(group)
     return true if @user&.admin?
 
-    Group.visible_to(@user).exists?(id: group.id)
+    group.can_be_viewed_by?(@user)
   end
 
   def resolve_folder_id(primary_group_id, errors)

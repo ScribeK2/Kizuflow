@@ -484,6 +484,19 @@ class StrictImportValidatorTest < ActiveSupport::TestCase
     assert_equal "workflows[0].groups[0]", error[:path]
   end
 
+  test "a nested group named by itself is accepted on the strict report" do
+    child = Group.create!(name: "Strict Nested #{SecureRandom.hex(3)}", parent: @group)
+    report = StrictImportValidator.new(user: @user, content: {
+      schema_version: "1",
+      workflows: [{ title: "Placed", groups: [child.name], steps: [resolve_step] }]
+    }.to_json).validate
+
+    assert_predicate report, :valid?, report.errors.inspect
+    assert_equal [child.id], report.placement.resolve.group_ids
+  ensure
+    child&.destroy
+  end
+
   test "a valid file carries its resolved placement on the report" do
     report = StrictImportValidator.new(user: @user, content: {
       schema_version: "1",

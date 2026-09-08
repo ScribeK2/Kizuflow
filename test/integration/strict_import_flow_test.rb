@@ -107,6 +107,37 @@ class StrictImportFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to workflow_path(Workflow.order(:created_at).last)
   end
 
+  test "a nested group named by itself is accepted and assigned on commit" do
+    root = Group.create!(name: "Flow Root #{SecureRandom.hex(2)}")
+    child = Group.create!(name: "Flow Nested #{SecureRandom.hex(2)}", parent: root)
+    UserGroup.create!(user: @user, group: root)
+    content = {
+      schema_version: "1",
+      workflows: [{
+        title: "Nested Group Flow",
+        groups: [child.name],
+        steps: [
+          { id: "done", type: "resolve", title: "Done", resolution_type: "success" }
+        ]
+      }]
+    }.to_json
+
+    post workflow_import_path, params: { file: upload(content) }
+
+    assert_response :success
+    assert_match(/Ready to import/, response.body)
+    assert_match(child.name, response.body)
+
+    post commit_workflow_import_path, params: { content: content }
+
+    workflow = Workflow.find_by(title: "Nested Group Flow")
+    assert_equal [child.id], workflow.groups.map(&:id)
+  ensure
+    Workflow.where(title: "Nested Group Flow").destroy_all
+    child&.destroy
+    root&.destroy
+  end
+
   private
 
   def upload(content)

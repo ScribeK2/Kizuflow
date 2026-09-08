@@ -216,8 +216,11 @@ class ImportPromptGenerator
       in a condition, or interpolate it into text as `{{variable_name}}`.
 
       **Groups** are named by path from the root, e.g.
-      `"groups": ["Support / Tier 2"]`. The group must already exist and you must
-      have access to it. Use `["Support", "Tier 2"]` if a name contains a slash.
+      `"groups": ["Support / Tier 2"]`, or by the group's own name when that
+      name is unique. The group must already exist and you must have access
+      to it — assignment to a parent covers its children. Use
+      `"groups": [["Support", "Tier 2"]]` if a name contains a slash; a
+      flat `["Support", "Tier 2"]` is two groups, not one path.
 
       **Form fields of type `select` must list their choices.** Put them in
       `select_options` on the field, as `{"label": ..., "value": ...}` — the same

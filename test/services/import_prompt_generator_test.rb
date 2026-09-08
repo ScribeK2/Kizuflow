@@ -39,6 +39,14 @@ class ImportPromptGeneratorTest < ActiveSupport::TestCase
     User.where("email LIKE ?", "prompt-test-%").destroy_all
   end
 
+  # `"groups": ["Support", "Tier 2"]` is two root lookups, not one nested path.
+  # The prompt used to teach that shape as the slash-escape, so an agent that
+  # followed it would land the parent and fail the child as unknown_group.
+  test "the prompt does not teach a flat two-string groups array as one path" do
+    assert_includes @prompt, '"groups": [["Support", "Tier 2"]]'
+    assert_no_match(/Use `\["Support", "Tier 2"\]`/, @prompt)
+  end
+
   test "the prompt states the sub-flow graph rules" do
     assert_match(/hand off to each other/i, @prompt)
     assert_includes @prompt, "chain of handoffs"
