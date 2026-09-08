@@ -55,25 +55,46 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "should get new" do
-    assert_difference("Workflow.count", 1) do
-      get new_workflow_path
-    end
-    workflow = Workflow.last
-    assert_equal "draft", workflow.status
-    assert_redirected_to workflow_path(workflow, edit: true)
-  end
-
-  test "new reuses existing blank draft instead of creating duplicate" do
-    # First visit creates a draft
-    get new_workflow_path
-    first_draft = Workflow.last
-
-    # Second visit reuses same draft
+  test "GET new does not create a draft" do
     assert_no_difference("Workflow.count") do
       get new_workflow_path
     end
-    assert_redirected_to workflow_path(first_draft, edit: true)
+    assert_redirected_to workflows_path
+  end
+
+  test "GET new is a no-op even when Turbo prefetches it" do
+    assert_no_difference("Workflow.count") do
+      get new_workflow_path, headers: { "X-Sec-Purpose" => "prefetch" }
+    end
+    assert_redirected_to workflows_path
+  end
+
+  test "GET new redirects to an existing blank draft without creating another" do
+    existing = Workflow.create!(title: "Untitled Workflow", user: @editor, status: "draft", graph_mode: true)
+
+    assert_no_difference("Workflow.count") do
+      get new_workflow_path
+    end
+    assert_redirected_to workflow_path(existing, edit: true)
+  end
+
+  test "POST create without params starts a draft and opens the builder" do
+    assert_difference("Workflow.count", 1) do
+      post workflows_path
+    end
+    workflow = Workflow.last
+    assert_equal "draft", workflow.status
+    assert_equal "Untitled Workflow", workflow.title
+    assert_redirected_to workflow_path(workflow, edit: true)
+  end
+
+  test "POST create without params reuses a blank draft instead of creating a duplicate" do
+    existing = Workflow.create!(title: "Untitled Workflow", user: @editor, status: "draft", graph_mode: true)
+
+    assert_no_difference("Workflow.count") do
+      post workflows_path
+    end
+    assert_redirected_to workflow_path(existing, edit: true)
   end
 
   test "should create workflow" do
@@ -212,7 +233,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to create workflows" do
     sign_in @admin
     assert_difference("Workflow.count", 1) do
-      get new_workflow_path
+      post workflows_path
     end
     assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
@@ -220,14 +241,16 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "editor should be able to create workflows" do
     sign_in @editor
     assert_difference("Workflow.count", 1) do
-      get new_workflow_path
+      post workflows_path
     end
     assert_redirected_to workflow_path(Workflow.last, edit: true)
   end
 
   test "user should not be able to create workflows" do
     sign_in @user
-    get new_workflow_path
+    assert_no_difference("Workflow.count") do
+      post workflows_path
+    end
 
     assert_redirected_to play_path
   end
@@ -497,27 +520,6 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Group 1", response.body
     assert_match "Group 2", response.body
-  end
-
-  test "GET new creates a draft workflow and redirects to builder" do
-    sign_in @editor
-    assert_difference("Workflow.count", 1) do
-      get new_workflow_path
-    end
-    workflow = Workflow.last
-    assert_equal "draft", workflow.status
-    assert_equal "Untitled Workflow", workflow.title
-    assert_redirected_to workflow_path(workflow, edit: true)
-  end
-
-  test "GET new reuses blank draft for same user" do
-    sign_in @editor
-    existing = Workflow.create!(title: "Untitled Workflow", user: @editor, status: "draft", graph_mode: true)
-
-    assert_no_difference("Workflow.count") do
-      get new_workflow_path
-    end
-    assert_redirected_to workflow_path(existing, edit: true)
   end
 
   # ===========================================================================

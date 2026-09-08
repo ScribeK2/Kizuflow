@@ -50,7 +50,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "CSR does not see Create Workflow button" do
     get root_path
-    assert_select "a[aria-label='Create a new workflow']", count: 0
+    assert_select "[aria-label='Create a new workflow']", count: 0
   end
 
   test "CSR sees empty pinned state when no pins" do
@@ -111,7 +111,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   test "SME sees Create Workflow button" do
     @user.update!(role: "editor")
     get root_path
-    assert_select "a[aria-label='Create a new workflow']"
+    assert_select "button[aria-label='Create a new workflow']"
   end
 
   test "SME sees draft count" do

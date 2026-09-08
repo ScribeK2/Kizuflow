@@ -3,6 +3,10 @@
 /* Hierarchy rule: at most ONE filled button per screen. Everything else is
    .btn--secondary (outlined) or .btn--plain (text). See UIGUIDE. */
 
+form.button_to {
+  margin: 0;
+}
+
 .btn {
   --btn-bg: transparent;
   --btn-text: var(--color-ink);

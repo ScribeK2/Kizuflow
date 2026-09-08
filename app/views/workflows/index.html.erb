@@ -27,10 +27,7 @@
           <%= icon "arrow-up-tray", class: "icon icon--sm" %>
           Import
         <% end %>
-        <%= link_to new_workflow_path, class: "btn btn--primary btn--sm", aria: { label: "Create a new workflow" } do %>
-          <%= icon "plus", class: "icon icon--sm" %>
-          New Workflow
-        <% end %>
+        <%= start_workflow_button "New Workflow", html_class: "btn btn--primary btn--sm" %>
       </div>
     <% end %>
   </div>
@@ -107,10 +104,7 @@
           </p>
           <% if current_user&.can_create_workflows? %>
             <div class="mt-4">
-              <%= link_to new_workflow_path, class: "btn btn--secondary btn--sm", aria: { label: "Create a new workflow" } do %>
-                <%= icon "plus", class: "icon icon--sm" %>
-                New Workflow
-              <% end %>
+              <%= start_workflow_button "New Workflow", html_class: "btn btn--secondary btn--sm" %>
             </div>
           <% end %>
         </div>

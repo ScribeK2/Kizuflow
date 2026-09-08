@@ -36,14 +36,15 @@ class NavControllerTest < ActionDispatch::IntegrationTest
   test "admin menu includes actions section" do
     sign_in @admin
     get nav_menu_path
-    assert_select "a[href='#{new_workflow_path}']"
+    assert_select "form[action='#{workflows_path}'][method='post']"
+    assert_select "form[action='#{workflows_path}'][method='post'][data-turbo-prefetch='false']"
   end
 
   test "editor menu includes actions but not admin" do
     sign_in @editor
     get nav_menu_path
     assert_response :success
-    assert_select "a[href='#{new_workflow_path}']"
+    assert_select "form[action='#{workflows_path}'][method='post']"
     assert_select "a[href='#{admin_users_path}']", count: 0
   end
 
@@ -53,7 +54,7 @@ class NavControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href='#{root_path}']"
     assert_select "a[href='#{workflows_path}']"
-    assert_select "a[href='#{new_workflow_path}']", count: 0
+    assert_select "form[action='#{workflows_path}'][method='post']", count: 0
     assert_select "a[href='#{admin_users_path}']", count: 0
   end
 

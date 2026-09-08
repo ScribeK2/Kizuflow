@@ -102,10 +102,10 @@
             <h3 class="dashboard-empty__title">No workflows yet</h3>
             <p class="dashboard-empty__text">Workflows you create will be listed here, newest first.</p>
             <div class="empty-state__actions">
-              <%= link_to new_workflow_path, class: "btn btn--secondary btn--sm", aria: { label: "Create your first workflow" } do %>
-                <%= icon "plus", class: "icon icon--xs" %>
-                Create Workflow
-              <% end %>
+              <%= start_workflow_button "Create Workflow",
+                    html_class: "btn btn--secondary btn--sm",
+                    icon_class: "icon icon--xs",
+                    aria_label: "Create your first workflow" %>
             </div>
           </div>
         <% end %>

@@ -12,8 +12,9 @@ class TemplateApplicationTest < ApplicationSystemTestCase
   end
 
   test "user applies a template to a new workflow" do
-    # Create a new workflow — goes directly to builder with "Untitled Workflow"
-    visit new_workflow_path
+    # Create a new workflow — POST, then the builder with "Untitled Workflow"
+    visit workflows_path
+    click_button "New Workflow", match: :first
 
     assert_selector "#builder-empty-state", wait: 5
 
@@ -30,7 +31,8 @@ class TemplateApplicationTest < ApplicationSystemTestCase
   end
 
   test "empty state offers quick starts without duplicating the template grid" do
-    visit new_workflow_path
+    visit workflows_path
+    click_button "New Workflow", match: :first
 
     assert_selector "#builder-empty-state", wait: 5
     assert_selector "#builder-empty-state .list-row--prompt"

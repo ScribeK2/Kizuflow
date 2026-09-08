@@ -59,8 +59,12 @@ class WorkflowsController < ApplicationController
   end
 
   def new
-    @workflow = Workflow.find_or_create_draft_for(current_user)
-    redirect_to workflow_path(@workflow, edit: true)
+    existing = Workflow.find_reusable_draft_for(current_user)
+    if existing
+      redirect_to workflow_path(existing, edit: true)
+    else
+      redirect_to workflows_path
+    end
   end
 
   def edit
@@ -68,6 +72,12 @@ class WorkflowsController < ApplicationController
   end
 
   def create
+    if params[:workflow].blank?
+      @workflow = Workflow.find_or_create_draft_for(current_user)
+      redirect_to workflow_path(@workflow, edit: true)
+      return
+    end
+
     @workflow = current_user.workflows.build(workflow_params)
 
     if @workflow.save

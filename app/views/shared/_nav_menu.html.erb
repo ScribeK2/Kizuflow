@@ -16,10 +16,9 @@
   <div class="popup__divider"></div>
   <div class="popup__section">
     <div class="popup__section-title">Actions</div>
-    <%= link_to new_workflow_path, class: "popup__item", data: { turbo_frame: "_top" } do %>
-      <%= icon "plus", class: "icon icon--sm" %>
-      New Workflow
-    <% end %>
+    <%= start_workflow_button "New Workflow",
+          html_class: "popup__item",
+          form: { data: { turbo_frame: "_top" } } %>
   </div>
 <% end %>
 

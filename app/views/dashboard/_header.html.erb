@@ -21,10 +21,7 @@
 
   <div class="dashboard-greet__actions">
     <% if current_user.can_create_workflows? %>
-      <%= link_to new_workflow_path, class: "btn btn--primary", aria: { label: "Create a new workflow" } do %>
-        <%= icon "plus", class: "icon icon--sm" %>
-        Create Workflow
-      <% end %>
+      <%= start_workflow_button "Create Workflow", html_class: "btn btn--primary" %>
     <% else %>
       <%= link_to play_path, class: "btn btn--primary", aria: { label: "Run a flow" } do %>
         <%= icon "play", class: "icon icon--sm" %>

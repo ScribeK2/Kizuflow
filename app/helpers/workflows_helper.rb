@@ -5,6 +5,23 @@ module WorkflowsHelper
   include StepTypeIcons
   include RailsIcons::Helpers::IconHelper
 
+  # POST, not GET: Turbo 8 prefetches GET links on hover, and creating a draft
+  # is a write. turbo_prefetch: false is a second guard if this is ever turned
+  # back into a link. The nav menu lives in a turbo frame, so callers there
+  # must pass form: { data: { turbo_frame: "_top" } }.
+  def start_workflow_button(label, html_class:, icon_class: "icon icon--sm",
+                            aria_label: "Create a new workflow", form: {})
+    form_data = (form[:data] || {}).merge(turbo_prefetch: false)
+    button_to workflows_path,
+              method: :post,
+              class: html_class,
+              form: form.merge(data: form_data),
+              data: { turbo_prefetch: false },
+              aria: { label: aria_label } do
+      safe_join([icon("plus", class: icon_class), label])
+    end
+  end
+
   # ============================================================================
   # Step Type Helpers
   # ============================================================================

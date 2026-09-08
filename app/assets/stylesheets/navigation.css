@@ -317,6 +317,20 @@
   transition: background var(--duration-fast) var(--ease-out);
 }
 
+.popup form.button_to {
+  width: 100%;
+  margin: 0;
+}
+
+button.popup__item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
 .popup__item:hover {
   background: var(--color-canvas-alt);
   text-decoration: none;
