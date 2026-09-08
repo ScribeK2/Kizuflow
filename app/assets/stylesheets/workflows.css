@@ -778,6 +778,40 @@
   min-width: 180px;
 }
 
+.condition-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.condition-sentence__variable {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.condition-sentence__operator {
+  flex: 0 0 auto;
+}
+
+.condition-sentence__value {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+.condition-sentence__value .form-select,
+.condition-sentence__value .form-input {
+  width: 100%;
+}
+
+.condition-sentence__kept {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
 .transition-item__label {
   width: 5rem;
 }
