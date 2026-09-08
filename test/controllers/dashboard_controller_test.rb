@@ -29,6 +29,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "editor renders SME dashboard" do
     @user.update!(role: "editor")
+    Workflow.create!(title: "Mine", user: @user, status: "published")
     get root_path
     assert_response :success
     assert_select "[aria-label*='Published workflows']"
@@ -36,6 +37,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "admin renders SME dashboard" do
     @user.update!(role: "admin")
+    Workflow.create!(title: "Mine", user: @user, status: "published")
     get root_path
     assert_response :success
     assert_select "[aria-label*='Published workflows']"
@@ -136,7 +138,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_response :success
-    assert_select ".stat-cell__chip", text: /1 draft/
+    assert_select ".dashboard-greet__attention", text: /1 draft/
+    assert_select ".stat-cell__chip", count: 0
   end
 
   test "SME sees company-wide scenario stats" do

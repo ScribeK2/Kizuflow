@@ -1,23 +1,13 @@
 <div class="dashboard-layout">
   <%= render "dashboard/header" %>
 
+  <% if @dashboard.published_workflow_count.positive? || @dashboard.draft_count.positive? %>
   <%# -- Stats: one bordered panel, hairline-divided cells -- %>
   <div class="stat-panel animate-fade-in">
     <div class="stat-panel__grid">
-      <%# Labelled for what it counts. This used to say "Active Workflows", show
-          the published count as its value, and then derive a "N published"
-          detail line by subtracting the viewer's own drafts from it — but that
-          value comes from `visible_to`, whose base scope is `published`, so
-          there were never drafts in it to subtract. An admin owning 11 drafts
-          read "21 Active Workflows / 11 drafts / 10 published" when 21 were
-          published. The draft chip is the org's drafts for an admin and the
-          viewer's own for an editor; see Workflow.drafts_visible_to. %>
       <div class="stat-cell" aria-label="Published workflows: <%= @dashboard.published_workflow_count %>">
         <div class="stat-cell__head">
           <span class="stat-cell__label">Published Workflows</span>
-          <% if @dashboard.draft_count.positive? %>
-            <span class="stat-cell__chip"><%= pluralize(@dashboard.draft_count, "draft") %></span>
-          <% end %>
         </div>
         <p class="stat-cell__value"><%= @dashboard.published_workflow_count %></p>
       </div>
@@ -25,9 +15,6 @@
       <div class="stat-cell" aria-label="Scenarios this week: <%= @dashboard.visible_scenarios_this_week %>">
         <div class="stat-cell__head">
           <span class="stat-cell__label">Scenarios This Week</span>
-          <% if @dashboard.visible_scenario_active.positive? %>
-            <span class="stat-cell__chip"><%= @dashboard.visible_scenario_active %> live</span>
-          <% end %>
         </div>
         <p class="stat-cell__value"><%= @dashboard.visible_scenarios_this_week %></p>
       </div>
@@ -50,6 +37,7 @@
       </div>
     </div>
   </div>
+  <% end %>
 
   <%# -- Two-Column Content -- %>
   <div class="dashboard-grid">
