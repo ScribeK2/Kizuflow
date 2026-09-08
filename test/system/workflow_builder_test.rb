@@ -124,7 +124,7 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
       assert_eventually do
         preset_dropdown.value == "yes"
       end
-      assert_selector "[data-condition-preset-target='customContainer'].is-hidden", visible: :all
+      assert_selector "[data-condition-preset-target='sentenceContainer'].is-hidden", visible: :all
     end
   end
 
@@ -144,7 +144,7 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
       assert_eventually do
         preset_dropdown.value == "option_0"
       end
-      assert_selector "[data-condition-preset-target='customContainer'].is-hidden", visible: :all
+      assert_selector "[data-condition-preset-target='sentenceContainer'].is-hidden", visible: :all
     end
   end
 
@@ -162,6 +162,123 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
       assert_selector "select[data-condition-preset-target='presetDropdown']", wait: 5
       assert_eventually do
         preset_dropdown.value == "__custom__"
+      end
+      kept = find("[data-condition-preset-target='keepAsWritten']", visible: :all)
+      assert_includes kept.text, "verified == 'maybe'"
+      assert_equal "verified == 'maybe'", condition_hidden.value
+    end
+  end
+
+  test "choosing Custom shows the sentence, not a raw condition field" do
+    question = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 1,
+      question: "Did it work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(step: question, target_step: @resolve, position: 0)
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_selector "select[data-condition-preset-target='presetDropdown']", wait: 5
+      find("select[data-condition-preset-target='presetDropdown'] option[value='__custom__']").select_option
+
+      assert_selector "[data-condition-preset-target='sentenceContainer']:not(.is-hidden)", wait: 5
+      assert_selector "select[data-condition-preset-target='sentenceVariable']"
+      assert_no_selector "[data-condition-preset-target='customInput']"
+      assert_no_text "e.g., answer =="
+    end
+  end
+
+  test "Custom can point at another question's Yes" do
+    Steps::Question.create!(
+      workflow: @workflow, title: "Already verified?", position: 1,
+      question: "Already?", answer_type: "yes_no", variable_name: "already_verified"
+    )
+    later = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 2,
+      question: "Work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(step: later, target_step: @resolve, position: 0)
+
+    visit_builder_in_edit_mode
+    step_row(later.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      find("select[data-condition-preset-target='presetDropdown'] option[value='__custom__']", wait: 5).select_option
+      assert_selector "select[data-condition-preset-target='sentenceVariable']", wait: 5
+      sentence_variable.find("option[value='already_verified']").select_option
+      sentence_operator.find("option[value='==']").select_option
+      find("[data-condition-preset-target='sentenceValue'] select option[value='yes']").select_option
+
+      assert_eventually do
+        condition_hidden.value == "already_verified == 'yes'"
+      end
+    end
+  end
+
+  test "a condition on another question restores as a filled sentence" do
+    Steps::Question.create!(
+      workflow: @workflow, title: "Already verified?", position: 1,
+      question: "Already?", answer_type: "yes_no", variable_name: "already_verified"
+    )
+    later = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 2,
+      question: "Work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(
+      step: later, target_step: @resolve, position: 0,
+      condition: "already_verified == 'yes'"
+    )
+
+    visit_builder_in_edit_mode
+    step_row(later.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_eventually { preset_dropdown.value == "__custom__" }
+      assert_selector "[data-condition-preset-target='sentenceContainer']:not(.is-hidden)"
+      assert_equal "already_verified", sentence_variable.value
+      assert_no_selector "[data-condition-preset-target='customInput']"
+    end
+  end
+
+  test "an unparseable condition is kept as written" do
+    question = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 1,
+      question: "Did it work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Transition.create!(
+      step: question, target_step: @resolve, position: 0,
+      condition: "not a real condition"
+    )
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_eventually { preset_dropdown.value == "__custom__" }
+      kept = find("[data-condition-preset-target='keepAsWritten']", visible: :all)
+      assert_includes kept.text, "not a real condition"
+      assert_equal "not a real condition", condition_hidden.value
+    end
+  end
+
+  test "Add Connection's Custom path is the sentence" do
+    question = Steps::Question.create!(
+      workflow: @workflow, title: "Did it work?", position: 1,
+      question: "Did it work?", answer_type: "yes_no", variable_name: "verified"
+    )
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      click_on "Add Connection"
+      assert_selector "[data-condition-preset-target='sentenceContainer']", visible: :all, wait: 5
+      within all(".transition-item").last do
+        find("select[data-condition-preset-target='presetDropdown'] option[value='__custom__']").select_option
+        assert_selector "[data-condition-preset-target='sentenceVariable']"
+        assert_no_selector "[data-condition-preset-target='customInput']"
       end
     end
   end
@@ -339,6 +456,18 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
 
   def preset_dropdown
     find("select[data-condition-preset-target='presetDropdown']")
+  end
+
+  def sentence_variable
+    find("select[data-condition-preset-target='sentenceVariable']")
+  end
+
+  def sentence_operator
+    find("select[data-condition-preset-target='sentenceOperator']")
+  end
+
+  def condition_hidden
+    find("[data-condition-preset-target='conditionHidden']", visible: :all)
   end
 
   def assert_step_count(expected)

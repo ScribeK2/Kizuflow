@@ -3,28 +3,18 @@ import { Controller } from "@hotwired/stimulus"
 /**
  * Condition Preset Controller
  *
- * Provides smart preset dropdowns for transition conditions based on the
- * source step's type and configuration. Makes branching intuitive for
- * non-technical CSRs while preserving full customization capabilities.
- *
- * Targets:
- *   - presetDropdown: The main dropdown for selecting presets
- *   - customInput: Text input for custom conditions
- *   - customContainer: Container that shows/hides for custom input
- *   - labelInput: The label input field (to auto-fill)
- *   - numericValueInput: Input for numeric comparison values
- *   - numericContainer: Container for numeric input
- *   - conditionHidden: Hidden input holding the actual condition value
- *
- * Values:
- *   - condition: The current condition string
- *   - label: The current label string
+ * Presets for this step's Yes/No and options; Custom is a sentence over
+ * any question in the workflow (variable / operator / value) that writes
+ * the ConditionEvaluator dialect. Unparseable strings stay Keep as written.
  */
 export default class extends Controller {
   static targets = [
     "presetDropdown",
-    "customInput",
-    "customContainer",
+    "sentenceContainer",
+    "sentenceVariable",
+    "sentenceOperator",
+    "sentenceValue",
+    "keepAsWritten",
     "labelInput",
     "numericValueInput",
     "numericContainer",
@@ -33,7 +23,8 @@ export default class extends Controller {
 
   static values = {
     condition: String,
-    label: String
+    label: String,
+    variables: Array
   }
 
   connect() {
@@ -357,43 +348,44 @@ export default class extends Controller {
     const condition = this.conditionValue || ''
 
     if (!condition || condition.trim() === '') {
-      // No condition - select Default
       this.selectPreset('__default__')
-      this.hideCustomInput()
+      this.hideSentence()
       this.hideNumericInput()
       return
     }
 
-    // Try to match against presets. Exact === used to miss `== 'yes'`
-    // against a Yes preset written as `== 'Yes'`, which is how every
-    // imported yes/no branch opened as Custom.
     const matchedPreset = this.presets.find(p =>
       p.condition && this.conditionsMatch(p.condition, condition)
     )
 
     if (matchedPreset) {
       this.selectPreset(matchedPreset.id)
-      this.hideCustomInput()
+      this.hideSentence()
       this.hideNumericInput()
       return
     }
 
-    // Check if it matches a numeric preset pattern
     const numericMatch = this.matchNumericCondition(condition)
     if (numericMatch) {
       this.selectPreset(numericMatch.presetId)
+      this.hideSentence()
       this.showNumericInput()
       this.setNumericValue(numericMatch.value)
       this.currentOperator = numericMatch.operator
       return
     }
 
-    // No match - show custom input
     this.selectPreset('__custom__')
-    this.showCustomInput()
-    if (this.hasCustomInputTarget) {
-      this.customInputTarget.value = condition
+    this.hideNumericInput()
+    this.showSentence()
+
+    const parsed = this.parseCondition(condition)
+    if (parsed && this.fillSentence(parsed)) {
+      this.hideKeepAsWritten()
+      return
     }
+
+    this.showKeepAsWritten(condition)
   }
 
   /**
@@ -462,18 +454,15 @@ export default class extends Controller {
     if (!preset) return
 
     if (value === '__custom__') {
-      this.showCustomInput()
       this.hideNumericInput()
-      // Clear condition and let user type
-      this.updateCondition('')
-      if (this.hasCustomInputTarget) {
-        this.customInputTarget.focus()
-      }
+      this.showSentence()
+      this.hideKeepAsWritten()
+      this.prepareSentenceDefaults()
       return
     }
 
     if (value === '__default__') {
-      this.hideCustomInput()
+      this.hideSentence()
       this.hideNumericInput()
       this.updateCondition('')
       if (!this.labelManuallyEdited) {
@@ -483,7 +472,7 @@ export default class extends Controller {
     }
 
     if (preset.needsValue) {
-      this.hideCustomInput()
+      this.hideSentence()
       this.showNumericInput()
       this.currentOperator = preset.operator
       // Don't update condition yet - wait for numeric value
@@ -498,22 +487,13 @@ export default class extends Controller {
       return
     }
 
-    // Standard preset - update condition and label
-    this.hideCustomInput()
+    this.hideSentence()
     this.hideNumericInput()
     this.updateCondition(preset.condition)
 
     if (!this.labelManuallyEdited) {
       this.updateLabel(preset.displayLabel)
     }
-  }
-
-  /**
-   * Handle custom input changes
-   */
-  handleCustomInput(event) {
-    const condition = event.target.value
-    this.updateCondition(condition)
   }
 
   /**
@@ -596,20 +576,190 @@ export default class extends Controller {
     this.presetDropdownTarget.value = presetId
   }
 
-  /**
-   * Show the custom input container
-   */
-  showCustomInput() {
-    if (!this.hasCustomContainerTarget) return
-    this.customContainerTarget.classList.remove('is-hidden')
+  showSentence() {
+    if (!this.hasSentenceContainerTarget) return
+    this.sentenceContainerTarget.classList.remove('is-hidden')
+    this.populateVariableSelect(this.sentenceVariableTarget.value || this.defaultVariableName())
+    this.applyControlsForCurrentVariable()
   }
 
-  /**
-   * Hide the custom input container
-   */
-  hideCustomInput() {
-    if (!this.hasCustomContainerTarget) return
-    this.customContainerTarget.classList.add('is-hidden')
+  hideSentence() {
+    if (!this.hasSentenceContainerTarget) return
+    this.sentenceContainerTarget.classList.add('is-hidden')
+    this.hideKeepAsWritten()
+  }
+
+  prepareSentenceDefaults() {
+    this.populateVariableSelect(this.defaultVariableName())
+    this.applyControlsForCurrentVariable()
+  }
+
+  defaultVariableName() {
+    const names = (this.variablesValue || []).map(v => v.name)
+    const mine = this.stepInfo?.variableName
+    if (mine && names.includes(mine)) return mine
+    return names[0] || ''
+  }
+
+  populateVariableSelect(selectedName) {
+    if (!this.hasSentenceVariableTarget) return
+    const vars = this.variablesValue || []
+    this.sentenceVariableTarget.innerHTML = vars.map(variable => {
+      const selected = variable.name === selectedName ? 'selected' : ''
+      return `<option value="${this.escapeHtml(variable.name)}" ${selected}>${this.escapeHtml(variable.title || variable.name)}</option>`
+    }).join('')
+  }
+
+  currentVariableMeta() {
+    const name = this.hasSentenceVariableTarget ? this.sentenceVariableTarget.value : ''
+    return (this.variablesValue || []).find(v => v.name === name) || null
+  }
+
+  applyControlsForCurrentVariable(preferredOperator = null, preferredValue = null) {
+    const meta = this.currentVariableMeta()
+    const numeric = meta?.answer_type === 'number'
+    this.populateOperators(numeric, preferredOperator)
+    return this.populateValueControl(meta, preferredValue)
+  }
+
+  populateOperators(numeric, preferredOperator) {
+    if (!this.hasSentenceOperatorTarget) return
+    const operators = numeric
+      ? [
+          { value: '==', label: 'equals' },
+          { value: '!=', label: 'does not equal' },
+          { value: '>', label: 'greater than' },
+          { value: '>=', label: 'at least' },
+          { value: '<', label: 'less than' },
+          { value: '<=', label: 'at most' }
+        ]
+      : [
+          { value: '==', label: 'is' },
+          { value: '!=', label: 'is not' }
+        ]
+    const selected = preferredOperator || operators[0].value
+    this.sentenceOperatorTarget.innerHTML = operators.map(op => {
+      const isSelected = op.value === selected ? 'selected' : ''
+      return `<option value="${op.value}" ${isSelected}>${op.label}</option>`
+    }).join('')
+  }
+
+  populateValueControl(meta, preferredValue) {
+    if (!this.hasSentenceValueTarget) return true
+    const answerType = meta?.answer_type
+    const options = this.valueOptionsFor(meta)
+
+    if (answerType === 'number') {
+      const value = preferredValue ?? ''
+      this.sentenceValueTarget.innerHTML =
+        `<input type="number" class="form-input" value="${this.escapeHtml(String(value))}"
+                data-action="input->condition-preset#handleSentenceChange"
+                aria-label="Condition value">`
+      return true
+    }
+
+    if (options.length > 0) {
+      if (preferredValue != null && preferredValue !== '' &&
+          !options.some(opt => String(opt.value) === String(preferredValue))) {
+        return false
+      }
+      const selected = preferredValue ?? ''
+      const opts = options.map(opt => {
+        const isSelected = String(opt.value) === String(selected) ? 'selected' : ''
+        return `<option value="${this.escapeHtml(String(opt.value))}" ${isSelected}>${this.escapeHtml(opt.label)}</option>`
+      }).join('')
+      this.sentenceValueTarget.innerHTML =
+        `<select class="form-select" data-action="change->condition-preset#handleSentenceChange"
+                 aria-label="Condition value">${opts}</select>`
+      return true
+    }
+
+    const value = preferredValue ?? ''
+    this.sentenceValueTarget.innerHTML =
+      `<input type="text" class="form-input" value="${this.escapeHtml(String(value))}"
+              data-action="input->condition-preset#handleSentenceChange"
+              aria-label="Condition value">`
+    return true
+  }
+
+  valueOptionsFor(meta) {
+    if (!meta) return []
+    if (meta.answer_type === 'yes_no') {
+      return [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }]
+    }
+    if (meta.answer_type === 'multiple_choice' || meta.answer_type === 'dropdown') {
+      return (meta.options || []).map(opt => ({
+        label: opt.label || opt.value,
+        value: opt.value || opt.label
+      })).filter(opt => opt.value)
+    }
+    return []
+  }
+
+  sentenceValueNow() {
+    if (!this.hasSentenceValueTarget) return ''
+    const select = this.sentenceValueTarget.querySelector('select')
+    if (select) return select.value
+    const input = this.sentenceValueTarget.querySelector('input')
+    return input ? input.value : ''
+  }
+
+  handleSentenceChange(event) {
+    if (event?.target === this.sentenceVariableTarget) {
+      this.applyControlsForCurrentVariable()
+    }
+    this.writeSentenceCondition()
+  }
+
+  writeSentenceCondition() {
+    const variable = this.hasSentenceVariableTarget ? this.sentenceVariableTarget.value : ''
+    const operator = this.hasSentenceOperatorTarget ? this.sentenceOperatorTarget.value : '=='
+    const value = this.sentenceValueNow()
+    if (!variable || value === '') return
+
+    this.hideKeepAsWritten()
+    const meta = this.currentVariableMeta()
+    const numericOps = ['>', '>=', '<', '<=']
+    const numericEquals = meta?.answer_type === 'number' && (operator === '==' || operator === '!=')
+    const condition = (numericOps.includes(operator) || numericEquals)
+      ? `${variable} ${operator} ${value}`
+      : `${variable} ${operator} '${this.escapeQuotes(value)}'`
+    this.updateCondition(condition)
+  }
+
+  parseCondition(condition) {
+    const trimmed = condition.trim()
+    const stringMatch = trimmed.match(/^(\w+)\s*(==|!=)\s*['"]([^'"]*)['"]\s*$/)
+    if (stringMatch) {
+      return { variable: stringMatch[1], operator: stringMatch[2], value: stringMatch[3] }
+    }
+    const numericMatch = trimmed.match(/^(\w+)\s*(==|!=|>|>=|<|<=)\s*(\d+)\s*$/)
+    if (numericMatch) {
+      return { variable: numericMatch[1], operator: numericMatch[2], value: numericMatch[3] }
+    }
+    return null
+  }
+
+  fillSentence(parsed) {
+    const names = (this.variablesValue || []).map(v => v.name)
+    if (!names.includes(parsed.variable)) return false
+
+    this.populateVariableSelect(parsed.variable)
+    return this.applyControlsForCurrentVariable(parsed.operator, parsed.value)
+  }
+
+  showKeepAsWritten(text) {
+    if (!this.hasKeepAsWrittenTarget) return
+    this.keepAsWrittenTarget.textContent = `Keep as written: ${text}`
+    this.keepAsWrittenTarget.hidden = false
+    this.keepAsWrittenTarget.classList.remove('is-hidden')
+  }
+
+  hideKeepAsWritten() {
+    if (!this.hasKeepAsWrittenTarget) return
+    this.keepAsWrittenTarget.textContent = ''
+    this.keepAsWrittenTarget.hidden = true
+    this.keepAsWrittenTarget.classList.add('is-hidden')
   }
 
   /**
