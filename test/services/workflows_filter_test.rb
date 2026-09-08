@@ -88,7 +88,7 @@ class WorkflowsFilterTest < ActiveSupport::TestCase
 
   test "pagination calculates pages and limits results" do
     12.times { |i| Workflow.create!(title: "Paginated #{i}", user: @admin, status: "published", is_public: true) }
-    filter = WorkflowsFilter.new(user: @admin, params: { page: "2" }).call
+    filter = WorkflowsFilter.new(user: @admin, params: { page: "2", per_page: "6" }).call
     assert_equal 2, filter.page
     assert_operator filter.total_pages, :>=, 2
     assert_operator filter.workflows_paginated.size, :<=, WorkflowsFilter::DEFAULT_PER_PAGE

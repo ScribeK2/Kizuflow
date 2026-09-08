@@ -3,6 +3,21 @@ require "test_helper"
 class WorkflowsHelperTest < ActionView::TestCase
   include WorkflowsHelper
 
+  attr_accessor :current_user
+
+  test "workflow_open_path sends an editor to the builder in edit" do
+    editor = User.create!(
+      email: "open-ed-#{SecureRandom.hex(4)}@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      role: "editor"
+    )
+    workflow = Workflow.create!(title: "Open me", user: editor)
+    self.current_user = editor
+
+    assert_equal workflow_path(workflow, edit: true), workflow_open_path(workflow)
+  end
+
   test "step_type_label returns correct labels for known types" do
     assert_equal "Question", step_type_label("question")
     assert_equal "Action", step_type_label("action")

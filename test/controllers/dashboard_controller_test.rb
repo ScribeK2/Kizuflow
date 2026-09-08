@@ -114,6 +114,21 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='Create a new workflow']"
   end
 
+  test "SME empty state does not add a second Create button" do
+    @user.update!(role: "editor")
+    get root_path
+    assert_select "button[aria-label='Create a new workflow']", count: 1
+    assert_select "button[aria-label='Create your first workflow']", count: 0
+  end
+
+  test "SME drafts waiting links to the Drafts tab" do
+    @user.update!(role: "editor")
+    Workflow.create!(title: "Draft WF", user: @user, status: "draft")
+
+    get root_path
+    assert_select ".dashboard-greet__attention[href=?]", workflows_path(status: "draft")
+  end
+
   test "SME sees draft count" do
     @user.update!(role: "editor")
     Workflow.create!(title: "Published WF", user: @user, status: "published")
@@ -140,12 +155,15 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "[aria-label*='Total scenarios']"
   end
 
-  test "SME sees recent workflows with View and Edit buttons" do
+  test "SME recent workflow title opens the builder in edit" do
     @user.update!(role: "editor")
-    Workflow.create!(title: "My Workflow", user: @user)
+    workflow = Workflow.create!(title: "My Workflow", user: @user)
 
     get root_path
     assert_response :success
     assert_select "h2", text: /Recent Workflows/
+    assert_select ".list-row__title a[href=?]", workflow_path(workflow, edit: true)
+    assert_select ".list-row__actions a", text: "View", count: 0
+    assert_select ".list-row__actions a", text: "Edit", count: 0
   end
 end

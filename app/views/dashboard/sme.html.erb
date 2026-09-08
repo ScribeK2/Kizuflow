@@ -72,7 +72,7 @@
               </span>
               <div class="list-row__body">
                 <div class="list-row__title">
-                  <%= link_to workflow.title, workflow_path(workflow), aria: { label: "View workflow: #{workflow.title}" } %>
+                  <%= link_to workflow.title, workflow_open_path(workflow), aria: { label: "Open workflow: #{workflow.title}" } %>
                   <%= workflow_status_badge(workflow) %>
                 </div>
                 <p class="list-row__sub">Created <%= time_ago_in_words(workflow.created_at) %> ago</p>
@@ -85,11 +85,9 @@
                 <% end %>
               </div>
               <div class="list-row__actions">
-                <%= link_to "View", workflow_path(workflow), class: "btn btn--secondary btn--sm",
-                      aria: { label: "View workflow: #{workflow.title}" } %>
-                <% if workflow.can_be_edited_by?(current_user) %>
-                  <%= link_to "Edit", edit_workflow_path(workflow), class: "btn btn--secondary btn--sm",
-                        aria: { label: "Edit workflow: #{workflow.title}" } %>
+                <% if workflow.published? %>
+                  <%= link_to "Run", new_workflow_execution_path(workflow), class: "btn btn--plain btn--sm",
+                        aria: { label: "Run workflow: #{workflow.title}" } %>
                 <% end %>
               </div>
             </div>
@@ -100,13 +98,7 @@
               <%= icon "document-text", class: "icon icon--xl" %>
             </div>
             <h3 class="dashboard-empty__title">No workflows yet</h3>
-            <p class="dashboard-empty__text">Workflows you create will be listed here, newest first.</p>
-            <div class="empty-state__actions">
-              <%= start_workflow_button "Create Workflow",
-                    html_class: "btn btn--secondary btn--sm",
-                    icon_class: "icon icon--xs",
-                    aria_label: "Create your first workflow" %>
-            </div>
+            <p class="dashboard-empty__text">Workflows you create will be listed here, newest first. Use Create Workflow above to start one.</p>
           </div>
         <% end %>
       </div>

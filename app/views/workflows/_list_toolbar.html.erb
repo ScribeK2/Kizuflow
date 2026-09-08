@@ -14,9 +14,9 @@
     </span>
     <%= form.text_field :search,
           value: @search_query,
-          placeholder: @selected_group ? "Search in #{@selected_group.name}..." : "Search workflows...",
+          placeholder: @selected_group ? "Filter #{@selected_group.name}..." : "Filter this list...",
           class: "form-input wf-toolbar__search-input",
-          aria: { label: "Search workflows" } %>
+          aria: { label: "Filter workflows" } %>
   <% end %>
 
   <%# Segmented control — this filters a list, so it stays segmented (see UIGUIDE "Tabs"). %>

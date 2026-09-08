@@ -22,6 +22,14 @@ module WorkflowsHelper
     end
   end
 
+  def workflow_open_path(workflow)
+    if workflow.can_be_edited_by?(current_user)
+      workflow_path(workflow, edit: true)
+    else
+      workflow_path(workflow)
+    end
+  end
+
   # ============================================================================
   # Step Type Helpers
   # ============================================================================

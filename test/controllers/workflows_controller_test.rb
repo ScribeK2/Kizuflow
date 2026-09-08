@@ -49,6 +49,32 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "index title opens the builder in edit for the owner" do
+    get workflows_path
+
+    assert_select ".wf-list-item__title[href=?]", workflow_path(@workflow, edit: true)
+    assert_select ".wf-list-item__actions a", text: "View", count: 0
+    assert_select ".wf-list-item__actions a", text: "Edit", count: 0
+  end
+
+  test "index offers Run only on published workflows" do
+    draft = Workflow.create!(title: "Still a draft", user: @editor, status: "draft", graph_mode: true)
+
+    get workflows_path
+
+    assert_select ".wf-list-item__title[href=?]", workflow_path(@workflow, edit: true)
+    assert_select "a[href=?]", new_workflow_execution_path(@workflow), text: /Run/
+    assert_select "a[href=?]", new_workflow_execution_path(draft), count: 0
+  end
+
+  test "index page-size control defaults to 24" do
+    get workflows_path
+
+    assert_select "select[name=?] option[selected=selected]", "per_page" do |options|
+      assert_equal "24", options.first["value"]
+    end
+  end
+
   test "should get show" do
     get workflow_path(@workflow)
 

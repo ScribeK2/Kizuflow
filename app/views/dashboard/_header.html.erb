@@ -10,7 +10,7 @@
     <% drafts = @dashboard.draft_count %>
     <% health_issues = @dashboard.workflows_with_health_issues_count %>
     <% if drafts.positive? || health_issues.positive? %>
-      <%= link_to workflows_path, class: "dashboard-greet__attention", aria: { label: "Workflows that need attention" } do %>
+      <%= link_to workflows_path(status: ("draft" if drafts.positive?)), class: "dashboard-greet__attention", aria: { label: "Workflows that need attention" } do %>
         <% parts = [] %>
         <% parts << "<strong>#{drafts}</strong> draft#{drafts == 1 ? "" : "s"} waiting".html_safe if drafts.positive? %>
         <% parts << "<strong>#{health_issues}</strong> need#{health_issues == 1 ? "s" : ""} attention".html_safe if health_issues.positive? %>

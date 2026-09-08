@@ -4,10 +4,10 @@ class WorkflowsFilter
               :accessible_groups, :total_count, :total_pages, :page,
               :workflows_paginated, :group_error
 
-  # Sized for the card grid and folder accordion, not admin's [10, 25, 50]:
-  # six divides the grid cleanly and 25 cards in an accordion reads as broken.
+  # Sized for the card grid and folder accordion, not admin's [10, 25, 50].
+  # 24 is the default so a real library is not 14 pages of six cards.
   PER_PAGE_OPTIONS = [6, 12, 24].freeze
-  DEFAULT_PER_PAGE = 6
+  DEFAULT_PER_PAGE = 24
 
   def initialize(user:, params:)
     @user = user
