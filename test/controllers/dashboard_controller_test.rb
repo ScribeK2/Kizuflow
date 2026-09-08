@@ -142,6 +142,23 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select ".stat-cell__chip", count: 0
   end
 
+  # The greeting chip used to run WorkflowHealthCheck across the viewer's
+  # published library on every home-page load. A published Action with nowhere
+  # to go is an error the health panel still reports; the dashboard must not.
+  test "SME attention chip does not appear for a published workflow with health errors" do
+    @user.update!(role: "editor")
+    workflow = Workflow.create!(title: "Broken published", user: @user, status: "published")
+    Steps::Action.create!(
+      workflow: workflow, uuid: SecureRandom.uuid, position: 0,
+      title: "Do it", instructions: "Do it"
+    )
+
+    get root_path
+
+    assert_response :success
+    assert_select ".dashboard-greet__attention", count: 0
+  end
+
   test "SME sees company-wide scenario stats" do
     @user.update!(role: "editor")
     other_user = User.create!(

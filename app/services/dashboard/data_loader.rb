@@ -176,21 +176,6 @@ module Dashboard
       @scenario_active ||= user_scenarios.where(status: "active").count
     end
 
-    # Number of the user's published workflows that currently have one or more
-    # health-check errors. Drives the "needs attention" chip in the dashboard
-    # header. Bounded to avoid scanning huge libraries on every dashboard load.
-    HEALTH_CHECK_SCAN_LIMIT = 50
-
-    def workflows_with_health_issues_count
-      return 0 unless user.can_create_workflows?
-
-      @workflows_with_health_issues_count ||= user.workflows
-                                                  .published
-                                                  .includes(steps: { transitions: :target_step })
-                                                  .limit(HEALTH_CHECK_SCAN_LIMIT)
-                                                  .count { |wf| WorkflowHealthCheck.call(wf).summary[:errors].positive? }
-    end
-
     private
 
     # Every workflow this viewer can reach: the published ones they may see plus
