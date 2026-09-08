@@ -18,6 +18,48 @@ class WorkflowsHelperTest < ActionView::TestCase
     assert_equal workflow_path(workflow, edit: true), workflow_open_path(workflow)
   end
 
+  test "condition_sentence_variables puts the open question first" do
+    user = User.create!(
+      email: "csv-#{SecureRandom.hex(4)}@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      role: "editor"
+    )
+    workflow = Workflow.create!(title: "Vars", user: user)
+    Steps::Question.create!(
+      workflow: workflow, position: 0, title: "Already verified?",
+      question: "Already?", answer_type: "yes_no", variable_name: "already_verified"
+    )
+    later = Steps::Question.create!(
+      workflow: workflow, position: 1, title: "Did it work?",
+      question: "Work?", answer_type: "yes_no", variable_name: "verified"
+    )
+    Steps::Resolve.create!(
+      workflow: workflow, position: 2, title: "Done", resolution_type: "success"
+    )
+
+    names = condition_sentence_variables(workflow, later).map { |v| v[:name] }
+    assert_equal %w[verified already_verified], names
+  end
+
+  test "condition_sentence_variables is unchanged for a non-question step" do
+    user = User.create!(
+      email: "csv2-#{SecureRandom.hex(4)}@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      role: "editor"
+    )
+    workflow = Workflow.create!(title: "Vars2", user: user)
+    Steps::Question.create!(
+      workflow: workflow, position: 0, title: "Q",
+      question: "Q?", answer_type: "yes_no", variable_name: "q"
+    )
+    action = Steps::Action.create!(workflow: workflow, position: 1, title: "Do it")
+
+    names = condition_sentence_variables(workflow, action).map { |v| v[:name] }
+    assert_equal %w[q], names
+  end
+
   test "step_connection_summary names targets by title and ordinal" do
     user = User.create!(
       email: "sum-#{SecureRandom.hex(4)}@example.com",

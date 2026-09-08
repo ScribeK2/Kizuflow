@@ -225,6 +225,17 @@ module WorkflowsHelper
     end
   end
 
+  # Custom's sentence lists every question in the workflow. The open step
+  # has to lead or the author is staring at someone else's title.
+  def condition_sentence_variables(workflow, current_step)
+    vars = workflow.variables_with_metadata
+    return vars unless current_step.is_a?(Steps::Question) && current_step.variable_name.present?
+
+    name = current_step.variable_name
+    this, others = vars.partition { |var| var[:name] == name }
+    this + others
+  end
+
   # Get the answer type for a variable
   def variable_answer_type(workflow, variable_name)
     return nil unless workflow.respond_to?(:variables_with_metadata)
