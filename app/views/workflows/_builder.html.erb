@@ -57,9 +57,9 @@
         <% end %>
       <% end %>
 
-      <% if mode == "view" %>
+      <% if workflow.can_be_viewed_by?(current_user) %>
         <%= button_to workflow_execution_path(workflow), method: :post,
-              class: "btn btn--primary btn--sm" do %>
+              class: "btn btn--sm #{mode == "edit" ? "btn--plain" : "btn--primary"}" do %>
           Run Scenario
         <% end %>
       <% end %>

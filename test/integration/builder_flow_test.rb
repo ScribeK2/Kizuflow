@@ -15,6 +15,8 @@ class BuilderFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match 'data-builder-mode-value="view"', response.body
     assert_match workflow.title, response.body
+    assert_select "button", text: "Run Scenario"
+    assert_select "form[action=?]", workflow_publishing_path(workflow), count: 0
   end
 
   test "viewing workflow with edit param sets edit mode" do
@@ -23,6 +25,8 @@ class BuilderFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match 'data-builder-mode-value="edit"', response.body
+    assert_match "Run Scenario", response.body
+    assert_match "Publish", response.body
   end
 
   test "adding a step via turbo stream appends step row" do

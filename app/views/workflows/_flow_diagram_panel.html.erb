@@ -6,6 +6,7 @@
   - levels: array of arrays from FlowDiagramService (optional, computed if missing)
 %>
 <% levels ||= FlowDiagramService.call(workflow) %>
+<% ordinals = step_ordinals(workflow) %>
 <turbo-frame id="builder-panel"
               data-builder-target="panel">
   <div class="builder__panel-header">
@@ -35,7 +36,7 @@
                    data-action="click->builder#openStep"
                    data-builder-url-param="<%= panel_edit_workflow_step_path(workflow, step) %>"
                    title="<%= step.title %>">
-                <span class="flow-diagram__node-number"><%= step.position %></span>
+                <span class="flow-diagram__node-number"><%= ordinals[step.uuid] %></span>
                 <span class="flow-diagram__node-title"><%= truncate(step.title.presence || "Untitled", length: 20) %></span>
                 <% if step == workflow.start_step %>
                   <span class="step-pill step-pill--start text-2xs">Start</span>

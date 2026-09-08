@@ -18,6 +18,21 @@ class WorkflowsHelperTest < ActionView::TestCase
     assert_equal workflow_path(workflow, edit: true), workflow_open_path(workflow)
   end
 
+  test "step_connection_summary names targets by title and ordinal" do
+    user = User.create!(
+      email: "sum-#{SecureRandom.hex(4)}@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      role: "editor"
+    )
+    workflow = Workflow.create!(title: "Summary", user: user)
+    a = Steps::Question.create!(workflow: workflow, position: 0, title: "First", question: "A?")
+    b = Steps::Resolve.create!(workflow: workflow, position: 1, title: "Done", resolution_type: "success")
+    ordinals = { a.uuid => 1, b.uuid => 2 }
+
+    assert_equal "→ Done · 2", step_connection_summary([b], ordinals)
+  end
+
   test "step_type_label returns correct labels for known types" do
     assert_equal "Question", step_type_label("question")
     assert_equal "Action", step_type_label("action")

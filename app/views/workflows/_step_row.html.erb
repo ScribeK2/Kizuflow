@@ -58,7 +58,7 @@
     <% parts = [] %>
     <% parts << "Start" if step == workflow.start_step %>
     <% parts << "Terminal" if step.terminal? %>
-    <% parts << "→ #{targets.map { |t| "Step #{ordinals[t.uuid] || "?"}" }.join(", ")}" if targets.any? %>
+    <% parts << step_connection_summary(targets, ordinals) if targets.any? %>
     <%= parts.join(" · ") %>
   </span>
 

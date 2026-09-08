@@ -29,6 +29,7 @@ module Workflows
       get workflow_flow_diagram_path(@workflow)
 
       assert_response :success
+      assert_select ".flow-diagram__node-number", text: "1"
     end
 
     test 'show requires authentication' do

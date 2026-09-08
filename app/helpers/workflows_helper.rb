@@ -99,6 +99,15 @@ module WorkflowsHelper
   # same builder called the first step "Step 0" in one workflow and "Step 1" in
   # another — and the step rows, the "→ Step N" summaries and the health panel
   # each read it separately, so fixing one left the others wrong.
+  def step_connection_summary(targets, ordinals)
+    titles = targets.map do |target|
+      name = target.title.presence || "Untitled"
+      n = ordinals[target.uuid]
+      n ? "#{name} · #{n}" : name
+    end
+    "→ #{titles.join(", ")}"
+  end
+
   # Computed, not memoised: a helper's instance variables live in the view
   # context, so caching here would outlive the workflow it was built for.
   # Callers that render a list compute it once and pass it down.

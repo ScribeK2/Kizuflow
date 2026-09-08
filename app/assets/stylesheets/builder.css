@@ -325,7 +325,8 @@
 
   /* Hide type label and connections when panel is open */
   .builder:has(#builder-panel > *) .builder__step-type,
-  .builder:has(#builder-panel > *) .builder__step-connections {
+  .builder:has(#builder-panel > *) .builder__step-connections,
+  .builder:has(#builder-panel > *) .builder__step-meta {
     display: none;
   }
 

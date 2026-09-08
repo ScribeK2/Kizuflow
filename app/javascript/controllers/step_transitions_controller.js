@@ -236,7 +236,7 @@ export default class extends Controller {
       if (item.dataset.stepUuid) {
         // Builder step row: data attributes on the row element
         id = item.dataset.stepUuid
-        title = item.querySelector('.builder__step-title')?.textContent?.trim() || ''
+        title = item.querySelector('.list-row__title')?.textContent?.trim() || ''
       } else {
         // Legacy step card: hidden inputs
         const idInput = item.querySelector('input[data-step-field="id"]') || item.querySelector('input[name*="[id]"]')
