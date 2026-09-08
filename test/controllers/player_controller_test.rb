@@ -44,6 +44,17 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
     assert_select "body.player-layout"
   end
 
+  test "player index omits untitled published workflows" do
+    untitled = Workflow.create!(title: "Untitled Workflow", user: @admin, status: "published", is_public: true)
+    Steps::Resolve.create!(workflow: untitled, title: "Done", uuid: SecureRandom.uuid, position: 0, resolution_type: "success")
+    WorkflowPublisher.publish(untitled, @admin)
+
+    sign_in @regular
+    get play_path
+    assert_select "button", text: /Player Flow/
+    assert_select "button", text: /Untitled Workflow/, count: 0
+  end
+
   # === Start ===
 
   test "authenticated user can start a workflow" do

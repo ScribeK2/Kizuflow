@@ -2,6 +2,7 @@ require "test_helper"
 
 class RunnerHelperTest < ActionView::TestCase
   include ScenariosHelper
+  include RunnerHelper
 
   setup do
     @user = User.create!(
@@ -9,6 +10,20 @@ class RunnerHelperTest < ActionView::TestCase
       password: "password123!", password_confirmation: "password123!", role: "editor"
     )
     @workflow = Workflow.create!(title: "Runner Helper WF", user: @user)
+  end
+
+  test "runner_auto_advances? is true for yes_no and option cards" do
+    yes_no = Steps::Question.new(answer_type: "yes_no")
+    multiple = Steps::Question.new(answer_type: "multiple_choice",
+                                   options: [{ "label" => "A", "value" => "a" }])
+    dropdown = Steps::Question.new(answer_type: "dropdown",
+                                   options: [{ "label" => "A", "value" => "a" }])
+    empty_mc = Steps::Question.new(answer_type: "multiple_choice", options: [])
+
+    assert runner_auto_advances?(yes_no)
+    assert runner_auto_advances?(multiple)
+    assert_not runner_auto_advances?(dropdown)
+    assert_not runner_auto_advances?(empty_mc)
   end
 
   test "option value and label accept hashes or plain strings" do

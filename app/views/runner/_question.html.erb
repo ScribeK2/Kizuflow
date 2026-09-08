@@ -34,11 +34,11 @@
     <% if answer_type == "yes_no" %>
       <div class="radio-grid">
         <label class="radio-card">
-          <%= form.radio_button :answer, "yes", required: true, data: radio_data %>
+          <%= form.radio_button :answer, "yes", data: radio_data %>
           <span class="radio-label">Yes</span>
         </label>
         <label class="radio-card">
-          <%= form.radio_button :answer, "no", required: true, data: radio_data %>
+          <%= form.radio_button :answer, "no", data: radio_data %>
           <span class="radio-label">No</span>
         </label>
       </div>
@@ -53,7 +53,7 @@
       <div class="radio-list">
         <% options.each do |option| %>
           <label class="radio-card">
-            <%= form.radio_button :answer, runner_option_value(option), required: true, data: radio_data %>
+            <%= form.radio_button :answer, runner_option_value(option), data: radio_data %>
             <span class="radio-label"><%= runner_option_label(option) %></span>
           </label>
         <% end %>
