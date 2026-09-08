@@ -73,4 +73,14 @@ class StepsPanelEditStimulusValuesTest < ActionDispatch::IntegrationTest
     json = ERB::Util.html_escape(condition_sentence_variables(@workflow, later).to_json)
     assert_includes response.body, %(data-condition-preset-variables-value="#{json}")
   end
+
+  test "the JS-injected connection row uses the same sentence markup as the ERB" do
+    source = Rails.root.join("app/javascript/controllers/step_transitions_controller.js").read
+    %w[sentenceContainer sentenceVariable sentenceOperator sentenceValue keepAsWritten].each do |target|
+      assert_includes source, %(data-condition-preset-target="#{target}"),
+                      "step_transitions_controller.js is missing #{target} — Add Connection would ship the old Custom field"
+    end
+    assert_not_includes source, "customInput"
+    assert_not_includes source, "e.g., answer =="
+  end
 end

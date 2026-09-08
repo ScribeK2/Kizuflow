@@ -10,7 +10,8 @@ export default class extends Controller {
   static targets = ["transitionsList", "hiddenInput"]
   static values = {
     stepId: String,
-    stepIndex: Number
+    stepIndex: Number,
+    variables: Array
   }
 
   connect() {
@@ -173,7 +174,8 @@ export default class extends Controller {
           <div class="transition-item__condition"
                data-controller="condition-preset"
                data-condition-preset-condition-value="${this.escapeHtml(transition.condition || '')}"
-               data-condition-preset-label-value="${this.escapeHtml(transition.label || '')}">
+               data-condition-preset-label-value="${this.escapeHtml(transition.label || '')}"
+               data-condition-preset-variables-value="${this.escapeHtml(JSON.stringify(this.variablesValue || []))}">
             <select data-condition-preset-target="presetDropdown"
                     data-action="change->condition-preset#handlePresetChange"
                     class="form-select"
@@ -186,12 +188,21 @@ export default class extends Controller {
                      placeholder="Value"
                      class="form-input form-input--sm">
             </div>
-            <div data-condition-preset-target="customContainer" class="is-hidden condition-preset__custom">
-              <input type="text"
-                     data-condition-preset-target="customInput"
-                     data-action="input->condition-preset#handleCustomInput"
-                     placeholder='e.g., answer == "yes"'
-                     class="form-input">
+            <div data-condition-preset-target="sentenceContainer" class="is-hidden condition-sentence">
+              <select data-condition-preset-target="sentenceVariable"
+                      data-action="change->condition-preset#handleSentenceChange"
+                      class="form-select condition-sentence__variable"
+                      aria-label="Condition variable"
+                      title="Which answer this connection checks">
+              </select>
+              <select data-condition-preset-target="sentenceOperator"
+                      data-action="change->condition-preset#handleSentenceChange"
+                      class="form-select condition-sentence__operator"
+                      aria-label="Condition operator"
+                      title="How to compare">
+              </select>
+              <span data-condition-preset-target="sentenceValue" class="condition-sentence__value"></span>
+              <p data-condition-preset-target="keepAsWritten" class="condition-sentence__kept is-hidden" hidden></p>
             </div>
             <input type="hidden"
                    data-condition-preset-target="conditionHidden"
