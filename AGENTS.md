@@ -201,7 +201,13 @@ partials, not in a shell. Both shells are now branchless: neither contains an
 
 - Uses `player_scenario_*_path` routes, not `*_scenario_path` routes
 - Its own layout (`layouts/player.html.erb`) and page chrome — for the run screens; the index is an app-shell page
-- Cancel is hidden for anonymous/shared scenarios (no Player index to return to)
+- Cancel is hidden when nobody is signed in (`show_cancel: current_user.present?`),
+  because `stop` is **not** in `PlayerController`'s `authenticate_user!` skip
+  list — an anonymous visitor clicking it would be bounced to a sign-in page.
+  The gate is the session, not `shared_access`: a signed-in user does get Cancel
+  on a shared run. And Cancel does not return anywhere in the nav — it POSTs to
+  `stop`, which settles the whole scenario tree and redirects to the **results
+  screen** for the root scenario, the same place a completed run ends
 - Both runners operate on AR Step objects with method access (`step.title`), not
   execution-path hashes. `step['field']` access was removed in the shared-partial
   extraction; `execution_path` hashes remain only in the results view and in the

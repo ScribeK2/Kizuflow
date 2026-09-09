@@ -8,7 +8,10 @@
     form            - the form builder (nil for bars with no submit)
     back_button     - prerendered back link, or nil
     stop_url        - POST target that stops the run
-    show_cancel     - false for anonymous shared runs, which have nowhere to go
+    show_cancel     - false when nobody is signed in: `stop` requires auth, so
+                      the link would bounce an anonymous visitor to sign-in.
+                      It is the session that decides, not `shared_access` —
+                      a signed-in user gets Cancel on a shared run too
     submit_label    - nil to omit the submit button entirely
     submit_class    - defaults to the one primary fill
     submit_disabled - starts disabled; the scenario-step controller enables it
