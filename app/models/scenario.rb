@@ -639,6 +639,10 @@ class Scenario < ApplicationRecord
     self.status = 'error'
     self.results ||= {}
     results['_error'] = "Scenario exceeded maximum iterations (#{MAX_ITERATIONS})"
+    # An ending is not just a status. Without this the run was terminal with a
+    # NULL completed_at, and both cleanup scopes filter on `completed_at < N.ago`
+    # — NULL < date is never true — so every errored run was immortal.
+    record_completion("error")
     save
     raise ScenarioIterationLimit, "Scenario exceeded maximum of #{MAX_ITERATIONS} steps"
   end

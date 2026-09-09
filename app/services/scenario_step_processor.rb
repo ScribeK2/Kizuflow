@@ -274,6 +274,9 @@ class ScenarioStepProcessor
       @scenario.results ||= {}
       @scenario.results['_error'] = "Sub-flow target workflow #{target_workflow_id} not found"
       @scenario.status = 'error'
+      # Stamp the ending, or the row is terminal with a NULL completed_at and no
+      # cleanup scope can ever match it. See Scenario#count_iteration!.
+      @scenario.record_completion("error")
       begin
         @scenario.save
       rescue ActiveRecord::StaleObjectError
