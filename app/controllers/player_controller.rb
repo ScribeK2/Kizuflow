@@ -140,12 +140,25 @@ class PlayerController < ApplicationController
   end
 
   def set_scenario
-    if current_user
-      @scenario = current_user.scenarios.find_by(id: params[:id])
-      head(:forbidden) and return unless @scenario
-    else
-      @scenario = Scenario.find_by(id: params[:id])
-      head(:forbidden) and return unless @scenario&.shared_access?
-    end
+    @scenario = Scenario.find_by(id: params[:id])
+    head(:forbidden) and return unless @scenario && scenario_readable?(@scenario)
+  end
+
+  # `shared_access` is a property of the RUN, not of the visitor — the same point
+  # `shared_player_subflow_test` makes about carrying it across a handoff — so it
+  # has to be checked whether or not anyone is signed in.
+  #
+  # This used to branch on `current_user` FIRST and only reach the shared grant
+  # when nobody was signed in, which meant signing in *revoked* access to a share
+  # link. On the same URL: an anonymous visitor got 200, the workflow's owner got
+  # 200, and every other signed-in user got 403. On an install where everyone has
+  # an account, that is most of the people a link is sent to.
+  #
+  # Nothing is widened by checking both: a signed-in visitor could already reach
+  # any `shared_access` run by signing out and opening the same URL.
+  def scenario_readable?(scenario)
+    return true if scenario.shared_access?
+
+    current_user.present? && scenario.user_id == current_user.id
   end
 end
