@@ -65,11 +65,16 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.player-link", count: 0
   end
 
-  test "exit player from a run also leaves for the dashboard" do
+  # Every exit from a run lands on the workflow list: this control, the
+  # completion screen's "Back to Workflows", and Cancel, which settles the run
+  # and redirects to that completion screen. It pointed at root_path while /play
+  # rendered the player layout and exiting to it would have been a no-op.
+  test "exit player from a run returns to the workflow list" do
     sign_in @regular
     post play_workflow_path(@workflow)
     get player_scenario_step_path(Scenario.last)
-    assert_select "a.player-link[href=?]", root_path, text: "Exit Player"
+    assert_select "a.player-link[href=?]", play_path, text: "Exit Player"
+    assert_select "a.player-link[href=?]", root_path, count: 0
   end
 
   test "player index omits untitled published workflows" do
