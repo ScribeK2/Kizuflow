@@ -4,6 +4,12 @@ production:
   sweep_idle_scenarios:
     class: SweepIdleScenariosJob
     schedule: "0 2 * * *"
+  # Between the sweep and cleanup, and that is load-bearing: the sweep settles
+  # abandoned runs, this captures them, cleanup then deletes the old ones. Run
+  # cleanup first and the abandonment history is lost rather than aggregated.
+  roll_up_scenarios:
+    class: RollUpScenariosJob
+    schedule: "30 2 * * *"
   cleanup_scenarios:
     class: CleanupScenariosJob
     schedule: "0 3 * * *"

@@ -2,7 +2,19 @@ require "csv"
 
 module Admin
   class AnalyticsController < Admin::BaseController
+    # Two modes, and deliberately no stitching between them.
+    #
+    # Within retention the page reads raw runs and every filter works. "All time"
+    # reads the rollup tables instead, which reach back past the horizon but
+    # cannot answer per-agent, per-step or per-hour questions — those need the
+    # individual rows. Blending the two would produce a page whose numbers are
+    # right for some ranges and quietly partial for others, which is the failure
+    # this whole change exists to remove. So the mode is explicit and the page
+    # says what it cannot show.
     def index
+      @rollup_mode = params[:range] == "all"
+      return render_from_rollups if @rollup_mode
+
       @date_range = parse_date_range
       @base_scope = build_base_scope
 
@@ -53,6 +65,88 @@ module Admin
     end
 
     private
+
+    # The all-time view. Same ivars, same shapes, different source — so the
+    # partials do not need to know which mode they are in, except where a panel
+    # genuinely has no rollup behind it.
+    def render_from_rollups
+      scope = ScenarioRollup.all
+      dropoffs = ScenarioDropoffRollup.all
+      @rollup_earliest_day = ScenarioRollup.minimum(:day)
+
+      totals = scope.group(:outcome).sum(:runs_count)
+      @total_runs = totals.values.sum
+      @completed_count = totals.slice("completed", "resolved", "escalated").values.sum
+      @escalated_count = totals.fetch("escalated", 0)
+      @completion_rate = percentage(@completed_count, @total_runs)
+      @escalation_rate = percentage(@escalated_count, @total_runs)
+      @avg_duration = scope.average_duration_seconds
+      @outcome_breakdown = totals
+
+      @runs_grouped_by_week = true
+      @runs_over_time = scope.group(:day).sum(:runs_count)
+                             .transform_keys { |d| d.to_date.beginning_of_week }
+                             .each_with_object(Hash.new(0)) { |(week, n), acc| acc[week] += n }
+                             .sort.to_h
+
+      @workflow_stats = rollup_workflow_stats
+      @dropoff_points = rollup_dropoff_points(dropoffs)
+
+      # No rollup can reconstruct these: they are read from individual runs.
+      # Named here so the partials can say so rather than rendering an empty
+      # table that looks like "no activity".
+      @agent_stats = nil
+      @step_performance = nil
+      @busiest_hours = nil
+
+      @workflows_for_filter = []
+      @users_for_filter = []
+      @groups_for_filter = []
+
+      respond_to do |format|
+        format.html { render :index }
+        format.csv do
+          redirect_to admin_analytics_path(range: "90d"),
+                      alert: "CSV export lists individual runs, which the all-time view does not hold. " \
+                             "Exported the last 90 days instead."
+        end
+      end
+    end
+
+    def percentage(part, total)
+      total.positive? ? (part.to_f / total * 100).round(1) : 0
+    end
+
+    def rollup_workflow_stats
+      ScenarioRollup
+        .joins(:workflow)
+        .group("workflows.id", "workflows.title")
+        .select(
+          "workflows.id as workflow_id",
+          "workflows.title as workflow_title",
+          "SUM(scenario_rollups.runs_count) as total_runs",
+          "SUM(CASE WHEN scenario_rollups.outcome IN ('completed','resolved','escalated') " \
+          "THEN scenario_rollups.runs_count ELSE 0 END) as completed_count",
+          "CASE WHEN SUM(scenario_rollups.duration_count) > 0 " \
+          "THEN SUM(scenario_rollups.duration_sum_seconds) * 1.0 / SUM(scenario_rollups.duration_count) " \
+          "ELSE NULL END as avg_duration",
+          "SUM(CASE WHEN scenario_rollups.outcome = 'escalated' " \
+          "THEN scenario_rollups.runs_count ELSE 0 END) as escalated_count",
+          "MAX(scenario_rollups.day) as last_run"
+        )
+        .order(Arel.sql("total_runs DESC"))
+    end
+
+    def rollup_dropoff_points(scope)
+      totals = scope.joins(:workflow)
+                    .group("workflows.id", "workflows.title", :step_title)
+                    .sum(:runs_count)
+      points = totals.map do |(workflow_id, workflow_title, step_title), count|
+        { count: count, step_title: step_title,
+          workflow_title: workflow_title, workflow_id: workflow_id }
+      end
+      points.sort_by { |d| -d[:count] }.first(20)
+    end
 
     # "all" means every run STILL HELD, not all time — runs are deleted at the
     # retention horizon, so this cannot reach further back than they are kept.

@@ -1,0 +1,18 @@
+<%# A panel with no rollup behind it.
+
+    Per-agent, per-step and per-hour figures are read off individual runs, and
+    the all-time view holds daily aggregates instead. Saying so beats rendering
+    an empty table, which reads as "nobody did anything" rather than "this view
+    cannot answer that". %>
+<div class="card" style="padding: var(--space-8); text-align: center;">
+  <h3 class="font-semibold mb-2">Not available for all time</h3>
+  <p class="text-sm" style="color: var(--color-ink-muted);">
+    <%= reason %> is read from individual runs, which are kept for
+    <%= Scenario.live_retention_days %> days. The all-time view holds daily totals,
+    which reach further back but not into each run.
+  </p>
+  <div class="mt-4">
+    <%= link_to "View the last 90 days", admin_analytics_path(range: "90d", tab: params[:tab]),
+          class: "btn btn--secondary btn--sm" %>
+  </div>
+</div>

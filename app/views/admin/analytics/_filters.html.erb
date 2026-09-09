@@ -12,22 +12,34 @@
                   aria-pressed="<%= active %>"
                   data-action="click->analytics-filters#selectRange"
                   data-value="<%= range %>">
-            <%= range == "all" ? "All kept" : range %>
+            <%= range == "all" ? "All time" : range %>
           </button>
         <% end %>
       </div>
-      <%# "All" used to mean all time, and it was not true: runs are deleted at the
-          retention horizon, so the earliest data this can reach is however long
-          they are kept. Saying so is the cheap half of the fix — the durable half
-          is rolling runs up before deleting them, so trend history outlives the
-          transcripts. Until that exists, the label should not overstate. %>
+      <%# "All time" is a different SOURCE, not a wider window on the same one:
+          runs are deleted at the retention horizon, so it reads the daily rollups
+          instead. The seam is explicit rather than stitched — a blended view would
+          be exact for recent ranges and quietly partial for older ones, which is
+          the failure this replaced. %>
       <p class="form-hint mt-2">
-        Runs are deleted after <%= Scenario.live_retention_days %> days (live) and
-        <%= Scenario.simulation_retention_days %> days (simulation), so
-        &ldquo;All kept&rdquo; reaches back only as far as they survive.
+        <% if @rollup_mode %>
+          Daily totals, kept indefinitely<%= " since #{l(@rollup_earliest_day, format: :long)}" if @rollup_earliest_day %>.
+          Individual runs are deleted after <%= Scenario.live_retention_days %> days, so
+          per-agent, per-step and time-of-day views are unavailable here.
+        <% else %>
+          Individual runs, with every filter. They are deleted after
+          <%= Scenario.live_retention_days %> days (live) and
+          <%= Scenario.simulation_retention_days %> days (simulation) &mdash; choose
+          &ldquo;All time&rdquo; for daily totals reaching further back.
+        <% end %>
       </p>
     </div>
 
+    <%# Everything below narrows individual runs. The all-time view holds daily
+        totals per workflow, so it cannot answer "which agent" or "which group"
+        at all — the controls are hidden rather than shown inert, and the range
+        hint above says why. %>
+    <% unless @rollup_mode %>
     <%# Purpose %>
     <div>
       <label class="form-label text-xs uppercase tracking-wider mb-2">Purpose</label>
@@ -76,7 +88,10 @@
             onchange: "this.form.requestSubmit()" %>
     </div>
 
+    <% end %>
+
     <%# Hidden fields for filter state %>
+    <% current_purpose ||= params[:purpose] || "all" %>
     <%= hidden_field_tag :range, current_range, data: { analytics_filters_target: "rangeField" } %>
     <%= hidden_field_tag :purpose, current_purpose, data: { analytics_filters_target: "purposeField" } %>
     <%= hidden_field_tag :tab, params[:tab] || "0", data: { analytics_filters_target: "tabField" } %>

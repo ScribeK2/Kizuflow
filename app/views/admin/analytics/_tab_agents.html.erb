@@ -2,7 +2,9 @@
   <div class="card__header">
     <h3>Agent Activity</h3>
   </div>
-  <% if @agent_stats.any? %>
+  <% if @agent_stats.nil? %>
+    <%= render "rollup_unavailable", reason: "Per-agent activity" %>
+  <% elsif @agent_stats.any? %>
     <div class="table-wrap">
       <table class="table">
         <thead>

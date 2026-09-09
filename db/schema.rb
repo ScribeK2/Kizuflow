@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_09_180000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -86,6 +86,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_150000) do
     t.index ["name"], name: "index_groups_on_name"
     t.index ["parent_id", "position"], name: "index_groups_on_parent_id_and_position"
     t.index ["parent_id"], name: "index_groups_on_parent_id"
+  end
+
+  create_table "scenario_dropoff_rollups", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "day", null: false
+    t.integer "runs_count", default: 0, null: false
+    t.string "step_title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workflow_id", null: false
+    t.index ["day"], name: "index_scenario_dropoff_rollups_on_day"
+    t.index ["workflow_id", "day", "step_title"], name: "index_scenario_dropoff_rollups_on_grain", unique: true
+    t.index ["workflow_id"], name: "index_scenario_dropoff_rollups_on_workflow_id"
+  end
+
+  create_table "scenario_rollups", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "day", null: false
+    t.integer "duration_count", default: 0, null: false
+    t.integer "duration_sum_seconds", default: 0, null: false
+    t.string "outcome", null: false
+    t.string "purpose", null: false
+    t.integer "runs_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "workflow_id", null: false
+    t.index ["day"], name: "index_scenario_rollups_on_day"
+    t.index ["workflow_id", "day", "purpose", "outcome"], name: "index_scenario_rollups_on_grain", unique: true
+    t.index ["workflow_id"], name: "index_scenario_rollups_on_workflow_id"
   end
 
   create_table "scenarios", force: :cascade do |t|
@@ -313,6 +340,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_150000) do
   add_foreign_key "group_workflows", "folders"
   add_foreign_key "group_workflows", "groups"
   add_foreign_key "group_workflows", "workflows"
+  add_foreign_key "scenario_dropoff_rollups", "workflows"
+  add_foreign_key "scenario_rollups", "workflows"
   add_foreign_key "scenarios", "scenarios", column: "handed_off_from_id", on_delete: :nullify
   add_foreign_key "scenarios", "scenarios", column: "parent_scenario_id", on_delete: :nullify
   add_foreign_key "scenarios", "users"

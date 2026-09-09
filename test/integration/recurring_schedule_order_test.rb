@@ -10,28 +10,39 @@ require "test_helper"
 class RecurringScheduleOrderTest < ActiveSupport::TestCase
   SCHEDULE = Rails.application.config_for(:recurring, env: "production").freeze
 
-  # "0 2 * * *" -> 2. Only the plain daily form is used here; anything else is a
-  # deliberate change and should fail loudly rather than be guessed at.
-  def daily_hour(cron)
+  # "30 2 * * *" -> 150 minutes past midnight. Minutes, not hours, because the
+  # rollup sits between two jobs an hour apart. Only the plain daily form is
+  # used here; anything else is a deliberate change and should fail loudly
+  # rather than be guessed at.
+  def daily_minutes(cron)
     minute, hour, rest = cron.split(" ", 3)
     assert_equal "* * *", rest, "expected a plain daily schedule, got #{cron.inspect}"
-    assert_equal "0", minute, "expected the job to run on the hour, got #{cron.inspect}"
-    Integer(hour)
+    (Integer(hour) * 60) + Integer(minute)
   end
 
-  test "both nightly scenario jobs are still scheduled" do
+  test "all three nightly scenario jobs are still scheduled" do
     assert SCHEDULE.key?(:sweep_idle_scenarios), "the sweep is what closes the retention leak"
+    assert SCHEDULE.key?(:roll_up_scenarios),    "the rollup is what makes the history outlive it"
     assert SCHEDULE.key?(:cleanup_scenarios)
     assert_equal "SweepIdleScenariosJob", SCHEDULE[:sweep_idle_scenarios][:class]
+    assert_equal "RollUpScenariosJob",    SCHEDULE[:roll_up_scenarios][:class]
     assert_equal "CleanupScenariosJob",   SCHEDULE[:cleanup_scenarios][:class]
   end
 
-  test "the sweep runs strictly before cleanup" do
-    sweep   = daily_hour(SCHEDULE[:sweep_idle_scenarios][:schedule])
-    cleanup = daily_hour(SCHEDULE[:cleanup_scenarios][:schedule])
+  # The three-way order, and the first night is when it matters most: the sweep
+  # settles a whole backlog of abandoned runs stamped with their real last
+  # activity, the rollup captures that abandonment history, and cleanup then
+  # deletes the ones already past the horizon. Run cleanup before the rollup and
+  # that history is gone — once, silently, and unrecoverably.
+  test "sweep, then rollup, then cleanup" do
+    sweep   = daily_minutes(SCHEDULE[:sweep_idle_scenarios][:schedule])
+    rollup  = daily_minutes(SCHEDULE[:roll_up_scenarios][:schedule])
+    cleanup = daily_minutes(SCHEDULE[:cleanup_scenarios][:schedule])
 
-    assert_operator sweep, :<, cleanup,
-                    "cleanup can only collect runs that already have a completed_at, and the " \
-                    "sweep is what stamps one — equal times leave the order undefined"
+    assert_operator sweep, :<, rollup,
+                    "a run the sweep has not settled yet is rolled up as pending, not as abandoned"
+    assert_operator rollup, :<, cleanup,
+                    "cleanup deletes the runs the rollup is summarising — roll up first, or the " \
+                    "history is lost rather than aggregated"
   end
 end

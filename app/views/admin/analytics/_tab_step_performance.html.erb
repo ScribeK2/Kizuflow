@@ -1,5 +1,7 @@
 <div data-tab="step-performance">
-  <% if @step_performance.any? %>
+  <% if @step_performance.nil? %>
+    <%= render "rollup_unavailable", reason: "Step timing" %>
+  <% elsif @step_performance.any? %>
     <div class="table-wrap">
       <table class="table">
         <thead>

@@ -62,18 +62,74 @@ module Admin
                    "the default must not become a lock — asking for simulations shows them"
     end
 
+    def rolled_up_day(day, outcome:, count:, purpose: "live", duration_sum: 0, duration_count: 0)
+      ScenarioRollup.create!(
+        workflow: @workflow, day: day, purpose: purpose, outcome: outcome,
+        runs_count: count, duration_sum_seconds: duration_sum, duration_count: duration_count
+      )
+    end
+
     # "All" claimed all time and could not deliver it: runs are deleted at the
-    # retention horizon. Rolling runs up before deleting them is the durable fix;
-    # until that exists the label must not overstate what the database holds.
-    test "the widest range does not claim to be all time" do
+    # retention horizon, so the widest raw range was 90 days wearing a wider
+    # label. It now reads a different SOURCE — the daily rollups — rather than a
+    # wider window on the same one.
+    test "the all-time range reads rollups and reaches past the retention horizon" do
+      rolled_up_day(400.days.ago.to_date, outcome: "completed", count: 7,
+                                          duration_sum: 700, duration_count: 7)
+      rolled_up_day(400.days.ago.to_date, outcome: "escalated", count: 3)
       sign_in @admin
 
-      get admin_analytics_path
+      get admin_analytics_path(range: "all")
 
       assert_response :success
-      assert_match(/All kept/, response.body)
-      assert_match(/#{Scenario.live_retention_days} days \(live\)/, response.body,
-                   "the horizon has to be stated, or the label is just a different vague word")
+      assert_match(/All time/, response.body)
+      assert_match(/10/, response.body, "totals come from rollups, not from surviving runs")
+      assert_match(/Daily totals/, response.body,
+                   "the page has to say which source it is reading")
+    end
+
+    test "the all-time view does not offer filters it cannot honour" do
+      rolled_up_day(400.days.ago.to_date, outcome: "completed", count: 1)
+      sign_in @admin
+
+      get admin_analytics_path(range: "all")
+
+      assert_response :success
+      assert_no_match(/All Agents/, response.body,
+                      "a rollup has no per-agent grain, so the control must not be offered")
+      assert_no_match(/All Groups/, response.body)
+    end
+
+    test "panels with no rollup behind them say so rather than looking empty" do
+      rolled_up_day(400.days.ago.to_date, outcome: "completed", count: 1)
+      sign_in @admin
+
+      get admin_analytics_path(range: "all")
+
+      assert_response :success
+      assert_match(/Not available for all time/, response.body,
+                   "an empty table reads as 'nobody did anything', which is a different claim")
+    end
+
+    test "a range within retention still reads runs and keeps every filter" do
+      sign_in @admin
+
+      get admin_analytics_path(range: "90d")
+
+      assert_response :success
+      assert_match(/All Agents/, response.body, "raw mode keeps the run-level filters")
+      assert_match(/Individual runs, with every filter/, response.body)
+    end
+
+    # The seam is explicit precisely so a CSV of the last 90 days can never be
+    # handed over labelled "all time" — that is the lie being removed.
+    test "CSV export from the all-time view redirects rather than mislabelling itself" do
+      sign_in @admin
+
+      get admin_analytics_path(range: "all", format: :csv)
+
+      assert_redirected_to admin_analytics_path(range: "90d")
+      assert_match(/individual runs/i, flash[:alert])
     end
 
     test "admin can access analytics page" do

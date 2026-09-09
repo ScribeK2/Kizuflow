@@ -49,7 +49,9 @@
         Times in <%= Time.zone.name %>
       </span>
     </div>
-    <% if @busiest_hours.any? %>
+    <% if @busiest_hours.nil? %>
+      <%= render "rollup_unavailable", reason: "Time-of-day activity" %>
+    <% elsif @busiest_hours.any? %>
       <% max_count = @busiest_hours.map { |_, c| c }.max %>
       <div class="table-wrap">
         <table class="table">
