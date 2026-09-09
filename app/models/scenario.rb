@@ -255,6 +255,12 @@ class Scenario < ApplicationRecord
 
   # Check if scenario is complete
   def complete?
+    # Terminal is terminal. This enumerated two of the four end states and then
+    # fell through to `current_node_uuid.nil? && !active?`, so a run that died on
+    # the iteration limit was "not complete" and the runner handed the agent an
+    # answerable card on it. Nulling current_node_uuid also hides that, but only
+    # while two columns happen to line up — say it once, here.
+    return true if terminal?
     return true if completed?
     return true if stopped?
     return false if awaiting_subflow?
@@ -318,7 +324,20 @@ class Scenario < ApplicationRecord
 
   # True once the run reached an end state and its outcome is settled.
   def terminal?
-    TERMINAL_STATUSES.include?(status)
+    # `status` is the enum READER, which returns the LABEL ("timed_out"), while
+    # TERMINAL_STATUSES holds the DB VALUES ("timeout") that the `terminal` scope
+    # needs for its `where`. For completed/stopped label and value are identical,
+    # which is why this read correctly for years; for the two members where they
+    # differ — timed_out => "timeout", errored => "error" — it returned false,
+    # and Ruby disagreed with SQL about the same row.
+    #
+    # That was live, not latent: `status = 'error'` is written by count_iteration!
+    # and by ScenarioStepProcessor#process_subflow_step. An errored run had its
+    # outcome overwritten by stop_frame!, was picked as the live head by
+    # live_handed_off_to, and rendered an answerable card in the runner.
+    #
+    # Translate rather than keeping a second list in the other representation.
+    TERMINAL_STATUSES.include?(self.class.statuses[status])
   end
 
   # Stops this scenario alone. Use stop! unless you specifically mean one frame.
