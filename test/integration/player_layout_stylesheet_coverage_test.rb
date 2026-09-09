@@ -1,6 +1,9 @@
 require "test_helper"
 
-# Every class the Player renders must be styled by a stylesheet the Player loads.
+# Every class a *player-layout* page renders must be styled by a stylesheet the
+# Player loads. That is the run screens — `step`, `show`, `show_shared`. The
+# Player index renders the application layout and is covered by nothing here;
+# see the note above the first test.
 #
 # The Player has its own layout and its own hand-picked `stylesheet_link_tag`
 # list — a subset of the application layout's. That is deliberate (it is a
@@ -39,13 +42,12 @@ class PlayerLayoutStylesheetCoverageTest < ActionDispatch::IntegrationTest
     @workflow.update!(start_step: @question)
   end
 
-  test "the Player's index styles every class it renders" do
-    get play_path
-
-    assert_response :success
-    assert_no_unstyled_classes response.body, "the Player index"
-  end
-
+  # /play is deliberately absent. It renders the *application* layout — it is a
+  # browse page, not a run — so it loads the full stylesheet list and this guard
+  # has nothing to catch there. The Player-layout pages are the run screens
+  # below. If a Player action is ever added that renders the player shell, add it
+  # here; if one moves to the app layout, take it out rather than widening the
+  # Player's stylesheet list to satisfy this test.
   test "the Player's step styles every class it renders" do
     get player_scenario_step_path(open_run)
 

@@ -79,16 +79,38 @@ class NavControllerTest < ActionDispatch::IntegrationTest
     assert_select "nav a.nav__link[href=?][aria-current='page']", play_path, count: 0
   end
 
-  # Play cannot show as current, and not because the section map is wrong.
-  # PlayerController declares `layout "player"` at class level, so /play renders
-  # the standalone player shell — the application top bar is not on the page at
-  # all. Clicking Play swaps chrome rather than moving within it. This predates
-  # the redesign: the old `controller_name == "player"` condition was already
-  # unreachable for the same reason. Asserted so the behaviour is recorded
-  # rather than rediscovered.
-  test "the player index renders the player shell, not the app top bar" do
+  # /play is a browse page, so it renders the app shell and Play is current
+  # there. It used to render the standalone player shell — `layout "player"` was
+  # class-level and swept the index in with the run screens — which made the
+  # section map's :play entry unreachable and left a regular user, whose only
+  # other destination is the dashboard, with no top bar on the page they work on.
+  # The old `controller_name == "player"` condition was dead for the same reason.
+  test "Play is current on the player index" do
     sign_in @regular
     get play_path
+    assert_response :success
+    assert_select "nav.page-header"
+    assert_select "nav a.nav__link[href=?][aria-current='page']", play_path
+  end
+
+  # The chrome still falls away when a run starts — that is the point of the
+  # split. Entering a run is a mode change; opening the list is not.
+  test "a run renders the player shell, not the app top bar" do
+    workflow = Workflow.create!(title: "Shell Split #{SecureRandom.hex(3)}",
+                                user: @regular, status: "published")
+    question = Steps::Question.create!(workflow: workflow, position: 0, title: "Still running?",
+                                       question: "Still running?", variable_name: "sr")
+    resolve = Steps::Resolve.create!(workflow: workflow, position: 1, title: "Done",
+                                     resolution_type: "success")
+    Transition.create!(step: question, target_step: resolve, position: 0)
+    workflow.update!(start_step: question)
+
+    scenario = Scenario.create!(workflow: workflow, user: @regular, purpose: "live",
+                                started_at: Time.current, current_node_uuid: question.uuid,
+                                execution_path: [], results: {}, inputs: {})
+
+    sign_in @regular
+    get player_scenario_step_path(scenario)
     assert_response :success
     assert_select "nav.page-header", count: 0
     assert_select "header.player-header"

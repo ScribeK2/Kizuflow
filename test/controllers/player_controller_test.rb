@@ -38,16 +38,31 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "player uses player layout" do
+  # The player layout is for runs, not for the Player as a namespace. The index
+  # is a browse page and renders the app shell, so it keeps the top bar; the
+  # chrome falls away when a run starts, which is the point of the split.
+  test "the player index uses the application layout" do
     sign_in @regular
     get play_path
+    assert_select "body.player-layout", count: 0
+    assert_select "body.page-body"
+    assert_select "nav.page-header"
+  end
+
+  test "a run uses the player layout" do
+    sign_in @regular
+    post play_workflow_path(@workflow)
+    get player_scenario_step_path(Scenario.last)
     assert_select "body.player-layout"
   end
 
-  test "exit player leaves the player for the dashboard" do
+  # There is no "Exit Player" on the index any more, and that is correct: you
+  # are not in the player, you are choosing from a list. The affordance belongs
+  # to a run, which the next test covers.
+  test "the player index has no Exit Player control" do
     sign_in @regular
     get play_path
-    assert_select "a.player-link[href=?]", root_path, text: "Exit Player"
+    assert_select "a.player-link", count: 0
   end
 
   test "exit player from a run also leaves for the dashboard" do

@@ -1,9 +1,12 @@
 <% content_for(:title) { "Play — TurboFlows" } %>
 
 <div class="player-index" data-controller="player-filter">
-  <div class="player-index__header">
-    <h1 class="player-index__title">Workflows</h1>
-    <p class="player-index__subtitle">Choose a workflow to begin</p>
+  <%# The app shell's own header pattern, not .player-index__header — this page
+      renders inside the application layout now, and a second heading style for
+      the same job is how two systems start drifting. %>
+  <div class="page-header-section">
+    <h1 class="page-header-section__title">Workflows</h1>
+    <p class="page-header-section__subtitle">Choose a workflow to begin</p>
   </div>
 
   <% if @workflows.any? %>

@@ -177,6 +177,10 @@ All workflows are graphs. There is no separate "linear mode" — a sequential fl
 
 The Player is the user-facing workflow execution UI, separate from the builder's Scenario mode. It has its own layout, routes, and controller.
 
+**The standalone layout covers the runs, not the whole controller.** `/play` is a
+browse page and renders the application layout, top bar and all; `step`, `show`
+and `show_shared` render `layouts/player`. See `PlayerController#resolve_layout`.
+
 **Routes:** `/play` (index), `/play/:id` (start), `/player/scenarios/:id/step` (step), `/player/scenarios/:id/show` (completion), `/s/:share_token` (shared anonymous access)
 
 **Key files:**
@@ -184,7 +188,7 @@ The Player is the user-facing workflow execution UI, separate from the builder's
 - `app/views/layouts/player.html.erb` — standalone layout (header, main, footer)
 - `app/views/player/step.html.erb` — a thin shell: page chrome plus route-shaped locals, delegating everything below to `runner/_thread`
 - `app/views/player/show.html.erb` — completion screen with stats
-- `app/views/player/index.html.erb` — workflow card grid
+- `app/views/player/index.html.erb` — the workflow list. Renders in the **application** layout, and uses the app's `page-header-section` heading rather than a Player-specific one
 - `app/helpers/player_helper.rb` — `player_back_button` helper (uses Player routes, not Scenario routes)
 - `app/assets/stylesheets/_player.css` — Player-specific layout and component styles
 
@@ -196,7 +200,7 @@ partials, not in a shell. Both shells are now branchless: neither contains an
 `if` about how to render the run.
 
 - Uses `player_scenario_*_path` routes, not `*_scenario_path` routes
-- Its own layout (`layouts/player.html.erb`) and page chrome
+- Its own layout (`layouts/player.html.erb`) and page chrome — for the run screens; the index is an app-shell page
 - Cancel is hidden for anonymous/shared scenarios (no Player index to return to)
 - Both runners operate on AR Step objects with method access (`step.title`), not
   execution-path hashes. `step['field']` access was removed in the shared-partial
@@ -251,12 +255,19 @@ unexpected `answer_type` rendered radio cards with no way to submit.
   It must stay a different *channel* from hover: the old treatment moved active
   from `--color-ink-subtle` to `--color-ink`, which is exactly what hover did,
   so "where am I" and "where is my mouse" were indistinguishable
-- **`:play` never lights.** `PlayerController` declares `layout "player"`, so
-  `/play` renders the standalone player shell and the application bar is not on
-  the page. Clicking Play swaps chrome rather than moving within it. The mapping
-  is kept because it is the right answer if the Player index ever renders the app
-  shell; the pre-redesign `controller_name == "player"` condition was dead for
-  the same reason
+- **The player layout is for runs, not for the Player as a namespace.**
+  `PlayerController#resolve_layout` (overriding `ApplicationController`'s) puts
+  `index` on the application layout and everything else on `player`. The index is
+  a browse page — heading, filter, list rows — and it is also the only rendering
+  action here that always requires a session, since `step`/`show`/`show_shared`
+  stay open for anonymous share links; the same line is drawn twice. So the
+  chrome falling away means *you have entered a run*, rather than being an
+  artifact of where a `layout` call sat. Until 2026-09-09 `layout "player"`
+  covered the whole controller, which made `:play` unhighlightable and left a
+  regular user — whose only other destination is the dashboard — with a top bar
+  on exactly one page. Note a class-level `layout "x", except: :index` does **not**
+  fall back to the parent's `layout :resolve_layout`; the excluded action renders
+  with no layout at all, which is why this is a method override
 
 ## Other Highlights
 

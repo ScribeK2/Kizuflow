@@ -48,8 +48,13 @@
         <%= icon "moon", class: "icon icon--sm" %>
       </button>
       <% if current_user %>
-        <%# play_path is this layout. Pointing Exit Player at it is a no-op on
-            /play and never actually leaves the player. root_path is the app. %>
+        <%# This layout is now only ever a run, so /play is a legitimate exit
+            target again — the old note here said pointing at play_path was a
+            no-op, which was true when the index also rendered this shell.
+            root_path is kept deliberately: "exit" means leave the player, and
+            a regular user's dashboard is the app. Sending it to the workflow
+            list instead ("leave this run, pick another") is a reasonable
+            different reading, not a bug to fix in passing. %>
         <%= link_to "Exit Player", root_path, class: "player-link" %>
       <% end %>
     </div>

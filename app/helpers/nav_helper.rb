@@ -16,13 +16,12 @@ module NavHelper
     "scenarios" => :workflows,
     "steps" => :workflows,
     "workflow_versions" => :workflows,
-    # :play is correct but currently unreachable — PlayerController declares
-    # `layout "player"`, so /play renders the standalone player shell and the
-    # application top bar is not on the page to highlight. Kept because the
-    # mapping is the right answer the moment the Player index renders the app
-    # shell, and because deleting it would hide the question. The old
+    # Only the Player *index* renders the app shell, so :play lights there and
+    # nowhere else — see PlayerController#resolve_layout. The run screens swap
+    # to the focused player layout, which has no top bar by design. This entry
+    # was unreachable until 2026-09-09, when `layout "player"` covered the whole
+    # controller and the index wore the run chrome; the pre-redesign
     # `controller_name == "player"` condition was dead for the same reason.
-    # See test/controllers/nav_controller_test.rb.
     "player" => :play
   }.freeze
 

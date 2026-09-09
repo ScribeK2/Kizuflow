@@ -1,7 +1,10 @@
 class PlayerController < ApplicationController
   include RunnerShell
 
-  layout "player"
+  # Layout comes from ApplicationController's `layout :resolve_layout`, which
+  # this overrides below. A class-level `layout "player", except: :index` does
+  # NOT fall back to the parent's symbol for the excluded action — it resolves
+  # to no layout at all, and the page renders bare.
 
   before_action :authenticate_user!, except: %i[show_shared step next_step back show]
   before_action :set_scenario, only: %i[step next_step back show stop]
@@ -110,6 +113,22 @@ class PlayerController < ApplicationController
   end
 
   private
+
+  # The focused shell is for *running*, not for the Player as a namespace.
+  # `index` is a browse page — a heading, a filter, and a list of rows — and it
+  # only wore the player chrome because the layout was declared for the whole
+  # controller. It is also the one rendering action here that always requires a
+  # session (`step` and `show` stay open so anonymous share links work), so the
+  # same line is already drawn twice.
+  #
+  # Keeping it on the app layout makes the chrome falling away at the start of a
+  # run *mean* something — you have entered a mode — instead of being an
+  # artifact of where a `layout` call happened to sit. It also puts a top bar on
+  # the page a regular user actually works on: their only other destination is
+  # the dashboard, so before this they had one.
+  def resolve_layout
+    action_name == "index" ? "application" : "player"
+  end
 
   # RunnerShell template methods
   def runner_step_path(scenario)

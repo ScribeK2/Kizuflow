@@ -715,7 +715,13 @@ Sectioned layout with toggles, descriptions, and action buttons.
 
 ### Recipe 5: Player Page (Lightweight Skeleton)
 
-Player pages use a **separate layout** (`layouts/player.html.erb`) and **separate CSS** (`_player.css`). Do not use the main application layout.
+**Run** screens use a **separate layout** (`layouts/player.html.erb`) and **separate CSS** (`_player.css`). Do not use the main application layout for those.
+
+`/play` is **not** one of them. It is a browse page — heading, filter, list rows —
+and it renders the application layout with the normal top bar, so ⌘K works there
+and Play shows as current. The chrome falling away is what tells an agent a run
+has begun; it should not also fall away for choosing one. Add a Player action to
+the run set only if it *is* a run.
 
 ```erb
 <%% content_for(:title) { "Workflow Title — TurboFlows Player" } %>

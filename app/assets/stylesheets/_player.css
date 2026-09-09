@@ -98,24 +98,6 @@
     width: 100%;
   }
 
-  .player-index__header {
-    margin-bottom: var(--space-8);
-  }
-
-  .player-index__title {
-    font-size: var(--text-2xl);
-    font-weight: 700;
-    color: var(--color-ink);
-    letter-spacing: var(--letter-spacing-tight);
-    margin: 0 0 var(--space-1) 0;
-  }
-
-  .player-index__subtitle {
-    font-size: var(--text-base);
-    color: var(--color-ink-subtle);
-    margin: 0;
-  }
-
   /* ─── Search Filter ─── */
   .player-search {
     position: relative;
@@ -329,10 +311,6 @@
 
     .player-completion__stats {
       gap: var(--space-6);
-    }
-
-    .player-index__title {
-      font-size: var(--text-xl);
     }
   }
 }
