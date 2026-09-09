@@ -56,6 +56,12 @@ class Scenario < ApplicationRecord
     ENV.fetch("SCENARIO_RETENTION_LIVE_DAYS", 90).to_i
   end
 
+  # How long a run may sit untouched before the sweep settles it. Runs are swept
+  # nightly, so the real window is this plus up to a day.
+  def self.idle_timeout_hours
+    ENV.fetch("SCENARIO_IDLE_TIMEOUT_HOURS", 24).to_i
+  end
+
   # Custom error class
   class ScenarioIterationLimit < StandardError; end
 
@@ -93,6 +99,65 @@ class Scenario < ApplicationRecord
     terminal.where(purpose: "live")
             .where(completed_at: ...live_retention_days.days.ago)
   }
+
+  # Settle every run that has been idle longer than SCENARIO_IDLE_TIMEOUT_HOURS.
+  #
+  # This is what stops scenarios accumulating forever. Both cleanup scopes need
+  # `terminal` AND a `completed_at`, and nothing ever moved an abandoned run out
+  # of `active`/`awaiting_subflow` — so runs nobody finished were immortal, which
+  # is the common case on a live call: agents close the tab, they do not click
+  # Cancel. Settling them puts them into the existing retention pools AND makes
+  # abandonment visible to `Admin::AnalyticsController#build_dropoff_points`,
+  # which until now only ever heard about the few who clicked Cancel.
+  #
+  # `dry_run:` reports the count without writing. Use it after deploying, before
+  # the first nightly pass: the backlog is settled with `completed_at` set to
+  # each run's real last activity, so anything already past its retention horizon
+  # becomes collectable immediately and the next CleanupScenariosJob deletes it.
+  # That is the leak draining, but it should not be a surprise.
+  def self.sweep_idle_runs(dry_run: false)
+    cutoff = idle_timeout_hours.hours.ago
+    seen   = Set.new
+    swept  = 0
+
+    # By id, then re-read: the backlog pass can be long and an agent may resume a
+    # run while it is in flight. Re-reading gives the lock_version check something
+    # current to fail against, which is the point of the rescue below.
+    where(status: %w[active awaiting_subflow]).order(:id).pluck(:id).each do |id|
+      next if seen.include?(id)
+
+      frame = find_by(id: id)
+      next if frame.nil?
+
+      frames = frame.run_frames
+      # Mark the whole run seen even if it is not idle, so a run with five frames
+      # is walked once rather than five times.
+      seen.merge(frames.map(&:id))
+
+      last_activity = frames.filter_map(&:updated_at).max
+      next if last_activity.nil? || last_activity >= cutoff
+      next swept += 1 if dry_run
+
+      begin
+        transaction do
+          frames.reject(&:terminal?).each { |f| f.time_out_frame!(last_activity) }
+        end
+        swept += 1
+      rescue ActiveRecord::StaleObjectError
+        # Someone is on this run after all. Leave it; the next pass will decide
+        # again with a fresh clock. One contended run must not abort the batch.
+        Rails.logger.warn("[sweep_idle_runs] Scenario ##{id} changed mid-sweep — left for the next pass")
+      end
+    end
+
+    swept
+  end
+
+  # Non-terminal rows, for the data-health dashboard. If this climbs without
+  # bound after the sweep ships, the sweep is not reaching something.
+  def self.outstanding_non_terminal
+    where(status: %w[active awaiting_subflow]).count
+  end
 
   # Deletes stale scenarios in batches of 5,000. Returns the total count removed.
   # Uses delete_all for performance — bypasses callbacks and dependent: :destroy.
@@ -355,6 +420,82 @@ class Scenario < ApplicationRecord
     )
   end
 
+  # Every frame of the run this frame belongs to.
+  #
+  # The SIXTH reader of run topology, and the previous five were each wrong in a
+  # different way (see docs/designs/idle-sweep-spike-findings.md). It exists
+  # because no earlier one answers "the whole run":
+  #
+  #   - `root_scenario` / `unfinished_descendants` walk `parent_scenario` only,
+  #     and a handed-to run has no parent by design, so they stop at a handoff.
+  #   - `run_origin` and `run_head` cross handoffs but do NOT descend into an
+  #     ordinary sub-flow child, so neither enumerates a parked parent's children.
+  #
+  # So this seeds from `run_origin` and closes over BOTH links in BOTH directions.
+  # Order is not meaningful; membership is.
+  def run_frames
+    seen  = {}
+    queue = [run_origin]
+
+    until queue.empty?
+      frame = queue.shift
+      next if frame.nil? || seen.key?(frame.id)
+
+      seen[frame.id] = frame
+      queue.concat(frame.child_scenarios.to_a)
+      queue.concat(Scenario.where(handed_off_from_id: frame.id).to_a)
+      queue << frame.parent_scenario
+      queue << frame.handed_off_from
+    end
+
+    seen.values
+  end
+
+  # When the run — not this frame — was last touched.
+  #
+  # It has to be the whole run. `belongs_to :parent_scenario` has no `touch:`, so
+  # a parent parked on a LIVE sub-flow has a clock that stopped when it parked,
+  # and `run_head` returns that parent as the head. Keying anything on a single
+  # frame settles runs an agent is still working. Spike probe P2b.
+  def run_last_activity
+    run_frames.filter_map(&:updated_at).max
+  end
+
+  def run_idle?(threshold = self.class.idle_timeout_hours.hours)
+    last = run_last_activity
+    last.present? && last < threshold.ago
+  end
+
+  # Settle this run as abandoned because nobody came back to it.
+  #
+  # Named `time_out!` rather than `timed_out!` because the enum already defines
+  # the latter: it flips the status and records nothing, which is exactly the
+  # shape of the bug that left errored runs with a NULL completed_at and made
+  # them uncollectable.
+  #
+  # `status` says the run is over; `outcome` says how. "abandoned" is shared with
+  # an explicit Cancel deliberately — drop-off analysis asks "did the agent
+  # finish", not which gesture ended it — and `status` still separates the two
+  # ("stopped" vs "timeout") for anyone who needs to know.
+  def time_out!
+    at = run_last_activity
+    transaction do
+      run_frames.reject(&:terminal?).each { |frame| frame.time_out_frame!(at) }
+    end
+  end
+
+  # One frame's half of that. Public so time_out! can walk the run; not a public
+  # API otherwise. Mirrors stop_frame!, including its refusal to touch a frame
+  # that already ended with an outcome it earned.
+  def time_out_frame!(at)
+    return if terminal?
+
+    record_completion("abandoned", at: at)
+    # Nulling the node is not decoration: `complete?` is what the runner asks
+    # before offering an answerable card, and a settled run must never leave one.
+    update!(status: "timeout", current_node_uuid: nil)
+  end
+
   # Every scenario below this one that is still running.
   def unfinished_descendants
     child_scenarios.where(status: %w[active awaiting_subflow]).flat_map do |child|
@@ -493,9 +634,13 @@ class Scenario < ApplicationRecord
   # Public methods used by ScenarioStepProcessor (formerly accessed via send())
   # ============================================================================
 
-  def record_completion(outcome_value)
+  # `at:` because a swept run did not end when the sweep noticed. Its ending is
+  # the run's last real activity, and duration has to be measured to that same
+  # point — stamping completed_at afterwards would leave duration_seconds
+  # measured to the wrong end. See Scenario.sweep_idle_runs.
+  def record_completion(outcome_value, at: Time.current)
     self.outcome = outcome_value
-    self.completed_at = Time.current
+    self.completed_at = at
     if started_at.present?
       self.duration_seconds = (completed_at - started_at).to_i
     end

@@ -1,4 +1,9 @@
 production:
+  # Before cleanup_scenarios, deliberately: the sweep is what gives an abandoned
+  # run a completed_at, and cleanup can only collect runs that have one.
+  sweep_idle_scenarios:
+    class: SweepIdleScenariosJob
+    schedule: "0 2 * * *"
   cleanup_scenarios:
     class: CleanupScenariosJob
     schedule: "0 3 * * *"
