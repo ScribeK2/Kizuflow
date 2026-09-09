@@ -93,7 +93,11 @@ class PlayerController < ApplicationController
 
     scenario = Scenario.create!(
       workflow: @workflow,
-      user: @workflow.user,
+      # The visitor, or nobody — never the owner. Stamping `@workflow.user` here
+      # recorded every anonymous run as the owner's, which skewed per-agent
+      # analytics for anyone who shared a workflow widely. A signed-in visitor
+      # following a share link is a real agent and is recorded as one.
+      user: current_user,
       purpose: "live",
       shared_access: true,
       started_at: Time.current,

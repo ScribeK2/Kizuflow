@@ -2,7 +2,10 @@ class Scenario < ApplicationRecord
   include ScenarioExecution
 
   belongs_to :workflow
-  belongs_to :user
+  # Optional because a share link can be opened by someone who is not signed in.
+  # NULL means "nobody we can name ran this", which is the truth; it used to be
+  # the workflow owner, which was a lie with a consumer (per-agent analytics).
+  belongs_to :user, optional: true
   # Which published version this run started against. Optional: a simulation of an
   # unpublished draft has none. `on_delete: :nullify` on the FK, but nothing
   # deletes a version — releasing one keeps the row and drops only its steps.

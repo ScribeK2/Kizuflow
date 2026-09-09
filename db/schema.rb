@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_200100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_09_210000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -135,7 +135,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_200100) do
     t.string "status", default: "active", null: false
     t.integer "stopped_at_step_index"
     t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
+    t.integer "user_id"
     t.integer "workflow_id", null: false
     t.integer "workflow_version_id"
     t.index ["current_node_uuid"], name: "index_scenarios_on_current_node_uuid"
