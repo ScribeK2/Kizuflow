@@ -48,14 +48,15 @@
         <%= icon "moon", class: "icon icon--sm" %>
       </button>
       <% if current_user %>
-        <%# play_path, matching every other way out of a run: the completion
-            screen's "Back to Workflows", and Cancel, which settles the run and
-            redirects to that same completion screen. This link pointed at
-            root_path because /play used to render *this* layout, so exiting to
-            it was a no-op — that stopped being true when the index moved to the
-            app shell, and the dashboard was then the only exit that skipped
-            past the list. %>
-        <%= link_to "Exit Player", play_path, class: "player-link" %>
+        <%# Same words and same target as the completion screen's control, and
+            as Cancel, which settles the run and redirects to that screen: one
+            destination, one name for it. It read "Exit Player" pointing at
+            root_path, which was a workaround for /play rendering *this* layout,
+            so exiting to it would have been a no-op. Once the index moved to
+            the app shell that stopped being true — and the label then named a
+            surface the nav calls "Play" while the completion screen called the
+            same destination something else again. %>
+        <%= link_to "Back to Workflows", play_path, class: "player-link" %>
       <% end %>
     </div>
   </header>

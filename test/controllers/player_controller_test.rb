@@ -56,25 +56,27 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
     assert_select "body.player-layout"
   end
 
-  # There is no "Exit Player" on the index any more, and that is correct: you
-  # are not in the player, you are choosing from a list. The affordance belongs
-  # to a run, which the next test covers.
-  test "the player index has no Exit Player control" do
+  # The index carries no leave-the-run control, and should not: you are not in a
+  # run, you are choosing one, and the destination would be the page you are on.
+  # The affordance belongs to a run, which the next test covers.
+  test "the player index has no leave-the-run control" do
     sign_in @regular
     get play_path
     assert_select "a.player-link", count: 0
   end
 
-  # Every exit from a run lands on the workflow list: this control, the
-  # completion screen's "Back to Workflows", and Cancel, which settles the run
-  # and redirects to that completion screen. It pointed at root_path while /play
-  # rendered the player layout and exiting to it would have been a no-op.
-  test "exit player from a run returns to the workflow list" do
+  # Every exit from a run lands on the workflow list under the same name: this
+  # control, the completion screen's, and Cancel, which settles the run and
+  # redirects to that completion screen. It read "Exit Player" pointing at
+  # root_path while /play rendered the player layout and exiting to it would
+  # have been a no-op.
+  test "a run offers Back to Workflows, not an exit to the dashboard" do
     sign_in @regular
     post play_workflow_path(@workflow)
     get player_scenario_step_path(Scenario.last)
-    assert_select "a.player-link[href=?]", play_path, text: "Exit Player"
+    assert_select "a.player-link[href=?]", play_path, text: "Back to Workflows"
     assert_select "a.player-link[href=?]", root_path, count: 0
+    assert_select "a.player-link", text: "Exit Player", count: 0
   end
 
   test "player index omits untitled published workflows" do
