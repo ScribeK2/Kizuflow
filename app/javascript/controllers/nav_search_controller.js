@@ -39,7 +39,9 @@ export default class extends Controller {
   }
 
   open() {
-    this.element.dispatchEvent(new CustomEvent("dialog:show", { bubbles: true }))
+    // No `dialog:show` dispatch: it existed so dialog-manager could close the
+    // nav menu when search opened. The menu is gone, search is the header's
+    // only dialog, and showModal() already closes on Escape and backdrop click.
     this.dialogTarget.showModal()
     this.inputTarget.value = ""
     this.inputTarget.focus()

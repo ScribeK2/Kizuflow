@@ -61,7 +61,6 @@ Rails.application.routes.draw do
   get "session/heartbeat", to: "sessions#heartbeat", as: :session_heartbeat
 
   # Nav menu and search
-  get "nav/menu", to: "nav#menu", as: :nav_menu
   get "nav/search_data", to: "nav#search_data", as: :nav_search_data
 
   resources :scenarios, only: [:show] do

@@ -47,15 +47,40 @@
         <% end %>
   >
     <!-- Navigation Bar -->
-    <nav class="page-header"
-         data-controller="dialog-manager"
-         data-dialog-manager-nav-menu-outlet="[data-controller='nav-menu']"
-         data-dialog-manager-nav-search-outlet="[data-controller='nav-search']"
-         data-action="dialog:show->dialog-manager#closeOthers">
+    <nav class="page-header">
       <div class="page-header__inner">
         <div class="page-header__row">
-          <%# === Left zone: Search pill === %>
+          <%# === Left zone: brand + destinations ===
+              Destinations are labelled and visible, not folded into a menu.
+              Admin sits last so it can appear and disappear with the role
+              without reshuffling the positions above it. %>
           <div class="nav__zone nav__zone--start">
+            <%= link_to root_path, class: "nav__brand-link", aria: { current: nav_current(:home) } do %>
+              <%= render "shared/brand_icon", css_class: "nav__brand-icon" %>
+              <span class="nav__brand-text">TurboFlows</span>
+            <% end %>
+
+            <% if user_signed_in? %>
+              <div class="nav__links">
+                <% if current_user.can_edit_workflows? %>
+                  <%= link_to "Workflows", workflows_path,
+                        class: "nav__link",
+                        aria: { current: nav_current(:workflows) } %>
+                <% end %>
+                <%= link_to "Play", play_path,
+                      class: "nav__link",
+                      aria: { current: nav_current(:play) } %>
+                <% if current_user.can_access_admin? %>
+                  <%= link_to "Admin", admin_root_path,
+                        class: "nav__link",
+                        aria: { current: nav_current(:admin) } %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+
+          <%# === Right zone: search + chrome === %>
+          <div class="nav__zone nav__zone--end">
             <% if user_signed_in? %>
               <div data-controller="nav-search" data-nav-search-url-value="<%= nav_search_data_path(format: :json) %>">
                 <button type="button"
@@ -92,48 +117,7 @@
                 </dialog>
               </div>
             <% end %>
-          </div>
 
-          <%# === Center zone: Logo + menu trigger === %>
-          <div class="nav__zone nav__zone--center">
-            <div class="nav__brand">
-              <%= link_to root_path, class: "nav__brand-link" do %>
-                <%= render "shared/brand_icon", css_class: "nav__brand-icon" %>
-                <span class="nav__brand-text">TurboFlows</span>
-              <% end %>
-
-              <% if user_signed_in? && (current_user.can_create_workflows? || current_user.can_access_admin?) %>
-                <div data-controller="nav-menu" data-nav-menu-src-value="<%= nav_menu_path %>">
-                  <button type="button"
-                          data-action="click->nav-menu#toggle"
-                          class="nav__menu-trigger"
-                          aria-label="Open menu">
-                    <%= icon "chevron-down" %>
-                  </button>
-
-                  <dialog data-nav-menu-target="dialog"
-                          class="nav__menu popup popup--animated">
-                    <turbo-frame id="nav_menu" data-nav-menu-target="frame">
-                      <div class="nav__menu-loading">Loading...</div>
-                    </turbo-frame>
-                  </dialog>
-                </div>
-              <% end %>
-            </div>
-          </div>
-
-          <%# === Right zone: Dark mode + avatar === %>
-          <div class="nav__zone nav__zone--end">
-            <% if user_signed_in? %>
-              <% if current_user.can_edit_workflows? %>
-                <%= link_to "Workflows", workflows_path,
-                      class: "nav__link",
-                      aria: { current: ("page" if controller_path.start_with?("workflows")) } %>
-              <% end %>
-              <%= link_to "Play", play_path,
-                    class: "nav__link",
-                    aria: { current: ("page" if controller_name == "player") } %>
-            <% end %>
             <!-- Dark Mode Toggle -->
             <button
               type="button"

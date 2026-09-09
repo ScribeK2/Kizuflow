@@ -324,7 +324,13 @@ is not one until a rule exists; check `getComputedStyle`, not the markup.
 | `.dialog__body` | Content area | Padding, overflow-y auto |
 | `.dialog__footer` | Action buttons | Flex end, gap, border-top |
 
-**Stimulus:** `data-controller="dialog"` for open/close. `data-controller="dialog-manager"` on body for single-open enforcement.
+**Stimulus:** `data-controller="dialog"` for open/close. There was a
+`dialog-manager` controller for single-open enforcement; it was deleted
+2026-09-09 along with the nav menu. It was documented here as living on `<body>`
+and never did — its only mount was the `<nav>`, coordinating the nav menu against
+the search dialog, so removing the menu left it with one dialog and nothing to
+close. Prefer `showModal()`, which makes Escape and backdrop-click native, over
+reintroducing a coordinator.
 
 ### Dropdowns (`dropdowns.css`)
 
@@ -395,10 +401,41 @@ accidentally fired one.
 |-------|----------|--------|
 | `.page-header` | Top nav bar | Fixed top, white bg, border-bottom, z-nav |
 | `.page-header__inner` | Max-width container | 80rem max, padding-inline |
-| `.page-header__row` | Three-zone grid | `grid-template-columns: 1fr auto 1fr` |
+| `.page-header__row` | Two-zone grid | `grid-template-columns: 1fr auto` |
+| `.nav__links` | The destination row | Flex, stretched to full header height |
+| `.nav__link` | One destination | text-sm/500 muted; current gets primary + 2px rule |
+| `.nav__brand-link` | Wordmark, and the home link | Leads the row; `flex-shrink: 0` |
 
-**Structure:** Left zone (search), center (logo), right (actions). Height: 4rem.
-**Stimulus:** `data-controller="nav-search"` for Cmd+K search, `data-controller="nav-menu"` for menu dropdown.
+**Structure:** Left zone (brand, then destinations), right zone (search, theme,
+avatar). Height: 4rem.
+
+**The bar lists places, and every place is a labelled link.** No menu holds a
+destination. It used to be a three-zone grid with the wordmark centred and a
+1.4rem chevron beside it opening a dropdown of admin links — which meant `/admin`
+was reachable from nowhere else in the header, and that a chevron next to a
+wordmark (which means "switch workspace" in every app that has one) was doing a
+plain link's job. Destinations also sat in the right zone against the theme
+toggle and avatar, where a place reads as a setting.
+
+**Current state must be a different channel from hover, not a darker shade of
+it.** `.nav__link[aria-current="page"]` takes `--color-primary-text`, weight 600
+and a 2px `--color-primary` rule on the header's own hairline — the same
+treatment as `.tab-bar__tab.is-active`, and for the same reason. The previous
+version moved active from `--color-ink-subtle` to `--color-ink`, which is
+precisely what `:hover` did, so the two were indistinguishable. Which page counts
+as current is `NavHelper#nav_current`, section-level, never an inline ternary in
+the layout.
+
+**Narrow widths hide the wordmark's text and then scroll the destinations** —
+they never collapse into a menu. Hiding destinations behind a trigger is the
+failure this bar exists to undo, and doing it below 640px only would make the fix
+evaporate exactly where re-finding things is hardest. `.nav__brand-link` carries
+`flex-shrink: 0` because a squeezed row shrank it to *zero width*, taking the
+icon with it and leaving the bar with no identity at all.
+
+**Stimulus:** `data-controller="nav-search"` for Cmd+K search. That dialog is the
+header's only one — it uses `showModal()`, so Escape and backdrop-click are
+native and it needs no coordinator.
 
 ### Tabs (`tabs.css`, `workflows.css`)
 
@@ -464,7 +501,6 @@ These are the most-used controllers. Wire them via `data-controller` on the appr
 |-----------|---------|-------------------|
 | `inline-autosave` | Debounced form autosave (2s) | Listens for `input`, `change`, `lexxy:change` |
 | `dialog` | Open/close modals | `click->dialog#open`, `click->dialog#close` |
-| `dialog-manager` | Single-open enforcement | Place on `<body>` |
 | `dropdown` | Toggle dropdown menus | `click->dropdown#toggle` |
 | `clipboard` | Copy text to clipboard | `click->clipboard#copy` |
 | `tooltip` | Show/hide tooltips | `mouseenter->tooltip#show`, `mouseleave->tooltip#hide` |

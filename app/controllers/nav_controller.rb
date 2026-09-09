@@ -2,11 +2,6 @@ class NavController < ApplicationController
   # Override Devise's default redirect for JSON requests on search_data
   skip_before_action :authenticate_user!, only: :search_data
   before_action :authenticate_user_for_json!, only: :search_data
-  before_action :authenticate_user!, only: :menu
-
-  def menu
-    render layout: false
-  end
 
   def search_data
     if current_user.admin?

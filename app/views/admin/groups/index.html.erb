@@ -7,16 +7,10 @@
         Organize workflows into hierarchical groups and subgroups.
       </p>
     </div>
-    <div class="flex gap-2">
-      <%= link_to admin_root_path, class: "btn btn--secondary flex items-center gap-2" do %>
-        <%= icon "arrow-left", class: "icon icon--sm" %>
-        Back to Dashboard
-      <% end %>
-      <%= link_to new_admin_group_path, class: "btn btn--primary flex items-center gap-2" do %>
-        <%= icon "plus", class: "icon icon--sm" %>
-        New Group
-      <% end %>
-    </div>
+    <%= link_to new_admin_group_path, class: "btn btn--primary flex items-center gap-2" do %>
+      <%= icon "plus", class: "icon icon--sm" %>
+      New Group
+    <% end %>
   </div>
 
   <!-- Groups Tree -->

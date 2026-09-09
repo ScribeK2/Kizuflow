@@ -5,10 +5,6 @@
       <h1 class="page-header-section__title">All Workflows</h1>
       <p class="page-header-section__subtitle">View and manage all workflows across the system.</p>
     </div>
-    <%= link_to admin_root_path, class: "btn btn--secondary flex items-center gap-2" do %>
-      <%= icon "arrow-left", class: "icon icon--sm" %>
-      Back to Dashboard
-    <% end %>
   </div>
 
   <%= turbo_frame_tag "admin-workflows-list" do %>

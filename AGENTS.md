@@ -228,11 +228,35 @@ unexpected `answer_type` rendered radio cards with no way to submit.
 
 ## Navigation & Search
 
-- `NavController` (Rails) — `menu` and `search_data` endpoints for the global navigation UI
+- `NavController` (Rails) — `search_data`, the only nav endpoint. There was a
+  `menu` action serving a lazy Turbo Frame for a dropdown hung off the wordmark;
+  it and its route, views and Stimulus controller were deleted 2026-09-09
 - `nav_search_controller.js` — Cmd+K fuzzy search (Fuse.js) across workflows, respects user permissions
-- `nav_menu_controller.js` — navigation menu dropdown
-- `dialog_manager_controller.js` — single-open dialog enforcement
-- Three-zone header: logo center, search left, actions right
+- **Two-zone header: brand + destinations left, search + chrome right.** Every
+  destination is a labelled link — Workflows, Play, Admin — not a menu. The
+  wordmark used to hold the centre column of a `1fr auto 1fr` grid, which is
+  what created the spare slot beside it that a chevron menu filled, and which
+  pinned the destinations to the right edge next to the theme toggle and avatar,
+  where a place reads as a setting. `/admin` was reachable **only** through that
+  chevron, which is why eight admin pages carried a "Back to Dashboard" control;
+  six of those are gone now that the bar holds the destination
+- `NavHelper` owns which controller lights which item (`NAV_SECTIONS`,
+  `nav_section`, `nav_current`). It is section-level: `scenarios`, `steps` and
+  `workflow_versions` light Workflows, and every `admin/*` page lights Admin.
+  Those first three used to light nothing — you could be mid-scenario in the
+  builder with an entirely inert bar. **Add a controller to the map when you add
+  a surface**; absence is the deliberate answer for pages reached from inside a
+  section (profiles, tags, folders), never a default
+- The current item is `--color-primary-text` + a 2px rule, matching `.tab-bar`.
+  It must stay a different *channel* from hover: the old treatment moved active
+  from `--color-ink-subtle` to `--color-ink`, which is exactly what hover did,
+  so "where am I" and "where is my mouse" were indistinguishable
+- **`:play` never lights.** `PlayerController` declares `layout "player"`, so
+  `/play` renders the standalone player shell and the application bar is not on
+  the page. Clicking Play swaps chrome rather than moving within it. The mapping
+  is kept because it is the right answer if the Player index ever renders the app
+  shell; the pre-redesign `controller_name == "player"` condition was dead for
+  the same reason
 
 ## Other Highlights
 

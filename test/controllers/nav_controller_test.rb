@@ -9,65 +9,105 @@ class NavControllerTest < ActionDispatch::IntegrationTest
     @regular = users(:regular_user)
   end
 
-  # --- menu action ---
+  # --- the top bar ---
+  #
+  # Every destination is a labelled link in the bar. It used to be one create
+  # action plus five admin destinations behind a 1.4rem chevron beside the
+  # wordmark, and /admin itself was reachable from nowhere in the header.
 
-  test "menu requires authentication" do
-    get nav_menu_path
-    assert_redirected_to new_user_session_path
+  test "the chevron menu route is gone" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("/nav/menu")
+    end
+    assert_not respond_to?(:nav_menu_path), "nav_menu_path should no longer exist"
   end
 
-  test "menu renders turbo frame for admin" do
+  test "nothing renders a menu trigger" do
     sign_in @admin
-    get nav_menu_path
-    assert_response :success
-    assert_select "turbo-frame#nav_menu"
+    get root_path
+    assert_select ".nav__menu-trigger", count: 0
+    assert_select "[data-controller='nav-menu']", count: 0
+    assert_select "[data-controller='dialog-manager']", count: 0
   end
 
-  test "admin menu includes admin section" do
+  test "admin bar carries Workflows, Play and Admin" do
     sign_in @admin
-    get nav_menu_path
-    assert_response :success
-    assert_select "a[href='#{admin_users_path}']"
-    assert_select "a[href='#{admin_workflows_path}']"
-    assert_select "a[href='#{admin_groups_path}']"
-    assert_select "a[href='#{admin_analytics_path}']"
+    get root_path
+    assert_select "nav a.nav__link[href=?]", workflows_path, text: "Workflows"
+    assert_select "nav a.nav__link[href=?]", play_path, text: "Play"
+    assert_select "nav a.nav__link[href=?]", admin_root_path, text: "Admin"
   end
 
-  test "admin menu includes actions section" do
-    sign_in @admin
-    get nav_menu_path
-    assert_select "form[action='#{workflows_path}'][method='post']"
-    assert_select "form[action='#{workflows_path}'][method='post'][data-turbo-prefetch='false']"
-  end
-
-  test "editor menu includes actions but not admin" do
-    sign_in @editor
-    get nav_menu_path
-    assert_response :success
-    assert_select "form[action='#{workflows_path}'][method='post']"
-    assert_select "a[href='#{admin_users_path}']", count: 0
-  end
-
-  test "regular user menu has navigation only" do
-    sign_in @regular
-    get nav_menu_path
-    assert_response :success
-    assert_select "form[action='#{workflows_path}'][method='post']", count: 0
-    assert_select "a[href='#{admin_users_path}']", count: 0
-  end
-
-  test "editor layout has persistent Workflows and Play links" do
+  test "editor bar carries Workflows and Play but not Admin" do
     sign_in @editor
     get root_path
     assert_select "nav a.nav__link[href=?]", workflows_path, text: "Workflows"
     assert_select "nav a.nav__link[href=?]", play_path, text: "Play"
+    assert_select "nav a.nav__link[href=?]", admin_root_path, count: 0
   end
 
-  test "regular layout has persistent Play and no Workflows link" do
+  test "regular bar carries Play only" do
     sign_in @regular
     get root_path
     assert_select "nav a.nav__link[href=?]", play_path, text: "Play"
     assert_select "nav a.nav__link[href=?]", workflows_path, count: 0
+    assert_select "nav a.nav__link[href=?]", admin_root_path, count: 0
+  end
+
+  # Admin sits last so it can appear and disappear with the role without
+  # reshuffling the positions above it — an editor and an admin see the same
+  # first two destinations.
+  test "Admin is the last destination" do
+    sign_in @admin
+    get root_path
+    labels = css_select("nav .nav__links a.nav__link").map { |a| a.text.strip }
+    assert_equal %w[Workflows Play Admin], labels
+  end
+
+  # --- you are here ---
+
+  test "the brand marks the dashboard as current" do
+    sign_in @admin
+    get root_path
+    assert_select "nav a.nav__brand-link[aria-current='page']"
+  end
+
+  test "Workflows is current on the workflows index" do
+    sign_in @editor
+    get workflows_path
+    assert_select "nav a.nav__link[href=?][aria-current='page']", workflows_path
+    assert_select "nav a.nav__link[href=?][aria-current='page']", play_path, count: 0
+  end
+
+  # Play cannot show as current, and not because the section map is wrong.
+  # PlayerController declares `layout "player"` at class level, so /play renders
+  # the standalone player shell — the application top bar is not on the page at
+  # all. Clicking Play swaps chrome rather than moving within it. This predates
+  # the redesign: the old `controller_name == "player"` condition was already
+  # unreachable for the same reason. Asserted so the behaviour is recorded
+  # rather than rediscovered.
+  test "the player index renders the player shell, not the app top bar" do
+    sign_in @regular
+    get play_path
+    assert_response :success
+    assert_select "nav.page-header", count: 0
+    assert_select "header.player-header"
+  end
+
+  test "Admin is current across admin pages, not just the hub" do
+    sign_in @admin
+    [admin_root_path, admin_users_path, admin_groups_path, admin_data_health_path].each do |path|
+      get path
+      assert_select "nav a.nav__link[href='#{admin_root_path}'][aria-current='page']", 1,
+                    "#{path} should mark Admin as current"
+      assert_select "nav a.nav__brand-link[aria-current='page']", count: 0
+    end
+  end
+
+  test "exactly one destination is current at a time" do
+    sign_in @admin
+    get workflows_path
+    assert_select "nav [aria-current='page']", count: 1
   end
 
   # --- search_data action ---
