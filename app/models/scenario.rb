@@ -3,6 +3,10 @@ class Scenario < ApplicationRecord
 
   belongs_to :workflow
   belongs_to :user
+  # Which published version this run started against. Optional: a simulation of an
+  # unpublished draft has none. `on_delete: :nullify` on the FK, but nothing
+  # deletes a version — releasing one keeps the row and drops only its steps.
+  belongs_to :workflow_version, optional: true
 
   # Parent/child scenario associations for sub-flows
   belongs_to :parent_scenario, class_name: 'Scenario', optional: true
@@ -72,6 +76,21 @@ class Scenario < ApplicationRecord
 
   # Analytics tracking
   before_create :set_started_at
+
+  # Which script the agent was actually following.
+  #
+  # The column, its index and its foreign key existed for a long time and nothing
+  # ever wrote them — 0 of 120 rows in a dev database — so a schema that claimed
+  # to record provenance did not. A callback rather than four assignments at the
+  # Scenario.create! sites (two in PlayerController, ExecutionsController, and the
+  # sub-flow child in ScenarioStepProcessor), because a child scenario runs a
+  # DIFFERENT workflow and has to record that workflow's version, and a rule
+  # spread across four callers is a rule that drifts.
+  #
+  # Nil for a simulation of an unpublished draft, which is correct: there is no
+  # published version to name. It does NOT hold a snapshot alive — releasing is a
+  # count, and the version's number and title are kept permanently anyway.
+  before_create :record_workflow_version
 
   # Valid purposes
   PURPOSES = %w[simulation live].freeze
@@ -790,6 +809,10 @@ class Scenario < ApplicationRecord
     record_completion("error")
     save
     raise ScenarioIterationLimit, "Scenario exceeded maximum of #{MAX_ITERATIONS} steps"
+  end
+
+  def record_workflow_version
+    self.workflow_version_id ||= workflow&.published_version_id
   end
 
   def set_started_at

@@ -35,6 +35,10 @@ Rails.application.routes.draw do
     get "versions/diff", to: "workflow_versions#diff", as: :diff_versions
     get "versions/:id", to: "workflow_versions#show", as: :version
     post "versions/:id/restore", to: "workflow_versions#restore", as: :restore_version
+    # The changelog is written AFTER the fact, not on publish: publishing a single
+    # workflow is one click, and a modal there to capture an optional field is the
+    # one people dismiss — which buys the friction and the empty column both.
+    patch "versions/:id", to: "workflow_versions#update", as: :update_version
     resources :steps, except: [:index] do
       collection do
         post :apply_template

@@ -299,6 +299,7 @@ the noise this system removes.
 | `.form-input` | Text inputs, textareas | Canvas-alt bg, 1.5px border, inset shadow |
 | `.form-select` | Select dropdowns | Same as form-input + arrow |
 | `.form-select--sm` | Compact select inside a dense row (admin table, pagination) | Tighter padding, `width: auto`. Sized like `.btn--sm` is to `.btn` |
+| `.form-input--sm` | Compact text input inside a dense row (a table cell) | Tighter padding, `text-sm`. The text-input counterpart of `.form-select--sm` |
 | `.form-hint` | Help text below input | text-xs, muted color |
 | `.file-dropzone` | File upload drop target | Centred column, dashed hairline, canvas-alt fill; `.is-dragover` turns it solid + primary-soft |
 | `.file-dropzone__empty` / `__selected` | The two states inside it | Stacked, centred; toggle with `.is-hidden` |

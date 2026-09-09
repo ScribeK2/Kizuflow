@@ -166,7 +166,10 @@ class WorkflowVersionsControllerTest < ActionDispatch::IntegrationTest
 
   test "restore: increments version count after publishing a new version" do
     sign_in @editor
-    WorkflowPublisher.publish(@workflow, @editor, changelog: "v2")
+    # The edit has to be real: an identical republish reuses the existing version
+    # rather than writing a byte-identical snapshot beside it.
+    @workflow.steps.order(:position).first.update!(title: "Start Question (revised)")
+    WorkflowPublisher.publish(@workflow.reload, @editor, changelog: "v2")
 
     assert_equal 2, @workflow.versions.count
 

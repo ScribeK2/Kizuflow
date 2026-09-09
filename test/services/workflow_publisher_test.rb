@@ -50,11 +50,36 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     assert_equal result.version, @workflow.published_version
   end
 
-  test "increments version_number on successive publishes" do
+  test "increments version_number when the content actually changed" do
     WorkflowPublisher.publish(@workflow, @user)
+    @q_step.update!(question: "What, precisely?")
     result = WorkflowPublisher.publish(@workflow, @user, changelog: "Updated steps")
 
     assert_equal 2, result.version.version_number
+  end
+
+  # An identical republish is not a new version: the previous row already records
+  # that exact content, so a byte-identical ~9.5KB snapshot beside it records
+  # nothing further. Skipping the write destroys nothing, unlike releasing one.
+  test "republishing unchanged content reuses the existing version" do
+    first = WorkflowPublisher.publish(@workflow, @user).version
+
+    assert_no_difference "WorkflowVersion.count" do
+      again = WorkflowPublisher.publish(@workflow, @user)
+      assert_equal first.id, again.version.id
+    end
+    assert_equal first, @workflow.reload.published_version
+    assert_predicate @workflow, :published?
+  end
+
+  test "a title change alone is a new version" do
+    WorkflowPublisher.publish(@workflow, @user)
+    @workflow.update!(title: "Renamed Workflow")
+
+    assert_difference "WorkflowVersion.count", 1 do
+      result = WorkflowPublisher.publish(@workflow, @user)
+      assert_equal 2, result.version.version_number
+    end
   end
 
   test "stores changelog" do

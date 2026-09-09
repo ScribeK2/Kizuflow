@@ -120,6 +120,37 @@
     </div>
   </div>
 
+  <!-- Workflow Versions -->
+  <div class="card mb-4">
+    <div class="card__body">
+      <h2 class="font-semibold mb-3" style="font-size: var(--text-lg);">Workflow Versions</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);">
+        <div>
+          <dt class="form-label">Total</dt>
+          <dd class="text-sm"><%= number_with_delimiter(@version_stats[:total]) %></dd>
+        </div>
+        <div>
+          <dt class="form-label">Restorable</dt>
+          <dd class="text-sm"><%= number_with_delimiter(@version_stats[:restorable]) %></dd>
+        </div>
+        <div>
+          <dt class="form-label">Released</dt>
+          <dd class="text-sm"><%= number_with_delimiter(@version_stats[:released]) %></dd>
+        </div>
+        <div>
+          <dt class="form-label">Most Per Workflow</dt>
+          <dd class="text-sm"><%= number_with_delimiter(@version_stats[:max_per_workflow]) %></dd>
+        </div>
+      </div>
+      <p class="text-xs mt-3" style="color: var(--color-ink-muted);">
+        Every published version is kept as a record. The newest
+        <%= @version_stats[:restore_limit] %> per workflow stay restorable; older ones
+        release their step snapshot on the next publish and keep everything else.
+        Configure via WORKFLOW_VERSION_RESTORE_LIMIT.
+      </p>
+    </div>
+  </div>
+
   <!-- Cleanup Status -->
   <div class="card">
     <div class="card__body">

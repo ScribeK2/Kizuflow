@@ -20,6 +20,17 @@ module Admin
       # Deliberately a COUNT and not `sweep_idle_runs(dry_run: true)`: the dry run
       # walks every frame of every open run, which is fine in a rake task and far
       # too much for a page render.
+      # The number that would have answered "is version growth worth doing anything
+      # about" at the outset. Nothing on this page reported it, so the case for
+      # pruning got sized by arithmetic on an assumed publish rate instead — and
+      # the real answer was one version per workflow.
+      @version_stats = {
+        total: WorkflowVersion.count,
+        restorable: WorkflowVersion.restorable.count,
+        released: WorkflowVersion.stripped.count,
+        max_per_workflow: WorkflowVersion.group(:workflow_id).count.values.max || 0,
+        restore_limit: WorkflowVersion.restore_limit
+      }
       @run_stats = {
         outstanding: Scenario.outstanding_non_terminal,
         idle_timeout_hours: Scenario.idle_timeout_hours

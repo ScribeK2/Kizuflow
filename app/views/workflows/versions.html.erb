@@ -8,14 +8,20 @@
     <p class="page-header-section__ident"><%= @workflow.title %></p>
   </div>
 
-  <% if @versions.size >= 2 %>
+  <%# Only restorable versions are offered for comparison. A diff reads
+      steps_snapshot on both sides, and a released version has none — a menu
+      should not list what it cannot do, which is better than explaining
+      afterwards. %>
+  <% if @comparable.size >= 2 %>
     <div class="card p-4 mb-4">
       <h2 class="font-semibold mb-3">Compare Versions</h2>
       <%= form_tag workflow_diff_versions_path(@workflow), method: :get, class: "flex items-center gap-3 flex-wrap" do %>
         <label class="text-sm">From:</label>
-        <%= select_tag :v1, options_from_collection_for_select(@versions, :id, ->(v) { "v#{v.version_number}" }), class: "input input--sm" %>
+        <%= select_tag :v1, options_from_collection_for_select(@comparable, :id, ->(v) { "v#{v.version_number}" }),
+              class: "form-select form-select--sm" %>
         <label class="text-sm">To:</label>
-        <%= select_tag :v2, options_from_collection_for_select(@versions, :id, ->(v) { "v#{v.version_number}" }, @versions.first.id), class: "input input--sm" %>
+        <%= select_tag :v2, options_from_collection_for_select(@comparable, :id, ->(v) { "v#{v.version_number}" }, @comparable.first.id),
+              class: "form-select form-select--sm" %>
         <%= submit_tag "Compare", class: "btn btn--primary btn--sm" %>
       <% end %>
     </div>
@@ -34,24 +40,50 @@
           </tr>
         </thead>
         <tbody>
+          <% editable = @workflow.can_be_edited_by?(current_user) %>
           <% @versions.each do |version| %>
-            <tr class="<%= version == @workflow.published_version ? 'is-current' : '' %>">
+            <% current = version == @workflow.published_version %>
+            <tr class="<%= 'is-current' if current %>">
               <td class="font-medium">
                 v<%= version.version_number %>
-                <% if version == @workflow.published_version %>
+                <% if current %>
                   <span class="badge badge--published ml-2">Current</span>
                 <% end %>
               </td>
               <td class="text-sm"><%= version.published_by.email %></td>
               <td class="text-sm"><%= version.published_at.strftime("%b %d, %Y %H:%M") %></td>
-              <td class="text-sm"><%= version.changelog.presence || "—" %></td>
               <td class="text-sm">
-                <div class="flex gap-3">
+                <%# Written after the fact, by anyone who can edit the workflow. %>
+                <% if editable %>
+                  <%= form_with model: version,
+                        url: workflow_update_version_path(@workflow, version, page: @page),
+                        method: :patch, class: "flex items-center gap-2" do |f| %>
+                    <%= f.text_field :changelog,
+                          value: version.changelog,
+                          placeholder: "What changed?",
+                          class: "form-input form-input--sm",
+                          "aria-label": "Changelog for v#{version.version_number}" %>
+                    <%= f.submit "Save", class: "btn btn--plain btn--sm" %>
+                  <% end %>
+                <% else %>
+                  <%= version.changelog.presence || "—" %>
+                <% end %>
+              </td>
+              <td class="text-sm">
+                <div class="flex gap-3 items-center">
                   <%= link_to "View", workflow_version_path(@workflow, version), class: "btn btn--plain btn--sm" %>
-                  <% if @workflow.can_be_edited_by?(current_user) && version != @workflow.published_version %>
+                  <%# A released version keeps its record and gives up its steps, so
+                      it cannot be restored. Say that in place: a control that is
+                      present and fails is worse than one that is absent, and one
+                      absent with no explanation reads as a bug. %>
+                  <% if version.stripped? %>
+                    <span class="text-xs" style="color: var(--color-ink-muted);">
+                      Snapshot no longer kept
+                    </span>
+                  <% elsif editable && !current %>
                     <%= button_to "Restore", workflow_restore_version_path(@workflow, version),
                         method: :post,
-                        class: "btn btn--warning btn--sm",
+                        class: "btn btn--secondary btn--sm",
                         data: { turbo_confirm: "Restore version #{version.version_number}? This will overwrite the current draft steps." } %>
                   <% end %>
                 </div>
@@ -61,6 +93,34 @@
         </tbody>
       </table>
     </div>
+
+    <p class="form-hint mt-3">
+      Every published version is kept as a record. The newest
+      <%= WorkflowVersion.restore_limit %> stay restorable; older ones keep their
+      number, date, publisher and changelog, and release their step snapshot.
+    </p>
+
+    <% if @total_pages > 1 %>
+      <div class="pagination-bar mt-4">
+        <span class="pagination-bar__summary">Page <%= @page %> of <%= @total_pages %></span>
+        <nav class="pagination" aria-label="Version history pages">
+          <% if @page > 1 %>
+            <%= link_to "‹", workflow_versions_path(@workflow, page: @page - 1),
+                  class: "pagination__item", "aria-label": "Previous page" %>
+          <% end %>
+          <% (1..@total_pages).each do |n| %>
+            <%= link_to n, workflow_versions_path(@workflow, page: n),
+                  class: "pagination__item #{'is-active' if n == @page}",
+                  "aria-current": ("page" if n == @page) %>
+          <% end %>
+          <% if @page < @total_pages %>
+            <%= link_to "›", workflow_versions_path(@workflow, page: @page + 1),
+                  class: "pagination__item", "aria-label": "Next page" %>
+          <% end %>
+        </nav>
+        <span class="pagination-bar__summary"><%= @total_versions %> versions</span>
+      </div>
+    <% end %>
   <% else %>
     <div class="empty-state">
       <h3 class="empty-state__title">No published versions yet</h3>

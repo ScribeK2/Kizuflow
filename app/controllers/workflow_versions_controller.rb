@@ -1,7 +1,7 @@
 class WorkflowVersionsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_workflow
-  before_action :set_version, only: %i[show restore]
+  before_action :set_version, only: %i[show restore update]
   before_action :set_diff_versions, only: [:diff]
   before_action :ensure_can_view_workflow!
 
@@ -14,6 +14,21 @@ class WorkflowVersionsController < ApplicationController
       old_metadata: @version_old.metadata_snapshot,
       new_metadata: @version_new.metadata_snapshot
     )
+  end
+
+  # The changelog, written after the fact. Anyone who can edit the workflow may
+  # write one: the person who published may have left, and reconstructing what
+  # happened during an incident is exactly when the record wants improving.
+  # `published_by` is untouched, so authorship of the publish is never lost.
+  def update
+    unless @workflow.can_be_edited_by?(current_user)
+      return redirect_to workflow_versions_path(@workflow),
+                         alert: "You don't have permission to edit this workflow."
+    end
+
+    @version.update!(changelog: params.require(:workflow_version).permit(:changelog)[:changelog])
+    redirect_to workflow_versions_path(@workflow, page: params[:page]),
+                notice: "Changelog updated for v#{@version.version_number}."
   end
 
   def restore

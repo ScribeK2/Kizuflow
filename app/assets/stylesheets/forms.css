@@ -177,6 +177,13 @@
 /* Compact select — sized like .btn--sm is to .btn. Was defined only under
    .admin-pagination__per-page, so the modifier looked real but styled nothing
    anywhere else. */
+/* The text-input counterpart of .form-select--sm: a compact field inside a dense
+   row, such as a table cell. Sized like .btn--sm is to .btn. */
+.form-input--sm {
+  padding: 0.25rem 0.5rem;
+  font-size: var(--text-sm);
+}
+
 .form-select--sm {
   padding: 0.25rem 1.75rem 0.25rem 0.5rem;
   font-size: var(--text-sm);
