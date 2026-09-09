@@ -79,6 +79,63 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.player-link", text: "Exit Player", count: 0
   end
 
+  # /play lists workflows you can RUN, so the version it names must be the
+  # PUBLISHED one. It read `workflow.versions.last`, and `has_many :versions`
+  # carries no default order — `.last` was whatever the database returned.
+  #
+  # These assert the semantic property (the right column is read), not physical
+  # row order, which cannot be forced from a test. The bug is that the two were
+  # only ever incidentally equal.
+  test "player index names the published version, not the last row returned" do
+    published = @workflow.reload.published_version
+    # A later version exists but is not the published one. The FK permits this,
+    # and it is the only way to tell the two readings apart.
+    newer = WorkflowVersion.create!(
+      workflow: @workflow, version_number: published.version_number + 1,
+      steps_snapshot: [], metadata_snapshot: { "title" => "Newer" },
+      published_by: @admin, published_at: Time.current
+    )
+    sign_in @admin
+
+    get play_path
+
+    assert_response :success
+    # Scoped to the row, not the whole body: "v2" also occurs inside SVG path
+    # data (d="M12 3v2.25...") on this page, which a body-wide regex matches.
+    sub = css_select(".list-row__sub").map(&:text).join(" ")
+    assert_includes sub, "v#{published.version_number}"
+    assert_not_includes sub, "v#{newer.version_number}",
+                        "a version that was never published is not what this page means"
+  end
+
+  test "player index still names a version when older ones were released" do
+    published = @workflow.reload.published_version
+    @workflow.versions.where.not(id: published.id).find_each(&:strip_snapshot!)
+    sign_in @admin
+
+    get play_path
+
+    assert_response :success
+    assert_includes css_select(".list-row__sub").map(&:text).join(" "),
+                    "v#{published.version_number}",
+                    "releasing an old snapshot must not blank the current version"
+  end
+
+  test "player index omits the version when a workflow has none" do
+    unversioned = Workflow.create!(title: "No Versions Yet", user: @admin,
+                                   status: "published", is_public: true)
+    step = Steps::Resolve.create!(workflow: unversioned, title: "Done",
+                                  uuid: SecureRandom.uuid, position: 0,
+                                  resolution_type: "success")
+    unversioned.update!(start_step: step)
+    sign_in @admin
+
+    get play_path
+
+    assert_response :success
+    assert_match(/No Versions Yet/, response.body)
+  end
+
   test "player index omits untitled published workflows" do
     untitled = Workflow.create!(title: "Untitled Workflow", user: @admin, status: "published", is_public: true)
     Steps::Resolve.create!(workflow: untitled, title: "Done", uuid: SecureRandom.uuid, position: 0, resolution_type: "success")

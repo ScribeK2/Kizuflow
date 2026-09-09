@@ -39,8 +39,15 @@
             <span class="list-row__sub">
               <%= workflow.groups.first&.name || "Uncategorized" %>
               &middot; <%= pluralize(workflow.steps.size, "step") %>
-              <% if workflow.versions.any? %>
-                &middot; v<%= workflow.versions.last.version_number %>
+              <%# published_version, not versions.last: `has_many :versions` carries no
+                  default order, so `.last` was whatever the database happened to return.
+                  It is also the value this page actually means — /play lists workflows
+                  you can RUN, and the version you would run is the published one. And it
+                  is one FK lookup instead of eager-loading every version of every listed
+                  workflow to render one integer, which matters now that a version's
+                  record is kept permanently. %>
+              <% if workflow.published_version %>
+                &middot; v<%= workflow.published_version.version_number %>
               <% end %>
               <% if workflow.description.present? %>
                 &middot; <%= truncate(strip_tags(workflow.description.to_s), length: 90) %>

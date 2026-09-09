@@ -19,7 +19,7 @@ class PlayerController < ApplicationController
                          .where(id: Workflow.visible_to(current_user).select(:id))
                          .where(id: ids_with_steps)
                          .where.not(title: "Untitled Workflow")
-                         .includes(:tags, :versions, :start_step, :steps, :groups)
+                         .includes(:tags, :published_version, :start_step, :steps, :groups)
                          .order(updated_at: :desc)
   end
 
