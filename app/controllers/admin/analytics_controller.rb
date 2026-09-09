@@ -182,7 +182,18 @@ module Admin
     end
 
     def build_dropoff_points
+      # Drop-off asks where AGENTS bail out on a live call. `build_base_scope`
+      # filters purpose only when the param is present, so this counted every
+      # purpose — mixing editors abandoning half-built test runs in the builder
+      # with real agent behaviour, at whatever ratio the team happened to test.
+      #
+      # That was harmless while nothing produced abandoned runs except an
+      # explicit Cancel. The idle sweep now settles them at real volume, and
+      # simulations are the pool least likely to ever be finished, so the noise
+      # would have swamped the signal. An explicit purpose (including "all")
+      # still wins; this only supplies the default.
       abandoned = @base_scope.where(outcome: "abandoned")
+      abandoned = abandoned.where(purpose: "live") if params[:purpose].blank?
       @dropoff_capped = abandoned.count > 5000
       dropoffs = Hash.new { |h, k| h[k] = { count: 0, workflow_title: "" } }
 

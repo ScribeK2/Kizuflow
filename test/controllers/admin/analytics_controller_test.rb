@@ -25,6 +25,43 @@ module Admin
       Steps::Question.create!(workflow: @workflow, position: 0, uuid: "s1", title: "Q1", question: "Test?")
     end
 
+    # Drop-off is about live agent behaviour. Until the idle sweep existed almost
+    # nothing carried outcome "abandoned", so mixing purposes cost nothing; now
+    # that abandoned runs are produced at volume, builder test-runs would swamp
+    # the signal. See docs/designs/idle-sweep-spike-findings.md.
+    def abandoned_run(purpose:, step_title:)
+      Scenario.create!(
+        workflow: @workflow, user: @admin, purpose: purpose,
+        status: "timeout", outcome: "abandoned",
+        started_at: 2.days.ago, completed_at: 1.day.ago,
+        execution_path: [{ "step_title" => step_title }], results: {}, inputs: {}
+      )
+    end
+
+    test "drop-off points exclude simulation runs by default" do
+      abandoned_run(purpose: "live", step_title: "Real Agent Step")
+      abandoned_run(purpose: "simulation", step_title: "Builder Test Step")
+      sign_in @admin
+
+      get admin_analytics_path
+
+      assert_response :success
+      assert_match "Real Agent Step", response.body
+      assert_no_match(/Builder Test Step/, response.body,
+                      "an editor abandoning a test run is not agent drop-off")
+    end
+
+    test "drop-off points honour an explicit purpose filter" do
+      abandoned_run(purpose: "simulation", step_title: "Builder Test Step")
+      sign_in @admin
+
+      get admin_analytics_path(purpose: "simulation")
+
+      assert_response :success
+      assert_match "Builder Test Step", response.body,
+                   "the default must not become a lock — asking for simulations shows them"
+    end
+
     test "admin can access analytics page" do
       sign_in @admin
       get admin_analytics_path
