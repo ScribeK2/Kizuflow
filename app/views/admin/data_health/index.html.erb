@@ -93,15 +93,44 @@
     </div>
   </div>
 
+  <!-- Open Runs -->
+  <div class="card mb-4">
+    <div class="card__body">
+      <h2 class="font-semibold mb-3" style="font-size: var(--text-lg);">Open Runs</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+        <div>
+          <dt class="form-label">Unfinished Scenarios</dt>
+          <dd class="text-sm"><%= number_with_delimiter(@run_stats[:outstanding]) %></dd>
+        </div>
+        <div>
+          <dt class="form-label">Idle Timeout</dt>
+          <dd class="text-sm"><%= @run_stats[:idle_timeout_hours] %> hours</dd>
+        </div>
+      </div>
+      <p class="text-xs mt-3" style="color: var(--color-ink-muted);">
+        Runs nobody finished are settled as abandoned once idle this long, which is what
+        lets retention collect them. This number should stay flat over time &mdash; if it
+        climbs without bound, the sweep is not reaching something. Configure via
+        SCENARIO_IDLE_TIMEOUT_HOURS.
+      </p>
+      <p class="text-xs mt-2" style="color: var(--color-ink-muted);">
+        Preview what the next sweep would settle, without writing:
+        <code style="font-family: var(--font-mono); font-size: var(--text-xs);">bin/rails scenarios:sweep_idle DRY_RUN=1</code>
+      </p>
+    </div>
+  </div>
+
   <!-- Cleanup Status -->
   <div class="card">
     <div class="card__body">
       <h2 class="font-semibold mb-3" style="font-size: var(--text-lg);">Cleanup Schedule</h2>
       <p class="text-sm" style="color: var(--color-ink-subtle);">
-        Cleanup runs daily at 3:00 AM via Solid Queue (configured in config/recurring.yml).
+        The idle sweep runs daily at 2:00 AM, then cleanup at 3:00 AM, via Solid Queue
+        (configured in config/recurring.yml). That order matters: cleanup can only remove
+        runs that have ended, and the sweep is what ends an abandoned one.
       </p>
       <p class="text-xs mt-2" style="color: var(--color-ink-muted);">
-        Manual cleanup: <code style="font-family: var(--font-mono); font-size: var(--text-xs);">bin/rails cleanup:scenarios cleanup:drafts</code>
+        Manual: <code style="font-family: var(--font-mono); font-size: var(--text-xs);">bin/rails scenarios:sweep_idle cleanup:scenarios cleanup:drafts</code>
       </p>
     </div>
   </div>

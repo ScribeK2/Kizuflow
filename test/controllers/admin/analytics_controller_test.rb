@@ -62,6 +62,20 @@ module Admin
                    "the default must not become a lock — asking for simulations shows them"
     end
 
+    # "All" claimed all time and could not deliver it: runs are deleted at the
+    # retention horizon. Rolling runs up before deleting them is the durable fix;
+    # until that exists the label must not overstate what the database holds.
+    test "the widest range does not claim to be all time" do
+      sign_in @admin
+
+      get admin_analytics_path
+
+      assert_response :success
+      assert_match(/All kept/, response.body)
+      assert_match(/#{Scenario.live_retention_days} days \(live\)/, response.body,
+                   "the horizon has to be stated, or the label is just a different vague word")
+    end
+
     test "admin can access analytics page" do
       sign_in @admin
       get admin_analytics_path

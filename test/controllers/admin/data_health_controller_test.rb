@@ -24,6 +24,36 @@ class Admin::DataHealthControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", /Data Health/
   end
 
+  # The leak indicator. Retention can only collect runs that ended, and until the
+  # idle sweep existed nothing ended an abandoned one, so this number grew
+  # forever. It is on the dashboard so that "is the leak closed" is answerable by
+  # looking, rather than by reasoning about the job.
+  test "data health reports unfinished scenarios and the idle timeout" do
+    workflow = Workflow.create!(title: "Health WF #{SecureRandom.hex(3)}", user: @admin)
+    2.times do
+      Scenario.create!(workflow: workflow, user: @admin, purpose: "live", status: "active",
+                       started_at: 1.hour.ago, execution_path: [], results: {}, inputs: {})
+    end
+    sign_in @admin
+
+    get admin_data_health_path
+
+    assert_response :success
+    assert_select "h2", text: /Open Runs/
+    assert_match(/#{Scenario.outstanding_non_terminal}/, response.body)
+    assert_match(/#{Scenario.idle_timeout_hours} hours/, response.body)
+  end
+
+  test "data health explains that the sweep runs before cleanup" do
+    sign_in @admin
+
+    get admin_data_health_path
+
+    assert_response :success
+    assert_match(/2:00 AM/, response.body, "the sweep's slot")
+    assert_match(/3:00 AM/, response.body, "and cleanup's, after it")
+  end
+
   test "non-admin is redirected from data health page" do
     sign_in @regular
     get admin_data_health_path

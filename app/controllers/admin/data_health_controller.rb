@@ -12,6 +12,18 @@ module Admin
         expired: Workflow.expired_drafts.count,
         orphaned: Workflow.orphaned_drafts.count
       }
+      # The leak indicator. Retention can only collect runs that ended, and
+      # nothing used to end an abandoned one — so this number grew forever. If it
+      # climbs without bound now that SweepIdleScenariosJob runs, the sweep is not
+      # reaching something (handoff chains being the first suspect).
+      #
+      # Deliberately a COUNT and not `sweep_idle_runs(dry_run: true)`: the dry run
+      # walks every frame of every open run, which is fine in a rake task and far
+      # too much for a page render.
+      @run_stats = {
+        outstanding: Scenario.outstanding_non_terminal,
+        idle_timeout_hours: Scenario.idle_timeout_hours
+      }
     end
 
     def cleanup_drafts

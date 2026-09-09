@@ -12,10 +12,20 @@
                   aria-pressed="<%= active %>"
                   data-action="click->analytics-filters#selectRange"
                   data-value="<%= range %>">
-            <%= range == "all" ? "All" : range %>
+            <%= range == "all" ? "All kept" : range %>
           </button>
         <% end %>
       </div>
+      <%# "All" used to mean all time, and it was not true: runs are deleted at the
+          retention horizon, so the earliest data this can reach is however long
+          they are kept. Saying so is the cheap half of the fix — the durable half
+          is rolling runs up before deleting them, so trend history outlives the
+          transcripts. Until that exists, the label should not overstate. %>
+      <p class="form-hint mt-2">
+        Runs are deleted after <%= Scenario.live_retention_days %> days (live) and
+        <%= Scenario.simulation_retention_days %> days (simulation), so
+        &ldquo;All kept&rdquo; reaches back only as far as they survive.
+      </p>
     </div>
 
     <%# Purpose %>

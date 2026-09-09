@@ -54,6 +54,11 @@ module Admin
 
     private
 
+    # "all" means every run STILL HELD, not all time — runs are deleted at the
+    # retention horizon, so this cannot reach further back than they are kept.
+    # The filter UI says so. The durable fix is rolling runs up before deleting
+    # them, so trend history outlives the transcripts; until that exists, nothing
+    # here should imply a longer history than the database holds.
     def parse_date_range
       case params[:range]
       when "7d"  then 7.days.ago..Time.current
