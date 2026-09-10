@@ -137,16 +137,25 @@ so the two cannot disagree; the count is kinds of problem, not records.
 tasks with no run in 26 hours, or a run nothing picked up) because both
 inferences from app data false-alarm: a run's clock stops while its parent waits
 on a live sub-flow, and an unused instance writes no rollup days. The stalled
-check relies on Solid Queue keeping finished jobs for a day and switches itself
-off if that is shortened.
+check relies on Solid Queue keeping finished jobs for at least a day and switches
+itself off if that is shortened. They are kept 7 days (`config/application.rb`), so a
+stalled job's last run is still on record: Solid Queue's per-run records of nightly jobs
+are deleted with the job, so there is nothing else to read. `JobHealth.worker_down?`
+reads the newest `solid_queue_processes` heartbeat against Solid Queue's 5-minute alive
+threshold — any fresh process counts, so rows a restart left behind can't hide a live
+one — and the Overview counts a down worker as its own kind of problem.
 **Data Health lists what `JobHealth` found**, in its Background Jobs section
 (`admin/data_health/_background_jobs`, fed the request's `Admin::Attention`):
 - failed jobs, newest `JobHealth::LISTED_FAILURES` first, each with its error and
   Retry and Discard. Those are `Admin::FailedJobs::RetriesController` and
   `Admin::FailedJobsController`, calling Solid Queue's own `FailedExecution#retry`
   and `Execution#discard` — a discard deletes the job, not only its failure;
-- stalled tasks, each with its schedule and last finished run, which usually reads
-  "none on record" because finished jobs are kept for a day.
+- stalled tasks, each with its schedule and last finished run;
+- whether the worker is running, from its heartbeat.
+
+The server notes' "When nightly jobs stall" steps are: check heartbeats, then
+`bin/rails restart` (Puma's tmp_restart plugin restarts Puma, and its Solid Queue plugin
+restarts the worker), then a container restart the way the platform does it.
 
 Solid Queue runs jobs only in production, so no controller test, system test or dev
 browser ever shows a failed-job row; `test/views/admin_background_jobs_partial_test.rb`
@@ -212,7 +221,20 @@ A group's page is its department hub:
 
 Members and folders answer with Turbo Streams that replace their card and update
 `#flash` in the application layout. Global's page has only Folders. Groups sort by
-name ignoring case everywhere; `groups.position` is ignored and has no field.
+name ignoring case everywhere, and have no position column.
+
+**Groups nest up to `Group::MAX_DEPTH` (5) levels**, and the limit is enforced where
+it is offered:
+- a move checks the whole subtree it carries, not just the moved group (moving a group
+  with two levels of subgroups under a fourth-level group used to save it at level 7);
+- the check runs only when a group is created or moved, so an already-too-deep group
+  can still be renamed;
+- the Parent select offers only parents that can take the group and everything under
+  it, and always keeps its current parent;
+- the group page hides Add Subgroup at the limit and says so.
+
+The member search answers as you type (`debounced-submit`). Its field sits outside the
+results frame it fills, because inside it every answer replaced the input being typed in.
 
 **Key concern:** `RunnerShell` (`app/controllers/concerns/runner_shell.rb`) — the
 run itself, shared by `ScenariosController` and `PlayerController`. It owns where
@@ -379,7 +401,7 @@ unexpected `answer_type` rendered radio cards with no way to submit.
 - **Retention only ever collected runs people finished, and that is now fixed in three places.** Both cleanup scopes need `terminal` **and** a `completed_at`, so anything that ended without both was immortal. (1) Nothing moved a run out of `active`/`awaiting_subflow` — and agents close the tab rather than clicking Cancel, so the common ending leaked (52% of rows in a dev DB). `Scenario.sweep_idle_runs` settles a run idle past `SCENARIO_IDLE_TIMEOUT_HOURS` (default 24) as `status: "timeout"`, `outcome: "abandoned"`, via `SweepIdleScenariosJob` at **02:00 — deliberately before cleanup at 03:00**, since a run settled after the night's cleanup waits another day. (2) Both writers of `status = 'error'` set the status and nothing else, so errored runs had a NULL `completed_at` and `NULL < date` is never true; they now `record_completion("error")`. (3) `Scenario#terminal?` compared the enum READER (which returns the label `"timed_out"`) against `TERMINAL_STATUSES` (which holds DB values `"timeout"`), so it was **false** for `timed_out`/`errored` while the SQL scope was correct — Ruby and SQL disagreeing about the same row. Only the two members where label ≠ value were affected, which is why it read correctly for years. **`completed_at` is always the run's real last activity, never `Time.current`** — stamping `now` grants ancient rows a fresh retention window and collapses history onto one timestamp; `record_completion` takes `at:` for this. Run `rake scenarios:sweep_idle DRY_RUN=1` after deploying and read the count **before** the first pass: the backlog is stamped with real times, so anything past its horizon is collectable immediately
 - **A run's idle clock is the whole run, never one frame.** `Scenario#run_frames` — seeded from `run_origin`, closed over child/parent **and** handoff links in both directions — is the sixth reader of run topology and the first to enumerate a whole run. `belongs_to :parent_scenario` has no `touch:`, so a parent parked on a *live* sub-flow has a clock that stopped when it parked, and `run_head` returns exactly that parent, because neither it nor `run_origin` descends into an ordinary sub-flow child. Keying on either settles runs an agent is still working. `run_frames` drives both the clock and the settle so the two cannot disagree. Do **not** fix this with `touch: true`: it puts N ancestor writes and N optimistic locks in the runner's hot path per sub-flow step, and still misses handoff chains. `time_out!` is named around the enum's own `timed_out!`, which flips the status and records nothing — the shape of bug (2) above. See `docs/designs/idle-sweep-spike-findings.md`
 - **Trend history is rolled up before the runs are deleted, and which days get rolled is the whole design.** `ScenarioRollupBuilder` writes `scenario_rollups` (workflow x day x purpose x outcome -> count, duration SUM + COUNT) and `scenario_dropoff_rollups` (workflow x day x step_title), via `RollUpScenariosJob` at **02:30 — between the sweep (02:00) and cleanup (03:00)**, an order that is load-bearing on the first night and guarded by `test/integration/recurring_schedule_order_test.rb`. The obvious rule — re-roll every day that still has raw rows — **corrupts history**: cleanup keys on `completed_at` while a rollup keys on `started_at`, so a day's runs are deleted across several nights, and recomputing from the survivors undercounts and then freezes at the wrong number. So a day is rolled only while it is still moving: it has no rollup rows yet (first run, or a missed night), or it falls inside `REFRESH_DAYS`. Writes are **delete-then-insert, not upsert** — a run that settles moves from `"pending"` to its real outcome, and an upsert leaves the stale pending row behind. Durations are a SUM and a COUNT, never an average, so averages compose across days. Drop-off needs its own table because the step is read from `execution_path.last`, which no aggregate of outcomes can reconstruct
-- **Analytics has two modes and never stitches them.** Within retention it reads individual runs and every filter works. **"All time"** (`params[:range] == "all"`) reads the rollups instead: it reaches past the horizon but cannot answer per-agent, per-step or time-of-day questions, so those panels render `_rollup_unavailable` rather than an empty table, the run-level filters are hidden rather than shown inert, and CSV export redirects rather than handing over 90 days labelled "all time". A blended view would be exact for recent ranges and quietly partial for older ones — the exact failure the rollups exist to remove
+- **Analytics has two modes and never stitches them.** Within retention it reads individual runs and every filter works. **"All time"** (`params[:range] == "all"`) reads the rollups instead: it reaches past the horizon but cannot answer per-agent, per-step or time-of-day questions, so those panels render `_rollup_unavailable` rather than an empty table, the run-level filters are hidden rather than shown inert, and CSV export redirects rather than handing over 90 days labelled "all time". A blended view would be exact for recent ranges and quietly partial for older ones — the exact failure the rollups exist to remove. **Every rate divides by finished runs**, and `Scenario::COMPLETED_OUTCOMES` (completed, resolved, escalated, transferred) is what counts as completed — in both modes and on every tab, headline and Workflows and Agents alike. A run still going has not failed to complete, and escalating or handing off are endings a workflow is built to reach. A run with no outcome reads **In progress** (a rollup's `pending` too); the label and bar colour come from `AnalyticsHelper`
 - **A workflow version's RECORD is permanent; only its restorable payload has a limit.** Nothing is ever deleted — `workflows.published_version_id` is a RESTRICT foreign key, and a design that removed rows would have to reason about that on every path. `WorkflowVersion#strip_snapshot!` nulls `steps_snapshot` and stamps `stripped_at`, keeping the number, date, publisher, title and changelog: `metadata_snapshot` is ~265 bytes against ~9.5KB of steps, so the history costs ~3% of the storage. The newest `WORKFLOW_VERSION_RESTORE_LIMIT` (default 10) stay restorable — a **count**, not an age, because a workflow published twice a year is exactly where you have forgotten what changed. Released **on publish**, not nightly: the rule is a count and only a publish can push a version past it, so a scheduled scan would hunt for work `WorkflowPublisher#release_old_snapshots!` already knows about. The existing backlog was closed once by a migration, since a workflow published fifty times and then abandoned is never published again
 - **Republishing unchanged content reuses the existing version.** `WorkflowPublisher` compares both `steps_snapshot` and `metadata_snapshot` (a rename with identical steps IS a change) and skips the write when they match. This compounds through `WorkflowSetPublisher`, which publishes a whole dependency closure: a ten-workflow set republished for one change wrote ten versions, nine identical. Unlike releasing a snapshot, skipping the write destroys nothing. `version_number` is display-only, so gaps are harmless — but note two existing tests had to change, because both republished unchanged content and asserted a v2
 - **The changelog is written retroactively, from the versions list, by anyone who `can_be_edited_by?`.** Publishing a single workflow is one `button_to` click; a dialog there to capture an optional field is the one people dismiss, which buys the friction and the empty column both. `published_by` is never touched, so authorship of the publish survives someone else annotating it. A released version is still annotatable — the record is the durable artefact. The versions list paginates (`Workflows::VersionsController::PER_PAGE`) because that record now only grows, and the compare dropdowns offer only restorable versions: a diff reads `steps_snapshot` on both sides, and a menu should not list what it cannot do
