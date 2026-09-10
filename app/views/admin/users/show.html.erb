@@ -45,11 +45,11 @@
           <dd><%= time_ago_in_words(@user.created_at) %> ago</dd>
         </div>
         <div>
-          <dt class="form-label">Workflows owned</dt>
+          <dt class="form-label">Workflows Owned</dt>
           <dd id="user-workflows-owned"><%= number_with_delimiter(@user.workflows.count) %></dd>
         </div>
         <div>
-          <dt class="form-label">Last active</dt>
+          <dt class="form-label">Last Active</dt>
           <dd id="user-last-active">
             <%= last_active ? "#{time_ago_in_words(last_active)} ago" : "Has not run a workflow yet" %>
           </dd>
@@ -71,7 +71,7 @@
       <%= form_with url: update_groups_admin_user_path(@user), method: :patch do %>
         <%= render "admin/group_picker", nodes: @group_nodes, field_name: "group_ids[]", selected_ids: @user.group_ids %>
         <div class="admin-user__actions">
-          <%= submit_tag "Save groups", class: "btn btn--primary" %>
+          <%= submit_tag "Save Groups", class: "btn btn--primary" %>
         </div>
       <% end %>
     </div>
@@ -84,9 +84,9 @@
       <section class="card mb-4" aria-labelledby="user-password-heading">
         <div class="card__body">
           <h2 id="user-password-heading" class="admin-user__heading">Password</h2>
-          <div class="flex items-center justify-between gap-4 flex-wrap">
+          <div class="admin-user__action-row">
             <p class="text-sm">Generate a temporary password to give <%= @user.email %> directly. It works straight away and is shown once.</p>
-            <button type="button" class="btn btn--secondary" data-action="password-reset#open">Reset password</button>
+            <button type="button" class="btn btn--secondary" data-action="password-reset#open">Reset Password</button>
           </div>
         </div>
       </section>
@@ -95,7 +95,7 @@
               data-password-reset-target="dialog"
               data-action="click->password-reset#backdropClose close->password-reset#forget">
         <div class="dialog__header">
-          <h2 id="reset-password-title" class="dialog__title">Reset password</h2>
+          <h2 id="reset-password-title" class="dialog__title">Reset Password</h2>
           <button type="button" class="dialog__close" data-action="password-reset#close">
             <span class="sr-only">Close</span>
             <%= icon "x-mark", class: "icon" %>
@@ -113,7 +113,7 @@
           <div class="is-hidden" data-password-reset-target="resultStep">
             <div class="admin-info-box admin-info-box--info">
               <div>
-                <p class="font-semibold">Temporary password</p>
+                <p class="font-semibold">Temporary Password</p>
                 <p class="admin-user__password" data-password-reset-target="password"></p>
                 <p class="text-xs mt-2">Give it to them directly; they should change it after signing in. This action is logged.</p>
               </div>
@@ -127,11 +127,11 @@
           <div class="flex gap-2" data-password-reset-target="confirmActions">
             <button type="button" class="btn btn--plain" data-action="password-reset#close">Cancel</button>
             <button type="button" class="btn btn--primary" data-password-reset-target="generateButton"
-                    data-action="password-reset#generate" autofocus>Generate password</button>
+                    data-action="password-reset#generate" autofocus>Generate Password</button>
           </div>
           <div class="flex gap-2 is-hidden" data-password-reset-target="resultActions">
             <button type="button" class="btn btn--secondary" data-password-reset-target="copyButton"
-                    data-action="password-reset#copy">Copy password</button>
+                    data-action="password-reset#copy">Copy Password</button>
             <button type="button" class="btn btn--primary" data-action="password-reset#close">Done</button>
           </div>
         </div>
@@ -140,8 +140,8 @@
 
     <section class="card admin-user__danger" aria-labelledby="user-danger-heading">
       <div class="card__body">
-        <h2 id="user-danger-heading" class="admin-user__heading admin-user__heading--danger">Danger zone</h2>
-        <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h2 id="user-danger-heading" class="admin-user__heading admin-user__heading--danger">Danger Zone</h2>
+        <div class="admin-user__action-row">
           <% if @user.deactivated? %>
             <p class="text-sm">Deactivated <%= time_ago_in_words(@user.deactivated_at) %> ago. They cannot sign in until reactivated.</p>
             <%= button_to "Reactivate", reactivate_admin_user_path(@user), method: :patch,

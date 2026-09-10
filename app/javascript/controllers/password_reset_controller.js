@@ -61,7 +61,7 @@ export default class extends Controller {
     } catch {
       this.copyButtonTarget.textContent = "Copy failed — select it"
     }
-    setTimeout(() => { this.copyButtonTarget.textContent = "Copy password" }, 2000)
+    setTimeout(() => { this.copyButtonTarget.textContent = "Copy Password" }, 2000)
   }
 
   close() {

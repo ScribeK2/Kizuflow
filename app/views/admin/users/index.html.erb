@@ -86,7 +86,8 @@
                     <% end %>
                   </td>
                   <td>
-                    <% entries = user.groups.map { [@group_paths.fetch(it.id, it.name), it.name] }.sort %>
+                    <%# By path, ignoring case: a plain sort put every capitalised path first. %>
+                    <% entries = user.groups.map { [@group_paths.fetch(it.id, it.name), it.name] }.sort_by { |path, name| [path.downcase, name] } %>
                     <% if entries.any? %>
                       <div class="admin-users__groups">
                         <% entries.first(2).each do |path, name| %>
@@ -125,7 +126,7 @@
         data-admin-users-target="bulkModal" data-action="click->admin-users#backdropClose">
   <%= form_with url: bulk_assign_groups_admin_users_path, method: :patch, data: { admin_users_target: "bulkForm" } do |form| %>
     <div class="dialog__header">
-      <h2 id="bulk-groups-title" class="dialog__title">Assign groups</h2>
+      <h2 id="bulk-groups-title" class="dialog__title">Assign Groups</h2>
       <button type="button" class="dialog__close" data-action="admin-users#closeBulkModal">
         <span class="sr-only">Close</span>
         <%= icon "x-mark", class: "icon" %>
@@ -140,7 +141,7 @@
 
     <div class="dialog__footer">
       <button type="button" class="btn btn--plain" data-action="admin-users#closeBulkModal">Cancel</button>
-      <%= form.submit "Assign to selected users", class: "btn btn--primary" %>
+      <%= form.submit "Assign to Selected Users", class: "btn btn--primary" %>
     </div>
   <% end %>
 </dialog>
@@ -166,7 +167,7 @@
         data-admin-users-target="roleModal" data-action="click->admin-users#backdropClose">
   <%= form_with url: bulk_update_role_admin_users_path, method: :patch, data: { admin_users_target: "roleForm" } do |form| %>
     <div class="dialog__header">
-      <h2 id="bulk-role-title" class="dialog__title">Change role</h2>
+      <h2 id="bulk-role-title" class="dialog__title">Change Role</h2>
       <button type="button" class="dialog__close" data-action="admin-users#closeRoleModal">
         <span class="sr-only">Close</span>
         <%= icon "x-mark", class: "icon" %>
@@ -178,7 +179,7 @@
     </div>
     <div class="dialog__footer">
       <button type="button" class="btn btn--plain" data-action="admin-users#closeRoleModal">Cancel</button>
-      <%= form.submit "Update role", class: "btn btn--primary" %>
+      <%= form.submit "Update Role", class: "btn btn--primary" %>
     </div>
   <% end %>
 </dialog>

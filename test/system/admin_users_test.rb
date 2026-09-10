@@ -18,11 +18,11 @@ class AdminUsersTest < ApplicationSystemTestCase
   test "resetting a password confirms first, then shows the temporary password once" do
     visit admin_user_path(@agent)
 
-    click_on "Reset password"
+    click_on "Reset Password"
     assert_selector "dialog[open]", wait: 3
     assert_text "Generate a temporary password for"
 
-    click_on "Generate password"
+    click_on "Generate Password"
     assert_selector "[data-password-reset-target=password]", text: /\A[a-zA-Z0-9]{16}\z/, wait: 5
 
     click_on "Done"
@@ -43,8 +43,8 @@ class AdminUsersTest < ApplicationSystemTestCase
     execute_script("Turbo.visit(#{admin_user_path(@agent).to_json})")
     assert_selector "h1", text: @agent.email, wait: 5
 
-    click_on "Reset password"
-    click_on "Generate password"
+    click_on "Reset Password"
+    click_on "Generate Password"
     assert_selector "[data-password-reset-target=password]", text: /\A[a-zA-Z0-9]{16}\z/, wait: 5
 
     execute_script("history.back()")
@@ -74,7 +74,7 @@ class AdminUsersTest < ApplicationSystemTestCase
       find("input.group-picker__filter").set("emea")
       assert_no_selector "li.group-picker__option", text: other.name
       find("li.group-picker__option", text: target.name).find("input[type=checkbox]").check
-      click_on "Assign to selected users"
+      click_on "Assign to Selected Users"
     end
 
     assert_text "Groups assigned to 1 user(s).", wait: 5

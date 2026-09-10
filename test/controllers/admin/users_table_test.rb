@@ -44,6 +44,19 @@ class Admin::UsersTableTest < ActionDispatch::IntegrationTest
     groups.each { assert_includes more["title"], "#{parent.name} / #{it.name}" }
   end
 
+  # A byte-order sort put every capitalised path first: "WSO / ATSR" before
+  # "Web Support", and "Zeta" before "alpha".
+  test "a row orders its groups by path ignoring case" do
+    parent = Group.create!(name: "Case Parent #{SecureRandom.hex(3)}")
+    %w[beta Alpha Charlie].each { UserGroup.create!(user: @user, group: Group.create!(name: it, parent: parent)) }
+
+    get admin_users_path(q: @user.email)
+
+    row = css_select("tbody tr:has(a[href='#{admin_user_path(@user)}'])").first
+    shown = row.css(".admin-users__group").map { it.text.strip }
+    assert_equal %w[Alpha beta], shown
+  end
+
   test "the bulk dialogs are native dialogs, and assigning groups uses the path-aware picker" do
     parent = Group.create!(name: "Bulk Parent #{SecureRandom.hex(3)}")
     child = Group.create!(name: "Bulk Child", parent: parent)
