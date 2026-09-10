@@ -410,6 +410,9 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
 
     visit_builder_in_edit_mode
     step_row(question.uuid).click
+    # "+ Add Option" moves while the panel animates open; a click that lands
+    # mid-animation adds no row, and the test then types into the Phone row.
+    assert_panel_settled
 
     within "turbo-frame#builder-panel" do
       assert_field "step[options][][label]", with: "Phone", wait: 5
@@ -428,6 +431,7 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
 
     visit_builder_in_edit_mode
     step_row(question.uuid).click
+    assert_panel_settled
 
     within "turbo-frame#builder-panel" do
       assert_field "step[options][][label]", with: "Email", wait: 5
