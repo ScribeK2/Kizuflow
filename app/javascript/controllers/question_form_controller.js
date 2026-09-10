@@ -150,13 +150,11 @@ export default class extends Controller {
         <input type="text"
                name="step[options][][label]"
                placeholder="Option label"
-               class="form-input flex-1"
-               data-step-form-target="field">
+               class="form-input flex-1">
         <input type="text"
                name="step[options][][value]"
                placeholder="Option value"
-               class="form-input flex-1"
-               data-step-form-target="field">
+               class="form-input flex-1">
         <button type="button"
                 class="btn btn--plain btn--sm option-item__delete"
                 data-action="click->question-form#removeOption"
