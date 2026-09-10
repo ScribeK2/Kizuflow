@@ -138,7 +138,21 @@ tasks with no run in 26 hours, or a run nothing picked up) because both
 inferences from app data false-alarm: a run's clock stops while its parent waits
 on a live sub-flow, and an unused instance writes no rollup days. The stalled
 check relies on Solid Queue keeping finished jobs for a day and switches itself
-off if that is shortened. There is no admin Workflows section: `/workflows`
+off if that is shortened.
+**Data Health lists what `JobHealth` found**, in its Background Jobs section
+(`admin/data_health/_background_jobs`, fed the request's `Admin::Attention`):
+- failed jobs, newest `JobHealth::LISTED_FAILURES` first, each with its error and
+  Retry and Discard. Those are `Admin::FailedJobs::RetriesController` and
+  `Admin::FailedJobsController`, calling Solid Queue's own `FailedExecution#retry`
+  and `Execution#discard` — a discard deletes the job, not only its failure;
+- stalled tasks, each with its schedule and last finished run, which usually reads
+  "none on record" because finished jobs are kept for a day.
+
+Solid Queue runs jobs only in production, so no controller test, system test or dev
+browser ever shows a failed-job row; `test/views/admin_background_jobs_partial_test.rb`
+renders them from hand-built queue rows. A hand-built job needs real serialized
+`arguments` to be retried, and must lose the `ReadyExecution` its `after_create`
+made. There is no admin Workflows section: `/workflows`
 already gives an admin every workflow and delete.
 **Who sees a workflow is its groups, and nothing else.** `Group.reachable_ids_for(user)`
 — their groups, those groups' subgroups, and **Global** — is the one input to both
@@ -370,7 +384,7 @@ unexpected `answer_type` rendered radio cards with no way to submit.
 - **Republishing unchanged content reuses the existing version.** `WorkflowPublisher` compares both `steps_snapshot` and `metadata_snapshot` (a rename with identical steps IS a change) and skips the write when they match. This compounds through `WorkflowSetPublisher`, which publishes a whole dependency closure: a ten-workflow set republished for one change wrote ten versions, nine identical. Unlike releasing a snapshot, skipping the write destroys nothing. `version_number` is display-only, so gaps are harmless — but note two existing tests had to change, because both republished unchanged content and asserted a v2
 - **The changelog is written retroactively, from the versions list, by anyone who `can_be_edited_by?`.** Publishing a single workflow is one `button_to` click; a dialog there to capture an optional field is the one people dismiss, which buys the friction and the empty column both. `published_by` is never touched, so authorship of the publish survives someone else annotating it. A released version is still annotatable — the record is the durable artefact. The versions list paginates (`Workflows::VersionsController::PER_PAGE`) because that record now only grows, and the compare dropdowns offer only restorable versions: a diff reads `steps_snapshot` on both sides, and a menu should not list what it cannot do
 - **`scenarios.workflow_version_id` records which script the agent followed**, set by a `before_create` on `Scenario` rather than at the four `Scenario.create!` sites — a sub-flow child runs a *different* workflow and must record that workflow's version. It is nil for a simulation of an unpublished draft, which is correct. It does **not** hold a snapshot alive: the link answers *which* version, and that is kept permanently anyway. The column, its index and its FK existed for a long time with nothing writing them (0 of 120 rows), and there was no `belongs_to` either
-- Data lifecycle: tiered scenario retention (7-day simulation, 90-day live), batched cleanup via `CleanupScenariosJob` + `CleanupDraftsJob` (daily at 3 AM), admin visibility at `/admin/data_health`. **A draft with steps is never auto-deleted** — both draft-cleanup scopes require the workflow to have none. `orphaned_drafts` also requires the title `"Untitled Workflow"` and 24 hours; `expired_drafts` requires a `draft_expires_at` in the past. Imports carry a nil TTL, so they match neither
+- Data lifecycle: tiered scenario retention (7-day simulation, 90-day live), batched cleanup via `CleanupScenariosJob` + `CleanupDraftsJob` (daily at 3 AM), admin visibility at `/admin/data_health`, whose "For whoever runs the server" disclosure lists the env vars with their current values, the rake commands, and the schedule read from `config/recurring.yml`. **A draft with steps is never auto-deleted** — both draft-cleanup scopes require the workflow to have none. `orphaned_drafts` also requires the title `"Untitled Workflow"` and 24 hours; `expired_drafts` requires a `draft_expires_at` in the past. Imports carry a nil TTL, so they match neither
 - Security: Rack::Attack, Bullet (N+1), Brakeman
 
 ## UI Guide
