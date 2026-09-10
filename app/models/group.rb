@@ -394,6 +394,11 @@ class Group < ApplicationRecord
              .where(group_workflows: { group_id: id, folder_id: nil })
   end
 
+  # { folder_id => workflows filed in it } for this group's folders, one query.
+  def folder_workflow_counts
+    group_workflows.where.not(folder_id: nil).group(:folder_id).count
+  end
+
   # Direct members by email, accounts loaded for display.
   def memberships_by_email
     user_groups.eager_load(:user).merge(User.order(:email))

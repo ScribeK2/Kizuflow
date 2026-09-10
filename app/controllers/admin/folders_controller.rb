@@ -1,39 +1,34 @@
+# A group's folders, managed from the group's page (spec Q36). There are no
+# folder pages: every action answers with the Folders card and a flash, or
+# returns to the group page when Turbo isn't there.
 class Admin::FoldersController < Admin::BaseController
   before_action :set_group
-  before_action :set_folder, only: %i[edit update destroy]
-
-  def index
-    @folders = @group.folders.ordered
-  end
-
-  def new
-    @folder = @group.folders.build
-  end
-
-  def edit; end
+  before_action :set_folder, only: %i[update destroy]
 
   def create
-    @folder = @group.folders.build(folder_params)
+    folder = @group.folders.build(folder_params.merge(position: next_position))
 
-    if @folder.save
-      redirect_to admin_group_folders_path(@group), notice: "Folder '#{@folder.name}' created."
+    if folder.save
+      respond_with_folders notice: "Added the folder #{folder.name}."
     else
-      render :new, status: :unprocessable_content
+      respond_with_folders alert: folder.errors.full_messages.to_sentence
     end
   end
 
   def update
+    old_name = @folder.name
+
     if @folder.update(folder_params)
-      redirect_to admin_group_folders_path(@group), notice: "Folder '#{@folder.name}' updated."
+      respond_with_folders notice: "Renamed #{old_name} to #{@folder.name}."
     else
-      render :edit, status: :unprocessable_content
+      respond_with_folders alert: @folder.errors.full_messages.to_sentence
     end
   end
 
   def destroy
-    folder_name = @folder.name
+    name = @folder.name
     @folder.destroy
-    redirect_to admin_group_folders_path(@group), notice: "Folder '#{folder_name}' deleted. Its workflows are now unfiled."
+    respond_with_folders notice: "Deleted the folder #{name}. Its workflows are now unfiled."
   end
 
   def reorder
@@ -59,7 +54,24 @@ class Admin::FoldersController < Admin::BaseController
     @folder = @group.folders.find(params[:id])
   end
 
+  # Name only: descriptions stay in the table but are no longer edited (Q36).
   def folder_params
-    params.expect(folder: %i[name description position])
+    params.expect(folder: [:name])
+  end
+
+  # A new folder goes to the bottom, beside the Add form it came from.
+  def next_position
+    (@group.folders.maximum(:position) || -1) + 1
+  end
+
+  def respond_with_folders(notice: nil, alert: nil)
+    respond_to do |format|
+      format.turbo_stream do
+        flash.now[:notice] = notice if notice
+        flash.now[:alert] = alert if alert
+        render "admin/folders/changed"
+      end
+      format.html { redirect_to admin_group_path(@group), notice:, alert: }
+    end
   end
 end

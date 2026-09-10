@@ -15,8 +15,8 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
 
   test "full folder lifecycle: create, assign workflow, view in accordion, move, delete" do
     # 1. Create folder via admin
-    post admin_group_folders_path(@group), params: { folder: { name: "DNS Issues", position: 0 } }
-    assert_redirected_to admin_group_folders_path(@group)
+    post admin_group_folders_path(@group), params: { folder: { name: "DNS Issues" } }
+    assert_redirected_to admin_group_path(@group)
     folder = Folder.last
     assert_equal "DNS Issues", folder.name
     assert_equal @group.id, folder.group_id
@@ -34,7 +34,7 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
 
     # 4. Delete folder — workflow should become unfiled
     delete admin_group_folder_path(@group, folder)
-    assert_redirected_to admin_group_folders_path(@group)
+    assert_redirected_to admin_group_path(@group)
 
     gw = GroupWorkflow.find_by(group: @group, workflow: workflow)
     assert_nil gw.folder_id

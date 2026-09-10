@@ -1,13 +1,13 @@
 module AdminHelper
   # Which sidebar item the current admin page belongs to. Section-level, like
-  # NavHelper: folders light Groups because a folder lives inside a group. Add a
-  # controller here when you add an admin surface — absence lights nothing.
+  # NavHelper: memberships light Groups because the member search is part of a
+  # group's page. Add a controller here when you add an admin surface — absence
+  # lights nothing.
   ADMIN_SECTIONS = {
     "admin/dashboard" => :overview,
     "admin/users" => :users,
     "admin/groups" => :groups,
     "admin/memberships" => :groups,
-    "admin/folders" => :groups,
     "admin/analytics" => :analytics,
     "admin/data_health" => :data_health,
     "admin/smtp_settings" => :email
@@ -67,6 +67,15 @@ module AdminHelper
     are = folders == 1 ? "is" : "are"
     "Delete #{group.name}? Its #{pluralize(members, 'member')} #{loses} the access it gives, " \
       "and its #{pluralize(folders, 'folder')} #{are} deleted. This can't be undone."
+  end
+
+  # The delete confirm says what happens to what's filed in the folder.
+  def admin_folder_delete_confirm(folder, workflows:)
+    return "Delete the folder #{folder.name}? It holds no workflows." if workflows.zero?
+
+    become = workflows == 1 ? "becomes" : "become"
+    "Delete the folder #{folder.name}? Its #{pluralize(workflows, 'workflow')} #{become} unfiled — " \
+      "still in this group, in no folder."
   end
 
   # A clickable column header for an admin table.

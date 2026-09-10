@@ -1,0 +1,46 @@
+<%# locals: (group:) %>
+<%# Folders are managed where the group is (spec Q36): add by name, rename in
+    place, drag to reorder, delete with the workflow count. Folder descriptions
+    stay in the table but are neither shown nor edited. admin/folders/changed
+    replaces this section whole. %>
+<% folders = group.folders.ordered %>
+<% counts = group.folder_workflow_counts %>
+<section id="group-folders" class="card mb-4" aria-labelledby="group-folders-heading">
+  <div class="card__body">
+    <h2 id="group-folders-heading" class="admin-card__heading">Folders</h2>
+
+    <% if folders.any? %>
+      <ul class="admin-group__list mb-4" role="list"
+          data-controller="sortable-folders"
+          data-sortable-folders-url-value="<%= admin_group_reorder_folders_path(group) %>">
+        <% folders.each do |folder| %>
+          <% count = counts.fetch(folder.id, 0) %>
+          <li class="admin-group__item" data-folder-id="<%= folder.id %>">
+            <span class="admin-folders__handle cursor-move" title="Drag to reorder" aria-hidden="true">
+              <%= icon "bars-2", class: "icon icon--sm" %>
+            </span>
+            <%= form_with model: [:admin, group, folder], class: "admin-folders__rename",
+                  data: { controller: "inline-rename" } do |form| %>
+              <%= form.text_field :name, class: "form-input form-input--sm", autocomplete: "off",
+                    aria: { label: "Rename the folder #{folder.name}" },
+                    data: { inline_rename_target: "input",
+                            action: "keydown.enter->inline-rename#commit blur->inline-rename#commit keydown.esc->inline-rename#revert" } %>
+            <% end %>
+            <span class="admin-group__meta"><%= pluralize(count, "workflow") %></span>
+            <%= button_to "Delete", admin_group_folder_path(group, folder), method: :delete,
+                  class: "btn btn--plain btn--sm", aria: { label: "Delete the folder #{folder.name}" },
+                  form: { data: { turbo_confirm: admin_folder_delete_confirm(folder, workflows: count) } } %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="form-hint mb-4">No folders. Folders sort this group's workflows on the Workflows page.</p>
+    <% end %>
+
+    <%= form_with model: [:admin, group, Folder.new], class: "admin-group__search" do |form| %>
+      <%= form.text_field :name, class: "form-input form-input--sm", placeholder: "New folder name",
+            autocomplete: "off", aria: { label: "New folder name" } %>
+      <%= form.submit "Add Folder", class: "btn btn--secondary btn--sm" %>
+    <% end %>
+  </div>
+</section>

@@ -113,7 +113,7 @@ Rails.application.routes.draw do
     resources :groups do
       resources :memberships, only: %i[index create destroy]
       patch 'folders/reorder', to: 'folders#reorder', as: :reorder_folders
-      resources :folders, except: [:show]
+      resources :folders, only: %i[create update destroy]
     end
     get "analytics", to: "analytics#index", as: :analytics
     get "data_health", to: "data_health#index", as: :data_health

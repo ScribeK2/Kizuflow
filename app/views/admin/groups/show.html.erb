@@ -26,7 +26,7 @@
     <%= render "members", group: @group %>
   <% end %>
 
-  <%# Folders card (Task 6) %>
+  <%= render "folders", group: @group %>
 
   <% unless @group.global? %>
     <%= render "danger_zone", group: @group, subgroups: @subgroups.size,

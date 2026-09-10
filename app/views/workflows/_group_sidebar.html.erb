@@ -46,7 +46,7 @@
 
     <% if @selected_group.present? && current_user&.admin? %>
       <div class="card__footer border-t">
-        <%= link_to admin_group_folders_path(@selected_group),
+        <%= link_to admin_group_path(@selected_group, anchor: "group-folders"),
                     class: "btn btn--plain btn--sm flex items-center gap-2" do %>
           <%= icon "folder", class: "icon icon--sm" %>
           Manage Folders
