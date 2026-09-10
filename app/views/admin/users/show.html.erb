@@ -23,7 +23,7 @@
 
   <section class="card mb-4" aria-labelledby="user-details-heading">
     <div class="card__body">
-      <h2 id="user-details-heading" class="admin-user__heading">Details</h2>
+      <h2 id="user-details-heading" class="admin-card__heading">Details</h2>
       <dl class="admin-user__details">
         <div>
           <dt class="form-label">Role</dt>
@@ -60,7 +60,7 @@
 
   <section class="card mb-4" aria-labelledby="user-groups-heading">
     <div class="card__body">
-      <h2 id="user-groups-heading" class="admin-user__heading">Groups</h2>
+      <h2 id="user-groups-heading" class="admin-card__heading">Groups</h2>
       <p class="form-hint mb-3">
         <% if @user.admin? %>
           Administrators see every workflow whatever their groups.
@@ -83,8 +83,8 @@
     <div data-controller="password-reset" data-password-reset-url-value="<%= reset_password_admin_user_path(@user) %>">
       <section class="card mb-4" aria-labelledby="user-password-heading">
         <div class="card__body">
-          <h2 id="user-password-heading" class="admin-user__heading">Password</h2>
-          <div class="admin-user__action-row">
+          <h2 id="user-password-heading" class="admin-card__heading">Password</h2>
+          <div class="admin-card__action-row">
             <p class="text-sm">Generate a temporary password to give <%= @user.email %> directly. It works straight away and is shown once.</p>
             <button type="button" class="btn btn--secondary" data-action="password-reset#open">Reset Password</button>
           </div>
@@ -138,10 +138,10 @@
       </dialog>
     </div>
 
-    <section class="card admin-user__danger" aria-labelledby="user-danger-heading">
+    <section class="card admin-card--danger" aria-labelledby="user-danger-heading">
       <div class="card__body">
-        <h2 id="user-danger-heading" class="admin-user__heading admin-user__heading--danger">Danger Zone</h2>
-        <div class="admin-user__action-row">
+        <h2 id="user-danger-heading" class="admin-card__heading admin-card__heading--danger">Danger Zone</h2>
+        <div class="admin-card__action-row">
           <% if @user.deactivated? %>
             <p class="text-sm">Deactivated <%= time_ago_in_words(@user.deactivated_at) %> ago. They cannot sign in until reactivated.</p>
             <%= button_to "Reactivate", reactivate_admin_user_path(@user), method: :patch,

@@ -102,9 +102,8 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
       delete admin_group_path(parent)
     end
 
-    assert_redirected_to admin_groups_path
-    # Controller uses full message with group name
-    assert_match(/Cannot delete group/, flash[:alert])
+    assert_redirected_to admin_group_path(parent)
+    assert_match(/Can't delete/, flash[:alert])
     assert_match(/subgroups/, flash[:alert])
   end
 
@@ -123,9 +122,8 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
       delete admin_group_path(group)
     end
 
-    assert_redirected_to admin_groups_path
-    # Controller uses full message with group name
-    assert_match(/Cannot delete group/, flash[:alert])
+    assert_redirected_to admin_group_path(group)
+    assert_match(/Can't delete/, flash[:alert])
     assert_match(/workflows/, flash[:alert])
   end
 
@@ -189,7 +187,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     global = global_group
 
     assert_no_difference("Group.count") { delete admin_group_path(global) }
-    assert_redirected_to admin_groups_path
+    assert_redirected_to admin_group_path(global)
     assert_equal "Global can't be deleted", flash[:alert]
 
     patch admin_group_path(global), params: { group: { name: "Everyone" } }

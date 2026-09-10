@@ -1,43 +1,36 @@
-<div class="page-content">
-  <div class="page-header-section flex items-center justify-between gap-4 flex-wrap">
-    <div>
-      <%= render "admin/breadcrumb", trail: admin_group_trail(@group), current: @group.name %>
-      <h1 class="page-header-section__title"><%= @group.name %></h1>
-      <% if @group.description.present? %>
-        <p class="page-header-section__subtitle"><%= @group.description %></p>
+<div class="page-content page-narrow">
+  <div class="page-header-section">
+    <%= render "admin/breadcrumb", trail: admin_group_trail(@group), current: @group.name %>
+    <div class="admin-group__header">
+      <h1 class="page-header-section__title admin-group__title"><%= @group.name %></h1>
+      <% unless @group.global? %>
+        <%= link_to "Edit Group", edit_admin_group_path(@group), class: "btn btn--secondary btn--sm" %>
       <% end %>
-      <p class="page-header-section__ident"><%= pluralize(@group.workflows_count(include_descendants: true), "workflow") %></p>
     </div>
-    <%= link_to edit_admin_group_path(@group), class: "btn btn--secondary flex items-center gap-2" do %>
-      <%= icon "pencil-square", class: "icon icon--sm" %>
-      Edit Group
+    <% if @group.description.present? %>
+      <p class="page-header-section__subtitle"><%= @group.description %></p>
     <% end %>
+    <%# Counted, not listed (spec Q16): /workflows already lists them, with
+        search, folders and every action. %>
+    <p class="page-header-section__ident">
+      <%= pluralize(@workflow_counts.fetch(@group.id, 0), "workflow") %>, including subgroups ·
+      <%= link_to "View in Workflows", workflows_path(group_id: @group.id) %>
+    </p>
   </div>
 
-  <!-- Workflows in this Group -->
-  <% if @workflows.any? %>
-    <div class="card">
-      <div class="card__header">
-        <h2>Workflows in this Group</h2>
-      </div>
-      <% @workflows.each do |workflow| %>
-        <div class="wf-list-item">
-          <div class="wf-list-item__info">
-            <div class="flex items-center gap-2 mb-1">
-              <%= link_to workflow.title, workflow_path(workflow), class: "wf-list-item__title" %>
-            </div>
-            <p class="wf-list-item__meta">
-              by <%= workflow.user.email %> &bull; <%= pluralize(workflow.steps.size, "step") %> &bull; Created <%= time_ago_in_words(workflow.created_at) %> ago
-            </p>
-          </div>
-        </div>
-      <% end %>
-    </div>
+  <% if @group.global? %>
+    <p class="form-hint mb-4">Everyone signed in sees the published workflows in Global. It can't be renamed, moved or deleted, and it has no members or subgroups.</p>
   <% else %>
-    <div class="empty-state">
-      <%= icon "document-text", class: "empty-state__icon" %>
-      <h3 class="empty-state__title">No workflows in this group</h3>
-      <p class="empty-state__text">Workflows assigned to this group will appear here.</p>
-    </div>
+    <%= render "subgroups", group: @group, subgroups: @subgroups,
+          member_counts: @member_counts, workflow_counts: @workflow_counts %>
+    <%# Members card (Task 5) %>
+  <% end %>
+
+  <%# Folders card (Task 6) %>
+
+  <% unless @group.global? %>
+    <%= render "danger_zone", group: @group, subgroups: @subgroups.size,
+          workflows: @group.group_workflows.count, members: @member_counts.fetch(@group.id, 0),
+          folders: @group.folders.count %>
   <% end %>
 </div>

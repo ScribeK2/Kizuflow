@@ -1,0 +1,27 @@
+<%# locals: (group:, subgroups:, member_counts:, workflow_counts:) %>
+<section class="card mb-4" aria-labelledby="group-subgroups-heading">
+  <div class="card__body">
+    <div class="admin-group__header">
+      <h2 id="group-subgroups-heading" class="admin-card__heading">Subgroups</h2>
+      <%= link_to new_admin_group_path(parent_id: group.id), class: "btn btn--secondary btn--sm" do %>
+        <%= icon "plus", class: "icon icon--sm" %>
+        Add Subgroup
+      <% end %>
+    </div>
+    <% if subgroups.any? %>
+      <ul class="admin-group__list" role="list">
+        <% subgroups.each do |subgroup| %>
+          <li class="admin-group__item">
+            <%= link_to subgroup.name, admin_group_path(subgroup), class: "admin-group__name" %>
+            <span class="admin-group__meta">
+              <%= pluralize(member_counts.fetch(subgroup.id, 0), "member") %> ·
+              <%= pluralize(workflow_counts.fetch(subgroup.id, 0), "workflow") %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="form-hint">No subgroups. Teams inside this group appear here.</p>
+    <% end %>
+  </div>
+</section>

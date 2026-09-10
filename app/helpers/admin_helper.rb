@@ -49,6 +49,25 @@ module AdminHelper
     end
   end
 
+  # Why a group can't be deleted yet, or nil when it can. Mirrors the refusal in
+  # Admin::GroupsController#destroy, which remains the guard.
+  def admin_group_delete_blocker(subgroups:, workflows:)
+    held = []
+    held << pluralize(subgroups, "subgroup") if subgroups.positive?
+    held << pluralize(workflows, "workflow") if workflows.positive?
+    return if held.empty?
+
+    "It still holds #{held.to_sentence}. Move them elsewhere before deleting the group."
+  end
+
+  # The confirm names what deleting takes with it: memberships and folders.
+  def admin_group_delete_confirm(group, members:, folders:)
+    loses = members == 1 ? "loses" : "lose"
+    are = folders == 1 ? "is" : "are"
+    "Delete #{group.name}? Its #{pluralize(members, 'member')} #{loses} the access it gives, " \
+      "and its #{pluralize(folders, 'folder')} #{are} deleted. This can't be undone."
+  end
+
   # A clickable column header for an admin table.
   #
   #   sortable_column_header("Email", :email, current_sort: @sort, frame: "users-table")

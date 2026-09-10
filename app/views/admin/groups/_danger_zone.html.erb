@@ -1,0 +1,16 @@
+<%# locals: (group:, subgroups:, workflows:, members:, folders:) %>
+<% blocker = admin_group_delete_blocker(subgroups:, workflows:) %>
+<section class="card admin-card--danger" aria-labelledby="group-danger-heading">
+  <div class="card__body">
+    <h2 id="group-danger-heading" class="admin-card__heading admin-card__heading--danger">Danger Zone</h2>
+    <div class="admin-card__action-row">
+      <% if blocker %>
+        <p class="text-sm"><%= blocker %></p>
+      <% else %>
+        <p class="text-sm">Deleting removes the group, its memberships and its folders. Nobody's account is affected.</p>
+        <%= button_to "Delete Group", admin_group_path(group), method: :delete, class: "btn btn--negative",
+              form: { data: { turbo_confirm: admin_group_delete_confirm(group, members:, folders:) } } %>
+      <% end %>
+    </div>
+  </div>
+</section>

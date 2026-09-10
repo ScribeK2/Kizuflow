@@ -10,7 +10,9 @@ class Admin::GroupsController < Admin::BaseController
   end
 
   def show
-    @workflows = @group.workflows.includes(:user).order(created_at: :desc)
+    @subgroups = @group.children.sort_by { [it.name.downcase, it.name] }
+    @member_counts = Group.member_counts
+    @workflow_counts = Group.workflow_counts_including_subgroups
   end
 
   def new
@@ -41,22 +43,24 @@ class Admin::GroupsController < Admin::BaseController
     end
   end
 
+  # Refused while anything would be orphaned; the page explains the same rule
+  # (AdminHelper#admin_group_delete_blocker) rather than offering the button.
   def destroy
-    if @group.children.any?
-      redirect_to admin_groups_path, alert: "Cannot delete group '#{@group.name}' because it has subgroups. Please reassign or delete subgroups first."
+    if @group.children.exists?
+      redirect_to admin_group_path(@group), alert: "Can't delete #{@group.name} while it has subgroups. Move or delete them first."
       return
     end
 
-    if @group.workflows.any?
-      redirect_to admin_groups_path, alert: "Cannot delete group '#{@group.name}' because it contains workflows. Please reassign workflows to another group first."
+    if @group.group_workflows.exists?
+      redirect_to admin_group_path(@group), alert: "Can't delete #{@group.name} while it holds workflows. File them in another group first."
       return
     end
 
-    group_name = @group.name
+    name = @group.name
     if @group.destroy
-      redirect_to admin_groups_path, notice: "Group '#{group_name}' deleted successfully."
+      redirect_to admin_groups_path, notice: "Deleted #{name}."
     else
-      redirect_to admin_groups_path, alert: @group.errors.full_messages.to_sentence
+      redirect_to admin_group_path(@group), alert: @group.errors.full_messages.to_sentence
     end
   end
 
