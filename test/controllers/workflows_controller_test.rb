@@ -147,6 +147,17 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Workflow was successfully created.", flash[:notice]
   end
 
+  # The only page this could render was a leftover form nothing links to; the
+  # app's New Workflow button posts no params and never fails here.
+  test "a create that fails validation returns to Workflows and says why" do
+    assert_no_difference("Workflow.count") do
+      post workflows_path, params: { workflow: { title: "" } }
+    end
+
+    assert_redirected_to workflows_path
+    assert_match "Title can't be blank", flash[:alert]
+  end
+
   test "should get edit" do
     get edit_workflow_path(@workflow)
 

@@ -89,7 +89,7 @@ class WorkflowsController < ApplicationController
 
       redirect_to @workflow, notice: "Workflow was successfully created."
     else
-      render :new, status: :unprocessable_content
+      redirect_to workflows_path, alert: "Workflow couldn't be created: #{@workflow.errors.full_messages.to_sentence}."
     end
   end
 
