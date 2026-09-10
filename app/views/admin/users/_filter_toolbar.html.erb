@@ -21,10 +21,11 @@
       { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
 
     <%# "Waiting for a group" is User.awaiting_groups, not a group — the Overview's
-        "View all" link lands on it. %>
+        "View all" link lands on it. Groups are named by path (never a bare
+        "Support"); Global is not offered, since nobody is a member of it. %>
     <%= form.select :group,
       options_for_select([["All Groups", ""], ["Waiting for a group", Admin::UsersFilter::AWAITING_GROUPS]] +
-                         @all_groups.map { |g| [g.name, g.id] }, params[:group]),
+                         @group_nodes.map { [it.path, it.id] }, params[:group]),
       {},
       { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
 
@@ -55,7 +56,7 @@
         <% group_name = if params[:group].to_s == Admin::UsersFilter::AWAITING_GROUPS
                           "Waiting for a group"
                         else
-                          @all_groups.find { |g| g.id.to_s == params[:group].to_s }&.name || "Unknown"
+                          @group_paths.fetch(params[:group].to_i, "Unknown")
                         end %>
         <span class="admin-filter-pill">
           Group: <%= group_name %>

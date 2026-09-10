@@ -62,6 +62,29 @@ module Admin
                    "the default must not become a lock — asking for simulations shows them"
     end
 
+    # How a department is doing includes its teams (spec Q37), and the select
+    # names every group by its path.
+    test "the group filter names groups by path and counts runs in their subgroups" do
+      parent = Group.create!(name: "Analytics Dept #{SecureRandom.hex(3)}")
+      child = Group.create!(name: "Analytics Team", parent:)
+      GroupWorkflow.create!(group: child, workflow: @workflow, is_primary: true)
+      elsewhere = Workflow.create!(title: "Analytics Elsewhere", user: @admin)
+      [@workflow, elsewhere].each do |workflow|
+        Scenario.create!(workflow:, user: @admin, purpose: "live", status: "completed", outcome: "completed",
+                         started_at: 2.days.ago, completed_at: 2.days.ago,
+                         execution_path: [], results: {}, inputs: {})
+      end
+      sign_in @admin
+
+      get admin_analytics_path(group_id: parent.id)
+
+      assert_response :success
+      assert_select "select[name=group_id] option[selected][value=?]", parent.id.to_s, text: parent.name
+      assert_select "select[name=group_id] option[value=?]", child.id.to_s, text: "#{parent.name} / Analytics Team"
+      assert_select "table a[href=?]", workflow_path(@workflow)
+      assert_select "table a[href=?]", workflow_path(elsewhere), 0
+    end
+
     def rolled_up_day(day, outcome:, count:, purpose: "live", duration_sum: 0, duration_count: 0)
       ScenarioRollup.create!(
         workflow: @workflow, day: day, purpose: purpose, outcome: outcome,

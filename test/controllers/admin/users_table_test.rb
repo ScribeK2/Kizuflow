@@ -80,4 +80,19 @@ class Admin::UsersTableTest < ActionDispatch::IntegrationTest
     get admin_user_path(@user)
     assert_select "input[name='group_ids[]'][value=?]", global.id.to_s, 0
   end
+
+  # Full paths in every group picker (spec, Q31 carried into Stage 4): a bare
+  # "Support" can't be told from another department's "Support". The filter
+  # stays exact (Q37): it lists who is in the group, not its parent's members.
+  test "the group filter names groups by path, and lists only the group's own members" do
+    parent = Group.create!(name: "Filter Parent #{SecureRandom.hex(3)}")
+    child = Group.create!(name: "Filter Child", parent:)
+    UserGroup.create!(user: @user, group: parent)
+
+    get admin_users_path(group: child.id)
+
+    assert_select "select[name=group] option[value=?]", child.id.to_s, text: "#{parent.name} / Filter Child"
+    assert_select ".admin-filter-pill", text: %r{Group: #{Regexp.escape(parent.name)} / Filter Child}
+    assert_select "tbody a[href=?]", admin_user_path(@user), 0
+  end
 end

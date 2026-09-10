@@ -52,7 +52,7 @@ module Admin
                                       .group_by(&:title)
                                       .map { |_title, wfs| wfs.max_by(&:id) }
       @users_for_filter = User.joins(:scenarios).distinct.order(:email)
-      @groups_for_filter = Group.order(:name)
+      @groups_for_filter = Group.tree_nodes
 
       if @step_performance_capped || @dropoff_capped
         flash.now[:notice] = "Analytics showing most recent 5,000 scenarios. Export CSV for full dataset."
@@ -168,8 +168,11 @@ module Admin
       scope = scope.where(purpose: params[:purpose]) if params[:purpose].present? && params[:purpose] != "all"
       scope = scope.where(workflow_id: params[:workflow_id]) if params[:workflow_id].present?
       scope = scope.where(user_id: params[:user_id]) if params[:user_id].present?
+      # A department's figures include its teams (spec Q37): the group and every
+      # subgroup, the same reach membership gives.
       if params[:group_id].present?
-        workflow_ids = GroupWorkflow.where(group_id: params[:group_id]).select(:workflow_id)
+        group_ids = [params[:group_id].to_i, *Group.descendant_ids_for([params[:group_id]])]
+        workflow_ids = GroupWorkflow.where(group_id: group_ids).select(:workflow_id)
         scope = scope.where(workflow_id: workflow_ids)
       end
       scope

@@ -82,7 +82,7 @@
     <div>
       <label class="form-label text-xs uppercase tracking-wider mb-2">Group</label>
       <%= select_tag :group_id,
-            options_from_collection_for_select(@groups_for_filter, :id, :name, params[:group_id]&.to_i),
+            options_for_select(@groups_for_filter.map { [it.path, it.id] }, params[:group_id]&.to_i),
             include_blank: "All Groups",
             class: "form-select",
             onchange: "this.form.requestSubmit()" %>

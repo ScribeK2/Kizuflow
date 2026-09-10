@@ -7,7 +7,6 @@ class Admin::UsersController < Admin::BaseController
     @total_pages = filter.total_pages
     @per_page = filter.per_page_size
     @sort = filter.sort_key
-    @all_groups = Group.order(:name)
     # One tree query feeds both the bulk dialog's picker and each row's paths.
     # Global has no members, so no membership picker offers it.
     @group_nodes = Group.assignable_tree_nodes
