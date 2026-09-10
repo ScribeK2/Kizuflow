@@ -397,16 +397,12 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     workflow_in_group = Workflow.create!(title: "In Group", user: @editor)
     workflow_outside = Workflow.create!(title: "Outside Exclusive", user: @editor)
 
-    # Remove Uncategorized assignments and assign to specific groups
-    workflow_in_group.group_workflows.destroy_all
-    workflow_outside.group_workflows.destroy_all
-
     # Assign one to the test group
     GroupWorkflow.create!(group: group, workflow: workflow_in_group, is_primary: true)
 
-    # Assign the other to Uncategorized explicitly (simulating manual assignment)
-    uncategorized = Group.uncategorized
-    GroupWorkflow.create!(group: uncategorized, workflow: workflow_outside, is_primary: true)
+    # Assign the other to a group this editor is not in
+    elsewhere = Group.create!(name: "Elsewhere")
+    GroupWorkflow.create!(group: elsewhere, workflow: workflow_outside, is_primary: true)
 
     # Give user access to the test group
     UserGroup.create!(user: @editor, group: group)
@@ -438,10 +434,6 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor
     assert_difference("Workflow.count", 1) do
-      # GroupWorkflow count increases by 1 for explicit group + possibly Uncategorized auto-assignment
-      # Note: The after_create callback creates Uncategorized assignment when no groups exist,
-      # but group_ids are processed AFTER the workflow is created, so it runs first.
-      # This is expected behavior - we test that the explicit group is present.
       post workflows_path, params: {
         workflow: {
           title: "New Workflow",
@@ -461,8 +453,6 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
 
-    # Remove Uncategorized assignment
-    @workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: group1, workflow: @workflow, is_primary: true)
 
     sign_in @editor
@@ -491,10 +481,6 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
     workflow1 = Workflow.create!(title: "Accessible Workflow", user: @editor, is_public: false)
     workflow2 = Workflow.create!(title: "Inaccessible Workflow", user: @editor, is_public: false)
-
-    # Remove Uncategorized assignments
-    workflow1.group_workflows.destroy_all
-    workflow2.group_workflows.destroy_all
 
     GroupWorkflow.create!(group: accessible_group, workflow: workflow1, is_primary: true)
     GroupWorkflow.create!(group: inaccessible_group, workflow: workflow2, is_primary: true)

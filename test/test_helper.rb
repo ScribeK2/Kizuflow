@@ -35,3 +35,19 @@ ActionDispatch::IntegrationTest.class_eval do
     login_as(resource, scope: scope)
   end
 end
+
+# Global exists in every real database (the Stage 4a migration made it) but not
+# in a test database, and nothing creates it on read. A test that needs it asks.
+module GlobalGroupHelper
+  def global_group
+    Group.global.first || Group.create!(name: Group::GLOBAL_NAME)
+  end
+
+  # For a test that means "everyone can see this" — what is_public: true meant.
+  def file_in_global(workflow)
+    GroupWorkflow.create!(group: global_group, workflow: workflow, is_primary: workflow.group_workflows.none?)
+    workflow
+  end
+end
+
+ActiveSupport.on_load(:active_support_test_case) { include GlobalGroupHelper }

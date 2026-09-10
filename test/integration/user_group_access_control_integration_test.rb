@@ -23,10 +23,6 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     @workflow1 = Workflow.create!(title: "Workflow 1", user: @admin, is_public: false)
     @workflow2 = Workflow.create!(title: "Workflow 2", user: @admin, is_public: false)
 
-    # Remove Uncategorized assignments
-    @workflow1.group_workflows.destroy_all
-    @workflow2.group_workflows.destroy_all
-
     GroupWorkflow.create!(group: @group1, workflow: @workflow1, is_primary: true)
     GroupWorkflow.create!(group: @group2, workflow: @workflow2, is_primary: true)
   end

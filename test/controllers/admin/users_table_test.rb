@@ -70,4 +70,14 @@ class Admin::UsersTableTest < ActionDispatch::IntegrationTest
     assert_select "dialog[data-admin-users-target=bulkModal] input[name='group_ids[]'][value=?]", child.id.to_s
     assert_select "dialog[data-admin-users-target=bulkModal] .group-picker__path", text: "#{parent.name} / Bulk Child"
   end
+
+  test "no membership picker offers Global, which has no members" do
+    global = global_group
+
+    get admin_users_path
+    assert_select "input[name='group_ids[]'][value=?]", global.id.to_s, 0
+
+    get admin_user_path(@user)
+    assert_select "input[name='group_ids[]'][value=?]", global.id.to_s, 0
+  end
 end

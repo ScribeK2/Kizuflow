@@ -1,9 +1,9 @@
 class Group < ApplicationRecord
-  # The catch-all group for workflows with no explicit group assignment. Named
-  # once because three places matched the literal and one of them — the
-  # permission check — had quietly been left out of the rule the other two
-  # follow: that every user can see this group.
-  UNCATEGORIZED_NAME = "Uncategorized".freeze
+  # Everyone signed in sees what is filed here — the one group whose audience is
+  # not its members. It replaced "Uncategorized" (db/migrate/20260910120000),
+  # which the name promised was for no one in particular and the code showed to
+  # almost no one. Only a ROOT group by this name is Global.
+  GLOBAL_NAME = "Global".freeze
 
   # Associations
   belongs_to :parent, class_name: 'Group', optional: true
@@ -18,10 +18,16 @@ class Group < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :parent_id }
   validate :no_circular_reference
   validate :max_depth_allowed
+  validate :global_stays_put, on: :update
+  validate :nothing_nests_under_global
+  # prepend: the dependent callbacks above (nullify children, destroy
+  # group_workflows) would otherwise run before the refusal.
+  before_destroy :refuse_to_destroy_global, prepend: true
 
   # Scopes
   scope :roots, -> { where(parent_id: nil) }
   scope :children_of, ->(parent) { where(parent_id: parent.id) }
+  scope :global, -> { roots.where(name: GLOBAL_NAME) }
   scope :visible_to, lambda { |user|
     return all if user&.admin?
     return Group.none unless user
@@ -29,12 +35,8 @@ class Group < ApplicationRecord
     # Users see groups they're assigned to
     user_assigned_group_ids = joins(:user_groups).where(user_groups: { user_id: user.id }).pluck(:id)
 
-    # Also include Uncategorized group for backward compatibility (workflows without groups)
-    # This ensures users can always see workflows in the Uncategorized group
-    uncategorized_group_id = Group.find_by(name: UNCATEGORIZED_NAME)&.id
-
-    # Combine both: user's assigned groups OR Uncategorized
-    group_ids = [user_assigned_group_ids, uncategorized_group_id].flatten.compact.uniq
+    # Global is offered to everyone: what is filed there is for everyone.
+    group_ids = [user_assigned_group_ids, Group.global_id].flatten.compact.uniq
     where(id: group_ids)
   }
 
@@ -44,6 +46,10 @@ class Group < ApplicationRecord
   # Check if this group is a root (has no parent)
   def root?
     parent_id.nil?
+  end
+
+  def global?
+    parent_id.nil? && name == GLOBAL_NAME
   end
 
   # Check if this group is a leaf (has no children)
@@ -153,6 +159,20 @@ class Group < ApplicationRecord
     (user_group_ids + descendant_ids).uniq
   end
 
+  # nil until the migration has run. Never created on read: a lookup that
+  # created the group would grow one in every fresh database on first page load.
+  def self.global_id
+    global.pick(:id)
+  end
+
+  # Every group whose workflows this person may see: their groups, those groups'
+  # subgroups, and Global. Admins see everything and never need this.
+  def self.reachable_ids_for(user)
+    return [] unless user
+
+    (accessible_group_ids_for(user) + [global_id]).compact.uniq
+  end
+
   # Get ancestor IDs for a group using a single efficient approach
   # @param group_id [Integer] The group ID to find ancestors for
   # @return [Array<Integer>] Array of ancestor group IDs, ordered from immediate parent to root
@@ -184,22 +204,35 @@ class Group < ApplicationRecord
   end
 
   # One group as a picker or a list needs it: where it sits and its full path.
-  TreeNode = Data.define(:id, :name, :parent_id, :depth, :path)
+  TreeNode = Data.define(:id, :name, :parent_id, :depth, :path) do
+    def global? = parent_id.nil? && name == GLOBAL_NAME
+  end
 
   TREE_PATH_SEPARATOR = " / ".freeze
 
-  # Every group, depth-first with siblings in display order, each carrying its
-  # depth and full path — from ONE query. Group#full_path queries ancestors per
-  # call, which a picker of hundreds of department groups cannot afford.
-  def self.tree_nodes
-    rows = order(:position, :name).pluck(:id, :name, :parent_id)
+  # Every group, depth-first, each carrying its depth and full path — from ONE
+  # query. Group#full_path queries ancestors per call, which a picker of
+  # hundreds of department groups cannot afford.
+  #
+  # Siblings sort by name ignoring case, Global first among the roots (spec Q33,
+  # Q50). A byte-order sort put "WSO" before "Web Support"; position is ignored
+  # and goes in Stage 4b.
+  #
+  # within: the ids to emit. Paths still come from the whole tree, so an editor
+  # who reaches only "Support / Tier 2" sees that path rather than a bare name.
+  def self.tree_nodes(within: nil)
+    rows = pluck(:id, :name, :parent_id)
     children = rows.group_by { |_, _, parent_id| parent_id }
+    children.each_value { |siblings| siblings.sort_by! { |_, name, parent_id| sibling_sort_key(name, parent_id) } }
+    keep = within&.to_set(&:to_i)
     nodes = []
 
     walk = lambda do |parent_id, depth, trail|
       children.fetch(parent_id, []).each do |id, name, _|
         path = trail + [name]
-        nodes << TreeNode.new(id:, name:, parent_id:, depth:, path: path.join(TREE_PATH_SEPARATOR))
+        if keep.nil? || keep.include?(id)
+          nodes << TreeNode.new(id:, name:, parent_id:, depth:, path: path.join(TREE_PATH_SEPARATOR))
+        end
         # max_depth_allowed caps real trees; the guard only stops a corrupt cycle.
         walk.call(id, depth + 1, path) if depth < 10
       end
@@ -208,6 +241,16 @@ class Group < ApplicationRecord
 
     nodes
   end
+
+  # Global is not a group anyone joins — its audience is everyone signed in.
+  def self.assignable_tree_nodes
+    tree_nodes.reject(&:global?)
+  end
+
+  def self.sibling_sort_key(name, parent_id)
+    [parent_id.nil? && name == GLOBAL_NAME ? 0 : 1, name.downcase, name]
+  end
+  private_class_method :sibling_sort_key
 
   # { group_id => "Root / Child / Leaf" } for every group, from one query.
   def self.paths_by_id
@@ -303,14 +346,9 @@ class Group < ApplicationRecord
     return true if user&.admin?
     return false unless user
 
-    # Uncategorized is offered to everyone by `Group.visible_to`, deliberately —
-    # it is where workflows with no group assignment live. This check did not
-    # carry the same exception, so the sidebar linked every user to a group the
-    # filter then refused: `apply_group_filter` skipped filtering entirely and
-    # the page showed the *unfiltered* list under a URL that claimed to be
-    # filtered. Granting view of the group leaks nothing, because the workflows
-    # in it are still scoped by `Workflow.visible_to`.
-    return true if name == UNCATEGORIZED_NAME
+    # Global is for everyone signed in. Granting view of the group leaks
+    # nothing: the workflows in it are still scoped by Workflow.visible_to.
+    return true if global?
 
     user.groups.include?(self) || ancestors.any? { |ancestor| user.groups.include?(ancestor) }
   end
@@ -321,16 +359,31 @@ class Group < ApplicationRecord
              .where(group_workflows: { group_id: id, folder_id: nil })
   end
 
-  # Class method to get or create the default "Uncategorized" group
-  # This group is used for workflows without explicit group assignments (backward compatibility)
-  def self.uncategorized
-    find_or_create_by!(name: UNCATEGORIZED_NAME) do |group|
-      group.description = "Default group for workflows without explicit group assignment"
-      group.position = 0
-    end
+  private
+
+  def was_global?
+    name_in_database == GLOBAL_NAME && parent_id_in_database.nil?
   end
 
-  private
+  def global_stays_put
+    return unless was_global? && (name_changed? || parent_id_changed?)
+
+    errors.add(:base, "Global can't be renamed or moved — everyone signed in relies on it")
+  end
+
+  def nothing_nests_under_global
+    return if parent_id.blank?
+    return unless Group.global.exists?(id: parent_id)
+
+    errors.add(:parent_id, "can't be Global — Global has no subgroups")
+  end
+
+  def refuse_to_destroy_global
+    return unless was_global?
+
+    errors.add(:base, "Global can't be deleted")
+    throw :abort
+  end
 
   # Validation to prevent circular references in the group hierarchy
   # Prevents scenarios like: A -> B -> A (direct circular)

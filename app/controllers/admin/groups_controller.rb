@@ -50,8 +50,11 @@ class Admin::GroupsController < Admin::BaseController
     end
 
     group_name = @group.name
-    @group.destroy
-    redirect_to admin_groups_path, notice: "Group '#{group_name}' deleted successfully."
+    if @group.destroy
+      redirect_to admin_groups_path, notice: "Group '#{group_name}' deleted successfully."
+    else
+      redirect_to admin_groups_path, alert: @group.errors.full_messages.to_sentence
+    end
   end
 
   private

@@ -9,13 +9,14 @@ class Admin::UsersController < Admin::BaseController
     @sort = filter.sort_key
     @all_groups = Group.order(:name)
     # One tree query feeds both the bulk dialog's picker and each row's paths.
-    @group_nodes = Group.tree_nodes
+    # Global has no members, so no membership picker offers it.
+    @group_nodes = Group.assignable_tree_nodes
     @group_paths = @group_nodes.to_h { [it.id, it.path] }
   end
 
   def show
     @user = User.find(params[:id])
-    @group_nodes = Group.tree_nodes
+    @group_nodes = Group.assignable_tree_nodes
   end
 
   def update

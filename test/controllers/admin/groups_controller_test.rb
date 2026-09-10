@@ -188,4 +188,18 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     get edit_admin_group_path(group)
     assert_select ".page-narrow nav.wf-breadcrumb [aria-current=page]", text: "Edit"
   end
+
+  test "Global can be neither deleted nor renamed" do
+    sign_in @admin
+    global = global_group
+
+    assert_no_difference("Group.count") { delete admin_group_path(global) }
+    assert_redirected_to admin_groups_path
+    assert_equal "Global can't be deleted", flash[:alert]
+
+    patch admin_group_path(global), params: { group: { name: "Everyone" } }
+
+    assert_response :unprocessable_content
+    assert_equal Group::GLOBAL_NAME, global.reload.name
+  end
 end

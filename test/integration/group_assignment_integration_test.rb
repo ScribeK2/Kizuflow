@@ -39,9 +39,6 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
     workflow = Workflow.create!(title: "Test Workflow", user: @admin)
-
-    # Remove Uncategorized assignment
-    workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
 
     # Update to group2
@@ -58,18 +55,11 @@ class GroupAssignmentIntegrationTest < ActionDispatch::IntegrationTest
     assert_includes workflow.groups.map(&:id), group2.id
   end
 
-  test "workflow without explicit group assignment defaults to Uncategorized" do
+  test "a workflow created without groups is filed nowhere" do
     sign_in @editor
-    uncategorized = Group.uncategorized
 
-    post workflows_path, params: {
-      workflow: {
-        title: "Default Workflow"
-      }
-    }
+    post workflows_path, params: { workflow: { title: "Default Workflow" } }
 
-    workflow = Workflow.last
-
-    assert_includes workflow.groups.map(&:id), uncategorized.id
+    assert_empty Workflow.last.groups
   end
 end

@@ -135,6 +135,7 @@ class WorkflowTest < ActiveSupport::TestCase
       user: @user,
       is_public: false
     )
+    GroupWorkflow.create!(group: Group.create!(name: "Not The Editor's"), workflow: other_workflow, is_primary: true)
 
     assert_not other_workflow.can_be_viewed_by?(editor)
   end
@@ -334,9 +335,6 @@ class WorkflowTest < ActiveSupport::TestCase
     group2 = Group.create!(name: "Group 2")
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
 
-    # Clear auto-assigned Uncategorized group
-    workflow.group_workflows.destroy_all
-
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
 
@@ -345,20 +343,10 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_includes workflow.groups.map(&:id), group2.id
   end
 
-  test "should assign to Uncategorized group when created without groups" do
-    workflow = Workflow.create!(title: "Test Workflow", user: @user)
-
-    assert_predicate workflow.groups, :any?
-    assert_equal "Uncategorized", workflow.groups.first.name
-  end
-
   test "primary_group should return primary group" do
     group1 = Group.create!(name: "Primary Group")
     group2 = Group.create!(name: "Secondary Group")
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
-
-    # Clear auto-assigned Uncategorized group
-    workflow.group_workflows.destroy_all
 
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
@@ -372,9 +360,6 @@ class WorkflowTest < ActiveSupport::TestCase
     group2 = Group.create!(name: "Group 2")
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
 
-    # Remove Uncategorized assignment
-    workflow.group_workflows.destroy_all
-
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: false)
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
 
@@ -386,9 +371,6 @@ class WorkflowTest < ActiveSupport::TestCase
     group1 = Group.create!(name: "Group 1")
     group2 = Group.create!(name: "Group 2")
     workflow = Workflow.create!(title: "Test Workflow", user: @user)
-
-    # Remove Uncategorized assignment
-    workflow.group_workflows.destroy_all
 
     GroupWorkflow.create!(group: group1, workflow: workflow, is_primary: true)
     GroupWorkflow.create!(group: group2, workflow: workflow, is_primary: false)
@@ -406,10 +388,6 @@ class WorkflowTest < ActiveSupport::TestCase
     workflow1 = Workflow.create!(title: "Workflow 1", user: @user)
     workflow2 = Workflow.create!(title: "Workflow 2", user: @user)
 
-    # Remove Uncategorized assignments
-    workflow1.group_workflows.destroy_all
-    workflow2.group_workflows.destroy_all
-
     GroupWorkflow.create!(group: group1, workflow: workflow1, is_primary: true)
     GroupWorkflow.create!(group: group2, workflow: workflow2, is_primary: true)
 
@@ -424,10 +402,6 @@ class WorkflowTest < ActiveSupport::TestCase
     child = Group.create!(name: "Child", parent: parent)
     workflow1 = Workflow.create!(title: "Workflow 1", user: @user)
     workflow2 = Workflow.create!(title: "Workflow 2", user: @user)
-
-    # Remove Uncategorized assignments
-    workflow1.group_workflows.destroy_all
-    workflow2.group_workflows.destroy_all
 
     GroupWorkflow.create!(group: parent, workflow: workflow1, is_primary: true)
     GroupWorkflow.create!(group: child, workflow: workflow2, is_primary: true)
@@ -447,8 +421,6 @@ class WorkflowTest < ActiveSupport::TestCase
     group = Group.create!(name: "Assigned Group")
     workflow = Workflow.create!(title: "Group Workflow", user: @user, is_public: false)
 
-    # Remove Uncategorized assignment
-    workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: group, workflow: workflow, is_primary: true)
     UserGroup.create!(group: group, user: user)
 
@@ -465,9 +437,6 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     workflow = Workflow.create!(title: "Workflow Without Groups", user: @user, is_public: false)
 
-    # Remove all group assignments
-    workflow.group_workflows.destroy_all
-
     visible = Workflow.visible_to(user)
 
     assert_not_includes visible.map(&:id), workflow.id
@@ -482,8 +451,6 @@ class WorkflowTest < ActiveSupport::TestCase
     group = Group.create!(name: "Other Group")
     public_workflow = Workflow.create!(title: "Public Workflow", user: @user, is_public: true)
 
-    # Remove Uncategorized assignment and assign to different group
-    public_workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: group, workflow: public_workflow, is_primary: true)
 
     visible = Workflow.visible_to(user)

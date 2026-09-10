@@ -130,7 +130,7 @@ class GroupTest < ActiveSupport::TestCase
     assert_includes visible.map(&:id), group2.id
   end
 
-  test "visible_to scope should return assigned groups plus Uncategorized for regular user" do
+  test "visible_to scope should return assigned groups plus Global for regular user" do
     user = User.create!(
       email: "user@test.com",
       password: "password123!",
@@ -138,14 +138,14 @@ class GroupTest < ActiveSupport::TestCase
     )
     assigned_group = Group.create!(name: "Assigned Group")
     other_group = Group.create!(name: "Other Group")
-    uncategorized = Group.uncategorized
+    global = global_group
 
     UserGroup.create!(group: assigned_group, user: user)
 
     visible = Group.visible_to(user)
 
     assert_includes visible.map(&:id), assigned_group.id
-    assert_includes visible.map(&:id), uncategorized.id
+    assert_includes visible.map(&:id), global.id
     assert_not_includes visible.map(&:id), other_group.id
   end
 
@@ -297,15 +297,6 @@ class GroupTest < ActiveSupport::TestCase
     assert_includes level6.errors[:parent_id], "maximum depth of 5 levels exceeded"
   end
 
-  # Class methods
-  test "uncategorized should return or create Uncategorized group" do
-    uncategorized1 = Group.uncategorized
-    uncategorized2 = Group.uncategorized
-
-    assert_equal uncategorized1.id, uncategorized2.id
-    assert_equal "Uncategorized", uncategorized1.name
-  end
-
   # Permission methods
   test "can_be_viewed_by? should return true for admin" do
     admin = User.create!(
@@ -381,21 +372,15 @@ class GroupTest < ActiveSupport::TestCase
     assert_not group.can_be_viewed_by?(user)
   end
 
-  # Group.visible_to deliberately offers Uncategorized to everyone — it is where
-  # workflows with no group assignment live, and the scope says so in a comment.
-  # can_be_viewed_by? did not carry the exception, so the sidebar linked every
-  # user to a group the filter then refused: WorkflowsFilter#apply_group_filter
-  # skipped filtering altogether and the page rendered the *unfiltered* list
-  # under a URL claiming to be filtered. Found by walking the app as an editor.
+  # The sidebar offers Global to everyone, so the permission check must agree:
+  # a group the sidebar links to must be one the filter will accept.
   test "the group listing rule and the permission check agree" do
     editor = User.create!(email: "grp-perm-#{SecureRandom.hex(4)}@example.com",
                           password: "password123!", password_confirmation: "password123!", role: "editor")
-    uncategorized = Group.uncategorized
+    global = global_group
 
-    assert_includes Group.visible_to(editor), uncategorized,
-                    "precondition: the sidebar offers this group to every user"
-    assert uncategorized.can_be_viewed_by?(editor),
-           "a group the sidebar links to must be one the filter will accept"
+    assert_includes Group.visible_to(editor), global
+    assert global.can_be_viewed_by?(editor)
   end
 
   test "an unrelated group is still refused" do
@@ -404,7 +389,7 @@ class GroupTest < ActiveSupport::TestCase
     other = Group.create!(name: "Someone Elses Group #{SecureRandom.hex(3)}")
 
     assert_not other.can_be_viewed_by?(editor),
-               "the Uncategorized exception must not become a general grant"
+               "the Global exception must not become a general grant"
   end
 
   # -- tree_nodes / paths_by_id: every group and its full path, from one query --
@@ -432,16 +417,32 @@ class GroupTest < ActiveSupport::TestCase
     assert_operator ids.index(mid.id), :<, ids.index(leaf.id)
   end
 
-  test "tree_nodes orders siblings by position, then name" do
+  test "tree_nodes puts Global first, then orders siblings by name ignoring case and position" do
     parent = Group.create!(name: "Order Parent #{SecureRandom.hex(3)}")
-    zed = Group.create!(name: "Zed", parent: parent, position: 0)
-    alpha = Group.create!(name: "Alpha", parent: parent, position: 0)
-    first = Group.create!(name: "Omega", parent: parent, position: -1)
+    zed = Group.create!(name: "zed", parent: parent, position: -5)
+    alpha = Group.create!(name: "Alpha", parent: parent, position: 9)
+    beta = Group.create!(name: "beta", parent: parent, position: 0)
+    global = global_group
+    aardvark = Group.create!(name: "Aardvark #{SecureRandom.hex(3)}")
 
     ids = Group.tree_nodes.map(&:id)
-    siblings = [first.id, alpha.id, zed.id]
+    siblings = [alpha.id, beta.id, zed.id]
+
     in_order = ids.select { siblings.include?(it) }
+
+    assert_equal global.id, ids.first
+    assert_operator ids.index(global.id), :<, ids.index(aardvark.id)
     assert_equal siblings, in_order
+  end
+
+  test "tree_nodes within keeps full paths while emitting only the given groups" do
+    root = Group.create!(name: "Within Root #{SecureRandom.hex(3)}")
+    leaf = Group.create!(name: "Leaf", parent: root)
+
+    nodes = Group.tree_nodes(within: [leaf.id])
+
+    assert_equal [leaf.id], nodes.map(&:id)
+    assert_equal "#{root.name} / Leaf", nodes.first.path
   end
 
   test "paths_by_id agrees with name_path for every group" do

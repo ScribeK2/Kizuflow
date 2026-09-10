@@ -26,8 +26,6 @@ class Workflow < ApplicationRecord
   # will not re-stamp it on the next edit. New drafts and existing drafts that
   # already carry a TTL still get stamped/refreshed as before.
   before_save :set_draft_expiration, if: -> { draft? && (new_record? || draft_expires_at.present?) }
-  # Assign to Uncategorized group if no groups assigned (only for published workflows)
-  after_create :assign_to_uncategorized_if_needed, if: :published?
   # ActiveRecord step associations (parallel to JSONB during migration)
   # IMPORTANT: nullify_start_step must run BEFORE dependent :destroy on steps
   # to avoid circular FK constraint (workflows.start_step_id → steps.id)
@@ -222,19 +220,6 @@ class Workflow < ApplicationRecord
   # Helper method to check if description exists
   def description?
     description.present?
-  end
-
-  # Clean up import flags when steps are completed
-  # Assign workflow to Uncategorized group if no groups are assigned
-  def assign_to_uncategorized_if_needed
-    return if groups.any?
-
-    uncategorized_group = Group.uncategorized
-    GroupWorkflow.find_or_create_by!(
-      workflow: self,
-      group: uncategorized_group,
-      is_primary: true
-    )
   end
 
   # Set draft expiration timestamp (7 days from now)

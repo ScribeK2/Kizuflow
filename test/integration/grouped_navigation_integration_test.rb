@@ -18,10 +18,6 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
     @workflow1 = Workflow.create!(title: "Workflow in Parent", user: @admin)
     @workflow2 = Workflow.create!(title: "Workflow in Child", user: @admin)
 
-    # Remove Uncategorized assignments
-    @workflow1.group_workflows.destroy_all
-    @workflow2.group_workflows.destroy_all
-
     GroupWorkflow.create!(group: @parent_group, workflow: @workflow1, is_primary: true)
     GroupWorkflow.create!(group: @child_group, workflow: @workflow2, is_primary: true)
   end

@@ -105,6 +105,7 @@ module Workflows
         role: "editor"
       )
       private_workflow = Workflow.create!(title: "Private Workflow", user: @owner, is_public: false)
+      GroupWorkflow.create!(group: Group.create!(name: "Not The Editor's"), workflow: private_workflow, is_primary: true)
       Steps::Question.create!(workflow: private_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in editor
 
