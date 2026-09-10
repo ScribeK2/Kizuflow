@@ -474,8 +474,9 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
       fill_in "step[title]", with: "Collect callback details"
     end
 
+    # The row "+ Add Field" added was never filled in, so it isn't stored.
     form = @workflow.steps.find_by!(type: "Steps::Form")
-    assert_eventually(timeout: 10) { form.reload.title == "Collect callback details" }
+    assert_eventually(timeout: 10) { form.reload.title == "Collect callback details" && form.fields.empty? }
   end
 
   test "a large workflow renders every step row" do

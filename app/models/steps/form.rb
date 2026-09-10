@@ -11,10 +11,18 @@ module Steps
     # A field of type "select" also carries its choices:
     #   "select_options" => [{ "label" => "IVR", "value" => "ivr" }]
 
+    before_validation :drop_untouched_fields
     before_validation :normalize_select_options
 
     def step_type
       "form"
+    end
+
+    # Fields an author started but hasn't both named and labelled. The import
+    # schema requires both, so an export carrying one is refused;
+    # WorkflowHealthCheck lists each one on the step.
+    def incomplete_fields
+      fields.select { |field| field.is_a?(Hash) && (field["name"].blank? || field["label"].blank?) }
     end
 
     # The choices a select field offers, as stored. Empty for every other type.
@@ -89,6 +97,18 @@ module Steps
     end
 
     private
+
+    # "+ Add Field" appends an empty row and autosaves straight away, so an
+    # untouched row arrives with no name and no label. Nothing can answer it and
+    # export would refuse it, so it isn't kept. A row with either filled is an
+    # edit in progress and stays, listed by `incomplete_fields`.
+    def drop_untouched_fields
+      return unless options.is_a?(Array)
+
+      self.options = options.reject do |field|
+        field.is_a?(Hash) && field["name"].blank? && field["label"].blank?
+      end
+    end
 
     # The builder authors choices as one comma- or newline-separated string,
     # because `options` posts as an unindexed array — `step[options][][name]` —

@@ -38,6 +38,30 @@ module Steps
       assert_equal ["phone"], step.required_field_names
     end
 
+    # "+ Add Field" appends an empty row and autosaves at once, and since the
+    # step panel stopped letting the browser refuse saves, that save goes through.
+    test "an untouched added field row is not kept" do
+      step = Steps::Form.create!(
+        workflow: @workflow, title: "F", uuid: SecureRandom.uuid, position: 0,
+        options: [
+          { "name" => "phone", "label" => "Phone", "field_type" => "text", "position" => 0 },
+          { "name" => "", "label" => " ", "field_type" => "text", "select_options_raw" => "", "position" => 1 }
+        ]
+      )
+
+      assert_equal %w[phone], step.reload.fields.pluck("name")
+    end
+
+    test "a field row with only a label is kept for the author to finish" do
+      step = Steps::Form.create!(
+        workflow: @workflow, title: "F", uuid: SecureRandom.uuid, position: 0,
+        options: [{ "name" => "", "label" => "Callback number", "field_type" => "phone", "position" => 0 }]
+      )
+
+      assert_equal ["Callback number"], step.reload.fields.pluck("label")
+      assert_equal 1, step.incomplete_fields.size
+    end
+
     # Keyed by field, not a flat list of sentences. A long form rendered the flat
     # version as one block above the fields, leaving the agent to match each
     # message back to an input by reading the label out of the sentence.

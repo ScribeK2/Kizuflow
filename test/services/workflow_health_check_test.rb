@@ -395,6 +395,18 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     assert_not_includes codes, :no_audience
   end
 
+  # The import schema requires both, so an export of this step is refused.
+  test "a form field missing its name or label is flagged" do
+    form = connected_step(Steps::Form, title: "Collect",
+                                       options: [{ "name" => "", "label" => "Callback number", "field_type" => "text" }])
+
+    issue = WorkflowHealthCheck.call(@workflow.reload).issues[form.uuid].find { it[:code] == :form_field_incomplete }
+
+    assert issue, "expected a form_field_incomplete warning"
+    assert_equal :warning, issue[:severity]
+    assert_includes issue[:message], "Callback number"
+  end
+
   private
 
   # One step wired to a Resolve and set as the start, so the only findings on
