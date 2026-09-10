@@ -784,4 +784,21 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
                   text: "Waiting for a group"
     assert_select ".admin-filter-pill", text: /Waiting for a group/
   end
+
+  test "the bulk action bar uses standard buttons" do
+    sign_in @admin
+    get admin_users_path
+
+    assert_select ".admin-bulk-bar button.btn.btn--secondary", 2
+    assert_select ".admin-bulk-bar button.btn.btn--negative", 1
+  end
+
+  test "users pagination is the shared pagination bar, inside the frame" do
+    sign_in @admin
+    get admin_users_path(per_page: 25)
+
+    assert_select "turbo-frame#users-table .pagination-bar .pagination-bar__summary", text: /Showing 1/
+    assert_select "turbo-frame#users-table .pagination-bar select[name=per_page]"
+    assert_select ".admin-pagination", 0
+  end
 end

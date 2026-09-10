@@ -1,49 +1,43 @@
-<div class="admin-pagination">
-  <div class="admin-pagination__info">
+<%# The shared pagination bar (pagination.css) as the last row of the users card.
+    Every link and the page-size form stay inside the users-table Turbo Frame, and
+    carry the current filters and sort through filter_params. %>
+<% frame = { turbo_frame: "users-table", turbo_action: "advance" } %>
+<div class="pagination-bar admin-pagination-bar">
+  <span class="pagination-bar__summary">
     <% start_item = ((@current_page - 1) * @per_page) + 1 %>
     <% end_item = [@current_page * @per_page, @total_count].min %>
-    Showing <%= start_item %>-<%= end_item %> of <%= @total_count %> user<%= @total_count == 1 ? "" : "s" %>
-  </div>
+    Showing <%= start_item %>–<%= end_item %> of <%= pluralize(@total_count, "user") %>
+  </span>
 
-  <div class="admin-pagination__controls">
-    <form action="<%= admin_users_path %>" method="get" data-turbo-frame="users-table" data-turbo-action="advance" class="admin-pagination__per-page" data-controller="auto-submit">
-      <% filter_params.to_h.except("per_page", "page").each do |key, value| %>
-        <input type="hidden" name="<%= key %>" value="<%= value %>">
-      <% end %>
-      <label for="per_page" class="text-xs">Per page:</label>
-      <select name="per_page" id="per_page" class="form-select form-select--sm" data-action="change->auto-submit#submit">
-        <% [25, 50, 100].each do |size| %>
-          <option value="<%= size %>" <%= "selected" if @per_page == size %>><%= size %></option>
-        <% end %>
-      </select>
-    </form>
-
-    <nav class="admin-pagination__pages" aria-label="Pagination">
-      <% if @current_page > 1 %>
-        <%= link_to admin_users_path(filter_params.to_h.merge(page: @current_page - 1)),
-          class: "admin-pagination__page", data: { turbo_frame: "users-table", turbo_action: "advance" } do %>
-          &lsaquo;
-        <% end %>
-      <% end %>
-
+  <% if @total_pages > 1 %>
+    <nav class="pagination" aria-label="Pagination">
+      <%= link_to "‹", admin_users_path(filter_params.to_h.merge(page: [@current_page - 1, 1].max)),
+            class: "pagination__item #{'is-disabled' if @current_page == 1}",
+            aria: { label: "Previous page" }, data: frame %>
       <% pagination_range(@current_page, @total_pages).each do |page_num| %>
         <% if page_num == :gap %>
-          <span class="admin-pagination__gap">&hellip;</span>
+          <span class="pagination__item is-disabled" aria-hidden="true">&hellip;</span>
         <% else %>
-          <%= link_to admin_users_path(filter_params.to_h.merge(page: page_num)),
-            class: "admin-pagination__page #{"admin-pagination__page--active" if page_num == @current_page}",
-            data: { turbo_frame: "users-table", turbo_action: "advance" } do %>
-            <%= page_num %>
-          <% end %>
+          <%= link_to page_num, admin_users_path(filter_params.to_h.merge(page: page_num)),
+                class: "pagination__item #{'is-active' if page_num == @current_page}",
+                aria: { current: ("page" if page_num == @current_page) }, data: frame %>
         <% end %>
       <% end %>
-
-      <% if @current_page < @total_pages %>
-        <%= link_to admin_users_path(filter_params.to_h.merge(page: @current_page + 1)),
-          class: "admin-pagination__page", data: { turbo_frame: "users-table", turbo_action: "advance" } do %>
-          &rsaquo;
-        <% end %>
-      <% end %>
+      <%= link_to "›", admin_users_path(filter_params.to_h.merge(page: [@current_page + 1, @total_pages].min)),
+            class: "pagination__item #{'is-disabled' if @current_page == @total_pages}",
+            aria: { label: "Next page" }, data: frame %>
     </nav>
-  </div>
+  <% end %>
+
+  <%# Changing size returns to page 1 — the old offset means nothing at a new size. %>
+  <%= form_with url: admin_users_path, method: :get, class: "pagination-bar__per-page",
+        data: frame.merge(controller: "auto-submit") do %>
+    <% filter_params.to_h.except("per_page", "page").each do |name, value| %>
+      <%= hidden_field_tag name, value, id: nil %>
+    <% end %>
+    <%= label_tag :per_page, "Per page", class: "pagination-bar__per-page-label" %>
+    <%= select_tag :per_page, options_for_select([25, 50, 100], @per_page),
+          class: "form-select pagination-bar__per-page-select",
+          data: { action: "change->auto-submit#submit" } %>
+  <% end %>
 </div>
