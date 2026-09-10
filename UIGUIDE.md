@@ -396,6 +396,8 @@ password reset) and the bulk dialogs in `admin/users/index`. The old pattern —
 | `.badge--alert` | Error/urgent — exceptional | Pill, negative-soft fill |
 | `.badge--warning` | Warning/caution — exceptional | Pill, warning-soft fill |
 | `.badge--group` | Tag/token with a remove affordance | Pill, neutral fill + hairline |
+| `.badge` "Global" | A workflow everyone signed in can see | **Plain text**, no pill |
+| `.badge--warning` "No audience" | A published workflow in no group — only admins and its owner see it | Pill: an exceptional state |
 
 **Tiering rule:** a badge is a pill only when it marks a **step type** or an
 **exceptional state**. Ordinary status and role read as plain text, so a list

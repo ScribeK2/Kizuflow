@@ -126,8 +126,10 @@ The unified builder lives at `workflows/:id` — one URL for both viewing and ed
 overrides `resolve_layout` to `"admin"` — a nested layout adding the section
 sidebar inside the application layout (`content_for :content`). `/admin` is the
 **Overview**: only what waits on an administrator, from `Admin::Attention`, which
-gathers three model questions — `User.awaiting_groups` (Regular/Editor, not
-deactivated, no group, so they see only public workflows), `SmtpSetting.unconfigured?`
+gathers four model questions — `User.awaiting_groups` (Regular/Editor, not
+deactivated, no group, so they see only Global workflows),
+`Workflow.published_without_audience` (published and in no group, listed newest
+first and linking to the admin-only `/workflows?audience=none`), `SmtpSetting.unconfigured?`
 (production only, where no relay means Rails' default of SMTP to localhost:25)
 and `JobHealth`. It is built once per request and feeds the sidebar's count too,
 so the two cannot disagree; the count is kinds of problem, not records.
@@ -138,6 +140,29 @@ on a live sub-flow, and an unused instance writes no rollup days. The stalled
 check relies on Solid Queue keeping finished jobs for a day and switches itself
 off if that is shortened. There is no admin Workflows section: `/workflows`
 already gives an admin every workflow and delete.
+**Who sees a workflow is its groups, and nothing else.** `Group.reachable_ids_for(user)`
+— their groups, those groups' subgroups, and **Global** — is the one input to both
+`Workflow.visible_to` and `WorkflowAuthorization`; `test/models/workflow_audience_test.rb`
+holds the query and the per-record check together. Global is the root group everyone
+signed in sees (`Group::GLOBAL_NAME`). It replaced Uncategorized
+(`db/migrate/20260910120000`), which auto-filing filled and almost nobody could see,
+and the Public flag (`is_public` is an ignored column now). It is looked up and
+never created on read, and it refuses rename, move, delete, subgroups and members.
+The safeguards against someone forgetting to choose ship together and must stay
+together:
+- new workflows start in no group;
+- `WorkflowPublisher` refuses one, and `WorkflowSetPublisher` names every member still waiting;
+- the health panel warns first (`:no_audience`);
+- the Overview lists published ones;
+- an import naming Uncategorized arrives without it, with a `retired_group` warning.
+
+A published workflow in no group is seen by admins and its owner only. Editors may
+edit Global workflows another editor owns (what Public allowed). A non-admin's save
+can add or remove only groups they reach (`Group.assignable_ids_for`).
+`Workflow#replace_groups!` is a diff — the Details panel autosaves every field at
+once, and recreating the rows wiped the folder filed on each. The `/workflows`
+sidebar lists the top-most groups a person reaches, and a workflow in none of its
+group's folders is **Unfiled**.
 **Users** are a table plus a page per user (`/admin/users/:id`). The table row is
 email (linking out of its Turbo Frame with `data-turbo-frame="_top"`), the inline
 role select, groups and joined; everything else — groups, password reset,
