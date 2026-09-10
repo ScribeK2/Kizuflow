@@ -301,23 +301,6 @@
 }
 
 /* ============================================================================
-   Admin Workflow Icon (in admin workflows list)
-   ============================================================================ */
-
-.admin-wf-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-lg);
-  background: var(--color-canvas-raised);
-  border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--color-ink-subtle);
-}
-
-/* ============================================================================
    Admin Group List (checkbox tree in modals)
    ============================================================================ */
 
@@ -395,24 +378,6 @@
 }
 
 /* ============================================================================
-   Admin Step Number (workflow show page step list)
-   ============================================================================ */
-
-.admin-step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: var(--radius-full);
-  background: var(--color-canvas-raised);
-  border: 1px solid var(--color-border);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-ink-subtle);
-}
-
-/* ============================================================================
    Analytics Bar (progress/distribution bars)
    ============================================================================ */
 
@@ -439,73 +404,6 @@
 .analytics-bar--escalated  { --step-hue: var(--hue-escalate); background: var(--step-dot); }
 .analytics-bar--error      { --step-hue: var(--hue-escalate); background: var(--step-dot); }
 .analytics-bar--muted      { background: var(--color-ink-muted); }
-
-/* ============================================================================
-   Prose (rich text content display)
-   ============================================================================ */
-
-.prose {
-  color: var(--color-ink);
-  line-height: 1.65;
-}
-
-.prose p { margin-bottom: 0.75rem; }
-.prose p:last-child { margin-bottom: 0; }
-.prose ul, .prose ol { padding-left: 1.25rem; margin-bottom: 0.75rem; }
-.prose li { margin-bottom: 0.25rem; }
-.prose a { color: var(--color-primary-text); text-decoration: underline; }
-.prose strong { font-weight: 600; }
-
-.prose-sm {
-  font-size: var(--text-sm);
-}
-
-/* ============================================================================
-   Admin Page Header Layout
-   ============================================================================ */
-
-.admin-page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.admin-page-header__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-page-header__title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.admin-page-header__actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: 1rem;
-  flex-shrink: 0;
-}
-
-/* Admin step card layout */
-.admin-step-layout {
-  display: flex;
-  align-items: flex-start;
-}
-
-.admin-step-layout__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-step-layout__title-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
 
 /* ============================================================================
    Admin Filter Toolbar

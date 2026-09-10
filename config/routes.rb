@@ -110,7 +110,6 @@ Rails.application.routes.draw do
     resource :smtp_setting, only: %i[show update], path: "email" do
       post :test_delivery
     end
-    resources :workflows, only: %i[index show destroy]
     resources :groups do
       patch 'folders/reorder', to: 'folders#reorder', as: :reorder_folders
       resources :folders, except: [:show]

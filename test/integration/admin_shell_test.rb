@@ -42,4 +42,12 @@ class AdminShellTest < ActionDispatch::IntegrationTest
     assert_select ".admin-shell", 0
     assert_select "main.page-main"
   end
+
+  # Admins manage workflows at /workflows, which already shows them every
+  # workflow with delete. The admin copy added only a read-only step list.
+  test "admin Workflows is gone" do
+    get "/admin/workflows"
+
+    assert_response :not_found
+  end
 end
