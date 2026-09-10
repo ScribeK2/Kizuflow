@@ -39,6 +39,18 @@ class SmtpSetting < ApplicationRecord
     setting if setting&.usable?
   end
 
+  # True when outgoing mail has nowhere to go: nothing usable saved here, and
+  # production.rb found no SMTP_ADDRESS, so ActionMailer is left on Rails'
+  # default of SMTP to localhost:25 — which a container does not run. Password
+  # resets and unlock emails are then not delivered.
+  #
+  # Production only: development points at localhost and test uses :test, both
+  # on purpose, so asking there would report a choice as a fault. The arguments
+  # exist so tests can pose the production case without a stubbing library.
+  def self.unconfigured?(env: Rails.env, environment_address: ENV.fetch("SMTP_ADDRESS", nil))
+    env.production? && environment_address.blank? && active.nil?
+  end
+
   def usable?
     enabled? && address.present?
   end
@@ -49,8 +61,9 @@ class SmtpSetting < ApplicationRecord
 
   # Mail's smtp delivery options. Note this is handed to
   # message.delivery_method(:smtp, ...), which replaces the delivery method
-  # outright — merging into the environment's settings would inherit sendmail
-  # whenever SMTP_ADDRESS was never set, which is the common case here.
+  # outright — merging into the environment's settings would inherit its
+  # localhost:25 default whenever SMTP_ADDRESS was never set, which is the common
+  # case here.
   def delivery_options
     options = {
       address: address,

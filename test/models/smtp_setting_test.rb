@@ -127,4 +127,33 @@ class SmtpSettingTest < ActiveSupport::TestCase
     assert_not build(encryption: "sslv3").valid?
     SmtpSetting::ENCRYPTION_MODES.each { |m| assert_predicate build(encryption: m), :valid? }
   end
+
+  # -- unconfigured? --
+
+  PRODUCTION = ActiveSupport::EnvironmentInquirer.new("production")
+
+  test "unconfigured? in production with no environment relay and nothing usable saved" do
+    assert SmtpSetting.unconfigured?(env: PRODUCTION, environment_address: nil)
+  end
+
+  test "an SMTP_ADDRESS in the environment is a relay" do
+    assert_not SmtpSetting.unconfigured?(env: PRODUCTION, environment_address: "smtp.corp.example")
+  end
+
+  test "an enabled relay saved here is a relay" do
+    build.save!
+    assert_not SmtpSetting.unconfigured?(env: PRODUCTION, environment_address: nil)
+  end
+
+  test "a saved but disabled relay is not" do
+    build(enabled: false).save!
+    assert SmtpSetting.unconfigured?(env: PRODUCTION, environment_address: nil)
+  end
+
+  test "never fires outside production, where not delivering is deliberate" do
+    %w[development test].each do |name|
+      assert_not SmtpSetting.unconfigured?(env: ActiveSupport::EnvironmentInquirer.new(name),
+                                           environment_address: nil), name
+    end
+  end
 end

@@ -91,8 +91,9 @@ Rails.application.configure do
   }
 
   # SMTP delivery — required for Devise password resets, account unlock, and email confirmation.
-  # Set SMTP_ADDRESS to enable. Without it, mailer defaults to :sendmail (will fail silently
-  # in most container environments).
+  # Set SMTP_ADDRESS to enable, or save a relay at Admin -> Email. With neither,
+  # ActionMailer stays on Rails' default of :smtp to localhost:25, which a container
+  # does not run, so mail is not delivered (SmtpSetting.unconfigured? reports this).
   if ENV["SMTP_ADDRESS"].present?
     config.action_mailer.delivery_method = :smtp
     config.action_mailer.raise_delivery_errors = true
