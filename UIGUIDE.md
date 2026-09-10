@@ -334,7 +334,10 @@ is not one until a rule exists; check `getComputedStyle`, not the markup.
 | `.dialog__body` | Content area | Padding, overflow-y auto |
 | `.dialog__footer` | Action buttons | Flex end, gap, border-top |
 
-**Stimulus:** `data-controller="dialog"` for open/close. There was a
+**Stimulus:** there is no generic dialog controller. A feature's own controller
+opens its dialog with `showModal()` and closes it (the admin Users dialogs are
+the worked examples below). `dialog_controller.js` was a generic one that nothing
+mounted; it was deleted 2026-09-10. There was also a
 `dialog-manager` controller for single-open enforcement; it was deleted
 2026-09-09 along with the nav menu. It was documented here as living on `<body>`
 and never did — its only mount was the `<nav>`, coordinating the nav menu against
@@ -568,7 +571,6 @@ These are the most-used controllers. Wire them via `data-controller` on the appr
 | Controller | Purpose | Common data-actions |
 |-----------|---------|-------------------|
 | `inline-autosave` | Debounced form autosave (2s) | Listens for `input`, `change`, `lexxy:change` |
-| `dialog` | Open/close modals | `click->dialog#open`, `click->dialog#close` |
 | `dropdown` | Toggle dropdown menus | `click->dropdown#toggle` |
 | `clipboard` | Copy text to clipboard | `click->clipboard#copy` |
 | `tooltip` | Show/hide tooltips | `mouseenter->tooltip#show`, `mouseleave->tooltip#hide` |
