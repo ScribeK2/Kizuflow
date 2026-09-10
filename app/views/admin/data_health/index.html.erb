@@ -151,6 +151,25 @@
     </div>
   </div>
 
+  <!-- Background Jobs — the Overview's job rows link here. Stage 5 rewrites this page. -->
+  <div class="card mb-4" id="background-jobs">
+    <div class="card__body">
+      <h2 class="font-semibold mb-3" style="font-size: var(--text-lg);">Background Jobs</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+        <div>
+          <dt class="form-label">Failed jobs</dt>
+          <dd class="text-sm"><%= number_with_delimiter(admin_attention.failed_jobs_count) %></dd>
+        </div>
+        <div>
+          <dt class="form-label">Nightly jobs not run in <%= JobHealth::STALE_AFTER.in_hours.to_i %> hours</dt>
+          <dd class="text-sm">
+            <%= admin_attention.stalled_task_keys.any? ? admin_attention.stalled_task_keys.map(&:humanize).to_sentence : "None" %>
+          </dd>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Cleanup Status -->
   <div class="card">
     <div class="card__body">

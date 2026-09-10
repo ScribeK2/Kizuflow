@@ -1,0 +1,83 @@
+<%# locals: (attention:) %>
+<%# Only what waits on an administrator. Each row names the problem, says what
+    it costs in one line, and links to where it is fixed. No filled button —
+    nothing here is the page's one primary action. %>
+<% if attention.any? %>
+  <section class="list-section admin-attention">
+    <div class="list-section__head">
+      <h2 class="list-section__title">Needs attention</h2>
+      <span class="list-section__count"><%= attention.count %></span>
+    </div>
+
+    <div class="list-section__body">
+      <% if attention.awaiting_groups_count.positive? %>
+        <div class="list-row" id="attention-awaiting-groups">
+          <span class="list-row__icon" aria-hidden="true"><%= icon "user-group", class: "icon icon--sm" %></span>
+          <div class="list-row__body">
+            <div class="list-row__title"><%= pluralize(attention.awaiting_groups_count, "user") %> waiting for a group</div>
+            <p class="list-row__sub">Without a group, Regular and Editor accounts see only public workflows.</p>
+            <ul class="admin-attention__people">
+              <% attention.awaiting_groups.each do |user| %>
+                <li>
+                  <%= link_to user.email, admin_users_path(q: user.email) %>
+                  <span class="admin-attention__meta">joined <%= time_ago_in_words(user.created_at) %> ago</span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+          <div class="list-row__actions">
+            <%= link_to "View all", admin_users_path(group: Admin::UsersFilter::AWAITING_GROUPS),
+                  class: "btn btn--secondary btn--sm" %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if attention.email_unconfigured? %>
+        <div class="list-row" id="attention-email">
+          <span class="list-row__icon" aria-hidden="true"><%= icon "envelope", class: "icon icon--sm" %></span>
+          <div class="list-row__body">
+            <div class="list-row__title">Email can't be sent</div>
+            <p class="list-row__sub">No mail relay is set up, so password resets and account unlock emails are not delivered.</p>
+          </div>
+          <div class="list-row__actions">
+            <%= link_to "Set up email", admin_smtp_setting_path, class: "btn btn--secondary btn--sm" %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if attention.failed_jobs_count.positive? %>
+        <div class="list-row" id="attention-failed-jobs">
+          <span class="list-row__icon" aria-hidden="true"><%= icon "exclamation-triangle", class: "icon icon--sm" %></span>
+          <div class="list-row__body">
+            <div class="list-row__title"><%= pluralize(attention.failed_jobs_count, "background job") %> failed</div>
+            <p class="list-row__sub">A failed job stays failed until someone retries or discards it.</p>
+          </div>
+          <div class="list-row__actions">
+            <%= link_to "Data Health", admin_data_health_path, class: "btn btn--secondary btn--sm" %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if attention.stalled_task_keys.any? %>
+        <div class="list-row" id="attention-stalled-jobs">
+          <span class="list-row__icon" aria-hidden="true"><%= icon "exclamation-triangle", class: "icon icon--sm" %></span>
+          <div class="list-row__body">
+            <div class="list-row__title">Nightly jobs have not run</div>
+            <p class="list-row__sub">
+              No run in the last <%= JobHealth::STALE_AFTER.in_hours.to_i %> hours:
+              <%= attention.stalled_task_keys.map(&:humanize).to_sentence %>.
+            </p>
+          </div>
+          <div class="list-row__actions">
+            <%= link_to "Data Health", admin_data_health_path, class: "btn btn--secondary btn--sm" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+<% else %>
+  <p class="admin-attention__clear">
+    <%= icon "check-circle", class: "icon icon--sm" %>
+    Nothing needs attention.
+  </p>
+<% end %>

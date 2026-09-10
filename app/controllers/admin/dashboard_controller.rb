@@ -1,10 +1,6 @@
 class Admin::DashboardController < Admin::BaseController
-  def index
-    @users_count = User.count
-    @workflows_count = Workflow.count
-    @public_workflows_count = Workflow.where(is_public: true).count
-
-    @recent_users = User.order(created_at: :desc).limit(5)
-    @recent_workflows = Workflow.order(created_at: :desc).limit(5)
-  end
+  # Overview: only what is waiting on an administrator (admin_attention). The
+  # counts and recent-item lists were dropped on purpose — the Users table sorted
+  # by Joined already answers "who signed up", and a total is nothing to act on.
+  def index; end
 end

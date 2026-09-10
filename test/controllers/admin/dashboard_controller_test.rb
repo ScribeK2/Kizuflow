@@ -45,11 +45,36 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_equal "You don't have permission to access this page.", flash[:alert]
   end
 
-  test "admin dashboard should show system stats" do
+  # setup creates @editor and @user with no groups, so both are waiting.
+  test "overview lists accounts waiting for a group, never admins" do
     sign_in @admin
     get admin_root_path
 
     assert_response :success
-    assert_select "h1", text: /Admin Dashboard/
+    assert_select "h1", text: "Overview"
+    assert_select "#attention-awaiting-groups", text: /#{Regexp.escape(@user.email)}/
+    assert_select "#attention-awaiting-groups", text: /#{Regexp.escape(@editor.email)}/
+    assert_select "#attention-awaiting-groups a", text: @admin.email, count: 0
+    assert_select "#attention-awaiting-groups a[href=?]",
+                  admin_users_path(group: Admin::UsersFilter::AWAITING_GROUPS), text: "View all"
+  end
+
+  test "overview says so in one line when nothing is waiting" do
+    group = Group.create!(name: "Dash #{SecureRandom.hex(3)}")
+    User.awaiting_groups.find_each { |user| UserGroup.create!(user: user, group: group) }
+    sign_in @admin
+
+    get admin_root_path
+
+    assert_select ".admin-attention__clear", text: /Nothing needs attention/
+    assert_select ".list-section", 0
+    assert_select "nav.admin-nav .admin-nav__count", 0
+  end
+
+  test "the Overview sidebar item carries the number of waiting items on every admin page" do
+    sign_in @admin
+    get admin_groups_path
+
+    assert_select "nav.admin-nav a[href=?] .admin-nav__count", admin_root_path, text: "1"
   end
 end

@@ -117,4 +117,14 @@ class Admin::DataHealthControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to root_path
   end
+
+  # The Overview's job rows link here, so this page must say what they found.
+  test "data health reports background job health" do
+    sign_in @admin
+    get admin_data_health_path
+
+    assert_select "#background-jobs h2", text: "Background Jobs"
+    assert_select "#background-jobs", text: /Failed jobs/
+    assert_select "#background-jobs", text: /Nightly jobs not run in 26 hours/
+  end
 end

@@ -21,6 +21,10 @@
           <%= link_to path, class: "admin-nav__link", aria: { current: admin_nav_current(section) } do %>
             <%= icon icon_name, class: "icon icon--sm" %>
             <span class="admin-nav__label"><%= label %></span>
+            <% if section == :overview && admin_attention.any? %>
+              <span class="badge badge--warning admin-nav__count"
+                    title="<%= pluralize(admin_attention.count, "item") %> need attention"><%= admin_attention.count %></span>
+            <% end %>
           <% end %>
         </li>
       <% end %>

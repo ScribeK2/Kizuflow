@@ -862,4 +862,41 @@ td.bulk-select-column {
   }
 }
 
+.admin-nav__count {
+  margin-inline-start: auto;
+}
+
+/* ============================================================================
+   Needs Attention (Overview)
+   ============================================================================ */
+
+/* A row here can list ten people, so the icon and its action sit at the top
+   of the row rather than floating at its vertical middle. */
+.admin-attention .list-row {
+  align-items: flex-start;
+}
+
+.admin-attention__people {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.admin-attention__meta {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.admin-attention__clear {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+
 }
