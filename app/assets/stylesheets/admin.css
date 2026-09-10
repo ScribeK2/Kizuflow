@@ -694,4 +694,153 @@ a.admin-group__name:hover {
   background: var(--color-primary-soft);
 }
 
+/* ============================================================================
+   Data Health (admin/data_health)
+   ============================================================================ */
+
+/* Each section is a heading, one line saying what the numbers mean, then the
+   numbers. The stat panel's own bottom margin would double the section gap. */
+.admin-health .stat-panel {
+  margin-bottom: 0;
+}
+
+.admin-health__hint {
+  margin: 0 0 var(--space-3);
+  max-width: 70ch;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.admin-health__hint-row {
+  margin-bottom: var(--space-3);
+}
+
+.admin-health__hint-row > .admin-health__hint {
+  margin: 0;
+}
+
+.admin-health__after {
+  margin-top: var(--space-2);
+}
+
+.admin-health__list {
+  margin-top: var(--space-3);
+}
+
+/* .stat-panel__grid assumes four cells (two at tablet width). A panel of two
+   keeps two columns on a wide screen; a panel of three puts all three in one
+   row from tablet up, with a hairline between each. */
+@media (min-width: 1024px) {
+  .stat-panel__grid.admin-health__grid--2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 640px) {
+  .stat-panel__grid.admin-health__grid--3 { grid-template-columns: repeat(3, 1fr); }
+
+  .stat-panel__grid.admin-health__grid--3 > .stat-cell:nth-child(n) {
+    border-bottom: none;
+    border-inline-end: 1px solid var(--color-border);
+  }
+
+  .stat-panel__grid.admin-health__grid--3 > .stat-cell:last-child {
+    border-inline-end: none;
+  }
+}
+
+.admin-health__server {
+  margin-top: var(--space-2);
+}
+
+.admin-health__server-body {
+  padding: var(--space-2) 0 0 var(--space-5);
+}
+
+.admin-health__server-heading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.admin-health__settings {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.admin-health__settings dt,
+.admin-health__settings dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.admin-health__settings dd {
+  color: var(--color-ink-muted);
+}
+
+.admin-health__schedule {
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.admin-health__schedule li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-health code,
+.admin-disclosure__pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* ============================================================================
+   Admin Disclosure — a <details> for what most admins never need open
+   ============================================================================ */
+
+.admin-disclosure__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-primary-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-disclosure__summary::before {
+  content: "▸";
+  color: var(--color-ink-muted);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-disclosure[open] > .admin-disclosure__summary::before {
+  transform: rotate(90deg);
+}
+
+.admin-disclosure__pre {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  max-height: 20rem;
+  overflow: auto;
+  white-space: pre;
+  background: var(--color-canvas-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-ink);
+}
+
 }

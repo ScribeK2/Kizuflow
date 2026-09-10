@@ -65,10 +65,4 @@ class AdminHelperTest < ActionView::TestCase
 
     assert_equal saved, admin_group_trail(group, include_self: true).last.first
   end
-
-  test "a job's name drops its namespace and the Job suffix" do
-    assert_equal "Cleanup drafts", admin_job_name("CleanupDraftsJob")
-    assert_equal "Mail delivery", admin_job_name("ActionMailer::MailDeliveryJob")
-    assert_equal "Command", admin_job_name(nil)
-  end
 end

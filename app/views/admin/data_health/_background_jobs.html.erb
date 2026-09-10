@@ -1,0 +1,80 @@
+<%# locals: (attention:) %>
+<%# The Overview's two job rows link here. Solid Queue runs jobs only in
+    production, so everywhere else this says so instead of showing zeros that
+    mean nothing. %>
+<section class="list-section" id="background-jobs">
+  <div class="list-section__head">
+    <h2 class="list-section__title">Background Jobs</h2>
+  </div>
+
+  <% if attention.jobs_tracked? %>
+    <p class="admin-health__hint">
+      A failed job stays failed until someone retries or discards it. A nightly job is
+      stalled when it has not run in <%= JobHealth::STALE_AFTER.in_hours.to_i %> hours.
+    </p>
+    <div class="stat-panel">
+      <div class="stat-panel__grid admin-health__grid--2">
+        <div class="stat-cell">
+          <span class="stat-cell__label">Failed jobs</span>
+          <span class="stat-cell__value"><%= number_with_delimiter(attention.failed_jobs_count) %></span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-cell__label">Stalled nightly jobs</span>
+          <span class="stat-cell__value"><%= attention.stalled_tasks.size %></span>
+        </div>
+      </div>
+    </div>
+
+    <% if attention.failed_jobs_count.positive? %>
+      <div class="list-section__body admin-health__list" id="failed-jobs">
+        <% attention.failed_executions.each do |execution| %>
+          <% name = admin_job_name(execution.job.class_name) %>
+          <div class="list-row" id="<%= dom_id(execution) %>">
+            <div class="list-row__body">
+              <div class="list-row__title"><%= name %></div>
+              <p class="list-row__sub">Failed <%= time_ago_in_words(execution.created_at) %> ago · <%= admin_job_error_line(execution) %></p>
+              <details class="admin-disclosure">
+                <summary class="admin-disclosure__summary">Full error</summary>
+                <pre class="admin-disclosure__pre"><%= admin_job_error_detail(execution) %></pre>
+              </details>
+            </div>
+            <div class="list-row__actions">
+              <%= button_to "Retry", admin_failed_job_retry_path(execution), class: "btn btn--secondary btn--sm" %>
+              <%= button_to "Discard", admin_failed_job_path(execution), method: :delete,
+                    class: "btn btn--plain btn--sm",
+                    form: { data: { turbo_confirm: "Discard #{name}? It will not run again." } } %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <% if attention.failed_jobs_count > attention.failed_executions.size %>
+        <p class="admin-health__hint admin-health__after">
+          Showing the newest <%= attention.failed_executions.size %> of <%= number_with_delimiter(attention.failed_jobs_count) %>.
+        </p>
+      <% end %>
+    <% end %>
+
+    <% if attention.stalled_tasks.any? %>
+      <div class="list-section__body admin-health__list" id="stalled-jobs">
+        <% attention.stalled_tasks.each do |task| %>
+          <% last_finished = task.last_finished_at ? "#{time_ago_in_words(task.last_finished_at)} ago" : "none on record" %>
+          <div class="list-row">
+            <div class="list-row__body">
+              <div class="list-row__title"><%= task.key.humanize %></div>
+              <p class="list-row__sub"><%= admin_schedule_label(task.schedule) %> · Last finished: <%= last_finished %></p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <p class="admin-health__hint admin-health__after">
+        A stall usually means the worker is not running: see For whoever runs the server, below.
+        Finished runs are kept for a day, so &ldquo;none on record&rdquo; is expected here.
+      </p>
+    <% end %>
+  <% else %>
+    <p class="admin-health__hint">
+      Jobs run in-process here, so there is nothing to report. Failed and stalled jobs are
+      tracked where Solid Queue runs them, in production.
+    </p>
+  <% end %>
+</section>

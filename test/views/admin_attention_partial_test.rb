@@ -25,7 +25,8 @@ class AdminAttentionPartialTest < ActionView::TestCase
     render partial: "admin/dashboard/attention", locals: { attention: Admin::Attention.new(adapter: :solid_queue) }
 
     assert_select "#attention-failed-jobs", text: /1 background job failed/
-    assert_select "#attention-failed-jobs a[href=?]", admin_data_health_path
+    assert_select "#attention-failed-jobs a[href=?]", admin_data_health_path(anchor: "background-jobs")
     assert_select "#attention-stalled-jobs", text: /Sweep idle scenarios/
+    assert_select "#attention-stalled-jobs a[href=?]", admin_data_health_path(anchor: "background-jobs")
   end
 end
