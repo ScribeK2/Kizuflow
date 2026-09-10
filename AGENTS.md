@@ -76,7 +76,7 @@ Kamal: `kamal deploy` (see `config/deploy.yml`). Required env: `RAILS_MASTER_KEY
 
 The unified builder lives at `workflows/:id` — one URL for both viewing and editing. No separate wizard or editor views.
 
-**Layout:** Header (three-zone grid: left = inline-editable title + status, right = Edit/Run Scenario/Publish/Export buttons) → Toolbar (step count, View Flow, Templates popover, Settings) → Main area (step list + slide-in panel). Empty state shows template archetype cards for quick-start.
+**Layout:** Header (left = inline-editable title + status, right = Edit/Run Scenario/Publish/Export buttons in `.builder__header-actions`, which wrap onto their own row below 640px) → Toolbar (step count, View Flow, Templates popover, Settings) → Main area (step list + slide-in panel). Empty state shows template archetype cards for quick-start.
 
 **Key views:**
 - `_builder.html.erb` — main layout, renders step list + empty Turbo Frame panel

@@ -45,6 +45,13 @@
     min-width: 0;
   }
 
+  .builder__header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+
   .builder__title-pencil {
     flex-shrink: 0;
     color: var(--color-ink-muted);
@@ -69,6 +76,7 @@
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius);
     width: 32rem;
+    max-width: 100%;
   }
 
   .builder__title:hover {
@@ -957,6 +965,24 @@
 
     .builder__step-meta {
       display: none;
+    }
+
+    /* The actions take their own row, so the title keeps the width it has. */
+    .builder__header {
+      flex-wrap: wrap;
+    }
+
+    .builder__header-left {
+      flex-basis: 100%;
+    }
+
+    .builder__title-wrapper {
+      flex: 1;
+    }
+
+    .builder__title {
+      width: 100%;
+      min-width: 0;
     }
   }
 }
