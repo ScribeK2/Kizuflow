@@ -271,6 +271,7 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
 
     visit_builder_in_edit_mode
     step_row(question.uuid).click
+    assert_panel_settled
 
     within "turbo-frame#builder-panel" do
       click_on "Add Connection"
@@ -314,7 +315,7 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
       assert_field "step[title]", wait: 5
     end
 
-    assert_panel_width(:>, 200, "precondition: the panel is open")
+    assert_panel_settled
 
     find("[data-action~='click->builder#closePanel']", match: :first).click
 
@@ -432,6 +433,23 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     end
 
     assert width.public_send(operator, expected), "#{message} (#{width}px wide)"
+  end
+
+  # The panel animates open over 250ms and the fields in it re-wrap as it widens,
+  # so a button found mid-animation moves before the click lands and the click
+  # hits whatever slid under the old spot — about one run in seven. "Wider than
+  # 200px" is not enough: the width has to stop changing.
+  def assert_panel_settled(timeout: 5)
+    deadline = Time.current + timeout
+    previous = nil
+    loop do
+      width = panel_body_width
+      return if width > 200 && width == previous
+
+      flunk "the panel never settled open (#{width}px wide)" if Time.current > deadline
+      previous = width
+      sleep 0.1
+    end
   end
 
   # Width of the panel's content box. 0 when closed, ~62% of the builder when
