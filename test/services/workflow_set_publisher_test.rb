@@ -16,7 +16,7 @@ class WorkflowSetPublisherTest < ActiveSupport::TestCase
     r = Steps::Resolve.create!(workflow: wf, position: 1, title: "Done", resolution_type: "success")
     Transition.create!(step: q, target_step: r, position: 0)
     wf.update!(start_step: q)
-    wf
+    file_in_global(wf)
   end
 
   # Adds a sub_flow step that is REACHABLE FROM THE START and does not orphan the
@@ -157,5 +157,21 @@ class WorkflowSetPublisherTest < ActiveSupport::TestCase
     assert_not result.success?
     assert_includes result.error, "Someone Elses Draft"
     assert_equal "draft", a.reload.status
+  end
+
+  test "a set whose members have no audience names every one and publishes nothing" do
+    root = resolving_workflow("Root Set")
+    middle = resolving_workflow("Middle Set")
+    leaf = resolving_workflow("Leaf Set")
+    link(root, middle)
+    link(middle, leaf)
+    [middle, leaf].each { it.group_workflows.delete_all }
+
+    result = WorkflowSetPublisher.publish(root.reload, @user)
+
+    assert_not result.success?
+    assert_match(/"Middle Set"/, result.error)
+    assert_match(/"Leaf Set"/, result.error)
+    assert([root, middle, leaf].all? { it.reload.draft? })
   end
 end

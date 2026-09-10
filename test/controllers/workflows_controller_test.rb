@@ -524,6 +524,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "publish with valid graph succeeds" do
     sign_in @editor
     # @workflow already has Q1 -> Done (Resolve) from setup
+    file_in_global(@workflow)
     assert_difference("WorkflowVersion.count", 1) do
       post workflow_publishing_path(@workflow), params: { changelog: "Test publish" }
     end

@@ -12,7 +12,7 @@ module Workflows
         password_confirmation: 'password123!',
         role: 'editor'
       )
-      @workflow = Workflow.create!(title: 'Publishable Flow', user: @editor)
+      @workflow = file_in_global(Workflow.create!(title: 'Publishable Flow', user: @editor))
       sign_in @editor
     end
 
@@ -67,7 +67,7 @@ module Workflows
                                  title: 'Done', resolution_type: 'success')
       Transition.create!(step: q, target_step: r, position: 0)
       wf.update!(start_step: q)
-      wf
+      file_in_global(wf)
     end
 
     # Question branches to the handoff first, falling back to Resolve, so the

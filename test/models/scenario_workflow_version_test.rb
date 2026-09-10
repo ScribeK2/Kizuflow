@@ -22,7 +22,7 @@ class ScenarioWorkflowVersionTest < ActiveSupport::TestCase
     r = Steps::Resolve.create!(workflow: wf, position: 1, title: "Done", resolution_type: "success")
     Transition.create!(step: q, target_step: r, position: 0)
     wf.update!(start_step: q)
-    wf
+    file_in_global(wf)
   end
 
   def run_on(workflow, **attrs)

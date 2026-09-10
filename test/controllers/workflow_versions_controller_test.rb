@@ -34,6 +34,9 @@ class WorkflowVersionsControllerTest < ActionDispatch::IntegrationTest
     )
     Transition.create!(step: @q_step, target_step: @resolve_step, position: 0)
     @workflow.update_column(:start_step_id, @q_step.id)
+    # A group the regular user is not in: publishing needs an audience, and the
+    # view-level tests below need that user unable to see it.
+    GroupWorkflow.create!(group: Group.create!(name: "Version Test Group"), workflow: @workflow, is_primary: true)
 
     # Publish one version so tests have something to work with
     result = WorkflowPublisher.publish(@workflow, @editor, changelog: "Initial release")
@@ -69,6 +72,7 @@ class WorkflowVersionsControllerTest < ActionDispatch::IntegrationTest
     other_r = Steps::Resolve.create!(workflow: other_workflow, position: 1, title: "Done", resolution_type: "success")
     Transition.create!(step: other_q, target_step: other_r, position: 0)
     other_workflow.update_column(:start_step_id, other_q.id)
+    file_in_global(other_workflow)
     other_result = WorkflowPublisher.publish(other_workflow, @editor)
     other_version = other_result.version
 

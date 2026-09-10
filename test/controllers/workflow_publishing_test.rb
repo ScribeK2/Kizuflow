@@ -22,6 +22,7 @@ class WorkflowPublishingTest < ActionDispatch::IntegrationTest
     @resolve_step = Steps::Resolve.create!(workflow: @workflow, position: 1, title: "Done", resolution_type: "success")
     Transition.create!(step: @q1_step, target_step: @resolve_step, position: 0)
     @workflow.update_column(:start_step_id, @q1_step.id)
+    file_in_global(@workflow)
   end
 
   test "editor can publish their own workflow" do

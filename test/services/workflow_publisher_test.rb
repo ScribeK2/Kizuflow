@@ -21,6 +21,7 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     )
     Transition.create!(step: @q_step, target_step: @r_step, position: 0)
     @workflow.update_column(:start_step_id, @q_step.id)
+    file_in_global(@workflow)
   end
 
   test "publishes a workflow and creates a version" do
@@ -151,6 +152,7 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     r = Steps::Resolve.create!(workflow: valid_wf, position: 1, title: "Done", resolution_type: "success")
     Transition.create!(step: q, target_step: r, position: 0)
     valid_wf.update_column(:start_step_id, q.id)
+    file_in_global(valid_wf)
 
     result = WorkflowPublisher.publish(valid_wf, @user)
 
@@ -190,5 +192,17 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     # the wrong validator.
     assert_match(/\ANo path to a Resolve step/, result.error)
     assert_equal "draft", wf_a.reload.status
+  end
+
+  # Spec Q44. New workflows start with no groups (Q45), so a forgotten choice
+  # would otherwise publish something only its owner and admins can see.
+  test "refuses to publish a workflow nobody has been chosen to see" do
+    @workflow.group_workflows.delete_all
+
+    result = WorkflowPublisher.publish(@workflow, @user)
+
+    assert_not result.success?
+    assert_equal WorkflowPublisher::NO_AUDIENCE, result.error
+    assert_empty @workflow.versions
   end
 end

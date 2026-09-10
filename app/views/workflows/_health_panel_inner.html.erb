@@ -32,6 +32,7 @@
 
     <ul class="health-panel__checklist">
       <% [
+        "Audience chosen",
         "Reachability from start",
         "Every step can reach a Resolve step",
         "All terminals are Resolve steps",
@@ -105,6 +106,7 @@
         sub-flows" though nothing was circular. Codes replace both. %>
     <% passing_checks = [] %>
     <% issue_codes = health.issues.values.flatten.filter_map { |i| i[:code] } %>
+    <% passing_checks << "Audience chosen" unless issue_codes.include?(:no_audience) %>
     <% passing_checks << "Reachability from start" unless issue_codes.include?(:unreachable_step) %>
     <%# :no_outgoing_transitions stands in for both of these. A step with no
         outgoing connections IS a terminal that is not a Resolve and has no path

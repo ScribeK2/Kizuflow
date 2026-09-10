@@ -5,6 +5,9 @@ class WorkflowPublisher
     end
   end
 
+  NO_AUDIENCE = "Choose who can see this workflow before publishing: pick at least one group in Details, " \
+                "or Global for everyone signed in.".freeze
+
   def self.publish(workflow, user, changelog: nil)
     new(workflow, user, changelog:).publish
   end
@@ -21,6 +24,11 @@ class WorkflowPublisher
     # Validate graph structure before publishing
     validate_ar_graph!
     validate_subflow_escapability!
+
+    # Spec Q44. New workflows start with no groups (Q45), so without this a
+    # forgotten choice publishes something only its owner and admins can see.
+    # After the graph checks, so a broken workflow reports what is broken first.
+    return Result.new(version: nil, error: NO_AUDIENCE) unless @workflow.group_workflows.exists?
 
     steps = build_ar_steps_snapshot
     metadata = build_metadata

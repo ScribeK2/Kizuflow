@@ -65,6 +65,15 @@ class WorkflowSetPublisher
                      unauthorized.first)
     end
 
+    # Checked across the whole set before anything is written, so one refusal
+    # names every member still waiting for an audience rather than the first.
+    without_audience = members.reject { it.group_workflows.exists? }
+    if without_audience.any?
+      titles = without_audience.map { it.title.inspect }.to_sentence
+      return failure("Choose who can see #{titles} before publishing: pick at least one group in Details, " \
+                     "or Global for everyone signed in.", without_audience.first)
+    end
+
     ids = members.to_set(&:id)
     outcome = nil
 

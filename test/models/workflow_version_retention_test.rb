@@ -21,6 +21,7 @@ class WorkflowVersionRetentionTest < ActiveSupport::TestCase
                                      resolution_type: "success")
     Transition.create!(step: @question, target_step: resolve, position: 0)
     @workflow.update!(start_step: @question)
+    file_in_global(@workflow)
   end
 
   # Each publish must differ, or the dedupe correctly collapses them.

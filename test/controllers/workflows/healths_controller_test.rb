@@ -13,6 +13,7 @@ module Workflows
         role: "editor"
       )
       @workflow = Workflow.create!(title: "Health Flow", user: @editor, status: "draft")
+      file_in_global(@workflow)
       sign_in @editor
     end
 

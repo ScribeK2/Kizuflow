@@ -107,6 +107,7 @@ class WorkflowHealthCheck
   def call
     issues = Hash.new { |h, k| h[k] = [] }
 
+    run_audience_check(issues)
     run_graph_validation(issues)
     run_subflow_validation(issues) if subflow_steps?
     run_step_validations(issues)
@@ -128,6 +129,18 @@ class WorkflowHealthCheck
   end
 
   private
+
+  # First, so it heads the panel: the one problem a finished graph can still
+  # have, and the easiest to forget (spec Q41, Q44). A warning, like
+  # :no_resolve_across_workflows — publish refuses it, but every new draft
+  # starts this way and an error on an empty builder would say nothing useful.
+  def run_audience_check(issues)
+    return if @workflow.group_workflows.exists?
+
+    add_issue(issues, :workflow, :warning,
+              "No audience yet — only you and admins can see this. Choose groups, or Global, in Details.",
+              fixable: false, code: :no_audience)
+  end
 
   def classify_graph_finding(finding, issues)
     presentation = GRAPH_FINDING_PRESENTATION.fetch(finding.code, {})

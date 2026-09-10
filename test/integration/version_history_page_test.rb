@@ -19,6 +19,10 @@ class VersionHistoryPageTest < ActionDispatch::IntegrationTest
                                      resolution_type: "success")
     Transition.create!(step: @question, target_step: resolve, position: 0)
     @workflow.update!(start_step: @question)
+    # An audience that is not Global: another editor may edit a Global workflow
+    # (spec Q51), and the changelog-permission test below needs an outsider.
+    GroupWorkflow.create!(group: Group.create!(name: "History Group #{SecureRandom.hex(3)}"),
+                          workflow: @workflow, is_primary: true)
     sign_in @editor
   end
 

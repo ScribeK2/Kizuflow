@@ -313,6 +313,7 @@ class WorkflowImporterBundleTest < ActiveSupport::TestCase
     _report, result = import(linked_pair)
     router = result.workflows.find { |w| w.title == "Bundle Router" }
     child = result.workflows.find { |w| w.title == "Bundle Child" }
+    [router, child].each { file_in_global(it) }
 
     parent_first = WorkflowPublisher.new(router, @user).publish
 

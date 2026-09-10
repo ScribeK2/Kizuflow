@@ -12,6 +12,8 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     )
     # Draft status avoids graph validation on save, letting us create intentionally broken workflows
     @workflow = Workflow.create!(title: "Health Test", user: @user, status: "draft")
+    # An audience, so "clean" means the graph; the audience warning has its own tests below.
+    file_in_global(@workflow)
   end
 
   # A choiceless select is not only a broken dropdown at run time. An export
@@ -365,5 +367,21 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
       the builder is telling people a workflow is publishable when it is not.
       Severity belongs to the publisher's behaviour, not to a per-code opinion.
     MESSAGE
+  end
+
+  test "a workflow in no group warns first, on the workflow, that nobody can see it" do
+    nobody = Workflow.create!(title: "Nobody Chosen", user: @user, status: "draft")
+
+    issues = WorkflowHealthCheck.call(nobody).issues
+
+    assert_equal "workflow", issues.keys.first
+    audience = issues["workflow"].find { it[:code] == :no_audience }
+    assert_equal :warning, audience[:severity]
+  end
+
+  test "a workflow with an audience has no audience warning" do
+    codes = WorkflowHealthCheck.call(@workflow).issues.values.flatten.pluck(:code)
+
+    assert_not_includes codes, :no_audience
   end
 end
