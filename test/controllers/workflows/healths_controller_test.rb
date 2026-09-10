@@ -169,9 +169,9 @@ module Workflows
     end
 
     # Regression: a fresh Sub-Flow step has no target until the user picks one
-    # ("Sub-flow target is required for publish" — Steps::SubFlow validates
-    # presence only `on: :publish`, so an ordinary create via the builder saves
-    # with a blank sub_flow_workflow_id). That message contains "sub-flow",
+    # ("Sub-flow target is required for publish" — the step itself has no
+    # presence rule, so an ordinary create via the builder saves with a blank
+    # sub_flow_workflow_id). That message contains "sub-flow",
     # which the panel used to match to gate "No circular sub-flows" — so an
     # unpicked target silently hid a passing check about circularity, nothing
     # to do with the missing field.

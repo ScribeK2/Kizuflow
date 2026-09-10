@@ -13,6 +13,16 @@ module Steps
       assert_predicate step, :valid?
     end
 
+    # `validates :sub_flow_workflow_id, on: :publish` sat here from 6e7eac5a,
+    # and nothing ever validated a step in that context, so it refused nothing.
+    # What refuses a missing target is Workflow#validate_subflow_steps.
+    test "a sub-flow step with no target is valid in every context" do
+      step = Steps::SubFlow.new(workflow: @workflow, title: "Run sub", position: 0)
+
+      assert_predicate step, :valid?
+      assert step.valid?(:publish)
+    end
+
     test "belongs to target_workflow" do
       step = Steps::SubFlow.create!(workflow: @workflow, title: "Sub", position: 0, sub_flow_workflow_id: @target_workflow.id)
       assert_equal @target_workflow, step.target_workflow
