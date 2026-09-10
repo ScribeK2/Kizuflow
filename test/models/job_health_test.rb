@@ -84,6 +84,13 @@ class JobHealthTest < ActiveSupport::TestCase
     assert_empty JobHealth.stalled_task_keys(adapter: :solid_queue, now: NOW)
   end
 
+  # A stalled task has had no run for 26 hours. With Solid Queue's default
+  # one-day retention its last run was always gone by the time the page asked
+  # (spec Q64).
+  test "finished jobs are kept for a week, so a stalled task's last run stays on record" do
+    assert_equal 7.days, SolidQueue.clear_finished_jobs_after
+  end
+
   test "knows whether it tracks jobs at all" do
     assert JobHealth.tracked?(adapter: :solid_queue)
     assert_not JobHealth.tracked?(adapter: :async)

@@ -68,7 +68,8 @@
       </div>
       <p class="admin-health__hint admin-health__after">
         A stall usually means the worker is not running: see For whoever runs the server, below.
-        Finished runs are kept for a day, so &ldquo;none on record&rdquo; is expected here.
+        Finished runs are kept for <%= pluralize(SolidQueue.clear_finished_jobs_after.in_days.to_i, "day") %>, so
+        &ldquo;none on record&rdquo; means no finished run in that time.
       </p>
     <% end %>
   <% else %>

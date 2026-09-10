@@ -60,6 +60,7 @@ class AdminBackgroundJobsPartialTest < ActionView::TestCase
     assert_select "#stalled-jobs .list-row__title", text: "Sweep idle scenarios"
     assert_select "#stalled-jobs .list-row__sub", text: "Daily at 02:00 · Last finished: none on record"
     assert_select "#stalled-jobs form", 0, "no Run-now button (Q53)"
+    assert_select "#background-jobs", text: /kept for 7 days/
   end
 
   test "nothing failed and nothing stalled reads as healthy" do
