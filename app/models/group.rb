@@ -183,6 +183,37 @@ class Group < ApplicationRecord
     end
   end
 
+  # One group as a picker or a list needs it: where it sits and its full path.
+  TreeNode = Data.define(:id, :name, :parent_id, :depth, :path)
+
+  TREE_PATH_SEPARATOR = " / ".freeze
+
+  # Every group, depth-first with siblings in display order, each carrying its
+  # depth and full path — from ONE query. Group#full_path queries ancestors per
+  # call, which a picker of hundreds of department groups cannot afford.
+  def self.tree_nodes
+    rows = order(:position, :name).pluck(:id, :name, :parent_id)
+    children = rows.group_by { |_, _, parent_id| parent_id }
+    nodes = []
+
+    walk = lambda do |parent_id, depth, trail|
+      children.fetch(parent_id, []).each do |id, name, _|
+        path = trail + [name]
+        nodes << TreeNode.new(id:, name:, parent_id:, depth:, path: path.join(TREE_PATH_SEPARATOR))
+        # max_depth_allowed caps real trees; the guard only stops a corrupt cycle.
+        walk.call(id, depth + 1, path) if depth < 10
+      end
+    end
+    walk.call(nil, 0, [])
+
+    nodes
+  end
+
+  # { group_id => "Root / Child / Leaf" } for every group, from one query.
+  def self.paths_by_id
+    tree_nodes.to_h { [it.id, it.path] }
+  end
+
   # Generate a full path string showing the hierarchy
   # Example: "Customer Experience > Phone Support > Tier 1"
   # @param separator [String] The separator to use between group names (default: " > ")

@@ -406,4 +406,49 @@ class GroupTest < ActiveSupport::TestCase
     assert_not other.can_be_viewed_by?(editor),
                "the Uncategorized exception must not become a general grant"
   end
+
+  # -- tree_nodes / paths_by_id: every group and its full path, from one query --
+  #
+  # Groups will mirror the corporate department tree — hundreds, nested. Group#full_path
+  # queries its ancestors on every call, so a picker or a users table that shows paths
+  # through it costs a query per group.
+
+  test "tree_nodes lists every group depth-first with its depth and full path, in one query" do
+    root = Group.create!(name: "Tree Root #{SecureRandom.hex(3)}")
+    mid = Group.create!(name: "Mid", parent: root)
+    leaf = Group.create!(name: "Leaf", parent: mid)
+
+    nodes = nil
+    assert_queries_count(1) { nodes = Group.tree_nodes }
+
+    by_id = nodes.index_by(&:id)
+    assert_equal "#{root.name} / Mid / Leaf", by_id[leaf.id].path
+    depths = [root, mid, leaf].map { by_id[it.id].depth }
+    assert_equal [0, 1, 2], depths
+    assert_equal mid.id, by_id[leaf.id].parent_id
+
+    ids = nodes.map(&:id)
+    assert_operator ids.index(root.id), :<, ids.index(mid.id)
+    assert_operator ids.index(mid.id), :<, ids.index(leaf.id)
+  end
+
+  test "tree_nodes orders siblings by position, then name" do
+    parent = Group.create!(name: "Order Parent #{SecureRandom.hex(3)}")
+    zed = Group.create!(name: "Zed", parent: parent, position: 0)
+    alpha = Group.create!(name: "Alpha", parent: parent, position: 0)
+    first = Group.create!(name: "Omega", parent: parent, position: -1)
+
+    ids = Group.tree_nodes.map(&:id)
+    siblings = [first.id, alpha.id, zed.id]
+    in_order = ids.select { siblings.include?(it) }
+    assert_equal siblings, in_order
+  end
+
+  test "paths_by_id agrees with name_path for every group" do
+    root = Group.create!(name: "Paths Root #{SecureRandom.hex(3)}")
+    child = Group.create!(name: "Child", parent: root)
+
+    paths = Group.paths_by_id
+    [root, child].each { assert_equal it.name_path, paths[it.id] }
+  end
 end
