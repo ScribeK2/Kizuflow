@@ -48,6 +48,22 @@ module Admin
       assert_equal 3, result.count
     end
 
+    test "lists the failed executions and stalled tasks it counted" do
+      job = SolidQueue::Job.create!(queue_name: "default", class_name: "CleanupDraftsJob")
+      job.ready_execution.destroy!
+      failed = SolidQueue::FailedExecution.create!(job: job, error: { "message" => "boom" })
+      SolidQueue::RecurringTask.create!(key: "sweep_idle_scenarios", class_name: "SweepIdleScenariosJob",
+                                        schedule: "0 2 * * *", created_at: 3.days.ago, updated_at: 3.days.ago)
+
+      result = attention(adapter: :solid_queue)
+
+      assert_predicate result, :jobs_tracked?
+      assert_equal [failed], result.failed_executions.to_a
+      assert_equal ["sweep_idle_scenarios"], result.stalled_tasks.map(&:key)
+      assert_equal ["sweep_idle_scenarios"], result.stalled_task_keys
+      assert_not attention.jobs_tracked?
+    end
+
     test "nothing is waiting once every account has a group" do
       group = Group.create!(name: "Attn #{SecureRandom.hex(3)}")
       User.awaiting_groups.find_each { |user| UserGroup.create!(user: user, group: group) }

@@ -17,8 +17,12 @@ class JobHealthTest < ActiveSupport::TestCase
                             finished_at: (at + 1.minute if finished))
   end
 
-  def fail!(job)
-    SolidQueue::FailedExecution.create!(job: job, error: { "message" => "boom" })
+  # A real failed job has no ReadyExecution, so the one after_create made goes.
+  def fail!(job, message: "boom", at: job.created_at)
+    job.ready_execution&.destroy!
+    SolidQueue::FailedExecution.create!(job: job, created_at: at,
+                                        error: { "exception_class" => "RuntimeError", "message" => message,
+                                                 "backtrace" => ["app/jobs/example.rb:1"] })
   end
 
   test "reports nothing where Solid Queue does not run the jobs" do
@@ -78,5 +82,37 @@ class JobHealthTest < ActiveSupport::TestCase
                                       schedule: "0 * * * *", created_at: NOW - 3.days, updated_at: NOW - 3.days)
 
     assert_empty JobHealth.stalled_task_keys(adapter: :solid_queue, now: NOW)
+  end
+
+  test "knows whether it tracks jobs at all" do
+    assert JobHealth.tracked?(adapter: :solid_queue)
+    assert_not JobHealth.tracked?(adapter: :async)
+  end
+
+  test "lists failed executions newest first, up to the limit, with their jobs" do
+    older = fail!(enqueue("CleanupDraftsJob", at: NOW - 3.hours), at: NOW - 3.hours)
+    newer = fail!(enqueue("CleanupScenariosJob", at: NOW - 1.hour), at: NOW - 1.hour)
+
+    listed = JobHealth.failed_executions(adapter: :solid_queue)
+    assert_equal [newer, older], listed.to_a
+    assert_predicate listed.first.association(:job), :loaded?, "the list renders each job's name"
+    assert_equal [newer], JobHealth.failed_executions(adapter: :solid_queue, limit: 1).to_a
+    assert_empty JobHealth.failed_executions(adapter: :test)
+  end
+
+  test "a stalled task carries its schedule and its last finished run" do
+    register("sweep_idle_scenarios", "SweepIdleScenariosJob")
+    finished = enqueue("SweepIdleScenariosJob", at: NOW - 30.hours, finished: true)
+
+    task = JobHealth.stalled_tasks(adapter: :solid_queue, now: NOW).sole
+    assert_equal "sweep_idle_scenarios", task.key
+    assert_equal "0 2 * * *", task.schedule
+    assert_equal finished.finished_at, task.last_finished_at
+  end
+
+  test "a stalled task with no finished run on record says so" do
+    register("sweep_idle_scenarios", "SweepIdleScenariosJob")
+
+    assert_nil JobHealth.stalled_tasks(adapter: :solid_queue, now: NOW).sole.last_finished_at
   end
 end

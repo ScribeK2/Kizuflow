@@ -45,8 +45,22 @@ module Admin
       @failed_jobs_count ||= JobHealth.failed_count(adapter: @adapter)
     end
 
+    def jobs_tracked?
+      JobHealth.tracked?(adapter: @adapter)
+    end
+
+    def failed_executions
+      @failed_executions ||= JobHealth.failed_executions(adapter: @adapter)
+    end
+
+    # The check walks every recurring task, so it runs once per request and the
+    # keys are read off the same answer.
+    def stalled_tasks
+      @stalled_tasks ||= JobHealth.stalled_tasks(adapter: @adapter, now: @now)
+    end
+
     def stalled_task_keys
-      @stalled_task_keys ||= JobHealth.stalled_task_keys(adapter: @adapter, now: @now)
+      stalled_tasks.map(&:key)
     end
 
     # One per kind of problem. Seven users waiting for a group is one thing to

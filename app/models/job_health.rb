@@ -15,34 +15,52 @@
 class JobHealth
   STALE_AFTER = 26.hours
   UNPICKED_AFTER = 6.hours
+  LISTED_FAILURES = 20
+
+  # A nightly task that has not run, with what an admin needs to judge it.
+  # last_finished_at is nil more often than not: Solid Queue keeps finished
+  # jobs for a day, and a stalled task has had no run for longer than that.
+  StalledTask = Data.define(:key, :schedule, :last_finished_at)
 
   class << self
+    def tracked?(adapter: default_adapter)
+      adapter.to_s == "solid_queue"
+    end
+
     def failed_count(adapter: default_adapter)
-      return 0 unless solid_queue?(adapter)
+      return 0 unless tracked?(adapter: adapter)
 
       SolidQueue::FailedExecution.count
     end
 
-    # Keys of recurring tasks that should have run by now and have not.
-    def stalled_task_keys(adapter: default_adapter, now: Time.current)
-      return [] unless solid_queue?(adapter) && finished_jobs_kept_long_enough?
+    # An array rather than FailedExecution.none when untracked, so a host with no
+    # queue database never loads the model at all.
+    def failed_executions(adapter: default_adapter, limit: LISTED_FAILURES)
+      return [] unless tracked?(adapter: adapter)
+
+      SolidQueue::FailedExecution.includes(:job).order(created_at: :desc, id: :desc).limit(limit)
+    end
+
+    # Recurring tasks that should have run by now and have not.
+    def stalled_tasks(adapter: default_adapter, now: Time.current)
+      return [] unless tracked?(adapter: adapter) && finished_jobs_kept_long_enough?
 
       cutoff = now - STALE_AFTER
       SolidQueue::RecurringTask.where.not(class_name: nil)
                                .where(created_at: ...cutoff)
                                .order(:key)
                                .select { |task| stalled?(task, cutoff: cutoff, now: now) }
-                               .map(&:key)
+                               .map { |task| stalled_task(task) }
+    end
+
+    def stalled_task_keys(adapter: default_adapter, now: Time.current)
+      stalled_tasks(adapter: adapter, now: now).map(&:key)
     end
 
     private
 
     def default_adapter
       Rails.application.config.active_job.queue_adapter
-    end
-
-    def solid_queue?(adapter)
-      adapter.to_s == "solid_queue"
     end
 
     def finished_jobs_kept_long_enough?
@@ -59,6 +77,12 @@ class JobHealth
 
       SolidQueue::FailedExecution.where(job_id: latest.id).none? &&
         SolidQueue::ClaimedExecution.where(job_id: latest.id).none?
+    end
+
+    def stalled_task(task)
+      last_finished_at = SolidQueue::Job.where(class_name: task.class_name).where.not(finished_at: nil)
+                                        .maximum(:finished_at)
+      StalledTask.new(key: task.key, schedule: task.schedule, last_finished_at: last_finished_at)
     end
   end
 end
