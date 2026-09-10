@@ -201,14 +201,15 @@ class WorkflowEdgeCasesTest < ActiveSupport::TestCase
   # AR Step Validation Tests
   # ==========================================================================
 
-  test "question step requires question text on publish" do
+  # `validates :question, on: :publish` came in with 6e7eac5a and nothing ever
+  # validated in that context, so it refused nothing while reading like a rule.
+  # Blank question text is a health warning instead; the runner shows the title.
+  test "a question step with no question text is valid in every context" do
     workflow = Workflow.create!(title: "Missing Question Workflow", user: @user)
-
     step = Steps::Question.new(workflow: workflow, position: 0, title: "Question Step")
-    # Question validation only runs on :publish context
+
     assert_predicate step, :valid?
-    assert_not step.valid?(:publish)
-    assert_includes step.errors[:question], "can't be blank"
+    assert step.valid?(:publish)
   end
 
   # ==========================================================================

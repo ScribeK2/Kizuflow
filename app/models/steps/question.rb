@@ -4,8 +4,6 @@ module Steps
     # Order is the order the editor renders them in.
     VALID_ANSWER_TYPES = %w[text yes_no multiple_choice dropdown date number].freeze
 
-    validates :question, presence: true, on: :publish
-
     before_validation :generate_variable_name, if: -> { variable_name.blank? && title.present? }
 
     def outcome_summary
