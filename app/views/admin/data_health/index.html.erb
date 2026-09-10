@@ -160,10 +160,21 @@
           <dd>Run tonight's sweep and cleanup now</dd>
         </div>
       </dl>
-      <p class="admin-health__hint">
-        Jobs run inside the web server (Puma's Solid Queue plugin), so when nightly jobs stall,
-        restarting the app restarts the worker.
-      </p>
+      <h3 class="admin-health__server-heading">When nightly jobs stall</h3>
+      <%# Steps 1 and 2 hold however the app is deployed: Solid Queue runs inside
+          Puma, and Puma's tmp_restart plugin restarts both (spec Q70). How the
+          container itself restarts lives with the deployment, not in this repo. %>
+      <ol class="admin-health__steps">
+        <li>
+          <p>Check a worker is reporting. Nothing listed, or nothing in the last <%= SolidQueue.process_alive_threshold.in_minutes.to_i %> minutes, means it is down or stuck:</p>
+          <code>bin/rails runner 'puts SolidQueue::Process.pluck(:kind, :hostname, :last_heartbeat_at)'</code>
+        </li>
+        <li>
+          <p>Restart it in place, inside the app container. This restarts Puma, and Puma restarts the worker:</p>
+          <code>bin/rails restart</code>
+        </li>
+        <li><p>Still stalled? Restart the app container itself, the way your platform restarts it.</p></li>
+      </ol>
     </div>
   </details>
 </div>

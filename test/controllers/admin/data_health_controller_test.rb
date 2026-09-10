@@ -67,6 +67,10 @@ class Admin::DataHealthControllerTest < ActionDispatch::IntegrationTest
     cleanup = schedule.index { it.start_with?("Cleanup scenarios") }
     assert_operator sweep, :<, cleanup, "the sweep settles runs so cleanup can collect them"
     assert_includes schedule, "Sweep idle scenarios Daily at 02:00"
+    assert_select "details#server ol.admin-health__steps > li", 3
+    assert_select "details#server ol.admin-health__steps code",
+                  text: "bin/rails runner 'puts SolidQueue::Process.pluck(:kind, :hostname, :last_heartbeat_at)'"
+    assert_select "details#server ol.admin-health__steps code", text: "bin/rails restart"
   end
 
   test "non-admin is redirected from data health page" do

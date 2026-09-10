@@ -821,6 +821,25 @@ a.admin-group__name:hover {
   border-bottom: 1px solid var(--color-border);
 }
 
+.admin-health__steps {
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-5);
+  font-size: var(--text-sm);
+}
+
+.admin-health__steps > li {
+  margin-bottom: var(--space-2);
+}
+
+.admin-health__steps p {
+  margin: 0 0 var(--space-1);
+  color: var(--color-ink-muted);
+}
+
+.admin-health__steps code {
+  overflow-wrap: anywhere;
+}
+
 .admin-health code,
 .admin-disclosure__pre {
   font-family: var(--font-mono);
