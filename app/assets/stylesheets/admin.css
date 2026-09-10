@@ -740,6 +740,18 @@ a.admin-group__name:hover {
    job they act on — the same reason the Overview's rows align to the top. */
 .admin-health__list > .list-row {
   align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* Retry and Discard never shrink, so at phone width they held a column beside
+   a failed job and squeezed its error to a word a line. Once the job's text
+   would fall below 16rem the actions drop under it, keeping the row's end. */
+.admin-health__list .list-row__body {
+  flex: 1 1 16rem;
+}
+
+.admin-health__list .list-row__actions {
+  margin-inline-start: auto;
 }
 
 /* .stat-panel__grid assumes four cells (two at tablet width). A panel of two
