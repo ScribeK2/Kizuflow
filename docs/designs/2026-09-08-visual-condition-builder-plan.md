@@ -631,7 +631,7 @@ this.hideNumericInput()
 this.showKeepAsWritten(condition)
 ```
 
-`parseCondition` (same shapes as `visual_condition_controller.js`, do not import that file):
+`parseCondition` (same shapes as the deleted `visual_condition_controller.js`, whose last version the design doc shows how to read):
 
 ```javascript
 parseCondition(condition) {

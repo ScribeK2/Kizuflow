@@ -876,7 +876,7 @@ For page types not covered by a recipe, read these exemplary views. They demonst
 | `runner.css` | modules | The Scenario + Player runner: answer cards, the runner thread, step content box |
 | `scenarios.css` | modules | Scenario **results** page only — the runner half lives in `runner.css` |
 | `steps.css` | modules | Step editor styles |
-| `editor.css` | modules | Grab bag, and mis-described here for a long time: it is not the Lexxy editor. It holds the step palette, template cards, condition tokens, autosave status and collab presence. The visual-editor chrome it also carried was deleted 2026-08-29 |
+| `editor.css` | modules | Grab bag, and mis-described here for a long time: it is not the Lexxy editor. It holds the button spinner, autosave status, collaboration presence, empty-state text, the inline step creator, the step outline wrapper, the step editor's two-column layout and a flow preview section. The visual-editor chrome it also carried was deleted 2026-08-29, and the CSS of the unmounted Stimulus controllers (template cards, condition tokens, branch and step pickers, variable autocomplete) on 2026-09-10 |
 | `transitions.css` | modules | Transition editor |
 | `dashboard.css` | modules | Dashboard shell: `.dashboard-*`, `.stat-panel`/`.stat-cell` |
 | `auth.css` | modules | Login/signup pages |

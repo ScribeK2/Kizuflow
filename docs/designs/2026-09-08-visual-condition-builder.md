@@ -8,7 +8,7 @@
 
 A connection’s condition is almost always “if they answered X, go here.” Presets already do that in one click for this step’s Yes/No and option values. Custom exists for everything else — another question’s answer, *is not*, a number — and today that means typing the engine dialect.
 
-That dialect is small (`ConditionEvaluator`: `variable == 'value'`, `!=`, numeric `>`, `>=`, `<`, `<=`). Typing it is the thinking click. The leftover `visual_condition_controller.js` already described the sentence, but it looks for `.step-item` from the deleted visual editor and is not rendered.
+That dialect is small (`ConditionEvaluator`: `variable == 'value'`, `!=`, numeric `>`, `>=`, `<`, `<=`). Typing it is the thinking click. The leftover `visual_condition_controller.js` already described the sentence, but it looks for `.step-item` from the deleted visual editor and is not rendered. It was deleted on 2026-09-10 with the other unmounted controllers; read its last version with `git show "$(git log -1 --format=%H --diff-filter=D -- app/javascript/controllers/visual_condition_controller.js)^:app/javascript/controllers/visual_condition_controller.js"`.
 
 ## Locked decisions
 
@@ -67,7 +67,7 @@ A question with no `variable_name` yet does not appear. The author names it (alr
 
 - AND / OR. The engine cannot evaluate them.
 - Action output fields as variables.
-- Resurrect `visual_condition_controller.js` as the live controller. Steal parse/write patterns if useful; do not wire it. It still queries `.step-item`.
+- Resurrect `visual_condition_controller.js` as the live controller. Steal parse/write patterns from its last version if useful (deleted 2026-09-10; see the command above); do not bring the file back.
 - Diagram-as-editor, a second connection UI, or a raw-expression field in the happy path.
 - Changing `ConditionEvaluator` or run semantics.
 

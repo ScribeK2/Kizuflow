@@ -34,47 +34,6 @@
 }
 
 /* ============================================================================
-   Condition Preview (visual condition builder display)
-   ============================================================================ */
-
-.condition-preview {
-  margin-top: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background: var(--color-canvas-raised);
-  border-radius: var(--radius);
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  color: var(--color-ink);
-}
-
-.condition-preview__label {
-  color: var(--color-ink-muted);
-  margin-right: 0.25rem;
-}
-
-.condition-token--variable {
-  color: var(--color-primary-text);
-  font-weight: 600;
-}
-
-.condition-token--operator {
-  color: var(--color-ink-subtle);
-}
-
-.condition-token--value {
-  color: var(--color-positive);
-  font-weight: 600;
-}
-
-[data-theme="dark"] .condition-token--variable {
-  color: var(--color-primary-text);
-}
-
-[data-theme="dark"] .condition-token--value {
-  color: var(--color-positive);
-}
-
-/* ============================================================================
    Collaboration Presence Indicator
    ============================================================================ */
 
