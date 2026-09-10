@@ -84,8 +84,7 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     private_workflow = Workflow.create!(
       title: "Private Workflow",
-      user: @user,
-      is_public: false
+      user: @user
     )
 
     assert private_workflow.can_be_viewed_by?(admin)
@@ -100,27 +99,22 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     own_workflow = Workflow.create!(
       title: "My Workflow",
-      user: editor,
-      is_public: false
+      user: editor
     )
 
     assert own_workflow.can_be_viewed_by?(editor)
   end
 
-  test "can_be_viewed_by? should allow editor to view public workflows" do
+  test "can_be_viewed_by? should allow editor to view Global workflows" do
     editor = User.create!(
       email: "editor@test.com",
       password: "password123!",
       password_confirmation: "password123!",
       role: "editor"
     )
-    public_workflow = Workflow.create!(
-      title: "Public Workflow",
-      user: @user,
-      is_public: true
-    )
+    global_workflow = file_in_global(Workflow.create!(title: "Global Workflow", user: @user))
 
-    assert public_workflow.can_be_viewed_by?(editor)
+    assert global_workflow.can_be_viewed_by?(editor)
   end
 
   test "can_be_viewed_by? should not allow editor to view other user's private workflows" do
@@ -132,28 +126,23 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     other_workflow = Workflow.create!(
       title: "Other User's Workflow",
-      user: @user,
-      is_public: false
+      user: @user
     )
     GroupWorkflow.create!(group: Group.create!(name: "Not The Editor's"), workflow: other_workflow, is_primary: true)
 
     assert_not other_workflow.can_be_viewed_by?(editor)
   end
 
-  test "can_be_viewed_by? should allow user to view public workflows" do
+  test "can_be_viewed_by? should allow user to view Global workflows" do
     regular_user = User.create!(
       email: "user@test.com",
       password: "password123!",
       password_confirmation: "password123!",
       role: "user"
     )
-    public_workflow = Workflow.create!(
-      title: "Public Workflow",
-      user: @user,
-      is_public: true
-    )
+    global_workflow = file_in_global(Workflow.create!(title: "Global Workflow", user: @user))
 
-    assert public_workflow.can_be_viewed_by?(regular_user)
+    assert global_workflow.can_be_viewed_by?(regular_user)
   end
 
   test "can_be_viewed_by? should not allow user to view private workflows" do
@@ -165,8 +154,7 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     private_workflow = Workflow.create!(
       title: "Private Workflow",
-      user: @user,
-      is_public: false
+      user: @user
     )
 
     assert_not private_workflow.can_be_viewed_by?(regular_user)
@@ -181,8 +169,7 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     workflow = Workflow.create!(
       title: "Any Workflow",
-      user: @user,
-      is_public: false
+      user: @user
     )
 
     assert workflow.can_be_edited_by?(admin)
@@ -197,8 +184,7 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     own_workflow = Workflow.create!(
       title: "My Workflow",
-      user: editor,
-      is_public: false
+      user: editor
     )
 
     assert own_workflow.can_be_edited_by?(editor)
@@ -213,8 +199,7 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     other_workflow = Workflow.create!(
       title: "Other User's Workflow",
-      user: @user,
-      is_public: true
+      user: @user
     )
 
     assert_not other_workflow.can_be_edited_by?(editor)
@@ -229,8 +214,7 @@ class WorkflowTest < ActiveSupport::TestCase
     )
     workflow = Workflow.create!(
       title: "Any Workflow",
-      user: @user,
-      is_public: true
+      user: @user
     )
 
     assert_not workflow.can_be_edited_by?(regular_user)
@@ -272,8 +256,8 @@ class WorkflowTest < ActiveSupport::TestCase
       password_confirmation: "password123!",
       role: "admin"
     )
-    workflow1 = Workflow.create!(title: "Private", user: @user, is_public: false)
-    workflow2 = Workflow.create!(title: "Public", user: @user, is_public: true)
+    workflow1 = Workflow.create!(title: "Private", user: @user)
+    workflow2 = Workflow.create!(title: "Public", user: @user)
 
     visible = Workflow.visible_to(admin)
 
@@ -281,52 +265,40 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_includes visible.map(&:id), workflow2.id
   end
 
-  test "visible_to scope should return own + public for editor" do
+  test "visible_to scope should return own + Global for editor" do
     editor = User.create!(
       email: "editor@test.com",
       password: "password123!",
       password_confirmation: "password123!",
       role: "editor"
     )
-    own_private = Workflow.create!(title: "My Private", user: editor, is_public: false)
-    own_public = Workflow.create!(title: "My Public", user: editor, is_public: true)
-    other_private = Workflow.create!(title: "Other Private", user: @user, is_public: false)
-    other_public = Workflow.create!(title: "Other Public", user: @user, is_public: true)
+    own_unfiled = Workflow.create!(title: "My Unfiled", user: editor)
+    own_global = file_in_global(Workflow.create!(title: "My Global", user: editor))
+    other_unfiled = Workflow.create!(title: "Other Unfiled", user: @user)
+    other_global = file_in_global(Workflow.create!(title: "Other Global", user: @user))
 
     visible = Workflow.visible_to(editor)
 
-    assert_includes visible.map(&:id), own_private.id
-    assert_includes visible.map(&:id), own_public.id
-    assert_includes visible.map(&:id), other_public.id
-    assert_not_includes visible.map(&:id), other_private.id
+    assert_includes visible.map(&:id), own_unfiled.id
+    assert_includes visible.map(&:id), own_global.id
+    assert_includes visible.map(&:id), other_global.id
+    assert_not_includes visible.map(&:id), other_unfiled.id
   end
 
-  test "visible_to scope should return only public for user" do
+  test "visible_to scope should return only Global for a user in no group" do
     regular_user = User.create!(
       email: "user@test.com",
       password: "password123!",
       password_confirmation: "password123!",
       role: "user"
     )
-    private_workflow = Workflow.create!(title: "Private", user: @user, is_public: false)
-    public_workflow = Workflow.create!(title: "Public", user: @user, is_public: true)
+    unfiled_workflow = Workflow.create!(title: "Unfiled", user: @user)
+    global_workflow = file_in_global(Workflow.create!(title: "Global", user: @user))
 
     visible = Workflow.visible_to(regular_user)
 
-    assert_not_includes visible.map(&:id), private_workflow.id
-    assert_includes visible.map(&:id), public_workflow.id
-  end
-
-  test "public_workflows scope should return only public workflows" do
-    public1 = Workflow.create!(title: "Public 1", user: @user, is_public: true)
-    public2 = Workflow.create!(title: "Public 2", user: @user, is_public: true)
-    private_workflow = Workflow.create!(title: "Private", user: @user, is_public: false)
-
-    public_workflows = Workflow.public_workflows
-
-    assert_includes public_workflows.map(&:id), public1.id
-    assert_includes public_workflows.map(&:id), public2.id
-    assert_not_includes public_workflows.map(&:id), private_workflow.id
+    assert_not_includes visible.map(&:id), unfiled_workflow.id
+    assert_includes visible.map(&:id), global_workflow.id
   end
 
   # Group association tests
@@ -419,7 +391,7 @@ class WorkflowTest < ActiveSupport::TestCase
       password_confirmation: "password123!"
     )
     group = Group.create!(name: "Assigned Group")
-    workflow = Workflow.create!(title: "Group Workflow", user: @user, is_public: false)
+    workflow = Workflow.create!(title: "Group Workflow", user: @user)
 
     GroupWorkflow.create!(group: group, workflow: workflow, is_primary: true)
     UserGroup.create!(group: group, user: user)
@@ -435,27 +407,28 @@ class WorkflowTest < ActiveSupport::TestCase
       password: "password123!",
       password_confirmation: "password123!"
     )
-    workflow = Workflow.create!(title: "Workflow Without Groups", user: @user, is_public: false)
+    workflow = Workflow.create!(title: "Workflow Without Groups", user: @user)
 
     visible = Workflow.visible_to(user)
 
     assert_not_includes visible.map(&:id), workflow.id
   end
 
-  test "visible_to scope should always include public workflows regardless of groups" do
+  test "visible_to scope should include a Global workflow for a user outside its other groups" do
     user = User.create!(
       email: "user@test.com",
       password: "password123!",
       password_confirmation: "password123!"
     )
     group = Group.create!(name: "Other Group")
-    public_workflow = Workflow.create!(title: "Public Workflow", user: @user, is_public: true)
+    global_workflow = Workflow.create!(title: "Global Workflow", user: @user)
 
-    GroupWorkflow.create!(group: group, workflow: public_workflow, is_primary: true)
+    GroupWorkflow.create!(group: group, workflow: global_workflow, is_primary: true)
+    file_in_global(global_workflow)
 
     visible = Workflow.visible_to(user)
 
-    assert_includes visible.map(&:id), public_workflow.id
+    assert_includes visible.map(&:id), global_workflow.id
   end
 
   # can_resolve tests (AR Step model — boolean column handles casting natively)

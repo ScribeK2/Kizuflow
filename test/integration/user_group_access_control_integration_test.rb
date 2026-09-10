@@ -20,8 +20,8 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     )
     @group1 = Group.create!(name: "Group 1")
     @group2 = Group.create!(name: "Group 2")
-    @workflow1 = Workflow.create!(title: "Workflow 1", user: @admin, is_public: false)
-    @workflow2 = Workflow.create!(title: "Workflow 2", user: @admin, is_public: false)
+    @workflow1 = Workflow.create!(title: "Workflow 1", user: @admin)
+    @workflow2 = Workflow.create!(title: "Workflow 2", user: @admin)
 
     GroupWorkflow.create!(group: @group1, workflow: @workflow1, is_primary: true)
     GroupWorkflow.create!(group: @group2, workflow: @workflow2, is_primary: true)
@@ -106,9 +106,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     )
     parent = Group.create!(name: "Parent")
     child = Group.create!(name: "Child", parent: parent)
-    workflow = Workflow.create!(title: "Child Workflow", user: @admin, is_public: true)
-
-    workflow.group_workflows.destroy_all
+    workflow = Workflow.create!(title: "Child Workflow", user: @admin)
     GroupWorkflow.create!(group: child, workflow: workflow, is_primary: true)
 
     UserGroup.create!(group: parent, user: editor)
@@ -120,22 +118,19 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
     assert_match "Child Workflow", response.body
   end
 
-  test "public workflows remain accessible to editors regardless of group assignment" do
+  test "Global workflows are visible to editors in no group" do
     editor = User.create!(
       email: "editor-access4-#{SecureRandom.hex(4)}@example.com",
       password: "password123!",
       password_confirmation: "password123!",
       role: "editor"
     )
-    public_workflow = Workflow.create!(title: "Public Workflow", user: @admin, is_public: true)
+    file_in_global(Workflow.create!(title: "Global Workflow", user: @admin))
 
-    public_workflow.group_workflows.destroy_all
-    GroupWorkflow.create!(group: @group2, workflow: public_workflow, is_primary: true)
-
-    sign_in editor # Editor not assigned to group2
+    sign_in editor
     get workflows_path
 
     assert_response :success
-    assert_match "Public Workflow", response.body
+    assert_match "Global Workflow", response.body
   end
 end

@@ -209,8 +209,7 @@ class WorkflowsController < ApplicationController
     # lock_version is used for optimistic locking to prevent race conditions
     # graph_mode is for DAG-based workflows
     # Steps are managed via AR Step records, not workflow params
-    params.expect(workflow: %i[title description is_public lock_version
-                               graph_mode embed_enabled])
+    params.expect(workflow: %i[title description lock_version graph_mode embed_enabled])
   end
 
   # Parse transitions_json from form submissions into proper transitions array.

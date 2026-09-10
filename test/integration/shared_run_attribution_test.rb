@@ -24,7 +24,7 @@ class SharedRunAttributionTest < ActionDispatch::IntegrationTest
       password: "password123!", password_confirmation: "password123!", role: "editor"
     )
     @workflow = Workflow.create!(title: "Shared #{SecureRandom.hex(3)}", user: @owner,
-                                 graph_mode: true, is_public: true)
+                                 graph_mode: true)
     question = Steps::Question.create!(workflow: @workflow, position: 0, title: "Q1",
                                        question: "What?", variable_name: "q1")
     resolve = Steps::Resolve.create!(workflow: @workflow, position: 1, title: "Done",

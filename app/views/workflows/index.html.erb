@@ -99,7 +99,7 @@
             <% elsif @status_filter == "published" %>
               Nothing published yet. A workflow appears here once it is published.
             <% else %>
-              <%= current_user&.can_edit_workflows? ? "Get started by creating a new workflow." : "No public workflows available at the moment." %>
+              <%= current_user&.can_edit_workflows? ? "Get started by creating a new workflow." : "No workflows have been shared with you yet." %>
             <% end %>
           </p>
           <% if current_user&.can_create_workflows? %>

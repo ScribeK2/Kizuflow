@@ -13,7 +13,7 @@ class Workflows::PinsControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    @workflow = Workflow.create!(title: "Pinnable Flow", user: @editor, is_public: true)
+    @workflow = file_in_global(Workflow.create!(title: "Pinnable Flow", user: @editor))
     sign_in @user
   end
 
@@ -45,11 +45,11 @@ class Workflows::PinsControllerTest < ActionDispatch::IntegrationTest
 
   test "create respects pin limit" do
     UserWorkflowPin::MAX_PINS.times do |i|
-      wf = Workflow.create!(title: "Flow #{i}", user: @editor, is_public: true)
+      wf = file_in_global(Workflow.create!(title: "Flow #{i}", user: @editor))
       UserWorkflowPin.create!(user: @user, workflow: wf)
     end
 
-    extra_wf = Workflow.create!(title: "Over Limit", user: @editor, is_public: true)
+    extra_wf = file_in_global(Workflow.create!(title: "Over Limit", user: @editor))
     assert_no_difference "UserWorkflowPin.count" do
       post workflow_pin_path(extra_wf)
     end

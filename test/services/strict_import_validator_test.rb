@@ -560,7 +560,7 @@ class StrictImportValidatorTest < ActiveSupport::TestCase
       password: "password123!", password_confirmation: "password123!", role: "editor"
     )
     hidden = stranger.workflows.create!(title: "SF Target #{SecureRandom.hex(3)}",
-                                        status: "published", is_public: false)
+                                        status: "published")
     Group.create!(name: "Strict Group #{SecureRandom.hex(3)}").tap do |g|
       hidden.replace_groups!([g.id])
     end

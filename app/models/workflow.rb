@@ -1,4 +1,8 @@
 class Workflow < ApplicationRecord
+  # Retired into Global (spec Q48). The column stays until the release that
+  # drops it; ignoring it makes any code still reading it fail loudly.
+  self.ignored_columns += ["is_public"]
+
   include WorkflowAuthorization
   include WorkflowNormalization
   include StepTypeIcons
@@ -75,7 +79,6 @@ class Workflow < ApplicationRecord
   enum :status, { draft: "draft", published: "published" }, default: "published"
 
   scope :recent, -> { order(created_at: :desc) }
-  scope :public_workflows, -> { where(is_public: true) }
 
   # Draft workflow scopes
   scope :drafts, -> { draft }
@@ -99,20 +102,6 @@ class Workflow < ApplicationRecord
          .where.not(id: Step.select(:workflow_id).distinct)
   }
 
-  # Get workflows visible to a specific user
-  # Admins see all, Editors see own + public, Users see only public
-  # Also respects group membership: users see workflows in their assigned groups
-  # Handles workflows without groups gracefully (they're accessible to everyone)
-  #
-  # Access Control Rules:
-  # - Admins: See all workflows regardless of group assignment
-  # - Editors: See their own workflows + all public workflows + workflows in assigned groups
-  # - Regular users: See public workflows + workflows in assigned groups only
-  # - Drafts: Excluded from main workflow list (only accessible via wizard routes)
-  #
-  # Group Access:
-  # - Users assigned to a parent group can see workflows in child groups
-  # - Workflows are visible if user is assigned to any group containing the workflow
   # The draft counterpart to visible_to.
   #
   # visible_to answers "which published workflows may this person see", and its
@@ -124,7 +113,7 @@ class Workflow < ApplicationRecord
   # page that cheerfully reported the real total.
   #
   # Deliberately narrower than visible_to for non-admins: a draft is unpublished
-  # work, so group membership and `is_public` do not share it. An editor sees
+  # work, so group membership does not share it. An editor sees
   # their own and nobody else's.
   scope :drafts_visible_to, lambda { |user|
     if user&.admin?
@@ -136,39 +125,25 @@ class Workflow < ApplicationRecord
     end
   }
 
+  # Published workflows this person may see.
+  #
+  # - Admins: all of them.
+  # - Everyone else: those filed in a group they reach — their groups, those
+  #   groups' subgroups, and Global (Group.reachable_ids_for).
+  # - Editors also see their own, filed or not.
+  # - Nobody signed in: none. A share link grants a run, not a listing.
+  #
+  # So a published workflow with no groups is visible only to admins and its
+  # owner (spec Q47). Every editor used to see those, and a Public flag cut
+  # across all of it; Global replaced both. WorkflowAuthorization#can_be_viewed_by?
+  # is the same rule for one record — workflow_audience_test.rb holds them together.
   scope :visible_to, lambda { |user|
-    # Exclude drafts from main workflow list
-    base_scope = published
+    return none unless user
+    return published if user.admin?
 
-    if user&.admin?
-      # Admins see all workflows
-      base_scope
-    elsif user&.editor?
-      # Editors see their own workflows + all public workflows + workflows in assigned groups
-      if user.groups&.any?
-        # Use optimized single-query method to get all accessible group IDs
-        accessible_group_ids = Group.accessible_group_ids_for(user)
-        # Use subquery to avoid DISTINCT on JSONB column - select only ID for distinct operation
-        distinct_ids = base_scope.left_joins(:groups)
-                                 .where("workflows.user_id = ? OR workflows.is_public = ? OR groups.id IN (?) OR groups.id IS NULL",
-                                        user.id, true, accessible_group_ids)
-                                 .select("DISTINCT workflows.id")
-        base_scope.where(id: distinct_ids)
-      else
-        # No group assignments: own workflows + public workflows
-        base_scope.where(user: user).or(base_scope.where(is_public: true))
-      end
-    elsif user&.groups&.any?
-      # Regular users: See public workflows + workflows in assigned groups only
-      accessible_group_ids = Group.accessible_group_ids_for(user)
-      public_workflows = base_scope.where(is_public: true)
-      group_workflows = base_scope.joins(:groups).where(groups: { id: accessible_group_ids })
-      base_scope.where(id: public_workflows.select(:id))
-                .or(base_scope.where(id: group_workflows.select(:id)))
-    else
-      # No group assignments: only public workflows
-      base_scope.where(is_public: true)
-    end
+    filed_ids = GroupWorkflow.where(group_id: Group.reachable_ids_for(user)).select(:workflow_id)
+    filed = published.where(id: filed_ids)
+    user.editor? ? filed.or(published.where(user: user)) : filed
   }
 
   # Filter workflows by group (includes workflows in descendant groups)
@@ -288,6 +263,16 @@ class Workflow < ApplicationRecord
       group_workflows.detect(&:is_primary?)&.group || group_workflows.first&.group
     else
       group_workflows.find_by(is_primary: true)&.group || groups.first
+    end
+  end
+
+  # Filed in Global, so everyone signed in can see it. Reads preloaded
+  # group_workflows: :group when the list has them, as WorkflowsFilter does.
+  def in_global?
+    if group_workflows.loaded? && group_workflows.all? { it.association(:group).loaded? }
+      group_workflows.any? { it.group.global? }
+    else
+      groups.merge(Group.global).exists?
     end
   end
 

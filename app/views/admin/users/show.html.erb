@@ -65,7 +65,7 @@
         <% if @user.admin? %>
           Administrators see every workflow whatever their groups.
         <% else %>
-          A Regular or Editor account sees public workflows and the workflows in these groups. Membership of a group covers its subgroups.
+          A Regular or Editor account sees Global workflows and the workflows in these groups. Membership of a group covers its subgroups.
         <% end %>
       </p>
       <%= form_with url: update_groups_admin_user_path(@user), method: :patch do %>

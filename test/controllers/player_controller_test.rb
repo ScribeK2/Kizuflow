@@ -13,7 +13,7 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
       password: "password123!",
       password_confirmation: "password123!"
     )
-    @workflow = Workflow.create!(title: "Player Flow", user: @admin, status: "published", is_public: true)
+    @workflow = file_in_global(Workflow.create!(title: "Player Flow", user: @admin, status: "published"))
     step = Steps::Resolve.create!(
       workflow: @workflow,
       title: "Done",
@@ -123,7 +123,7 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
 
   test "player index omits the version when a workflow has none" do
     unversioned = Workflow.create!(title: "No Versions Yet", user: @admin,
-                                   status: "published", is_public: true)
+                                   status: "published")
     step = Steps::Resolve.create!(workflow: unversioned, title: "Done",
                                   uuid: SecureRandom.uuid, position: 0,
                                   resolution_type: "success")
@@ -137,7 +137,7 @@ class PlayerControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "player index omits untitled published workflows" do
-    untitled = Workflow.create!(title: "Untitled Workflow", user: @admin, status: "published", is_public: true)
+    untitled = Workflow.create!(title: "Untitled Workflow", user: @admin, status: "published")
     Steps::Resolve.create!(workflow: untitled, title: "Done", uuid: SecureRandom.uuid, position: 0, resolution_type: "success")
     WorkflowPublisher.publish(untitled, @admin)
 

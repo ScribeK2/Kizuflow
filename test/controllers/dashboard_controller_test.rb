@@ -62,7 +62,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "CSR sees pinned workflows section when pins exist" do
     editor = User.create!(email: "editor-#{SecureRandom.hex(4)}@example.com", password: "password123!", password_confirmation: "password123!", role: "editor")
-    workflow = Workflow.create!(title: "Pinned WF", user: editor, is_public: true)
+    workflow = file_in_global(Workflow.create!(title: "Pinned WF", user: editor))
     UserWorkflowPin.create!(user: @user, workflow: workflow)
 
     get root_path
@@ -80,7 +80,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     # With pins => one row per pin, plus a single trailing prompt row
     editor = User.create!(email: "editor-#{SecureRandom.hex(4)}@example.com", password: "password123!", password_confirmation: "password123!", role: "editor")
     2.times do |i|
-      wf = Workflow.create!(title: "WF #{i}", user: editor, is_public: true)
+      wf = file_in_global(Workflow.create!(title: "WF #{i}", user: editor))
       UserWorkflowPin.create!(user: @user, workflow: wf)
     end
     get root_path
@@ -90,7 +90,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "CSR shows Recently Run section with re-run buttons" do
     editor = User.create!(email: "editor-#{SecureRandom.hex(4)}@example.com", password: "password123!", password_confirmation: "password123!", role: "editor")
-    workflow = Workflow.create!(title: "Triage Flow", user: editor, is_public: true)
+    workflow = file_in_global(Workflow.create!(title: "Triage Flow", user: editor))
     Scenario.create!(workflow: workflow, user: @user, purpose: "live", status: "completed")
 
     get root_path

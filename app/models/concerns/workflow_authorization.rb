@@ -1,117 +1,57 @@
-# Handles authorization logic for workflows.
-# Determines who can view, edit, and delete workflows based on user roles and group membership.
+# Who may view, edit and delete a workflow. Workflow.visible_to is the viewing
+# rule as a query; the two must agree (test/models/workflow_audience_test.rb).
 module WorkflowAuthorization
   extend ActiveSupport::Concern
 
-  # Check if a user can view this workflow
-  #
-  # Access rules:
-  # - Admins: can view all workflows
-  # - Editors: can view own workflows, public workflows, or workflows in assigned groups
-  # - Users: can view public workflows or workflows in assigned groups
-  #
-  # @param user [User] The user to check access for
-  # @return [Boolean] True if user can view this workflow
+  # - Admins: every workflow.
+  # - Editors: their own, and any filed in a group they reach.
+  # - Regular users: any filed in a group they reach.
+  # A group they reach is one of theirs, a subgroup of one, or Global.
   def can_be_viewed_by?(user)
     return false unless user
-
-    # Admins can view all workflows
     return true if user.admin?
+    return true if user.editor? && user == self.user
 
-    # Editors can view their own workflows + public workflows + workflows in assigned groups
-    if user.editor?
-      return true if user == self.user
-      return true if is_public?
-
-      # Check if workflow is in user's assigned groups
-      group_ids = cached_accessible_group_ids(user)
-      if group_ids.any? && workflow_in_groups?(group_ids)
-        return true
-      end
-      return true if workflow_has_no_groups? # Workflows without groups (backward compatibility)
-
-      return false
-    end
-
-    # Regular users: can view public workflows + workflows in assigned groups only
-    return true if is_public?
-
-    # Check if workflow is in user's assigned groups
-    group_ids = cached_accessible_group_ids(user)
-    return true if group_ids.any? && workflow_in_groups?(group_ids)
-
-    false
+    workflow_in_groups?(cached_reachable_group_ids(user))
   end
 
-  # Check if a user can edit this workflow
-  #
-  # Access rules:
-  # - Admins: can edit all workflows
-  # - Editors: can edit own workflows or public workflows created by other editors
-  # - Users: cannot edit workflows
-  #
-  # @param user [User] The user to check access for
-  # @return [Boolean] True if user can edit this workflow
+  # - Admins: every workflow.
+  # - Editors: their own, and Global workflows another editor owns (spec Q51,
+  #   what Public used to allow). A Global workflow an admin owns stays theirs.
+  # - Regular users: none.
   def can_be_edited_by?(user)
     return false unless user
-
-    # Admins can edit all workflows
     return true if user.admin?
+    return false unless user.editor?
 
-    # Editors can edit their own workflows or public workflows created by other editors
-    if user.editor?
-      return true if user == self.user
-      return true if is_public? && self.user.editor?
-    end
-
-    false
+    user == self.user || (self.user.editor? && in_global?)
   end
 
-  # Check if a user can delete this workflow
-  #
-  # Access rules:
-  # - Admins: can delete all workflows
-  # - Editors: can only delete their own workflows
-  # - Users: cannot delete workflows
-  #
-  # @param user [User] The user to check access for
-  # @return [Boolean] True if user can delete this workflow
+  # - Admins: every workflow.
+  # - Editors: only their own.
+  # - Regular users: none.
   def can_be_deleted_by?(user)
     return false unless user
-
-    # Admins can delete all workflows
     return true if user.admin?
 
-    # Editors can only delete their own workflows
     user.editor? && user == self.user
   end
 
   private
 
-  # Cache accessible group IDs on the user to avoid repeated queries
-  # when checking multiple workflows for the same user
-  def cached_accessible_group_ids(user)
-    user.instance_variable_get(:@_accessible_group_ids) ||
-      user.instance_variable_set(:@_accessible_group_ids, Group.accessible_group_ids_for(user))
+  # Cached on the user so a list of workflows costs one lookup, not one per row.
+  def cached_reachable_group_ids(user)
+    user.instance_variable_get(:@_reachable_group_ids) ||
+      user.instance_variable_set(:@_reachable_group_ids, Group.reachable_ids_for(user).to_set)
   end
 
-  # Check if workflow belongs to any of the given group IDs,
-  # using in-memory check when associations are eager-loaded
-  def workflow_in_groups?(accessible_group_ids)
-    if group_workflows.loaded?
-      accessible_set = accessible_group_ids.is_a?(Set) ? accessible_group_ids : accessible_group_ids.to_set
-      group_workflows.any? { |gw| accessible_set.include?(gw.group_id) }
-    else
-      groups.where(id: accessible_group_ids).any?
-    end
-  end
+  def workflow_in_groups?(group_ids)
+    return false if group_ids.empty?
 
-  # Check if workflow has no groups, using in-memory check when loaded
-  def workflow_has_no_groups?
     if group_workflows.loaded?
-      group_workflows.empty?
+      group_workflows.any? { |gw| group_ids.include?(gw.group_id) }
     else
-      groups.empty?
+      group_workflows.exists?(group_id: group_ids.to_a)
     end
   end
 end

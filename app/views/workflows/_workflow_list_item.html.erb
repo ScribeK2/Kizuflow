@@ -1,7 +1,7 @@
 <%# Workflow list item partial with caching
     Cache key includes: workflow, current_user, selected_group, and folders
     Busts when: workflow updated, user permissions change, group context changes, or folders change %>
-<% cache ["wf-row-v3", workflow, current_user, @selected_group, current_user&.role, @folders&.map(&:id)] do %>
+<% cache ["wf-row-v4", workflow, current_user, @selected_group, current_user&.role, @folders&.map(&:id)] do %>
   <li class="wf-list-item wf-list-item--<%= workflow.dominant_step_type || 'default' %>" style="animation-delay: <%= local_assigns[:index].to_i * 0.05 %>s;">
     <div class="wf-list-item__body">
       <div class="wf-list-item__row">
@@ -19,14 +19,17 @@
             <div class="form-hint mt-1 mb-0 flex items-center gap-2 flex-wrap">
               <span><%= pluralize(workflow.steps.size, "step") %> - Updated <%= time_ago_in_words(workflow.updated_at) %> ago</span>
               <%= workflow_status_badge(workflow) %>
-              <% if workflow.is_public? %>
-                <span class="badge" title="Public workflow">Public</span>
+              <% if workflow.in_global? %>
+                <span class="badge" title="Everyone signed in can see this">Global</span>
+              <% elsif workflow.published? && workflow.group_workflows.empty? %>
+                <span class="badge badge--warning" title="Only admins and the owner can see this until groups are chosen">No audience</span>
               <% end %>
               <% if workflow.user != current_user %>
                 <span>by <%= workflow.user.email %></span>
               <% end %>
-              <% if workflow.primary_group.present? && workflow.primary_group != @selected_group %>
-                <span class="badge"><%= workflow.primary_group.name %></span>
+              <% primary = workflow.primary_group %>
+              <% if primary.present? && primary != @selected_group && !primary.global? %>
+                <span class="badge"><%= primary.name %></span>
               <% end %>
             </div>
           </div>

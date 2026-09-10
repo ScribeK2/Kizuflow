@@ -161,8 +161,8 @@ class NavControllerTest < ActionDispatch::IntegrationTest
 
   test "search_data scopes workflows to user access" do
     other_user = users(:one)
-    Workflow.create!(title: "Public Flow", user: other_user, status: "published", is_public: true)
-    Workflow.create!(title: "Private Flow", user: other_user, status: "draft", is_public: false)
+    file_in_global(Workflow.create!(title: "Public Flow", user: other_user, status: "published"))
+    Workflow.create!(title: "Private Flow", user: other_user, status: "draft")
     Workflow.create!(title: "My Flow", user: @regular, status: "draft")
 
     sign_in @regular

@@ -86,8 +86,8 @@ class WorkflowVersionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to workflows_path
   end
 
-  test "show: regular user can view a public workflow version" do
-    @workflow.update!(is_public: true)
+  test "show: regular user can view a Global workflow version" do
+    file_in_global(@workflow)
     sign_in @regular_user
     get workflow_version_path(@workflow, @version)
     assert_response :success
@@ -121,17 +121,17 @@ class WorkflowVersionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "restore: regular user is blocked by view-level authorization" do
-    # Regular users cannot view the workflow (not public, not in an accessible group),
+    # Regular users cannot view the workflow (not in Global, not in an accessible group),
     # so ensure_can_view_workflow! fires before the edit-permission check.
     sign_in @regular_user
     post workflow_restore_version_path(@workflow, @version)
     assert_redirected_to workflows_path
   end
 
-  test "restore: regular user blocked by edit-permission check on a public workflow" do
-    # Make the workflow public so the regular user passes the view-level check,
+  test "restore: regular user blocked by edit-permission check on a Global workflow" do
+    # File the workflow in Global so the regular user passes the view-level check,
     # then confirm the restore action's edit-permission guard kicks in.
-    @workflow.update!(is_public: true)
+    file_in_global(@workflow)
     sign_in @regular_user
     post workflow_restore_version_path(@workflow, @version)
     # Regular users have no edit rights → redirected back to the workflow with alert

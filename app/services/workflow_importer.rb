@@ -79,7 +79,6 @@ class WorkflowImporter
       title: workflow_data[:title],
       description: workflow_data[:description] || "",
       graph_mode: workflow_data[:graph_mode] != false,
-      is_public: false,
       status: "draft"
     )
 
@@ -219,7 +218,6 @@ class WorkflowImporter
       title: data["title"],
       description: data["description"] || "",
       graph_mode: true,
-      is_public: false,
       status: "draft"
     )
   end

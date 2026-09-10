@@ -49,7 +49,7 @@ class User < ApplicationRecord
   }
 
   # Accounts that can sign in and see almost nothing. A Regular or Editor user
-  # with no group sees only public workflows (Workflow.visible_to), so each one is
+  # with no group sees only Global workflows (Workflow.visible_to), so each one is
   # waiting on an administrator. Admins see everything regardless, and a
   # deactivated account cannot sign in, so neither belongs here.
   scope :awaiting_groups, lambda {

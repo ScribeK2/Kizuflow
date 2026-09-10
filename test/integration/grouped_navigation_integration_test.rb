@@ -30,9 +30,6 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
       role: "editor"
     )
     UserGroup.create!(group: @parent_group, user: editor)
-    # Make workflows public so editor can see them
-    @workflow1.update!(is_public: true)
-    @workflow2.update!(is_public: true)
     sign_in editor
 
     get workflows_path, params: { group_id: @parent_group.id }
@@ -67,7 +64,7 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
       role: "editor"
     )
     other_group = Group.create!(name: "Other Group")
-    other_workflow = Workflow.create!(title: "Other Workflow", user: @admin, is_public: false)
+    other_workflow = Workflow.create!(title: "Other Workflow", user: @admin)
 
     other_workflow.group_workflows.destroy_all
     GroupWorkflow.create!(group: other_group, workflow: other_workflow, is_primary: true)
@@ -106,8 +103,6 @@ class GroupedNavigationIntegrationTest < ActionDispatch::IntegrationTest
       role: "editor"
     )
     UserGroup.create!(group: @parent_group, user: editor)
-    # Make workflow public
-    @workflow1.update!(is_public: true)
     sign_in editor
 
     get workflows_path, params: { group_id: @parent_group.id, search: "Parent" }

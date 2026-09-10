@@ -37,7 +37,7 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
 
     @editor_workflow = Workflow.create!(title: 'Editor WF', user: @editor)
     @other_editor_workflow = Workflow.create!(title: 'Other Editor WF', user: @other_editor)
-    @public_workflow = Workflow.create!(title: 'Public WF', user: @other_editor, is_public: true)
+    @global_workflow = file_in_global(Workflow.create!(title: 'Global WF', user: @other_editor))
     @grouped_workflow = Workflow.create!(title: 'Grouped WF', user: @other_editor)
     GroupWorkflow.create!(group: @group, workflow: @grouped_workflow, is_primary: true)
   end
@@ -51,7 +51,7 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
   test 'admin can view all workflows' do
     assert @editor_workflow.can_be_viewed_by?(@admin)
     assert @other_editor_workflow.can_be_viewed_by?(@admin)
-    assert @public_workflow.can_be_viewed_by?(@admin)
+    assert @global_workflow.can_be_viewed_by?(@admin)
     assert @grouped_workflow.can_be_viewed_by?(@admin)
   end
 
@@ -59,8 +59,8 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
     assert @editor_workflow.can_be_viewed_by?(@editor)
   end
 
-  test 'editor can view public workflows' do
-    assert @public_workflow.can_be_viewed_by?(@editor)
+  test 'editor can view Global workflows' do
+    assert @global_workflow.can_be_viewed_by?(@editor)
   end
 
   test 'editor can view workflows in assigned group' do
@@ -76,8 +76,13 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
     assert_not private_wf.can_be_viewed_by?(@editor)
   end
 
-  test 'regular user can view public workflows' do
-    assert @public_workflow.can_be_viewed_by?(@regular_user)
+  # Spec Q47: every editor used to see a workflow in no group.
+  test 'editor cannot view another editor workflow that has no groups' do
+    assert_not @other_editor_workflow.can_be_viewed_by?(@editor)
+  end
+
+  test 'regular user can view Global workflows' do
+    assert @global_workflow.can_be_viewed_by?(@regular_user)
   end
 
   test 'regular user can view workflows in assigned group' do
@@ -93,7 +98,7 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
   end
 
   test 'nil user cannot view any workflow' do
-    assert_not @public_workflow.can_be_viewed_by?(nil)
+    assert_not @global_workflow.can_be_viewed_by?(nil)
     assert_not @editor_workflow.can_be_viewed_by?(nil)
   end
 
@@ -102,15 +107,21 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
   test 'admin can edit all workflows' do
     assert @editor_workflow.can_be_edited_by?(@admin)
     assert @other_editor_workflow.can_be_edited_by?(@admin)
-    assert @public_workflow.can_be_edited_by?(@admin)
+    assert @global_workflow.can_be_edited_by?(@admin)
   end
 
   test 'editor can edit own workflows' do
     assert @editor_workflow.can_be_edited_by?(@editor)
   end
 
-  test 'editor can edit public workflows created by other editors' do
-    assert @public_workflow.can_be_edited_by?(@editor)
+  test 'editor can edit Global workflows created by other editors' do
+    assert @global_workflow.can_be_edited_by?(@editor)
+  end
+
+  test 'editor cannot edit a Global workflow an admin owns' do
+    admin_global = file_in_global(Workflow.create!(title: 'Admin Global WF', user: @admin))
+
+    assert_not admin_global.can_be_edited_by?(@editor)
   end
 
   test 'editor cannot edit private workflows of other editors' do
@@ -119,7 +130,7 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
 
   test 'regular user cannot edit any workflow' do
     assert_not @editor_workflow.can_be_edited_by?(@regular_user)
-    assert_not @public_workflow.can_be_edited_by?(@regular_user)
+    assert_not @global_workflow.can_be_edited_by?(@regular_user)
   end
 
   # ── can_be_deleted_by? ──
@@ -139,6 +150,6 @@ class WorkflowAuthorizationTest < ActiveSupport::TestCase
 
   test 'regular user cannot delete any workflow' do
     assert_not @editor_workflow.can_be_deleted_by?(@regular_user)
-    assert_not @public_workflow.can_be_deleted_by?(@regular_user)
+    assert_not @global_workflow.can_be_deleted_by?(@regular_user)
   end
 end

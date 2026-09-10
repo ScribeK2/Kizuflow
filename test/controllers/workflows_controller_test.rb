@@ -32,14 +32,14 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     @workflow.update_column(:start_step_id, q1.id)
     @public_workflow = Workflow.create!(
       title: "Public Workflow",
-      description: "A public workflow",
-      user: @editor,
-      is_public: true
+      description: "A Global workflow",
+      user: @editor
     )
     q2 = Steps::Question.create!(workflow: @public_workflow, position: 0, title: "Question 1", question: "What is your name?")
     r2 = Steps::Resolve.create!(workflow: @public_workflow, position: 1, title: "Done", resolution_type: "success")
     Transition.create!(step: q2, target_step: r2, position: 0)
     @public_workflow.update_column(:start_step_id, q2.id)
+    file_in_global(@public_workflow)
     sign_in @editor
   end
 
@@ -174,20 +174,6 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, @workflow.steps.count
   end
 
-  test "should update workflow with is_public flag" do
-    patch workflow_path(@workflow), params: {
-      workflow: {
-        title: @workflow.title,
-        is_public: true
-      }
-    }
-
-    assert_redirected_to workflow_path(@workflow)
-    @workflow.reload
-
-    assert_predicate @workflow, :is_public?
-  end
-
   test "should destroy workflow" do
     assert_difference("Workflow.count", -1) do
       delete workflow_path(@workflow)
@@ -302,8 +288,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "editor should not be able to edit other user's workflow" do
     other_workflow = Workflow.create!(
       title: "Other Workflow",
-      user: @admin,
-      is_public: false
+      user: @admin
     )
     sign_in @editor
     get edit_workflow_path(other_workflow)
@@ -322,8 +307,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "admin should be able to delete any workflow" do
     workflow_to_delete = Workflow.create!(
       title: "To Delete",
-      user: @editor,
-      is_public: false
+      user: @editor
     )
     sign_in @admin
     assert_difference("Workflow.count", -1) do
@@ -341,8 +325,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "editor should not be able to delete other user's workflow" do
     other_workflow = Workflow.create!(
       title: "Other Workflow",
-      user: @admin,
-      is_public: false
+      user: @admin
     )
     sign_in @editor
     assert_no_difference("Workflow.count") do
@@ -479,8 +462,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     accessible_group = Group.create!(name: "Accessible")
     inaccessible_group = Group.create!(name: "Inaccessible")
 
-    workflow1 = Workflow.create!(title: "Accessible Workflow", user: @editor, is_public: false)
-    workflow2 = Workflow.create!(title: "Inaccessible Workflow", user: @editor, is_public: false)
+    workflow1 = Workflow.create!(title: "Accessible Workflow", user: @editor)
+    workflow2 = Workflow.create!(title: "Inaccessible Workflow", user: @editor)
 
     GroupWorkflow.create!(group: accessible_group, workflow: workflow1, is_primary: true)
     GroupWorkflow.create!(group: inaccessible_group, workflow: workflow2, is_primary: true)
@@ -603,7 +586,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "index honours per_page and limits the rendered list" do
     sign_in @editor
-    10.times { |i| Workflow.create!(title: "Sizing #{i}", user: @editor, status: "published", is_public: true) }
+    10.times { |i| Workflow.create!(title: "Sizing #{i}", user: @editor, status: "published") }
 
     get workflows_path(per_page: 6)
     assert_equal 6, rendered_workflow_count
@@ -614,7 +597,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "index pagination is a three-zone bar with the summary outside the nav" do
     sign_in @editor
-    10.times { |i| Workflow.create!(title: "Zoning #{i}", user: @editor, status: "published", is_public: true) }
+    10.times { |i| Workflow.create!(title: "Zoning #{i}", user: @editor, status: "published") }
 
     get workflows_path(per_page: 6)
 
@@ -668,7 +651,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     owner = User.create!(email: "grp-own-#{SecureRandom.hex(4)}@example.com",
                          password: "password123!", password_confirmation: "password123!", role: "editor")
     group = Group.create!(name: "Hidden Group #{SecureRandom.hex(3)}")
-    hidden = Workflow.create!(title: "Not for the editor", user: owner, status: "published", is_public: false)
+    hidden = Workflow.create!(title: "Not for the editor", user: owner, status: "published")
     hidden.groups << group
 
     assert_not_includes Workflow.visible_to(editor), hidden,

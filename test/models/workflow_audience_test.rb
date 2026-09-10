@@ -30,6 +30,82 @@ class WorkflowAudienceTest < ActiveSupport::TestCase
     assert_not_includes Workflow.visible_to(@regular), workflow
   end
 
+  test "a regular user with no groups sees Global workflows" do
+    workflow = file_in_global(Workflow.create!(title: "For Everyone", user: @owner))
+
+    assert_includes Workflow.visible_to(@regular), workflow
+    assert workflow.can_be_viewed_by?(@regular)
+  end
+
+  # Spec Q47. Every editor used to see these through a "no groups" rule.
+  test "a published workflow with no groups is hidden from other editors and regular users" do
+    workflow = Workflow.create!(title: "Forgotten", user: @owner)
+
+    [create_user("editor"), @regular].each do |user|
+      assert_not_includes Workflow.visible_to(user), workflow
+      assert_not workflow.can_be_viewed_by?(user)
+    end
+  end
+
+  test "a subgroup's workflow is visible to someone in its parent group" do
+    parent = Group.create!(name: "Parent #{SecureRandom.hex(3)}")
+    child = Group.create!(name: "Child", parent: parent)
+    workflow = Workflow.create!(title: "Child Flow", user: @owner)
+    GroupWorkflow.create!(group: child, workflow: workflow, is_primary: true)
+    UserGroup.create!(user: @regular, group: parent)
+
+    assert_includes Workflow.visible_to(@regular), workflow
+    assert workflow.can_be_viewed_by?(@regular)
+  end
+
+  test "nobody signed in sees any workflow, Global included" do
+    file_in_global(Workflow.create!(title: "Global Anyway", user: @owner))
+
+    assert_empty Workflow.visible_to(nil)
+  end
+
+  # Spec Q51 — what Public used to allow, carried over to Global.
+  test "an editor may edit a Global workflow another editor owns, and nothing else of theirs" do
+    other_editor = create_user("editor")
+    group = Group.create!(name: "Shared #{SecureRandom.hex(3)}")
+    UserGroup.create!(user: other_editor, group: group)
+    global_by_editor = file_in_global(Workflow.create!(title: "Editor Global", user: @owner))
+    global_by_admin = file_in_global(Workflow.create!(title: "Admin Global", user: @admin))
+    grouped = Workflow.create!(title: "Grouped", user: @owner)
+    GroupWorkflow.create!(group: group, workflow: grouped, is_primary: true)
+
+    assert global_by_editor.can_be_edited_by?(other_editor)
+    assert_not global_by_admin.can_be_edited_by?(other_editor)
+    assert_not grouped.can_be_edited_by?(other_editor)
+    assert_not global_by_editor.can_be_edited_by?(@regular)
+  end
+
+  test "the listing and the per-workflow check agree" do
+    group = Group.create!(name: "Agree #{SecureRandom.hex(3)}")
+    elsewhere = Group.create!(name: "Elsewhere #{SecureRandom.hex(3)}")
+    UserGroup.create!(user: @regular, group: group)
+    grouped = Workflow.create!(title: "Grouped", user: @owner)
+    GroupWorkflow.create!(group: group, workflow: grouped, is_primary: true)
+    outside = Workflow.create!(title: "Outside", user: @owner)
+    GroupWorkflow.create!(group: elsewhere, workflow: outside, is_primary: true)
+    workflows = [Workflow.create!(title: "Unfiled", user: @owner),
+                 file_in_global(Workflow.create!(title: "Global", user: @owner)), grouped, outside]
+
+    [@owner, @admin, @regular, create_user("editor")].each do |user|
+      listed = Workflow.visible_to(user).where(id: workflows.map(&:id)).pluck(:id).to_set
+      workflows.each do |workflow|
+        assert_equal workflow.can_be_viewed_by?(user), listed.include?(workflow.id), "#{user.role} / #{workflow.title}"
+      end
+    end
+  end
+
+  test "in_global? reads preloaded groups without a query" do
+    workflow = file_in_global(Workflow.create!(title: "Preloaded", user: @owner))
+    loaded = Workflow.includes(group_workflows: :group).find(workflow.id)
+
+    assert_queries_count(0) { assert_predicate loaded, :in_global? }
+  end
+
   private
 
   def create_user(role)

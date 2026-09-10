@@ -64,7 +64,7 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "editor cannot move another user's private workflow" do
-    other_workflow = Workflow.create!(title: "Other's Workflow", user: @other_editor, is_public: false)
+    other_workflow = Workflow.create!(title: "Other's Workflow", user: @other_editor)
     Steps::Action.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Step 1")
     GroupWorkflow.create!(group: @group, workflow: other_workflow)
 

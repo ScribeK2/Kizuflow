@@ -143,7 +143,7 @@ class StepsControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(title: "Other WF", user: other_editor, is_public: false)
+    other_workflow = Workflow.create!(title: "Other WF", user: other_editor)
     other_step = Steps::Action.create!(workflow: other_workflow, position: 0, title: "Other Step")
 
     patch workflow_step_path(other_workflow, other_step),

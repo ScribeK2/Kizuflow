@@ -35,7 +35,6 @@ namespace :workflows do
 
     workflow = Workflow.find_or_initialize_by(title: "Ultimate External Email Client Troubleshooting")
     workflow.user = user
-    workflow.is_public = true
     workflow.status = 'published'
     workflow.description = <<~DESC
       <h2>📧 Ultimate External Email Client Troubleshooting Guide</h2>
@@ -1601,6 +1600,8 @@ namespace :workflows do
     ]
 
     if workflow.save
+      # Global replaced the Public flag: everyone signed in should find this one.
+      Group.global.first&.then { |global| GroupWorkflow.find_or_create_by!(group: global, workflow: workflow) { it.is_primary = true } }
       puts "✅ Workflow created successfully!"
       puts ""
       puts "📊 Workflow Statistics:"

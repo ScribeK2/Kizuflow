@@ -11,7 +11,7 @@ module Workflows
         password_confirmation: 'password123!',
         role: 'editor'
       )
-      @workflow = Workflow.create!(title: 'Preview Flow', user: @editor, is_public: true)
+      @workflow = Workflow.create!(title: 'Preview Flow', user: @editor)
       sign_in @editor
     end
 

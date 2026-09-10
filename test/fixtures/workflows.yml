@@ -1,31 +1,25 @@
 one:
   title: "Test Workflow One"
   user: one
-  is_public: false
 
 two:
   title: "Test Workflow Two"
   user: one
-  is_public: false
 
 three:
   title: "Other User Workflow"
   user: two
-  is_public: false
 
 public_workflow:
   title: "Public Workflow"
   user: editor_user
-  is_public: true
 
 editor_workflow:
   title: "Editor's Private Workflow"
   user: editor_user
-  is_public: false
 
 graph_mode_workflow:
   title: "Graph Mode Workflow"
   user: editor_user
-  is_public: false
   status: draft
   graph_mode: true

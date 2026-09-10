@@ -19,7 +19,7 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
       password: "password123!",
       password_confirmation: "password123!"
     )
-    @workflow = Workflow.create!(title: "Test Flow", user: @editor, is_public: true)
+    @workflow = file_in_global(Workflow.create!(title: "Test Flow", user: @editor))
   end
 
   # -- CSR detection --
@@ -97,7 +97,7 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
   end
 
   test "most_used_workflow returns hash with workflow and count" do
-    other_wf = Workflow.create!(title: "Other Flow", user: @editor, is_public: true)
+    other_wf = file_in_global(Workflow.create!(title: "Other Flow", user: @editor))
     3.times { Scenario.create!(workflow: @workflow, user: @regular, purpose: "live", status: "completed") }
     Scenario.create!(workflow: other_wf, user: @regular, purpose: "live", status: "completed")
 
@@ -191,9 +191,8 @@ class Dashboard::DataLoaderTest < ActiveSupport::TestCase
   end
 
   test "the scenario stats are scoped to workflows the viewer can open" do
-    mine = Workflow.create!(title: "Editor own", user: @editor, status: "published", is_public: true)
-    hidden = Workflow.create!(title: "Hidden from the editor", user: @admin, status: "published",
-                              is_public: false)
+    mine = Workflow.create!(title: "Editor own", user: @editor, status: "published")
+    hidden = Workflow.create!(title: "Hidden from the editor", user: @admin, status: "published")
     Group.create!(name: "Private #{SecureRandom.hex(3)}").tap { |g| hidden.groups << g }
 
     Scenario.create!(workflow: mine, user: @admin, purpose: "live", started_at: Time.current,

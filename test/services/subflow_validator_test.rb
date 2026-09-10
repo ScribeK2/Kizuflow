@@ -19,7 +19,7 @@ class SubflowValidatorTest < ActiveSupport::TestCase
   end
 
   test "valid for workflow with non-circular sub-flow" do
-    child_wf = Workflow.create!(title: "Child", user: @user, status: "published", is_public: true)
+    child_wf = Workflow.create!(title: "Child", user: @user, status: "published")
     Steps::Action.create!(workflow: child_wf, position: 0, title: "Child Action")
     parent_wf = Workflow.create!(title: "Parent", user: @user)
     Steps::SubFlow.create!(workflow: parent_wf, position: 0, title: "Call Child", sub_flow_workflow_id: child_wf.id)

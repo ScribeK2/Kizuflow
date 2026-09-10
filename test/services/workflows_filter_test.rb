@@ -14,9 +14,9 @@ class WorkflowsFilterTest < ActiveSupport::TestCase
       password_confirmation: "password123!",
       role: "editor"
     )
-    @published_wf = Workflow.create!(title: "Published Alpha", user: @editor, status: "published", is_public: true)
+    @published_wf = Workflow.create!(title: "Published Alpha", user: @editor, status: "published")
     @draft_wf = Workflow.create!(title: "Draft Beta", user: @editor, status: "draft")
-    @other_wf = Workflow.create!(title: "Other Gamma", user: @admin, status: "published", is_public: true)
+    @other_wf = file_in_global(Workflow.create!(title: "Other Gamma", user: @admin, status: "published"))
   end
 
   test "default scope returns published plus own drafts for editor" do
@@ -87,7 +87,7 @@ class WorkflowsFilterTest < ActiveSupport::TestCase
   end
 
   test "pagination calculates pages and limits results" do
-    12.times { |i| Workflow.create!(title: "Paginated #{i}", user: @admin, status: "published", is_public: true) }
+    12.times { |i| Workflow.create!(title: "Paginated #{i}", user: @admin, status: "published") }
     filter = WorkflowsFilter.new(user: @admin, params: { page: "2", per_page: "6" }).call
     assert_equal 2, filter.page
     assert_operator filter.total_pages, :>=, 2
@@ -100,7 +100,7 @@ class WorkflowsFilterTest < ActiveSupport::TestCase
   end
 
   test "per_page honours every allowlisted option" do
-    30.times { |i| Workflow.create!(title: "Sized #{i}", user: @admin, status: "published", is_public: true) }
+    30.times { |i| Workflow.create!(title: "Sized #{i}", user: @admin, status: "published") }
 
     WorkflowsFilter::PER_PAGE_OPTIONS.each do |size|
       filter = WorkflowsFilter.new(user: @admin, params: { per_page: size.to_s }).call
@@ -118,7 +118,7 @@ class WorkflowsFilterTest < ActiveSupport::TestCase
   end
 
   test "per_page changes how many pages the same result set spans" do
-    12.times { |i| Workflow.create!(title: "Spanning #{i}", user: @admin, status: "published", is_public: true) }
+    12.times { |i| Workflow.create!(title: "Spanning #{i}", user: @admin, status: "published") }
 
     small = WorkflowsFilter.new(user: @admin, params: { per_page: "6" }).call
     large = WorkflowsFilter.new(user: @admin, params: { per_page: "24" }).call
@@ -128,7 +128,7 @@ class WorkflowsFilterTest < ActiveSupport::TestCase
   end
 
   test "page is clamped to the last page when a larger size collapses the range" do
-    12.times { |i| Workflow.create!(title: "Clamped #{i}", user: @admin, status: "published", is_public: true) }
+    12.times { |i| Workflow.create!(title: "Clamped #{i}", user: @admin, status: "published") }
 
     filter = WorkflowsFilter.new(user: @admin, params: { page: "3", per_page: "24" }).call
 

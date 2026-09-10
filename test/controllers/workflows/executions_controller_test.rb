@@ -65,7 +65,7 @@ module Workflows
         password_confirmation: "password123!",
         role: "admin"
       )
-      workflow = Workflow.create!(title: "Any Workflow", user: @owner, is_public: false)
+      workflow = Workflow.create!(title: "Any Workflow", user: @owner)
       Steps::Question.create!(workflow: workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in admin
 
@@ -82,9 +82,9 @@ module Workflows
         password_confirmation: "password123!",
         role: "editor"
       )
-      own_workflow = Workflow.create!(title: "My Workflow", user: editor, is_public: false)
+      own_workflow = Workflow.create!(title: "My Workflow", user: editor)
       Steps::Question.create!(workflow: own_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
-      public_workflow = Workflow.create!(title: "Public Workflow", user: @owner, is_public: true)
+      public_workflow = file_in_global(Workflow.create!(title: "Public Workflow", user: @owner))
       Steps::Question.create!(workflow: public_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in editor
 
@@ -104,7 +104,7 @@ module Workflows
         password_confirmation: "password123!",
         role: "editor"
       )
-      private_workflow = Workflow.create!(title: "Private Workflow", user: @owner, is_public: false)
+      private_workflow = Workflow.create!(title: "Private Workflow", user: @owner)
       GroupWorkflow.create!(group: Group.create!(name: "Not The Editor's"), workflow: private_workflow, is_primary: true)
       Steps::Question.create!(workflow: private_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in editor
@@ -124,7 +124,7 @@ module Workflows
         password_confirmation: "password123!",
         role: "user"
       )
-      public_workflow = Workflow.create!(title: "Public Workflow", user: @owner, is_public: true)
+      public_workflow = Workflow.create!(title: "Public Workflow", user: @owner)
       Steps::Question.create!(workflow: public_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in regular_user
 
@@ -140,7 +140,7 @@ module Workflows
         password_confirmation: "password123!",
         role: "user"
       )
-      private_workflow = Workflow.create!(title: "Private Workflow", user: @owner, is_public: false)
+      private_workflow = Workflow.create!(title: "Private Workflow", user: @owner)
       Steps::Question.create!(workflow: private_workflow, position: 0, uuid: SecureRandom.uuid, title: "Question 1", question: "What is your name?")
       sign_in regular_user
 

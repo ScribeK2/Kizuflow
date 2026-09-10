@@ -21,7 +21,7 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user)
     Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
@@ -43,7 +43,7 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user)
     Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
@@ -65,7 +65,7 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user)
     Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,
@@ -87,7 +87,7 @@ class ScenariosControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "editor"
     )
-    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user, is_public: true)
+    other_workflow = Workflow.create!(title: "Other Workflow", user: other_user)
     Steps::Question.create!(workflow: other_workflow, position: 0, uuid: SecureRandom.uuid, title: "Q1", question: "What?")
     other_scenario = Scenario.create!(
       workflow: other_workflow,

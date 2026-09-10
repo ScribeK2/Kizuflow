@@ -14,16 +14,24 @@ class BuilderCollaborationTest < ApplicationSystemTestCase
     @editor_one = create_editor
     @editor_two = create_editor
 
-    # Editors may edit each other's public workflows, which is the real
+    # Editors may edit each other's Global workflows, which is the real
     # collaboration path — not an admin override.
-    @workflow = Workflow.create!(
-      title: "Shared Builder Workflow", user: @editor_one,
-      status: "draft", is_public: true
-    )
+    @created_global = Group.global.none?
+    @workflow = file_in_global(Workflow.create!(
+                                 title: "Shared Builder Workflow", user: @editor_one, status: "draft"
+                               ))
     @resolve = Steps::Resolve.create!(
       workflow: @workflow, title: "All done", position: 0, resolution_type: "success"
     )
     @workflow.update!(start_step: @resolve)
+  end
+
+  # System tests commit, so a Global group this test made would outlive it.
+  teardown do
+    next unless @created_global
+
+    GroupWorkflow.where(group: Group.global).delete_all
+    Group.global.delete_all
   end
 
   test "a step renamed by one editor updates live for the other" do

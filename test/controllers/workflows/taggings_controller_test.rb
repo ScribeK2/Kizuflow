@@ -11,7 +11,7 @@ module Workflows
         password_confirmation: 'password123!',
         role: 'editor'
       )
-      @workflow = Workflow.create!(title: 'Tagged Flow', user: @editor, is_public: true)
+      @workflow = Workflow.create!(title: 'Tagged Flow', user: @editor)
       @tag = Tag.create!(name: "test-tag-#{SecureRandom.hex(4)}")
       sign_in @editor
     end
