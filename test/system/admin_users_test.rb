@@ -55,7 +55,58 @@ class AdminUsersTest < ApplicationSystemTestCase
     execute_script("history.forward()")
     assert_selector "h1", text: @agent.email, wait: 5
 
-    assert_no_selector "dialog[open]"
+    assert_no_open_dialog
     assert_equal "", find("[data-password-reset-target=password]", visible: :all).text(:all)
+  end
+
+  test "bulk-assigning a group opens a modal dialog whose picker filters by path" do
+    department = Group.create!(name: "wf-system-test-dept-#{SecureRandom.hex(3)}")
+    target = Group.create!(name: "wf-system-test-emea", parent: department)
+    other = Group.create!(name: "wf-system-test-apac", parent: department)
+
+    visit admin_users_path(q: @agent.email)
+    click_on "Bulk Assign Groups"
+    find("tbody tr", text: @agent.email).find("input[type=checkbox]").check
+    within(".admin-bulk-bar") { click_on "Assign Groups" }
+
+    assert_selector "dialog[open]", wait: 3
+    within("dialog[open]") do
+      find("input.group-picker__filter").set("emea")
+      assert_no_selector "li.group-picker__option", text: other.name
+      find("li.group-picker__option", text: target.name).find("input[type=checkbox]").check
+      click_on "Assign to selected users"
+    end
+
+    assert_text "Groups assigned to 1 user(s).", wait: 5
+    assert_includes @agent.reload.groups, target
+  end
+
+  # The same Turbo snapshot trap as the password dialog above, for the bulk dialogs.
+  test "leaving with a bulk dialog open does not cache it open" do
+    visit admin_user_path(@agent)
+    execute_script("Turbo.visit(#{admin_users_path(q: @agent.email).to_json})")
+    assert_selector "turbo-frame#users-table", wait: 5
+
+    click_on "Bulk Assign Groups"
+    find("tbody tr", text: @agent.email).find("input[type=checkbox]").check
+    within(".admin-bulk-bar") { click_on "Assign Groups" }
+    assert_selector "dialog[open]", wait: 3
+
+    execute_script("history.back()")
+    assert_selector "h1", text: @agent.email, wait: 5
+    execute_script("history.forward()")
+    assert_selector "turbo-frame#users-table", wait: 5
+
+    assert_no_open_dialog
+  end
+
+  private
+
+  # The bug is the open attribute, not what is on screen. A restored
+  # <dialog open> fades in from opacity 0 (@starting-style in dialogs.css), which
+  # Selenium reports as not displayed, so a visible-only assertion passes during
+  # the fade — this one did, with the fix removed.
+  def assert_no_open_dialog
+    assert_no_selector "dialog[open]", visible: :all
   end
 end

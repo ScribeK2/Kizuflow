@@ -13,6 +13,19 @@ export default class extends Controller {
 
   connect() {
     this.bulkMode = false
+    this.beforeCache = this.beforeCache.bind(this)
+    document.addEventListener("turbo:before-cache", this.beforeCache)
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:before-cache", this.beforeCache)
+  }
+
+  // Turbo snapshots the page on the way out; a dialog still open would come back
+  // on Back/Forward as a bare <dialog open> — no backdrop, not modal.
+  beforeCache() {
+    const dialogs = [this.hasBulkModalTarget && this.bulkModalTarget, this.hasRoleModalTarget && this.roleModalTarget]
+    dialogs.forEach(dialog => { if (dialog?.open) dialog.close() })
   }
 
   // --- Bulk Mode ---
@@ -77,25 +90,34 @@ export default class extends Controller {
     })
   }
 
-  // --- Bulk dialogs ---
+  // --- Bulk dialogs (native <dialog>: Escape closes them for free) ---
 
   openBulkModal() {
     this._injectUserIds(this.bulkFormTarget)
-    this.bulkModalTarget.classList.remove("is-hidden")
+    this.updateSelectedCount()
+    this.bulkModalTarget.showModal()
+    // showModal() focuses the first control, the close button; typing to filter
+    // is what this dialog is for.
+    this.bulkModalTarget.querySelector(".group-picker__filter")?.focus()
   }
 
   closeBulkModal() {
-    this.bulkModalTarget.classList.add("is-hidden")
+    this.bulkModalTarget.close()
   }
 
   openRoleModal() {
     if (this.selectedUserIds.length === 0) return
     this._injectUserIds(this.roleFormTarget)
-    this.roleModalTarget.classList.remove("is-hidden")
+    this.roleModalTarget.showModal()
   }
 
   closeRoleModal() {
-    this.roleModalTarget.classList.add("is-hidden")
+    this.roleModalTarget.close()
+  }
+
+  // A click whose target is the <dialog> itself landed on the backdrop.
+  backdropClose(event) {
+    if (event.target === event.currentTarget) event.currentTarget.close()
   }
 
   // --- Bulk Deactivate ---

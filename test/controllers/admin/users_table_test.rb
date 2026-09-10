@@ -43,4 +43,18 @@ class Admin::UsersTableTest < ActionDispatch::IntegrationTest
     assert_equal "+1", more.text.strip
     groups.each { assert_includes more["title"], "#{parent.name} / #{it.name}" }
   end
+
+  test "the bulk dialogs are native dialogs, and assigning groups uses the path-aware picker" do
+    parent = Group.create!(name: "Bulk Parent #{SecureRandom.hex(3)}")
+    child = Group.create!(name: "Bulk Child", parent: parent)
+
+    get admin_users_path
+
+    assert_select ".dialog-overlay", 0
+    assert_select "dialog.dialog[data-admin-users-target=roleModal] form[action=?]", bulk_update_role_admin_users_path
+    assert_select "dialog.dialog[data-admin-users-target=bulkModal] form[action=?] [data-controller=group-picker]",
+                  bulk_assign_groups_admin_users_path
+    assert_select "dialog[data-admin-users-target=bulkModal] input[name='group_ids[]'][value=?]", child.id.to_s
+    assert_select "dialog[data-admin-users-target=bulkModal] .group-picker__path", text: "#{parent.name} / Bulk Child"
+  end
 end

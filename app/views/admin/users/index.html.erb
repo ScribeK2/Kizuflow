@@ -120,58 +120,30 @@
     </turbo-frame>
   </div>
 
-<%# Bulk Group Assignment Modal %>
-<div data-admin-users-target="bulkModal"
-     class="dialog-overlay is-hidden"
-     data-controller="modal">
-  <div class="dialog"
-       data-modal-target="content"
-       data-action="click->modal#stop">
-    <%= form_with url: bulk_assign_groups_admin_users_path, method: :patch, local: true, data: { admin_users_target: "bulkForm" } do |form| %>
-      <div class="dialog__header">
-        <h3 class="dialog__title">Bulk Assign Groups</h3>
-        <button type="button"
-                class="dialog__close"
-                data-action="click->admin-users#closeBulkModal">
-          <span class="sr-only">Close</span>
-          <%= icon "x-mark", class: "icon" %>
-        </button>
-      </div>
+<%# Bulk Group Assignment Dialog — native <dialog>, opened with showModal(). %>
+<dialog class="dialog" aria-labelledby="bulk-groups-title"
+        data-admin-users-target="bulkModal" data-action="click->admin-users#backdropClose">
+  <%= form_with url: bulk_assign_groups_admin_users_path, method: :patch, data: { admin_users_target: "bulkForm" } do |form| %>
+    <div class="dialog__header">
+      <h2 id="bulk-groups-title" class="dialog__title">Assign groups</h2>
+      <button type="button" class="dialog__close" data-action="admin-users#closeBulkModal">
+        <span class="sr-only">Close</span>
+        <%= icon "x-mark", class: "icon" %>
+      </button>
+    </div>
 
-      <div class="dialog__body">
-        <p class="text-sm mb-3">
-          Select groups to assign to the selected users. This will replace their existing group assignments.
-        </p>
+    <div class="dialog__body">
+      <p class="text-sm mb-2">Replaces the groups of every selected user.</p>
+      <p class="text-sm font-medium mb-3" data-admin-users-target="selectedCount">No users selected</p>
+      <%= render "admin/group_picker", nodes: @group_nodes, field_name: "group_ids[]" %>
+    </div>
 
-        <div data-admin-users-target="selectedCount" class="text-sm font-medium mb-3">
-          No users selected
-        </div>
-
-        <div class="admin-group-list">
-          <% if @all_groups.any? %>
-            <% @all_groups.roots.includes(:children).order(:position, :name).each do |root_group| %>
-              <%= render partial: "admin/users/group_checkbox", locals: { group: root_group, user: nil, level: 0 } %>
-            <% end %>
-          <% else %>
-            <div class="empty-state p-4 text-center">
-              <%= icon "folder", class: "icon icon--xl mx-auto mb-2" %>
-              <p class="text-sm">No groups available. Create groups first.</p>
-            </div>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="dialog__footer">
-        <button type="button"
-                class="btn btn--plain"
-                data-action="click->admin-users#closeBulkModal">
-          Cancel
-        </button>
-        <%= form.submit "Assign to Selected Users", class: "btn btn--primary" %>
-      </div>
-    <% end %>
-  </div>
-</div>
+    <div class="dialog__footer">
+      <button type="button" class="btn btn--plain" data-action="admin-users#closeBulkModal">Cancel</button>
+      <%= form.submit "Assign to selected users", class: "btn btn--primary" %>
+    </div>
+  <% end %>
+</dialog>
 
 <%# Bulk Action Bar (sticky bottom) %>
 <div class="admin-bulk-bar is-hidden" data-admin-users-target="bulkBar">
@@ -189,28 +161,27 @@
   </div>
 </div>
 
-<%# Bulk Role Change Modal %>
-<div data-admin-users-target="roleModal" class="dialog-overlay is-hidden" data-controller="modal">
-  <div class="dialog" data-modal-target="content" data-action="click->modal#stop">
-    <%= form_with url: bulk_update_role_admin_users_path, method: :patch, local: true, data: { admin_users_target: "roleForm" } do |form| %>
-      <div class="dialog__header">
-        <h3 class="dialog__title">Change Role</h3>
-        <button type="button" class="dialog__close" data-action="click->admin-users#closeRoleModal">
-          <span class="sr-only">Close</span>
-          <%= icon "x-mark", class: "icon" %>
-        </button>
-      </div>
-      <div class="dialog__body">
-        <p class="text-sm mb-3">Select the new role for the selected users:</p>
-        <%= form.select :role, options_for_select(User::ROLE_OPTIONS), {}, { class: "form-select" } %>
-      </div>
-      <div class="dialog__footer">
-        <button type="button" class="btn btn--plain" data-action="click->admin-users#closeRoleModal">Cancel</button>
-        <%= form.submit "Update Role", class: "btn btn--primary" %>
-      </div>
-    <% end %>
-  </div>
-</div>
+<%# Bulk Role Change Dialog — native <dialog>, opened with showModal(). %>
+<dialog class="dialog dialog--sm" aria-labelledby="bulk-role-title"
+        data-admin-users-target="roleModal" data-action="click->admin-users#backdropClose">
+  <%= form_with url: bulk_update_role_admin_users_path, method: :patch, data: { admin_users_target: "roleForm" } do |form| %>
+    <div class="dialog__header">
+      <h2 id="bulk-role-title" class="dialog__title">Change role</h2>
+      <button type="button" class="dialog__close" data-action="admin-users#closeRoleModal">
+        <span class="sr-only">Close</span>
+        <%= icon "x-mark", class: "icon" %>
+      </button>
+    </div>
+    <div class="dialog__body">
+      <%= form.label :role, "New role for the selected users", class: "form-label" %>
+      <%= form.select :role, options_for_select(User::ROLE_OPTIONS), {}, { class: "form-select" } %>
+    </div>
+    <div class="dialog__footer">
+      <button type="button" class="btn btn--plain" data-action="admin-users#closeRoleModal">Cancel</button>
+      <%= form.submit "Update role", class: "btn btn--primary" %>
+    </div>
+  <% end %>
+</dialog>
 
 <%# Bulk Deactivate Form (hidden) %>
 <%# Turbo-driven so `data-turbo-confirm` fires, matching the per-user Deactivate
