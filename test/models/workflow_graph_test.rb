@@ -120,10 +120,14 @@ class WorkflowGraphTest < ActiveSupport::TestCase
     Steps::Action.create!(workflow: workflow, position: 1, uuid: "b", title: "B")
     workflow.update_column(:start_step_id, step_a.id)
 
+    # The graph is checked while publishing, not whenever a workflow is
+    # published: a live workflow is edited in place and must save mid-edit.
     workflow.reload
-    assert_not workflow.valid?
-    assert(workflow.errors[:steps].any? { |e| e.include?("dead end") || e.include?("unreachable") || e.include?("reachable") },
-           "Expected graph validation error, got: #{workflow.errors[:steps].inspect}")
+    workflow.while_publishing do
+      assert_not workflow.valid?
+      assert(workflow.errors[:steps].any? { |e| e.include?("dead end") || e.include?("unreachable") || e.include?("reachable") },
+             "Expected graph validation error, got: #{workflow.errors[:steps].inspect}")
+    end
   end
 
   test "validates subflow references with AR steps" do
