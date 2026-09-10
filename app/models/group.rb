@@ -215,8 +215,8 @@ class Group < ApplicationRecord
   # hundreds of department groups cannot afford.
   #
   # Siblings sort by name ignoring case, Global first among the roots (spec Q33,
-  # Q50). A byte-order sort put "WSO" before "Web Support"; position is ignored
-  # and goes in Stage 4b.
+  # Q50). A byte-order sort put "WSO" before "Web Support". The position column
+  # is ignored everywhere and nothing edits it (Stage 4b dropped the field).
   #
   # within: the ids to emit. Paths still come from the whole tree, so an editor
   # who reaches only "Support / Tier 2" sees that path rather than a bare name.
@@ -255,6 +255,41 @@ class Group < ApplicationRecord
   # { group_id => "Root / Child / Leaf" } for every group, from one query.
   def self.paths_by_id
     tree_nodes.to_h { [it.id, it.path] }
+  end
+
+  # { group_id => direct members } for every group that has any, from one query.
+  # Direct, not inherited (spec Q34): the number is who is IN the group, which
+  # is what the Users filter lists when you follow it.
+  def self.member_counts
+    UserGroup.group(:group_id).count
+  end
+
+  # { group_id => distinct workflows filed in it or any subgroup } for every
+  # group that has any, from two queries. That is what /workflows?group_id=
+  # lists (Workflow.in_group), so a row's number is the number its link opens.
+  def self.workflow_counts_including_subgroups
+    parent_of = Group.pluck(:id, :parent_id).to_h
+    reached = Hash.new { |hash, id| hash[id] = Set.new }
+
+    GroupWorkflow.distinct.pluck(:group_id, :workflow_id).each do |group_id, workflow_id|
+      # A filing counts for its group and every group above it. `seen` only
+      # stops a corrupt cycle; no_circular_reference prevents real ones.
+      seen = Set.new
+      current = group_id
+      while current && seen.add?(current)
+        reached[current] << workflow_id
+        current = parent_of[current]
+      end
+    end
+
+    reached.transform_values(&:size)
+  end
+
+  # Where a group may sit: under any group except itself and its subgroups (a
+  # cycle) and Global (which has none), each with its full path (spec Q40).
+  def self.parent_options_for(group)
+    excluded = group&.persisted? ? [group.id, *group.descendant_ids].to_set : Set.new
+    tree_nodes.reject { |node| node.global? || excluded.include?(node.id) }
   end
 
   # Generate a full path string showing the hierarchy
