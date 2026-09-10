@@ -40,12 +40,25 @@ module Admin
       SolidQueue::FailedExecution.create!(job: job, error: { "message" => "boom" })
       SolidQueue::RecurringTask.create!(key: "sweep_idle_scenarios", class_name: "SweepIdleScenariosJob",
                                         schedule: "0 2 * * *", created_at: 3.days.ago, updated_at: 3.days.ago)
+      SolidQueue::Process.create!(kind: "Worker", name: "worker-#{SecureRandom.hex(3)}", pid: 1,
+                                  hostname: "test", last_heartbeat_at: Time.current)
 
       result = attention(adapter: :solid_queue)
 
       assert_equal 1, result.failed_jobs_count
       assert_equal ["sweep_idle_scenarios"], result.stalled_task_keys
       assert_equal 3, result.count
+    end
+
+    test "a worker with no heartbeat in five minutes is its own item" do
+      SolidQueue::Process.create!(kind: "Worker", name: "worker-#{SecureRandom.hex(3)}", pid: 1,
+                                  hostname: "test", last_heartbeat_at: 10.minutes.ago)
+
+      result = attention(adapter: :solid_queue)
+
+      assert_predicate result, :worker_down?
+      assert_equal 2, result.count, "users waiting for a group, and the worker"
+      assert_not attention.worker_down?
     end
 
     test "lists the failed executions and stalled tasks it counted" do

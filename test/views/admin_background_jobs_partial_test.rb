@@ -64,9 +64,20 @@ class AdminBackgroundJobsPartialTest < ActionView::TestCase
   end
 
   test "nothing failed and nothing stalled reads as healthy" do
+    SolidQueue::Process.create!(kind: "Worker", name: "worker-#{SecureRandom.hex(3)}", pid: 1,
+                                hostname: "test", last_heartbeat_at: Time.current)
+
     render_jobs
 
+    assert_select "#worker-status .stat-cell__value", text: "Running"
     assert_select "#background-jobs .stat-cell__value", text: "0", count: 2
     assert_select "#failed-jobs, #stalled-jobs", 0
+  end
+
+  test "no heartbeat reads as a worker that isn't running" do
+    render_jobs
+
+    assert_select "#worker-status .stat-cell__value", text: "Not running"
+    assert_select "#worker-status .stat-cell__detail", text: /Never reported/
   end
 end

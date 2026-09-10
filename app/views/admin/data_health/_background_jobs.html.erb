@@ -9,11 +9,22 @@
 
   <% if attention.jobs_tracked? %>
     <p class="admin-health__hint">
-      A failed job stays failed until someone retries or discards it. A nightly job is
-      stalled when it has not run in <%= JobHealth::STALE_AFTER.in_hours.to_i %> hours.
+      The worker reports in every minute. A failed job stays failed until someone retries or
+      discards it. A nightly job is stalled when it has not run in <%= JobHealth::STALE_AFTER.in_hours.to_i %> hours.
     </p>
     <div class="stat-panel">
-      <div class="stat-panel__grid admin-health__grid--2">
+      <div class="stat-panel__grid admin-health__grid--3">
+        <div class="stat-cell" id="worker-status">
+          <span class="stat-cell__label">Worker</span>
+          <span class="stat-cell__value"><%= attention.worker_down? ? "Not running" : "Running" %></span>
+          <span class="stat-cell__detail">
+            <% if attention.last_worker_heartbeat_at %>
+              Last reported <%= time_ago_in_words(attention.last_worker_heartbeat_at) %> ago
+            <% else %>
+              Never reported
+            <% end %>
+          </span>
+        </div>
         <div class="stat-cell">
           <span class="stat-cell__label">Failed jobs</span>
           <span class="stat-cell__value"><%= number_with_delimiter(attention.failed_jobs_count) %></span>

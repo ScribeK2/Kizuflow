@@ -63,12 +63,26 @@ module Admin
       stalled_tasks.map(&:key)
     end
 
+    def last_worker_heartbeat_at
+      return @last_worker_heartbeat_at if defined?(@last_worker_heartbeat_at)
+
+      @last_worker_heartbeat_at = JobHealth.last_heartbeat_at(adapter: @adapter)
+    end
+
+    # Read once: Data Health shows the heartbeat and the Overview counts a down
+    # worker, and both come from the same query.
+    def worker_down?
+      return @worker_down if defined?(@worker_down)
+
+      @worker_down = JobHealth.worker_down?(adapter: @adapter, now: @now, heartbeat: last_worker_heartbeat_at)
+    end
+
     # One per kind of problem. Seven users waiting for a group is one thing to
     # do, and a count that read "37" during a department's onboarding would say
     # nothing more than "1" does.
     def count
       [awaiting_groups_count.positive?, no_audience_count.positive?, email_unconfigured?,
-       failed_jobs_count.positive?, stalled_task_keys.any?].count(true)
+       worker_down?, failed_jobs_count.positive?, stalled_task_keys.any?].count(true)
     end
 
     def any?

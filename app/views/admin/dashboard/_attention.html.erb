@@ -70,6 +70,19 @@
         </div>
       <% end %>
 
+      <% if attention.worker_down? %>
+        <div class="list-row" id="attention-worker-down">
+          <span class="list-row__icon" aria-hidden="true"><%= icon "exclamation-triangle", class: "icon icon--sm" %></span>
+          <div class="list-row__body">
+            <div class="list-row__title">Background jobs aren't running</div>
+            <p class="list-row__sub">No Solid Queue process has reported in <%= SolidQueue.process_alive_threshold.in_minutes.to_i %> minutes, so nightly jobs and queued work are waiting.</p>
+          </div>
+          <div class="list-row__actions">
+            <%= link_to "Data Health", admin_data_health_path(anchor: "background-jobs"), class: "btn btn--secondary btn--sm" %>
+          </div>
+        </div>
+      <% end %>
+
       <% if attention.failed_jobs_count.positive? %>
         <div class="list-row" id="attention-failed-jobs">
           <span class="list-row__icon" aria-hidden="true"><%= icon "exclamation-triangle", class: "icon icon--sm" %></span>

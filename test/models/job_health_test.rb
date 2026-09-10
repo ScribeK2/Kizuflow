@@ -17,6 +17,11 @@ class JobHealthTest < ActiveSupport::TestCase
                             finished_at: (at + 1.minute if finished))
   end
 
+  def report!(at:)
+    SolidQueue::Process.create!(kind: "Worker", name: "worker-#{SecureRandom.hex(3)}", pid: 1,
+                                hostname: "test", last_heartbeat_at: at)
+  end
+
   # A real failed job has no ReadyExecution, so the one after_create made goes.
   def fail!(job, message: "boom", at: job.created_at)
     job.ready_execution&.destroy!
@@ -121,5 +126,23 @@ class JobHealthTest < ActiveSupport::TestCase
     register("sweep_idle_scenarios", "SweepIdleScenariosJob")
 
     assert_nil JobHealth.stalled_tasks(adapter: :solid_queue, now: NOW).sole.last_finished_at
+  end
+
+  # Solid Queue's own heartbeat answers "is the worker running" in minutes,
+  # where a stall only shows after 26 hours (spec Q74).
+  test "the worker is down when no process has reported within five minutes" do
+    assert JobHealth.worker_down?(adapter: :solid_queue, now: NOW), "no process at all"
+
+    report!(at: NOW - 6.minutes)
+    assert JobHealth.worker_down?(adapter: :solid_queue, now: NOW), "only a stale heartbeat"
+
+    report!(at: NOW - 30.seconds)
+    assert_not JobHealth.worker_down?(adapter: :solid_queue, now: NOW), "one fresh heartbeat is enough"
+    assert_equal NOW - 30.seconds, JobHealth.last_heartbeat_at(adapter: :solid_queue)
+  end
+
+  test "nothing is down where Solid Queue does not run the jobs" do
+    assert_not JobHealth.worker_down?(adapter: :async, now: NOW)
+    assert_nil JobHealth.last_heartbeat_at(adapter: :async)
   end
 end

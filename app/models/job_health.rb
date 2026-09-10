@@ -57,6 +57,23 @@ class JobHealth
       stalled_tasks(adapter: adapter, now: now).map(&:key)
     end
 
+    # When any Solid Queue process last reported. The supervisor, worker,
+    # dispatcher and scheduler each write a heartbeat every minute.
+    def last_heartbeat_at(adapter: default_adapter)
+      return unless tracked?(adapter: adapter)
+
+      SolidQueue::Process.maximum(:last_heartbeat_at)
+    end
+
+    # No process has reported within Solid Queue's own alive threshold, so nothing
+    # is running jobs. Reading the newest heartbeat means rows a restart left
+    # behind can't hide a live process (spec Q74).
+    def worker_down?(adapter: default_adapter, now: Time.current, heartbeat: last_heartbeat_at(adapter: adapter))
+      return false unless tracked?(adapter: adapter)
+
+      heartbeat.nil? || heartbeat < now - SolidQueue.process_alive_threshold
+    end
+
     private
 
     def default_adapter
