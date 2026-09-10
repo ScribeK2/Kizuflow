@@ -375,17 +375,16 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "th a.table__sort", text: "Joined"
   end
 
-  test "index leaves association-count columns unsorted" do
+  test "index keeps groups unsorted and moves the per-row columns to the user page" do
     sign_in @admin
     get admin_users_path
 
-    assert_response :success
-    # Groups and Workflows are counts; sorting them means a join or a counter
-    # cache. They must stay plain text, not links.
+    # Groups is an association; sorting it means a join, so it stays unsorted.
     assert_select "th", text: "Groups"
-    assert_select "th", text: "Workflows"
     assert_select "th a.table__sort", text: "Groups", count: 0
-    assert_select "th a.table__sort", text: "Workflows", count: 0
+    # Workflows owned and the row actions moved to /admin/users/:id (Stage 3).
+    assert_select "th", text: "Workflows", count: 0
+    assert_select "th", text: "Actions", count: 0
   end
 
   test "index marks the default ordering on the Joined column" do
@@ -465,10 +464,10 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     # Selecting nth-child(1) here yields [] and the assertions below pass
     # vacuously, which is exactly what an earlier version of this test did.
     get admin_users_path(sort: "email_asc", per_page: 100)
-    ascending = css_select("tbody tr td:nth-child(2) span.font-medium").map { |cell| cell.text.strip }
+    ascending = css_select("tbody tr td:nth-child(2) a.admin-users__email").map { |cell| cell.text.strip }
 
     get admin_users_path(sort: "email_desc", per_page: 100)
-    descending = css_select("tbody tr td:nth-child(2) span.font-medium").map { |cell| cell.text.strip }
+    descending = css_select("tbody tr td:nth-child(2) a.admin-users__email").map { |cell| cell.text.strip }
 
     assert_operator ascending.size, :>=, 2, "need at least two rows for ordering to mean anything"
     assert_equal ascending.sort, ascending
@@ -740,8 +739,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     get admin_users_path(role: 'regular', per_page: 100)
 
     assert_response :success
-    emails = css_select('tbody tr td:nth-child(1) span.font-medium, tbody tr td:nth-child(2) span.font-medium')
-             .map { |cell| cell.text.strip }
+    emails = css_select('tbody tr td:nth-child(2) a.admin-users__email').map { |cell| cell.text.strip }
 
     assert_includes emails, @user.email, 'a regular user must appear under the Regular filter'
     assert_not_includes emails, @admin.email

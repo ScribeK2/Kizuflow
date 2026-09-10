@@ -1,19 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
+// The users table: bulk mode, selection, and the bulk dialogs. Per-user actions
+// (groups, password reset, deactivation) live on the user page.
 export default class extends Controller {
   static targets = [
     "bulkToggleBtn", "selectAll", "userCheckbox", "selectedCount",
-    "bulkModal", "bulkForm", "resetModal", "resetEmail",
-    "tempPasswordDisplay", "copyBtn", "doneBtn", "closeResetBtn",
-    "bulkBar", "bulkCount", "roleModal", "roleForm", "deactivateForm",
-    "table"
+    "bulkModal", "bulkForm", "bulkBar", "bulkCount", "roleModal", "roleForm",
+    "deactivateForm", "table"
   ]
 
   static values = { totalCount: Number }
 
   connect() {
     this.bulkMode = false
-    this.currentTempPassword = ""
   }
 
   // --- Bulk Mode ---
@@ -51,24 +50,13 @@ export default class extends Controller {
 
   updateSelectedCount() {
     const count = this.selectedUserIds.length
+    const label = count > 0 ? `${count} user${count > 1 ? "s" : ""} selected` : "No users selected"
 
-    // Update bulk group modal count
-    if (this.hasSelectedCountTarget) {
-      this.selectedCountTarget.textContent = count > 0
-        ? `${count} user${count > 1 ? "s" : ""} selected`
-        : "No users selected"
-    }
+    if (this.hasSelectedCountTarget) this.selectedCountTarget.textContent = label
 
-    // Show/hide sticky bulk bar
     if (this.hasBulkBarTarget) {
-      if (count > 0) {
-        this.bulkBarTarget.classList.remove("is-hidden")
-        if (this.hasBulkCountTarget) {
-          this.bulkCountTarget.textContent = `${count} user${count > 1 ? "s" : ""} selected`
-        }
-      } else {
-        this.bulkBarTarget.classList.add("is-hidden")
-      }
+      this.bulkBarTarget.classList.toggle("is-hidden", count === 0)
+      if (count > 0 && this.hasBulkCountTarget) this.bulkCountTarget.textContent = label
     }
   }
 
@@ -89,7 +77,7 @@ export default class extends Controller {
     })
   }
 
-  // --- Bulk Group Modal (existing) ---
+  // --- Bulk dialogs ---
 
   openBulkModal() {
     this._injectUserIds(this.bulkFormTarget)
@@ -99,8 +87,6 @@ export default class extends Controller {
   closeBulkModal() {
     this.bulkModalTarget.classList.add("is-hidden")
   }
-
-  // --- Bulk Role Modal (new) ---
 
   openRoleModal() {
     if (this.selectedUserIds.length === 0) return
@@ -112,7 +98,7 @@ export default class extends Controller {
     this.roleModalTarget.classList.add("is-hidden")
   }
 
-  // --- Bulk Deactivate (new) ---
+  // --- Bulk Deactivate ---
 
   bulkDeactivate() {
     const count = this.selectedUserIds.length
@@ -128,86 +114,5 @@ export default class extends Controller {
 
     this._injectUserIds(this.deactivateFormTarget)
     this.deactivateFormTarget.requestSubmit()
-  }
-
-  // --- Group Modals (existing, unchanged) ---
-
-  openGroupModal(event) {
-    const modalId = event.currentTarget.dataset.modalId
-    const modal = document.getElementById(modalId)
-    if (modal) modal.classList.remove("is-hidden")
-  }
-
-  closeGroupModal(event) {
-    const modalId = event.currentTarget.dataset.modalId
-    const modal = document.getElementById(modalId)
-    if (modal) modal.classList.add("is-hidden")
-  }
-
-  // --- Password Reset (existing, unchanged) ---
-
-  async resetPassword(event) {
-    const btn = event.currentTarget
-    const userId = btn.dataset.userId
-    const userEmail = btn.dataset.userEmail
-
-    if (!confirm(`Are you sure you want to generate a temporary password for ${userEmail}? They will be able to log in immediately with this password.`)) {
-      return
-    }
-
-    const originalBtnChildren = Array.from(btn.childNodes).map(n => n.cloneNode(true))
-    btn.disabled = true
-    btn.textContent = "Generating..."
-
-    try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-      if (!csrfToken) throw new Error("CSRF token not found. Please refresh the page.")
-
-      const response = await fetch(`/admin/users/${userId}/reset_password`, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        credentials: "same-origin"
-      })
-
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || `Server error: ${response.status}`)
-
-      if (data?.success && data.password) {
-        this.currentTempPassword = data.password
-        this.resetEmailTarget.textContent = data.email || userEmail
-        this.tempPasswordDisplayTarget.textContent = data.password
-        this.resetModalTarget.classList.remove("is-hidden")
-      } else {
-        alert("Failed to generate temporary password. Please try again.")
-      }
-    } catch (error) {
-      console.error("Password reset error:", error)
-      alert("An error occurred while generating the temporary password. Please try again.")
-    } finally {
-      btn.disabled = false
-      btn.textContent = ""
-      originalBtnChildren.forEach(child => btn.appendChild(child))
-    }
-  }
-
-  copyPassword(event) {
-    const btn = event.currentTarget
-    if (!this.currentTempPassword) return
-
-    navigator.clipboard.writeText(this.currentTempPassword).then(() => {
-      const originalText = btn.textContent
-      btn.textContent = "Copied!"
-      setTimeout(() => { btn.textContent = originalText }, 2000)
-    }).catch(() => {
-      alert("Failed to copy password. Please copy it manually.")
-    })
-  }
-
-  closeResetModal() {
-    this.resetModalTarget.classList.add("is-hidden")
   }
 }

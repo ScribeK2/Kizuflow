@@ -58,7 +58,7 @@ module Admin
     def paginate
       # Count before includes to avoid issues. by_group already applies .distinct.
       @total_count = @scope.count
-      @scope = @scope.includes(:groups, :workflows)
+      @scope = @scope.includes(:groups)
       @page_clamped = [page, total_pages].min
       @scope = @scope.limit(per_page).offset((@page_clamped - 1) * per_page)
     end

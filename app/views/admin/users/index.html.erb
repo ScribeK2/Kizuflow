@@ -27,24 +27,23 @@
 
       <% if @users.any? %>
         <div class="table-wrap">
-          <table class="table" style="table-layout: fixed;" data-admin-users-target="table">
+          <table class="table admin-users-table" style="table-layout: fixed;" data-admin-users-target="table">
             <colgroup>
-              <%# Widths sized for the admin sidebar, which leaves the table ~980px.
-                  Actions is the auto remainder and holds three buttons (~290px with
-                  padding) until Stage 3 replaces it; at the old 26/12/14/8/12 split
-                  Deactivate ran past the card edge, by 49px in bulk mode. %>
+              <%# Sized for the ~980px beside the admin sidebar. Groups is the auto
+                  remainder, so the bulk-select column takes its 3rem from there.
+                  Role is fixed, not a percentage: it holds a select that needs
+                  121px with padding, and 16% of the 40rem minimum is 102px — at
+                  390px the select ran into the Groups cell. %>
               <col class="bulk-select-column" style="width: 3rem;">
-              <col style="width: 24%;">
-              <col style="width: 12%;">
-              <col style="width: 10%;">
-              <col style="width: 7%;">
-              <col style="width: 12%;">
+              <col style="width: 38%;">
+              <col style="width: 8rem;">
               <col>
+              <col style="width: 18%;">
             </colgroup>
             <thead>
               <tr>
                 <th class="bulk-select-column">
-                  <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox">
+                  <input type="checkbox" data-admin-users-target="selectAll" data-action="change->admin-users#toggleAll" class="form-checkbox" aria-label="Select all users on this page">
                 </th>
                 <th aria-sort="<%= sortable_column_aria_sort(:email, current_sort: @sort) %>">
                   <%= sortable_column_header "Email", :email, current_sort: @sort, frame: "users-table" %>
@@ -52,25 +51,24 @@
                 <th aria-sort="<%= sortable_column_aria_sort(:role, current_sort: @sort) %>">
                   <%= sortable_column_header "Role", :role, current_sort: @sort, frame: "users-table" %>
                 </th>
-                <%# Groups and Workflows are association counts — sorting them needs a
-                    join or counter cache, so they stay unsorted rather than shipping
-                    an N+1. %>
+                <%# An association: sorting it needs a join, so it stays unsorted. %>
                 <th>Groups</th>
-                <th>Workflows</th>
                 <th aria-sort="<%= sortable_column_aria_sort(:created_at, current_sort: @sort) %>">
                   <%= sortable_column_header "Joined", :created_at, current_sort: @sort, frame: "users-table", initial: :desc %>
                 </th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               <% @users.each do |user| %>
                 <tr class="<%= 'admin-user-row--deactivated' if user.deactivated? %>">
                   <td class="bulk-select-column">
-                    <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox">
+                    <input type="checkbox" name="user_ids[]" value="<%= user.id %>" data-admin-users-target="userCheckbox" data-action="change->admin-users#updateSelectedCount" class="form-checkbox" aria-label="Select <%= user.email %>">
                   </td>
                   <td>
-                    <span class="font-medium"><%= user.email %></span>
+                    <%# _top: the table sits in the users-table frame, and the user
+                        page is a whole page, not a frame swap. %>
+                    <%= link_to user.email, admin_user_path(user), class: "admin-users__email",
+                          data: { turbo_frame: "_top" } %>
                     <%# Two states that both used to render as "Deactivated": an admin
                         offboarding someone, and Devise locking them out after five failed
                         sign-ins. Different causes, different fixes, different labels. %>
@@ -81,18 +79,23 @@
                     <% end %>
                   </td>
                   <td>
-                    <%# The role control lives in the Role column, not in Actions. It used
-                        to be both: a badge here and a select there, saying the same thing
-                        twice and costing the width bulk mode needs for its checkbox. %>
+                    <%# The role control is the one action left on the row: it is quick,
+                        common, and says the role without a second badge. %>
                     <%= form_with url: update_role_admin_user_path(user), method: :patch, data: { turbo: false, controller: "auto-submit" }, class: "inline-flex items-center" do |form| %>
                       <%= form.select :role, options_for_select(User::ROLE_OPTIONS, user.role), {}, { class: "form-select form-select--sm", "aria-label": "Role for #{user.email}", data: { action: "change->auto-submit#submit" } } %>
                     <% end %>
                   </td>
                   <td>
-                    <% if user.groups.any? %>
-                      <div class="flex flex-wrap gap-1">
-                        <% user.groups.each do |group| %>
-                          <span class="badge" title="<%= group.full_path %>"><%= group.name %></span>
+                    <% entries = user.groups.map { [@group_paths.fetch(it.id, it.name), it.name] }.sort %>
+                    <% if entries.any? %>
+                      <div class="admin-users__groups">
+                        <% entries.first(2).each do |path, name| %>
+                          <span class="badge admin-users__group" title="<%= path %>"><%= name %></span>
+                        <% end %>
+                        <% if entries.size > 2 %>
+                          <% all_paths = entries.map(&:first) %>
+                          <span class="badge admin-users__more" title="<%= all_paths.join("\n") %>"
+                                aria-label="<%= entries.size - 2 %> more: <%= all_paths.join(', ') %>">+<%= entries.size - 2 %></span>
                         <% end %>
                       </div>
                     <% else %>
@@ -100,40 +103,7 @@
                     <% end %>
                   </td>
                   <td class="text-sm">
-                    <%= user.workflows.size %>
-                  </td>
-                  <td class="text-sm">
                     <%= time_ago_in_words(user.created_at) %> ago
-                  </td>
-                  <td>
-                    <div class="flex items-center gap-2">
-                      <button type="button"
-                              class="btn btn--secondary btn--sm flex items-center gap-1"
-                              data-action="click->admin-users#openGroupModal"
-                              data-modal-id="group-modal-<%= user.id %>"
-                              title="Assign groups">
-                        <%= icon "folder", class: "icon icon--xs" %>
-                        Groups
-                      </button>
-                      <button type="button"
-                              class="btn btn--sm flex items-center gap-1"
-                              data-action="click->admin-users#resetPassword"
-                              data-user-id="<%= user.id %>"
-                              data-user-email="<%= user.email %>"
-                              title="Generate temporary password">
-                        <%= icon "key", class: "icon icon--xs" %>
-                        Reset
-                      </button>
-                      <% if user.deactivated? %>
-                        <%= button_to "Reactivate", reactivate_admin_user_path(user), method: :patch,
-                              class: "btn btn--secondary btn--sm",
-                              form: { data: { turbo_confirm: "Let #{user.email} sign in again?" } } %>
-                      <% elsif user != current_user %>
-                        <%= button_to "Deactivate", deactivate_admin_user_path(user), method: :patch,
-                              class: "btn btn--negative btn--sm",
-                              form: { data: { turbo_confirm: "Deactivate #{user.email}? They will not be able to sign in until an administrator reactivates them." } } %>
-                      <% end %>
-                    </div>
                   </td>
                 </tr>
               <% end %>
@@ -149,62 +119,6 @@
       <% end %>
     </turbo-frame>
   </div>
-
-<%# Group Assignment Modals %>
-<% @users.each do |user| %>
-  <div id="group-modal-<%= user.id %>"
-       class="dialog-overlay is-hidden"
-       data-controller="modal">
-    <div class="dialog"
-         data-modal-target="content"
-         data-action="click->modal#stop">
-      <%= form_with url: update_groups_admin_user_path(user), method: :patch, local: true do |form| %>
-        <div class="dialog__header">
-          <div>
-            <h3 class="dialog__title">Assign Groups</h3>
-            <p class="text-sm font-medium mt-1"><%= user.email %></p>
-          </div>
-          <button type="button"
-                  class="dialog__close"
-                  data-action="click->admin-users#closeGroupModal"
-                  data-modal-id="group-modal-<%= user.id %>">
-            <span class="sr-only">Close</span>
-            <%= icon "x-mark", class: "icon" %>
-          </button>
-        </div>
-
-        <div class="dialog__body">
-          <p class="text-sm mb-3">
-            Select groups to grant this user access to. Users will only see workflows in their assigned groups (unless they are admins).
-          </p>
-
-          <div class="admin-group-list">
-            <% if @all_groups.any? %>
-              <% @all_groups.roots.includes(:children).order(:position, :name).each do |root_group| %>
-                <%= render partial: "admin/users/group_checkbox", locals: { group: root_group, user: user, level: 0 } %>
-              <% end %>
-            <% else %>
-              <div class="empty-state p-4 text-center">
-                <%= icon "folder", class: "icon icon--xl mx-auto mb-2" %>
-                <p class="text-sm">No groups available. Create groups first.</p>
-              </div>
-            <% end %>
-          </div>
-        </div>
-
-        <div class="dialog__footer">
-          <button type="button"
-                  class="btn btn--plain"
-                  data-action="click->admin-users#closeGroupModal"
-                  data-modal-id="group-modal-<%= user.id %>">
-            Cancel
-          </button>
-          <%= form.submit "Save Groups", class: "btn btn--primary" %>
-        </div>
-      <% end %>
-    </div>
-  </div>
-<% end %>
 
 <%# Bulk Group Assignment Modal %>
 <div data-admin-users-target="bulkModal"
@@ -256,75 +170,6 @@
         <%= form.submit "Assign to Selected Users", class: "btn btn--primary" %>
       </div>
     <% end %>
-  </div>
-</div>
-
-<%# Password Reset Modal %>
-<div data-admin-users-target="resetModal"
-     class="dialog-overlay is-hidden"
-     data-controller="modal">
-  <div class="dialog"
-       data-modal-target="content"
-       data-action="click->modal#stop">
-    <div class="dialog__header">
-      <div>
-        <h3 class="dialog__title">Password Reset</h3>
-        <p class="text-sm font-medium mt-1" data-admin-users-target="resetEmail"></p>
-      </div>
-      <button type="button"
-              data-action="click->admin-users#closeResetModal"
-              class="dialog__close">
-        <span class="sr-only">Close</span>
-        <%= icon "x-mark", class: "icon" %>
-      </button>
-    </div>
-
-    <div class="dialog__body">
-      <div class="admin-info-box admin-info-box--info mb-3">
-        <div class="flex items-start gap-3">
-          <%= icon "information-circle", class: "icon icon--sm flex-shrink-0 mt-0.5" %>
-          <div class="text-sm">
-            <p class="font-semibold mb-1">New Temporary Password Generated</p>
-            <p data-admin-users-target="tempPasswordDisplay" class="font-mono text-lg mt-2 font-bold">
-              Loading...
-            </p>
-            <p class="mt-2 text-xs">
-              Copy this password and give it to the user. They should change it immediately after logging in.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="admin-info-box admin-info-box--warning">
-        <div class="flex items-start gap-3">
-          <%= icon "exclamation-triangle", class: "icon icon--sm flex-shrink-0 mt-0.5" %>
-          <div class="text-sm">
-            <p class="font-semibold mb-1">Important Security Note</p>
-            <ul class="list-disc list-inside text-xs">
-              <li>This is a one-time temporary password</li>
-              <li>User should change it immediately after first login</li>
-              <li>The password is secure and randomly generated</li>
-              <li>This action has been logged for security purposes</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="dialog__footer">
-      <button type="button"
-              data-action="click->admin-users#copyPassword"
-              class="btn btn--plain flex items-center gap-2">
-        <%= icon "clipboard-document-list", class: "icon icon--sm" %>
-        Copy Password
-      </button>
-      <button type="button"
-              data-action="click->admin-users#closeResetModal"
-              class="btn btn--primary flex items-center gap-2">
-        <%= icon "check", class: "icon icon--sm" %>
-        Done
-      </button>
-    </div>
   </div>
 </div>
 

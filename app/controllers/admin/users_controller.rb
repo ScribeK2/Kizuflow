@@ -8,6 +8,7 @@ class Admin::UsersController < Admin::BaseController
     @per_page = filter.per_page_size
     @sort = filter.sort_key
     @all_groups = Group.order(:name)
+    @group_paths = Group.paths_by_id
   end
 
   def show

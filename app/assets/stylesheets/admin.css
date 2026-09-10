@@ -540,4 +540,46 @@ td.bulk-select-column {
   user-select: all;
 }
 
+/* ============================================================================
+   Users Table (admin/users/index)
+   ============================================================================ */
+
+/* Four columns cannot share 390px without overlapping, which is what they did.
+   Below this width the table keeps its shape and scrolls inside .table-wrap. */
+.admin-users-table {
+  min-width: 40rem;
+}
+
+.admin-users__email {
+  font-weight: 500;
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.admin-users__email:hover {
+  color: var(--color-primary-text-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-users__groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* A plain .badge is text with no fill, so "Child Group Uncategorized +2" read as
+   one name. The comma is generated, so each span's text stays the group name, and
+   only goes between two names — the +N count is a span too, and takes none. */
+.admin-users__group:has(+ .admin-users__group)::after {
+  content: ",";
+}
+
+/* .badge is inline-flex with a gap, which made the comma its own flex item
+   and set it apart from the name. These badges carry no icon to space. */
+.admin-users__group {
+  gap: 0;
+}
+
 }
