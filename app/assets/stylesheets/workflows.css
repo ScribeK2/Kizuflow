@@ -860,40 +860,6 @@
 }
 
 /* ============================================================================
-   Autosave Status Indicator
-   ============================================================================ */
-
-.autosave-status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-ink-muted);
-  transition: color var(--duration-normal) var(--ease-out);
-}
-
-.autosave-status.status--saving {
-  color: var(--color-ink-subtle);
-}
-
-.autosave-status.status--saved {
-  color: var(--color-positive);
-}
-
-.autosave-status.status--error {
-  color: var(--color-negative);
-}
-
-.autosave-status.status--conflict {
-  color: var(--color-warning);
-}
-
-.autosave-status.status--ready {
-  color: var(--color-ink-muted);
-}
-
-/* ============================================================================
    Step Card Number — colored circle on workflow show page
    ============================================================================ */
 
