@@ -18,9 +18,9 @@ module Steps
       "form"
     end
 
-    # Fields an author started but hasn't both named and labelled. The import
-    # schema requires both, so an export carrying one is refused;
-    # WorkflowHealthCheck lists each one on the step.
+    # Fields an author started but hasn't both named and labelled. The runner
+    # records an answer under the field's name (answer[<name>]) and shows its
+    # label; WorkflowHealthCheck lists each one on the step.
     def incomplete_fields
       fields.select { |field| field.is_a?(Hash) && (field["name"].blank? || field["label"].blank?) }
     end
@@ -99,9 +99,10 @@ module Steps
     private
 
     # "+ Add Field" appends an empty row and autosaves straight away, so an
-    # untouched row arrives with no name and no label. Nothing can answer it and
-    # export would refuse it, so it isn't kept. A row with either filled is an
-    # edit in progress and stays, listed by `incomplete_fields`.
+    # untouched row arrives with no name and no label. It has nothing to show an
+    # agent and nothing to record an answer under, so it isn't kept. A row with
+    # either filled is an edit in progress and stays, listed by
+    # `incomplete_fields`.
     def drop_untouched_fields
       return unless options.is_a?(Array)
 

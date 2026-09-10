@@ -215,6 +215,19 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     assert_not_includes codes, :title_required
   end
 
+  # Both fields are required by the import schema, so the warning has to say
+  # what the author loses besides the run: the export comes back refused.
+  test "the empty-field warnings say the export is refused" do
+    q = connected_step(Steps::Question, title: "", question: nil, answer_type: "text")
+
+    messages = WorkflowHealthCheck.call(@workflow.reload).issues[q.uuid]
+                                  .select { %i[title_required question_text_required].include?(it[:code]) }
+                                  .pluck(:message)
+
+    assert_equal 2, messages.size
+    messages.each { assert_includes it, "export is refused" }
+  end
+
   test "a step with no title is flagged, whatever its type" do
     action = connected_step(Steps::Action, title: "", action_type: "Instruction")
 
@@ -395,7 +408,9 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     assert_not_includes codes, :no_audience
   end
 
-  # The import schema requires both, so an export of this step is refused.
+  # The runner records a field's answer as answer[<name>], so a field with no
+  # name has nothing to record it under. (Strict import doesn't check this yet,
+  # though the published schema requires both: see TODOS.)
   test "a form field missing its name or label is flagged" do
     form = connected_step(Steps::Form, title: "Collect",
                                        options: [{ "name" => "", "label" => "Callback number", "field_type" => "text" }])

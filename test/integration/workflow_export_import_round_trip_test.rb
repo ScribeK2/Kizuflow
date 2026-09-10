@@ -61,6 +61,33 @@ class WorkflowExportImportRoundTripTest < ActionDispatch::IntegrationTest
            "the health panel is how an operator finds this before exporting")
   end
 
+  # The same narrow break, for fields the builder saves blank on purpose. The
+  # step panel lets a step autosave with no title or question text (a refused
+  # save lost the edit), and the runner shows the title when the question is
+  # blank, but the import schema requires both. The health check says so.
+  test "a question with no title or text exports, and the strict path refuses it back" do
+    workflow = Workflow.create!(title: "Blank Question #{SecureRandom.hex(2)}",
+                                user: @user, status: "draft")
+    question = Steps::Question.create!(workflow: workflow, uuid: SecureRandom.uuid, position: 0,
+                                       title: "", question: nil, answer_type: "text")
+    resolve = Steps::Resolve.create!(workflow: workflow, uuid: SecureRandom.uuid, position: 1,
+                                     title: "Done", resolution_type: "success")
+    Transition.create!(step: question, target_step: resolve, position: 0)
+    workflow.update!(start_step: question)
+
+    get workflow_export_path(workflow)
+    assert_response :success
+
+    report = StrictImportValidator.new(user: @user, content: response.body).validate
+    assert_not report.valid?, "the export carries a question with no title or text"
+    assert_equal ["missing_required_field"], report.errors.pluck(:code).uniq
+    assert_equal %w[question title], report.errors.map { it[:path].split(".").last }.sort
+
+    codes = WorkflowHealthCheck.new(workflow.reload).call.issues[question.uuid].pluck(:code)
+    assert_includes codes, :title_required
+    assert_includes codes, :question_text_required
+  end
+
   test "a workflow whose select has real choices round-trips cleanly" do
     workflow = Workflow.create!(title: "Good Select #{SecureRandom.hex(2)}",
                                 user: @user, status: "draft")

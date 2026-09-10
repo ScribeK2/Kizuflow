@@ -208,16 +208,20 @@ class WorkflowHealthCheck
                   fixable: true, fix_type: "add_resolve_after", code: :no_outgoing_transitions)
       end
 
+      # Both are warnings, not publish refusals, but the import schema requires
+      # both fields, so an export carrying either blank is refused on the way
+      # back in (see workflow_export_import_round_trip_test).
       if step.title.blank?
-        add_issue(issues, step.uuid, :warning, "Step has no title",
+        add_issue(issues, step.uuid, :warning, "Step has no title, so its export is refused",
                   fixable: false, code: :title_required)
       end
 
-      # A warning, not a publish refusal: the runner shows the step title when
-      # the question is blank, so the run still works. This read step.title
-      # until 2026-09-10, so a new Question was never flagged.
+      # The runner shows the step title when the question is blank, so the run
+      # still works. This read step.title until 2026-09-10, so a new Question
+      # was never flagged.
       if step.is_a?(Steps::Question) && step.question.blank?
-        add_issue(issues, step.uuid, :warning, "Question text is empty, so the agent sees the step title instead",
+        add_issue(issues, step.uuid, :warning,
+                  "Question text is empty: the agent sees the step title instead, and its export is refused",
                   fixable: false, code: :question_text_required)
       end
 
@@ -266,12 +270,14 @@ class WorkflowHealthCheck
       end
 
       # The builder no longer lets the browser refuse a save over an empty name
-      # or label, and the import schema requires both, so this is where an
-      # author finds a field they started and didn't finish.
+      # or label, so this is where an author finds a field they started and
+      # didn't finish. The runner posts each answer as answer[<name>], so a
+      # field with no name has nothing to record its answer under.
       step.incomplete_fields.each do |field|
         named = field["label"].presence || field["name"]
         add_issue(issues, step.uuid, :warning,
-                  "Form field #{named.to_s.inspect} needs both a name and a label, or the export is refused",
+                  "Form field #{named.to_s.inspect} needs both a name and a label: " \
+                  "its answer is recorded under the name",
                   fixable: false, code: :form_field_incomplete)
       end
     end
