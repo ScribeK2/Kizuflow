@@ -159,16 +159,6 @@
 }
 
 /* ============================================================================
-   Steps Container
-   ============================================================================ */
-
-.wf-steps-container {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-/* ============================================================================
    Page Header with Actions
    ============================================================================ */
 
@@ -1254,11 +1244,6 @@
   width: 2px;
   background: var(--color-border);
   border-radius: 1px;
-}
-
-/* Prevent indented steps from overflowing their container */
-.wf-steps-container {
-  overflow: hidden;
 }
 
 /* ============================================================================

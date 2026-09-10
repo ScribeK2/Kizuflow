@@ -191,16 +191,6 @@ form.button_to {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-/* ─── Step Type Buttons ─── */
-.btn--step-question  { --step-hue: var(--hue-question); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-action    { --step-hue: var(--hue-action); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-message   { --step-hue: var(--hue-message); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-escalate  { --step-hue: var(--hue-escalate); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-resolve   { --step-hue: var(--hue-resolve); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-subflow   { --step-hue: var(--hue-subflow); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-sub-flow  { --step-hue: var(--hue-subflow); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-.btn--step-form      { --step-hue: var(--hue-form); --btn-bg: var(--step-solid); --btn-text: var(--step-on-solid); --btn-border: var(--step-solid); }
-
 /* ─── Button Group ─── */
 .btn-group {
   display: inline-flex;

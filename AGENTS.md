@@ -70,7 +70,7 @@ Kamal: `kamal deploy` (see `config/deploy.yml`). Required env: `RAILS_MASTER_KEY
 - `Scenario` — simulation runner. Always uses graph traversal via `StepResolver` and `current_node_uuid` tracking. Spawns child scenarios for sub-flows, enforces iteration limits on circular graphs. Step processing methods (`advance_to_next_step`, `resolve_at_current_step`, `record_completion`) are public API used by `ScenarioStepProcessor`.
 - `Group` / `Folder` — hierarchical org (recursive membership, cascade permissions)
 - `User` — Devise model with roles (Administrator / Editor / User)
-- `WorkflowTemplate` — YAML-driven workflow archetypes loaded from `config/templates.yml`; `StepTemplate` — step-level template definitions
+- `WorkflowTemplate` — YAML-driven workflow archetypes loaded from `config/templates.yml`
 
 ## Builder UI
 
