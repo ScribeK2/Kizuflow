@@ -321,7 +321,8 @@ the noise this system removes.
 page's primary control rendered as a bare icon and a line of text, no box, no
 padding, no centring, and it read as broken. A class that looks like a component
 is not one until a rule exists; check `getComputedStyle`, not the markup.
-**Stimulus:** Forms with autosave use `data-controller="inline-autosave"`.
+**Stimulus:** Forms with autosave use `data-controller="inline-autosave"` and
+`novalidate` (see Recipe 3 for why).
 
 ### Dialogs (`dialogs.css`)
 
@@ -696,7 +697,7 @@ Full form with grouped fields, validation, and submit actions.
 
     <div class="card">
       <div class="card__body">
-        <%= form_with model: @item, class: "space-y-4",
+        <%= form_with model: @item, class: "space-y-4", html: { novalidate: true },
             data: { controller: "inline-autosave" } do |f| %>
 
           <div class="form-group">
@@ -731,6 +732,15 @@ Full form with grouped fields, validation, and submit actions.
 ```
 
 **Pattern:** `.form-group` wraps each label+input pair. `.space-y-4` utility adds vertical spacing between groups. Submit actions right-aligned with border-top separator.
+
+**An autosave form carries `novalidate`.** `inline-autosave` submits with
+`requestSubmit()`, which runs the browser's required-field check, and a refused
+autosave is silent: the edit is dropped. The builder's step panel lost every
+edit to a new Question this way until 2026-09-10, because its Question text
+was `required` and starts empty. Say what must be filled in through the health
+check, not with `required`. Pass it as `html: { novalidate: true }`: `form_with`
+drops a bare `novalidate:` without a word, which is how the first version of
+that fix rendered nothing.
 
 ### Recipe 4: Settings / Admin Page
 

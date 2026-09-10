@@ -52,7 +52,15 @@
         </div>
       <% end %>
     <% else %>
+      <%# novalidate: autosave submits with requestSubmit(), which runs the
+          browser's required-field check. An empty required field (a new
+          Question's text, the row "+ Add Field" just added) made the browser
+          refuse the save, move the cursor into that field and drop the edit.
+          What must be filled in is WorkflowHealthCheck's to say. It goes in
+          `html:`: form_with passes only id, class, data and a few others
+          through as attributes and silently drops a bare `novalidate:`. %>
       <%= form_with model: step, scope: :step, url: workflow_step_path(workflow, step), method: :patch,
+          html: { novalidate: true },
           data: { controller: "inline-autosave", "inline-autosave-delay-value": 2000,
                   turbo_frame: "_top", turbo_stream: true } do |f| %>
 

@@ -442,6 +442,42 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     end
   end
 
+  # A new Question starts with no question text, and that field was `required`.
+  # requestSubmit() runs the browser's required check, so two seconds after the
+  # title was typed the browser refused the save, moved the cursor into the
+  # empty field, and the title was never sent, not even when the panel closed.
+  test "a new question's title saves before its question text is typed" do
+    visit_builder_in_edit_mode
+    click_on "Add a step"
+    click_on "Question"
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[title]", with: "Untitled Question", wait: 5
+      fill_in "step[title]", with: "Caller verified"
+    end
+
+    # `reload`, not a repeated query: this thread's query cache would answer
+    # the same SELECT with the title from before the save.
+    question = @workflow.steps.find_by!(type: "Steps::Question")
+    assert_eventually(timeout: 10) { question.reload.title == "Caller verified" }
+  end
+
+  # "+ Add Field" appends a row whose name and label are empty and `required`.
+  test "a form step's title still saves after a field is added" do
+    visit_builder_in_edit_mode
+    click_on "Add a step"
+    click_on "Form"
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[title]", with: "Untitled Form", wait: 5
+      click_button "Add Field"
+      fill_in "step[title]", with: "Collect callback details"
+    end
+
+    form = @workflow.steps.find_by!(type: "Steps::Form")
+    assert_eventually(timeout: 10) { form.reload.title == "Collect callback details" }
+  end
+
   test "a large workflow renders every step row" do
     # The deleted version of this asserted a 5 second wall-clock budget. That is
     # the kind of timing assertion that fails for reasons unrelated to the code,
@@ -510,8 +546,6 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
   end
 
   def question_with_options(options)
-    # The Question text field is `required`, and requestSubmit() refuses a form
-    # with an empty required field, so without it no autosave would ever post.
     question = Steps::Question.create!(workflow: @workflow, title: "Contact channel?", position: 1,
                                        question: "How did they reach us?", answer_type: "multiple_choice", options:)
     Transition.create!(step: question, target_step: @resolve, position: 0)

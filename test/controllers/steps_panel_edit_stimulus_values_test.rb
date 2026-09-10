@@ -61,6 +61,17 @@ class StepsPanelEditStimulusValuesTest < ActionDispatch::IntegrationTest
     assert_no_match "variable-autocomplete-target", response.body
   end
 
+  # The panel autosaves through requestSubmit(), which runs constraint
+  # validation; an empty required field made the browser refuse every save.
+  test "the step panel form doesn't let the browser refuse an autosave" do
+    step = Steps::Question.create!(workflow: @workflow, position: 0, title: "Caller name?")
+
+    get panel_edit_workflow_step_path(@workflow, step)
+
+    assert_response :success
+    assert_select "form[data-controller='inline-autosave'][novalidate]"
+  end
+
   test "the transitions editor carries sentence targets and variables JSON, not a raw custom field" do
     earlier = Steps::Question.create!(
       workflow: @workflow, position: 0, title: "Already verified?",
