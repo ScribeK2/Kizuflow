@@ -1,0 +1,48 @@
+<%# locals: (group:, parent_options:) %>
+<%# One form for new and edit (spec Q40). No Position field: groups sort by name
+    everywhere (Q33), and the column is left in the table, unedited. %>
+<% cancel_path = if group.persisted?
+                   admin_group_path(group)
+                 elsif group.parent
+                   admin_group_path(group.parent)
+                 else
+                   admin_groups_path
+                 end %>
+<%= form_with model: [:admin, group], class: "card" do |form| %>
+  <div class="card__body">
+    <% if group.errors.any? %>
+      <div class="admin-info-box admin-info-box--warning mb-4" role="alert">
+        <div>
+          <p class="font-semibold"><%= pluralize(group.errors.count, "problem") %> stopped this group being saved:</p>
+          <ul class="list-disc pl-5 mt-1">
+            <% group.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="form-group">
+      <%= form.label :name, class: "form-label is-required" %>
+      <%= form.text_field :name, class: "form-input", placeholder: "e.g. Customer Experience" %>
+    </div>
+
+    <div class="form-group">
+      <%= form.label :description, class: "form-label" %>
+      <%= form.text_area :description, rows: 3, class: "form-textarea" %>
+    </div>
+
+    <div class="form-group">
+      <%= form.label :parent_id, "Parent Group", class: "form-label" %>
+      <p class="form-hint">Members of a parent group also see this group's workflows.</p>
+      <%= form.select :parent_id, parent_options.map { [it.path, it.id] },
+            { include_blank: "None — a top-level group" }, { class: "form-select" } %>
+    </div>
+  </div>
+
+  <div class="card__footer flex justify-end gap-3">
+    <%= link_to "Cancel", cancel_path, class: "btn btn--plain" %>
+    <%= form.submit group.persisted? ? "Save Group" : "Create Group", class: "btn btn--primary" %>
+  </div>
+<% end %>

@@ -3,57 +3,6 @@
     <%= render "admin/breadcrumb", trail: admin_group_trail(@group.parent, include_self: true),
           current: @group.parent ? "New subgroup" : "New group" %>
     <h1 class="page-header-section__title">New Group</h1>
-    <p class="page-header-section__subtitle">Create a new group for organizing workflows.</p>
   </div>
-
-  <%= form_with model: [:admin, @group], local: true, class: "card" do |form| %>
-    <% if @group.errors.any? %>
-      <div class="card__body">
-        <div class="flash flash--alert">
-          <div class="flash__body">
-            <p class="font-medium"><%= pluralize(@group.errors.count, "error") %> prohibited this group from being saved:</p>
-            <ul class="list-disc pl-5 mt-2 text-sm">
-              <% @group.errors.full_messages.each do |message| %>
-                <li><%= message %></li>
-              <% end %>
-            </ul>
-          </div>
-        </div>
-      </div>
-    <% end %>
-
-    <div class="card__body">
-      <div class="form-group">
-        <%= form.label :name, class: "form-label" %>
-        <%= form.text_field :name, class: "form-input", placeholder: "e.g., Customer Experience, Sales, Support" %>
-      </div>
-
-      <div class="form-group">
-        <%= form.label :description, class: "form-label" %>
-        <%= form.text_area :description, rows: 4, class: "form-textarea", placeholder: "Optional description for this group" %>
-      </div>
-
-      <div class="form-group">
-        <%= form.label :parent_id, "Parent Group", class: "form-label" %>
-        <p class="form-hint">Select a parent group to create a subgroup, or leave blank for a root-level group.</p>
-        <%= form.select :parent_id,
-            options_from_collection_for_select(@available_parents, :id, :name, @group.parent_id),
-            { include_blank: "None (Root Group)" },
-            { class: "form-select" } %>
-      </div>
-
-      <div class="form-group">
-        <%= form.label :position, class: "form-label" %>
-        <p class="form-hint">Optional: Set the display order (lower numbers appear first).</p>
-        <%= form.number_field :position, class: "form-input", placeholder: "0" %>
-      </div>
-    </div>
-
-    <div class="card__footer flex justify-end gap-3">
-      <%= link_to admin_groups_path, class: "btn btn--plain" do %>
-        Cancel
-      <% end %>
-      <%= form.submit "Create Group", class: "btn btn--primary" %>
-    </div>
-  <% end %>
+  <%= render "form", group: @group, parent_options: @parent_options %>
 </div>

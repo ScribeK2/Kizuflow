@@ -37,13 +37,11 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
       post admin_groups_path, params: {
         group: {
           name: "New Group",
-          description: "A new group",
-          position: 1
+          description: "A new group"
         }
       }
     end
-    # Controller redirects to index after successful creation
-    assert_redirected_to admin_groups_path
+    assert_redirected_to admin_group_path(Group.find_by!(name: "New Group"))
   end
 
   test "admin should be able to create a subgroup" do
@@ -55,17 +53,15 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
         group: {
           name: "Child Group",
           description: "A child group",
-          parent_id: parent.id,
-          position: 1
+          parent_id: parent.id
         }
       }
     end
 
-    child = Group.last
+    child = Group.find_by!(name: "Child Group", parent: parent)
 
     assert_equal parent.id, child.parent_id
-    # Controller redirects to index after successful creation
-    assert_redirected_to admin_groups_path
+    assert_redirected_to admin_group_path(child)
   end
 
   test "admin should be able to update a group" do
@@ -79,8 +75,7 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    # Controller redirects to index after successful update
-    assert_redirected_to admin_groups_path
+    assert_redirected_to admin_group_path(group)
     group.reload
 
     assert_equal "Updated Name", group.name
