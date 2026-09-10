@@ -46,7 +46,7 @@
   /* Values sampled from reference screenshots; see docs plan for provenance. */
   --color-ink:           oklch(0.153 0.050 279);
   --color-ink-subtle:    oklch(0.400 0.030 270);
-  --color-ink-muted:     oklch(0.600 0.020 265);
+  --color-ink-muted:     oklch(0.520 0.020 265);
   --color-canvas:        oklch(0.967 0.005 250);
   --color-canvas-alt:    oklch(0.953 0.006 250);
   --color-canvas-raised: oklch(1.0 0 0);
@@ -59,7 +59,15 @@
   --color-primary-soft:  oklch(0.930 0.030 256);
   --color-primary-muted: oklch(0.510 0.074 255);  /* links, outlined button text */
   --color-primary-text:  var(--color-primary);    /* split only diverges in dark */
+  --color-primary-text-hover: var(--color-primary-hover); /* a link's hover — diverges in dark */
   --color-on-primary:    oklch(1.0 0 0);
+
+  /* Avatar fills. Theme-independent on purpose: the initial on them is literal
+     white in both themes (.avatar-btn), so the fill must stay dark in both. The
+     regular avatar used to borrow --color-ink-muted, a TEXT token, and white on
+     it measured 3.95:1 in light mode. */
+  --color-avatar-admin:   oklch(0.45 0.10 165);
+  --color-avatar-regular: oklch(0.50 0.010 250);
 
   /* Mint — reserved for terminal completion only (Resolve, scenario complete) */
   --color-mint:          oklch(0.850 0.085 165);
@@ -157,17 +165,18 @@
   color-scheme: dark;
   --color-ink:           oklch(0.92 0.010 250);
   --color-ink-subtle:    oklch(0.72 0.010 250);
-  --color-ink-muted:     oklch(0.50 0.010 250);
+  --color-ink-muted:     oklch(0.60 0.010 250);
   --color-canvas:        oklch(0.13 0.015 250);
   --color-canvas-alt:    oklch(0.16 0.012 250);
   --color-canvas-raised: oklch(0.19 0.010 250);
   --color-border:        oklch(0.26 0.015 250);
   --color-border-strong: oklch(0.35 0.020 250);
-  --color-primary:       oklch(0.70 0.140 256);  /* fill, white text  */
-  --color-primary-hover: oklch(0.76 0.130 256);
+  --color-primary:       oklch(0.54 0.140 256);  /* fill, white text  */
+  --color-primary-hover: oklch(0.50 0.140 256);  /* darker, not lighter: white stays AA */
   --color-primary-soft:  oklch(0.25 0.060 256);
   --color-primary-muted: oklch(0.72 0.090 255);
   --color-primary-text:  oklch(0.78 0.140 256);  /* link on canvas    */
+  --color-primary-text-hover: oklch(0.84 0.120 256);  /* link hover   */
   --color-on-primary:    oklch(1.0 0 0);
   --color-mint:          oklch(0.850 0.085 165);
   --color-on-mint:       oklch(0.13 0.015 250);
@@ -201,17 +210,18 @@
     color-scheme: dark;
     --color-ink:           oklch(0.92 0.010 250);
     --color-ink-subtle:    oklch(0.72 0.010 250);
-    --color-ink-muted:     oklch(0.50 0.010 250);
+    --color-ink-muted:     oklch(0.60 0.010 250);
     --color-canvas:        oklch(0.13 0.015 250);
     --color-canvas-alt:    oklch(0.16 0.012 250);
     --color-canvas-raised: oklch(0.19 0.010 250);
     --color-border:        oklch(0.26 0.015 250);
     --color-border-strong: oklch(0.35 0.020 250);
-    --color-primary:       oklch(0.70 0.140 256);  /* fill, white text  */
-    --color-primary-hover: oklch(0.76 0.130 256);
+    --color-primary:       oklch(0.54 0.140 256);  /* fill, white text  */
+    --color-primary-hover: oklch(0.50 0.140 256);  /* darker, not lighter: white stays AA */
     --color-primary-soft:  oklch(0.25 0.060 256);
     --color-primary-muted: oklch(0.72 0.090 255);
     --color-primary-text:  oklch(0.78 0.140 256);  /* link on canvas    */
+    --color-primary-text-hover: oklch(0.84 0.120 256);  /* link hover   */
     --color-on-primary:    oklch(1.0 0 0);
     --color-mint:          oklch(0.850 0.085 165);
     --color-on-mint:       oklch(0.13 0.015 250);

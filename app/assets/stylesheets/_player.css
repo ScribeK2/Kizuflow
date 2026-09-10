@@ -59,7 +59,7 @@
   }
 
   .player-link:hover {
-    color: var(--color-primary-hover);
+    color: var(--color-primary-text-hover);
     text-decoration: underline;
   }
 

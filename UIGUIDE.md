@@ -37,7 +37,8 @@ All colors use OKLCH (Oklch Lightness Chroma Hue). Never hardcode hex, rgb, or h
 - Canvas: `var(--color-canvas)`, `var(--color-canvas-alt)`, `var(--color-canvas-raised)`
 - Ink: `var(--color-ink)`, `var(--color-ink-subtle)`, `var(--color-ink-muted)`
 - Borders: `var(--color-border)`, `var(--color-border-strong)`
-- Primary: `var(--color-primary)` (fills), `var(--color-primary-text)` (links/icons on canvas), `var(--color-primary-hover)`, `var(--color-primary-soft)`, `var(--color-primary-muted)`
+- Primary: `var(--color-primary)` (fills), `var(--color-primary-text)` (links/icons on canvas), `var(--color-primary-hover)` (a filled button's hover), `var(--color-primary-text-hover)` (a link's hover), `var(--color-primary-soft)`, `var(--color-primary-muted)`
+- Avatars: `var(--color-avatar-admin)`, `var(--color-avatar-regular)` — theme-independent fills under a literal white initial
 - Mint: `var(--color-mint)` — **terminal completion only** (Resolve step, scenario complete)
 - Semantic, two tiers: `var(--color-negative)` / `var(--color-negative-soft)`, same for `positive` and `warning`
 
@@ -51,9 +52,18 @@ All colors use OKLCH (Oklch Lightness Chroma Hue). Never hardcode hex, rgb, or h
 > them measures ~3:1 and fails AA. Use `var(--color-on-negative)` etc., which is
 > white in light and ink in dark.
 
-**Why `--color-primary-text` exists:** in dark mode no single lightness clears AA
-for both "link on canvas" and "white text on a filled button" by more than 0.06.
-The split lets each sit comfortably. In light mode both alias the same navy.
+**Why `--color-primary-text` exists:** in dark mode a fill carrying white text has
+to be dark enough for 4.5:1, and a link on the canvas has to be light enough for
+the same. No single lightness does both, so fill and text are separate tokens —
+and so are their hovers: `--color-primary-hover` *darkens* a filled button,
+`--color-primary-text-hover` *lightens* a link. In light mode each pair aliases
+the same navy.
+
+These ratios are measured from the token values by
+`test/stylesheets/token_contrast_test.rb`. Until 2026-09-10 the dark fill sat at
+L 0.70 beside a comment reading "fill, white text", at 2.68:1, and this paragraph
+said the split "lets each sit comfortably". A comment describes an intent; only a
+measurement says whether the value meets it.
 
 **Step-type hues** — each step type has a dedicated hue token. Step colour is
 **pale tints only**, and appears only on badges, flow-diagram nodes and dots —

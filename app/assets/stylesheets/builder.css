@@ -915,7 +915,7 @@
 }
 
 .health-panel__issue-step:hover {
-  color: var(--color-primary-hover);
+  color: var(--color-primary-text-hover);
 }
 
   .builder__toolbar-issues {

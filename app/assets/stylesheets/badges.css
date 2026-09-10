@@ -102,9 +102,9 @@
 }
 
 /* ─── Avatars ─── */
-.avatar--admin   { background: oklch(0.45 0.10 165); }
+.avatar--admin   { background: var(--color-avatar-admin); }
 .avatar--editor  { background: var(--color-primary); }
-.avatar--regular { background: var(--color-ink-muted); }
+.avatar--regular { background: var(--color-avatar-regular); }
 
 /* ─── Step type dots (for composition display) ─── */
 .dot {

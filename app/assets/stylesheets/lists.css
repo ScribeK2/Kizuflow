@@ -54,7 +54,7 @@
   text-underline-offset: 2px;
 }
 
-.list-section__link:hover { color: var(--color-primary-hover); }
+.list-section__link:hover { color: var(--color-primary-text-hover); }
 
 .list-section__body {
   background: var(--color-canvas-raised);

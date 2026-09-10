@@ -919,8 +919,12 @@
   border-radius: 50%;
   font-size: var(--text-sm);
   font-weight: 600;
-  color: oklch(1 0 0);
-  background: var(--color-ink-muted);
+  /* The untyped chip (version history numbers it; Form steps have no override).
+     It was literal white on --color-ink-muted, a text token, which failed AA in
+     light and would again in dark once ink-muted rose to 0.60. An inverse chip
+     from the ink scale holds in both themes: 9.24:1 light, 7.45:1 dark. */
+  color: var(--color-canvas-raised);
+  background: var(--color-ink-subtle);
 }
 
 [data-step-type="question"] .step-card__number {
