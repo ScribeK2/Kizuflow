@@ -735,6 +735,13 @@ a.admin-group__name:hover {
   margin-top: var(--space-3);
 }
 
+/* A failed job's full error opens inside its row, so the row grows. Centred,
+   Retry and Discard drifted to the middle of the open error, away from the
+   job they act on — the same reason the Overview's rows align to the top. */
+.admin-health__list > .list-row {
+  align-items: flex-start;
+}
+
 /* .stat-panel__grid assumes four cells (two at tablet width). A panel of two
    keeps two columns on a wide screen; a panel of three puts all three in one
    row from tablet up, with a hairline between each. */
