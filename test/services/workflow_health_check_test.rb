@@ -203,22 +203,32 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     assert_predicate result, :clean?
   end
 
-  test "question without title gets warning" do
-    q = Steps::Question.create!(
-      workflow: @workflow, uuid: SecureRandom.uuid, position: 0,
-      title: "", question: "What?", answer_type: "text"
-    )
-    r = Steps::Resolve.create!(
-      workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
-      title: "Done", resolution_type: "success"
-    )
-    Transition.create!(step: q, target_step: r, position: 0)
-    @workflow.update!(start_step: q)
+  # This check looked at step.title, and its test blanked the title, so a new
+  # Question (always titled "Untitled Question", never given text) was never
+  # flagged. Blank question text doesn't break a run: the runner shows the title.
+  test "a question with no question text is flagged" do
+    q = connected_step(Steps::Question, title: "Ask", question: nil, answer_type: "text")
 
-    result = WorkflowHealthCheck.call(@workflow.reload)
-    step_issues = result.issues[q.uuid]
+    codes = WorkflowHealthCheck.call(@workflow.reload).issues[q.uuid].pluck(:code)
 
-    assert(step_issues.any? { |i| i[:message].include?("Question text is required") })
+    assert_includes codes, :question_text_required
+    assert_not_includes codes, :title_required
+  end
+
+  test "a step with no title is flagged, whatever its type" do
+    action = connected_step(Steps::Action, title: "", action_type: "Instruction")
+
+    codes = WorkflowHealthCheck.call(@workflow.reload).issues[action.uuid].pluck(:code)
+
+    assert_includes codes, :title_required
+  end
+
+  test "a titled question with text has neither warning" do
+    q = connected_step(Steps::Question, title: "Ask", question: "What happened?", answer_type: "text")
+
+    codes = WorkflowHealthCheck.call(@workflow.reload).issues[q.uuid].pluck(:code)
+
+    assert_empty codes & %i[title_required question_text_required]
   end
 
   test "summary counts errors and warnings separately" do
@@ -383,5 +393,18 @@ class WorkflowHealthCheckTest < ActiveSupport::TestCase
     codes = WorkflowHealthCheck.call(@workflow).issues.values.flatten.pluck(:code)
 
     assert_not_includes codes, :no_audience
+  end
+
+  private
+
+  # One step wired to a Resolve and set as the start, so the only findings on
+  # it are about its own fields.
+  def connected_step(klass, **attrs)
+    step = klass.create!(workflow: @workflow, uuid: SecureRandom.uuid, position: 0, **attrs)
+    resolve = Steps::Resolve.create!(workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+                                     title: "Done", resolution_type: "success")
+    Transition.create!(step:, target_step: resolve, position: 0)
+    @workflow.update!(start_step: step)
+    step
   end
 end

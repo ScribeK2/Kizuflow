@@ -154,6 +154,20 @@ module Workflows
       assert_includes response.body, "All required fields present"
     end
 
+    test "a blank title suppresses the required-fields passing check" do
+      a = Steps::Action.create!(workflow: @workflow, uuid: SecureRandom.uuid, position: 0, title: "")
+      r = Steps::Resolve.create!(workflow: @workflow, uuid: SecureRandom.uuid, position: 1,
+                                 title: "Done", resolution_type: "success")
+      Transition.create!(step: a, target_step: r, position: 0)
+      @workflow.update!(start_step: a)
+
+      get workflow_health_path(@workflow)
+
+      assert_response :success
+      assert_includes response.body, "Step has no title"
+      assert_not_includes response.body, "All required fields present"
+    end
+
     # Regression: a fresh Sub-Flow step has no target until the user picks one
     # ("Sub-flow target is required for publish" — Steps::SubFlow validates
     # presence only `on: :publish`, so an ordinary create via the builder saves

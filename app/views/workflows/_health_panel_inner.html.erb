@@ -122,7 +122,7 @@
     <% passing_checks << "Every step can reach a Resolve step" unless (issue_codes & %i[no_path_to_resolve no_outgoing_transitions no_resolve_across_workflows]).any? %>
     <% passing_checks << "All terminals are Resolve steps" unless (issue_codes & %i[terminal_not_resolve no_outgoing_transitions]).any? %>
     <% passing_checks << "No circular sub-flows" unless (issue_codes & %i[circular_subflow max_depth_exceeded subflow_target_missing]).any? %>
-    <% passing_checks << "All required fields present" unless (issue_codes & %i[question_text_required subflow_target_required]).any? %>
+    <% passing_checks << "All required fields present" unless (issue_codes & %i[title_required question_text_required subflow_target_required]).any? %>
     <% if passing_checks.any? %>
       <div class="health-panel__section">
         <h4 class="health-panel__section-title">Passing</h4>

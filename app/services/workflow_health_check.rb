@@ -208,8 +208,16 @@ class WorkflowHealthCheck
                   fixable: true, fix_type: "add_resolve_after", code: :no_outgoing_transitions)
       end
 
-      if step.is_a?(Steps::Question) && step.title.blank?
-        add_issue(issues, step.uuid, :warning, "Question text is required for publish",
+      if step.title.blank?
+        add_issue(issues, step.uuid, :warning, "Step has no title",
+                  fixable: false, code: :title_required)
+      end
+
+      # A warning, not a publish refusal: the runner shows the step title when
+      # the question is blank, so the run still works. This read step.title
+      # until 2026-09-10, so a new Question was never flagged.
+      if step.is_a?(Steps::Question) && step.question.blank?
+        add_issue(issues, step.uuid, :warning, "Question text is empty, so the agent sees the step title instead",
                   fixable: false, code: :question_text_required)
       end
 
@@ -274,7 +282,7 @@ class WorkflowHealthCheck
   # (:unreachable_step, :no_path_to_resolve, :terminal_not_resolve,
   # :circular_subflow, :max_depth_exceeded, :subflow_target_missing) or one
   # coined here for a step-level check with no validator finding behind it
-  # (:question_text_required, :subflow_target_required). Lets consumers key on
+  # (:title_required, :question_text_required, :subflow_target_required). Lets consumers key on
   # a stable symbol instead of matching substrings of human-readable `message`
   # text — see the passing-checks section of _health_panel_inner.
   def add_issue(issues, uuid, severity, message, fixable: false, fix_type: nil, code: nil)
