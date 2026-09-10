@@ -307,14 +307,15 @@ class Group < ApplicationRecord
 
   # Where a group may sit: under any group except itself and its subgroups (a
   # cycle), Global (which has none), and groups too deep to take it and all it
-  # carries (MAX_DEPTH), each with its full path (spec Q40, Q61). Its current
-  # parent always stays, so editing an already-too-deep group can't silently
-  # move it to the top level.
+  # carries (MAX_DEPTH), each with its full path (spec Q40, Q61). A saved
+  # group's current parent always stays, so editing an already-too-deep group
+  # can't silently move it to the top level. A new group has no current parent:
+  # a parent_id in the URL doesn't bring back one the save would refuse.
   def self.parent_options_for(group)
     excluded = group&.persisted? ? [group.id, *group.descendant_ids].to_set : Set.new
     height = group ? group.subtree_height : 0
     tree_nodes.reject do |node|
-      next false if group && node.id == group.parent_id
+      next false if group&.persisted? && node.id == group.parent_id_was
 
       node.global? || excluded.include?(node.id) || node.depth + 1 + height >= MAX_DEPTH
     end

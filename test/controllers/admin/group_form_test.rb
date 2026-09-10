@@ -36,6 +36,11 @@ class Admin::GroupFormTest < ActionDispatch::IntegrationTest
     values = css_select("select[name='group[parent_id]'] option").pluck("value")
     assert_includes values, deep.id.to_s
     assert_not_includes values, deeper.id.to_s
+
+    get new_admin_group_path(parent_id: deeper.id)
+
+    values = css_select("select[name='group[parent_id]'] option").pluck("value")
+    assert_not_includes values, deeper.id.to_s, "a parent_id in the URL can't bring back a parent the save refuses"
   end
 
   test "the new subgroup form preselects its parent" do

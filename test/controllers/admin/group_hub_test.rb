@@ -46,6 +46,8 @@ class Admin::GroupHubTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_admin_group_path(parent_id: chain[4].id), 0
     assert_select "section[aria-labelledby=group-subgroups-heading] .form-hint",
                   text: "Groups nest up to 5 levels; this one is at the limit."
+    assert_no_match "Teams inside this group appear here", response.body,
+                    "a group at the limit can't have teams inside it"
 
     get admin_group_path(chain[3])
 
