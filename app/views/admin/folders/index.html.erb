@@ -27,7 +27,7 @@
               <%= link_to edit_admin_group_folder_path(@group, folder), class: "btn btn--sm btn--secondary" do %>
                 Edit
               <% end %>
-              <%= link_to admin_group_folder_path(@group, folder), data: { turbo_method: :delete, turbo_confirm: "Delete folder '#{folder.name}'? Workflows will be moved to Uncategorized." }, class: "btn btn--sm btn--plain" do %>
+              <%= link_to admin_group_folder_path(@group, folder), data: { turbo_method: :delete, turbo_confirm: "Delete folder '#{folder.name}'? Its workflows will be unfiled." }, class: "btn btn--sm btn--plain" do %>
                 Delete
               <% end %>
             </div>

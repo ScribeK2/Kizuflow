@@ -28,17 +28,6 @@ class Group < ApplicationRecord
   scope :roots, -> { where(parent_id: nil) }
   scope :children_of, ->(parent) { where(parent_id: parent.id) }
   scope :global, -> { roots.where(name: GLOBAL_NAME) }
-  scope :visible_to, lambda { |user|
-    return all if user&.admin?
-    return Group.none unless user
-
-    # Users see groups they're assigned to
-    user_assigned_group_ids = joins(:user_groups).where(user_groups: { user_id: user.id }).pluck(:id)
-
-    # Global is offered to everyone: what is filed there is for everyone.
-    group_ids = [user_assigned_group_ids, Group.global_id].flatten.compact.uniq
-    where(id: group_ids)
-  }
 
   # Tree traversal methods
   # These methods use recursive algorithms to traverse the hierarchical tree structure
@@ -306,7 +295,7 @@ class Group < ApplicationRecord
   # @param visible_ids [Enumerable<Integer>, nil] restrict the count to these
   #   workflow ids. Without it the count is every workflow filed under the group,
   #   which is not what the person reading the sidebar can open: an editor saw
-  #   "All Workflows 0" above "Uncategorized 12", clicked Uncategorized, and got
+  #   "All Workflows 0" above "Global 12", clicked Global, and got
   #   "No workflows". Pass the same scope the list itself uses.
   def self.precompute_workflows_counts(groups, visible_ids: nil)
     return if groups.empty?
@@ -364,8 +353,8 @@ class Group < ApplicationRecord
     user.groups.include?(self) || ancestors.any? { |ancestor| user.groups.include?(ancestor) }
   end
 
-  # Get workflows in this group that don't have a folder assignment
-  def uncategorized_workflows
+  # Workflows in this group that sit in none of its folders.
+  def unfiled_workflows
     workflows.joins(:group_workflows)
              .where(group_workflows: { group_id: id, folder_id: nil })
   end

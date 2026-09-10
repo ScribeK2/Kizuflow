@@ -8,14 +8,15 @@
         <nav class="wf-breadcrumb">
           <%= link_to "Workflows", workflows_path %>
           <span>/</span>
-          <% begin %>
-            <% ancestors = @selected_group.ancestors rescue [] %>
-            <% ancestors.reverse.each do |ancestor| %>
+          <%# A parent group this person cannot open is named, not linked: the link
+              would lead to a refusal. %>
+          <% @selected_group.ancestors.reverse.each do |ancestor| %>
+            <% if @linkable_group_ids.nil? || @linkable_group_ids.include?(ancestor.id) %>
               <%= link_to ancestor.name, workflows_path(group_id: ancestor.id) %>
-              <span>/</span>
+            <% else %>
+              <span><%= ancestor.name %></span>
             <% end %>
-          <% rescue => e %>
-            <% Rails.logger.error "Error rendering breadcrumb: #{e.message}" %>
+            <span>/</span>
           <% end %>
           <span class="font-medium"><%= @selected_group.name %></span>
         </nav>
@@ -54,11 +55,11 @@
             <%= render partial: "workflows/folder_accordion", locals: { name: folder.name, workflows: folder_workflows } %>
           <% end %>
 
-          <%# Uncategorized folder (always last, virtual) %>
-          <% if @uncategorized_workflows.present? && @uncategorized_workflows.any? %>
+          <%# Workflows in this group but in none of its folders (always last, virtual) %>
+          <% if @unfiled_workflows.present? && @unfiled_workflows.any? %>
             <%= render partial: "workflows/folder_accordion", locals: {
-                  name: "Uncategorized",
-                  workflows: @uncategorized_workflows,
+                  name: "Unfiled",
+                  workflows: @unfiled_workflows,
                   icon_name: "archive-box",
                   name_class: "font-semibold italic",
                   open: true

@@ -3,7 +3,7 @@ class FoldersController < ApplicationController
 
   def move_workflow
     folder_id = params[:folder_id]
-    @folder = folder_id.present? && folder_id != "uncategorized" ? Folder.find(folder_id) : nil
+    @folder = folder_id.present? && folder_id != "unfiled" ? Folder.find(folder_id) : nil
     @workflow = Workflow.find(params[:workflow_id])
     @group = @folder&.group || Group.find(params[:group_id])
 
@@ -23,7 +23,7 @@ class FoldersController < ApplicationController
     group_workflow = GroupWorkflow.find_by!(group: @group, workflow: @workflow)
     group_workflow.update!(folder: @folder)
 
-    redirect_to workflows_path(group_id: @group.id), notice: "Workflow moved#{@folder ? " to #{@folder.name}" : ' to Uncategorized'}."
+    redirect_to workflows_path(group_id: @group.id), notice: "Workflow moved#{@folder ? " to #{@folder.name}" : ' to Unfiled'}."
   end
 
   private

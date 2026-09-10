@@ -114,41 +114,6 @@ class GroupTest < ActiveSupport::TestCase
     assert_not_includes children.map(&:id), other.id
   end
 
-  test "visible_to scope should return all groups for admin" do
-    admin = User.create!(
-      email: "admin@test.com",
-      password: "password123!",
-      password_confirmation: "password123!",
-      role: "admin"
-    )
-    group1 = Group.create!(name: "Group 1")
-    group2 = Group.create!(name: "Group 2")
-
-    visible = Group.visible_to(admin)
-
-    assert_includes visible.map(&:id), group1.id
-    assert_includes visible.map(&:id), group2.id
-  end
-
-  test "visible_to scope should return assigned groups plus Global for regular user" do
-    user = User.create!(
-      email: "user@test.com",
-      password: "password123!",
-      password_confirmation: "password123!"
-    )
-    assigned_group = Group.create!(name: "Assigned Group")
-    other_group = Group.create!(name: "Other Group")
-    global = global_group
-
-    UserGroup.create!(group: assigned_group, user: user)
-
-    visible = Group.visible_to(user)
-
-    assert_includes visible.map(&:id), assigned_group.id
-    assert_includes visible.map(&:id), global.id
-    assert_not_includes visible.map(&:id), other_group.id
-  end
-
   # Tree traversal methods
   test "root? should return true for root groups" do
     root = Group.create!(name: "Root")
@@ -346,19 +311,19 @@ class GroupTest < ActiveSupport::TestCase
     assert_includes group.folders, folder2
   end
 
-  test "uncategorized_workflows should return workflows without folder" do
+  test "unfiled_workflows returns workflows in no folder" do
     group = Group.create!(name: "Folder Group")
     folder = Folder.create!(name: "Categorized", group: group)
     user = User.create!(email: "foldertestuser@example.com", password: "password123!", password_confirmation: "password123!")
     wf_in_folder = Workflow.create!(title: "In Folder", user: user)
-    wf_uncategorized = Workflow.create!(title: "Uncategorized", user: user)
+    wf_unfiled = Workflow.create!(title: "Loose", user: user)
 
     GroupWorkflow.create!(group: group, workflow: wf_in_folder, folder: folder, is_primary: true)
-    GroupWorkflow.create!(group: group, workflow: wf_uncategorized, is_primary: true)
+    GroupWorkflow.create!(group: group, workflow: wf_unfiled, is_primary: true)
 
-    uncategorized = group.uncategorized_workflows
-    assert_includes uncategorized, wf_uncategorized
-    assert_not_includes uncategorized, wf_in_folder
+    unfiled = group.unfiled_workflows
+    assert_includes unfiled, wf_unfiled
+    assert_not_includes unfiled, wf_in_folder
   end
 
   test "can_be_viewed_by? should return false for unassigned user" do
@@ -370,17 +335,6 @@ class GroupTest < ActiveSupport::TestCase
     group = Group.create!(name: "Test Group")
 
     assert_not group.can_be_viewed_by?(user)
-  end
-
-  # The sidebar offers Global to everyone, so the permission check must agree:
-  # a group the sidebar links to must be one the filter will accept.
-  test "the group listing rule and the permission check agree" do
-    editor = User.create!(email: "grp-perm-#{SecureRandom.hex(4)}@example.com",
-                          password: "password123!", password_confirmation: "password123!", role: "editor")
-    global = global_group
-
-    assert_includes Group.visible_to(editor), global
-    assert global.can_be_viewed_by?(editor)
   end
 
   test "an unrelated group is still refused" do

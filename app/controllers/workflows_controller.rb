@@ -17,7 +17,8 @@ class WorkflowsController < ApplicationController
     @selected_group         = filter.selected_group
     @selected_ancestor_ids  = filter.selected_ancestor_ids
     @folders                = filter.folders
-    @uncategorized_workflows = filter.uncategorized_workflows
+    @unfiled_workflows      = filter.unfiled_workflows
+    @linkable_group_ids     = filter.linkable_group_ids
     @workflows_by_folder    = filter.workflows_by_folder
     @accessible_groups      = filter.accessible_groups
     @total_count            = filter.total_count

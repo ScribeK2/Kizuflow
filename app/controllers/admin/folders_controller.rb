@@ -33,7 +33,7 @@ class Admin::FoldersController < Admin::BaseController
   def destroy
     folder_name = @folder.name
     @folder.destroy
-    redirect_to admin_group_folders_path(@group), notice: "Folder '#{folder_name}' deleted. Workflows moved to Uncategorized."
+    redirect_to admin_group_folders_path(@group), notice: "Folder '#{folder_name}' deleted. Its workflows are now unfiled."
   end
 
   def reorder

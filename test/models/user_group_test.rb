@@ -135,22 +135,20 @@ class UserGroupTest < ActiveSupport::TestCase
     assert_equal 3, UserGroup.where(group: @group).count
   end
 
-  test "group visibility for assigned user returns the assigned group" do
+  test "a membership makes the group reachable" do
     UserGroup.create!(user: @user, group: @group)
-    visible_groups = Group.visible_to(@user)
 
-    assert_includes visible_groups, @group
+    assert_includes Group.reachable_ids_for(@user), @group.id
   end
 
-  test "group visibility for unassigned user does not return unassigned group" do
+  test "without a membership the group is not reachable" do
     user2 = User.create!(
       email: "ug-test2@example.com",
       password: "password123456",
       password_confirmation: "password123456"
     )
-    visible_groups = Group.visible_to(user2)
 
-    assert_not_includes visible_groups, @group
+    assert_not_includes Group.reachable_ids_for(user2), @group.id
   end
 
   test "cascade deletion removes user_groups when group is destroyed" do

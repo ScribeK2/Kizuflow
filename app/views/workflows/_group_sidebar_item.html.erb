@@ -32,7 +32,7 @@
 
   <% if has_children %>
     <ul class="children is-hidden ml-4 flex-col-gap-1 border-l-2 pl-2 overflow-hidden" data-children data-group-id="<%= group.id %>">
-      <% group.children.order(:position, :name).each do |child| %>
+      <% group.children.sort_by { it.name.downcase }.each do |child| %>
         <%= render partial: "workflows/group_sidebar_item", locals: { group: child, level: level + 1, selected_group: @selected_group } %>
       <% end %>
     </ul>

@@ -37,7 +37,7 @@
           <span class="list-row__body">
             <span class="list-row__title"><%= workflow.title %></span>
             <span class="list-row__sub">
-              <%= workflow.groups.first&.name || "Uncategorized" %>
+              <%= workflow.groups.first&.name || "No groups" %>
               &middot; <%= pluralize(workflow.steps.size, "step") %>
               <%# published_version, not versions.last: `has_many :versions` carries no
                   default order, so `.last` was whatever the database happened to return.

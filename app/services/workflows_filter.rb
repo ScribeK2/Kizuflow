@@ -1,6 +1,6 @@
 class WorkflowsFilter
   attr_reader :workflows, :selected_group, :selected_ancestor_ids,
-              :folders, :uncategorized_workflows, :workflows_by_folder,
+              :folders, :unfiled_workflows, :workflows_by_folder,
               :accessible_groups, :total_count, :total_pages, :page,
               :workflows_paginated, :group_error
 
@@ -39,6 +39,15 @@ class WorkflowsFilter
   end
 
   def per_page_size = per_page
+
+  # nil for an admin, who may open every group; otherwise the groups this person
+  # reaches. The breadcrumb links only these — above a subgroup someone was
+  # given, the parent groups are theirs to read, not to open.
+  def linkable_group_ids
+    return nil if @user.admin?
+
+    @linkable_group_ids ||= Group.reachable_ids_for(@user).to_set
+  end
 
   private
 
@@ -101,17 +110,17 @@ class WorkflowsFilter
     return if @selected_group.blank?
 
     @folders = @selected_group.folders.ordered
-    @uncategorized_workflows = @selected_group.uncategorized_workflows
-                                              .includes(:user)
-                                              .search_by(@params[:search])
-    @uncategorized_workflows = case sort_by
-                               when "alphabetical"
-                                 @uncategorized_workflows.order(Arel.sql("LOWER(title) ASC"))
-                               when "most_steps"
-                                 @uncategorized_workflows.order(steps_count: :desc)
-                               else
-                                 @uncategorized_workflows.order(updated_at: :desc)
-                               end
+    @unfiled_workflows = @selected_group.unfiled_workflows
+                                        .includes(:user)
+                                        .search_by(@params[:search])
+    @unfiled_workflows = case sort_by
+                         when "alphabetical"
+                           @unfiled_workflows.order(Arel.sql("LOWER(title) ASC"))
+                         when "most_steps"
+                           @unfiled_workflows.order(steps_count: :desc)
+                         else
+                           @unfiled_workflows.order(updated_at: :desc)
+                         end
 
     return if @folders.blank?
 
@@ -122,18 +131,25 @@ class WorkflowsFilter
     end
   end
 
+  # The groups this person reaches, from their top-most reachable level, Global
+  # first and then by name ignoring case (spec Q38, Q50). It listed roots, so an
+  # editor given only a subgroup had nothing to click.
   def load_sidebar_groups
-    @accessible_groups = Group.visible_to(@user)
-                              .roots
-                              .includes(:children)
-                              .order(:position, :name)
+    @accessible_groups = sidebar_tops.sort_by { [it.global? ? 0 : 1, it.name.downcase] }
 
-    all_sidebar_groups = @accessible_groups.to_a + @accessible_groups.flat_map(&:children)
+    all_sidebar_groups = @accessible_groups + @accessible_groups.flat_map(&:children)
     return if all_sidebar_groups.empty?
 
     # Scoped to what this viewer can actually open, and to the tab they are on,
     # so a group's number and the list it opens are the same number.
     Group.precompute_workflows_counts(all_sidebar_groups, visible_ids: @workflows.reselect(:id))
+  end
+
+  def sidebar_tops
+    return Group.roots.includes(:children).to_a if @user.admin?
+
+    reachable = linkable_group_ids
+    Group.where(id: reachable.to_a).includes(:children).reject { reachable.include?(it.parent_id) }
   end
 
   def paginate

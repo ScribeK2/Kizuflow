@@ -54,7 +54,7 @@
               <%= hidden_field_tag :group_id, @selected_group.id %>
               <select name="folder_id" data-controller="move-to-folder" data-action="change->move-to-folder#submit"
                       class="form-select text-xs">
-                <option value="uncategorized" <%= 'selected' if current_gw&.folder_id.nil? %>>Uncategorized</option>
+                <option value="unfiled" <%= 'selected' if current_gw&.folder_id.nil? %>>Unfiled</option>
                 <% @folders.each do |folder| %>
                   <option value="<%= folder.id %>" <%= 'selected' if current_gw&.folder_id == folder.id %>><%= folder.name %></option>
                 <% end %>

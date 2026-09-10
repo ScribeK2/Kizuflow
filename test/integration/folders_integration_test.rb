@@ -32,7 +32,7 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
     assert_select "details" # Accordion element
     assert_match "DNS Issues", response.body
 
-    # 4. Delete folder — workflow should become uncategorized
+    # 4. Delete folder — workflow should become unfiled
     delete admin_group_folder_path(@group, folder)
     assert_redirected_to admin_group_folders_path(@group)
 
@@ -40,19 +40,19 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
     assert_nil gw.folder_id
   end
 
-  test "workflows without folders show in uncategorized accordion" do
-    folder = Folder.create!(name: "Categorized", group: @group)
-    wf1 = Workflow.create!(title: "Cat WF", user: @admin)
+  test "workflows in no folder show in the Unfiled accordion" do
+    folder = Folder.create!(name: "Filed", group: @group)
+    wf1 = Workflow.create!(title: "Filed WF", user: @admin)
     Steps::Action.create!(workflow: wf1, position: 0, title: "Step")
-    wf2 = Workflow.create!(title: "Uncat WF", user: @admin)
+    wf2 = Workflow.create!(title: "Loose WF", user: @admin)
     Steps::Action.create!(workflow: wf2, position: 0, title: "Step")
     GroupWorkflow.create!(group: @group, workflow: wf1, folder: folder, is_primary: true)
     GroupWorkflow.create!(group: @group, workflow: wf2, is_primary: true)
 
     get workflows_path(group_id: @group.id)
     assert_response :success
-    assert_match "Uncategorized", response.body
-    assert_match "Uncat WF", response.body
+    assert_select "details.folder-accordion summary span", text: "Unfiled"
+    assert_match "Loose WF", response.body
   end
 
   test "all workflows view shows flat list regardless of folders" do
@@ -65,13 +65,13 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Flat WF", response.body
   end
-  # The Uncategorized bucket used to be a second, hand-written copy of the
-  # folder accordion markup. It drifted: its <summary> carried the class
-  # "folder-accordion__header", which no stylesheet defines, so it lost the
-  # flex row AND the ::-webkit-details-marker suppression — the native
+  # The Unfiled bucket (called Uncategorized until Stage 4a) used to be a second,
+  # hand-written copy of the folder accordion markup. It drifted: its <summary>
+  # carried the class "folder-accordion__header", which no stylesheet defines, so
+  # it lost the flex row AND the ::-webkit-details-marker suppression — the native
   # disclosure triangle showed through and the contents stacked vertically.
   # These tests pin the two accordions to one shape.
-  test "uncategorized bucket renders the same accordion structure as a named folder" do
+  test "the Unfiled bucket renders the same accordion structure as a named folder" do
     folder = Folder.create!(group: @group, name: "Email Issues", position: 0)
 
     filed = Workflow.create!(title: "Filed Flow", user: @admin)
@@ -94,7 +94,7 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
     assert_select "details.folder-accordion .folder-accordion__body ul.wf-list", count: 2
   end
 
-  test "uncategorized bucket keeps its own icon, italic name and open state" do
+  test "the Unfiled bucket keeps its own icon, italic name and open state" do
     loose = Workflow.create!(title: "Loose Flow", user: @admin)
     GroupWorkflow.create!(group: @group, workflow: loose, folder: nil, is_primary: true)
     Folder.create!(group: @group, name: "Email Issues", position: 0)
@@ -103,9 +103,9 @@ class FoldersIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Sharing the partial must not flatten the two intentional differences:
-    # Uncategorized is a virtual bucket and should still read as one.
+    # Unfiled is a virtual bucket and should still read as one.
     assert_select "details.folder-accordion[open]", count: 1
-    assert_select "details.folder-accordion[open] summary span.italic", text: "Uncategorized"
+    assert_select "details.folder-accordion[open] summary span.italic", text: "Unfiled"
     assert_select "details.folder-accordion:not([open]) summary span", text: "Email Issues"
   end
 end
