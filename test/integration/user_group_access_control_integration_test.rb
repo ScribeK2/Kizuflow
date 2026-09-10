@@ -38,7 +38,7 @@ class UserGroupAccessControlIntegrationTest < ActionDispatch::IntegrationTest
       group_ids: [@group1.id]
     }
 
-    assert_redirected_to admin_users_path
+    assert_redirected_to admin_user_path(@user1)
     @user1.reload
 
     assert_includes @user1.groups.map(&:id), @group1.id
