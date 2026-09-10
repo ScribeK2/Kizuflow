@@ -21,12 +21,6 @@ module ApplicationHelper
     }
   end
 
-  # Build hierarchical group tree structure for dropdown
-  def build_group_tree(groups)
-    roots = groups.select { |g| g.parent_id.nil? }
-    build_tree_nodes(roots, groups)
-  end
-
   # Render a pill badge indicating workflow draft/published status
   def workflow_status_badge(workflow)
     if workflow.draft?
@@ -47,17 +41,5 @@ module ApplicationHelper
                    attributes: %w[viewBox xmlns fill stroke stroke-width stroke-linecap
                                   stroke-linejoin d cx cy r x y width height points
                                   class transform opacity id href xlink:href])
-  end
-
-  private
-
-  def build_tree_nodes(parents, all_groups)
-    parents.map do |parent|
-      children = all_groups.select { |g| g.parent_id == parent.id }
-      {
-        group: parent,
-        children: build_tree_nodes(children, all_groups)
-      }
-    end
   end
 end
