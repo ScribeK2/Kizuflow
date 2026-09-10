@@ -1,0 +1,29 @@
+<%# locals: (group:, query:, candidates:) %>
+<%# The search stays open after an Add (spec Q15): the members stream re-renders
+    this frame for the same words, minus whoever was just added. Buttons inside a
+    frame still get their stream response applied, so none needs _top. %>
+<turbo-frame id="group-member-search">
+  <%= form_with url: admin_group_memberships_path(group), method: :get, class: "admin-group__search" do |form| %>
+    <%= form.search_field :q, value: query, class: "form-input form-input--sm",
+          placeholder: "Find people by email or name", autocomplete: "off",
+          aria: { label: "Find people to add to #{group.name}" } %>
+    <%= form.submit "Search", name: nil, class: "btn btn--secondary btn--sm" %>
+  <% end %>
+
+  <% if query.present? %>
+    <% if candidates.any? %>
+      <ul class="admin-group__list" role="list">
+        <% candidates.each do |user| %>
+          <li class="admin-group__item">
+            <span class="admin-group__name"><%= user.email %></span>
+            <span class="admin-group__meta"><%= [user.display_name.presence, user.role.capitalize].compact.join(" · ") %></span>
+            <%= button_to "Add", admin_group_memberships_path(group), params: { user_id: user.id, q: query },
+                  class: "btn btn--secondary btn--sm", aria: { label: "Add #{user.email} to #{group.name}" } %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="form-hint">Nobody else matches “<%= query %>”.</p>
+    <% end %>
+  <% end %>
+</turbo-frame>

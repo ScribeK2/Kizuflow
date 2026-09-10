@@ -111,6 +111,7 @@ Rails.application.routes.draw do
       post :test_delivery
     end
     resources :groups do
+      resources :memberships, only: %i[index create destroy]
       patch 'folders/reorder', to: 'folders#reorder', as: :reorder_folders
       resources :folders, except: [:show]
     end

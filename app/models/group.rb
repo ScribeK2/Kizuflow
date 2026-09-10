@@ -394,6 +394,20 @@ class Group < ApplicationRecord
              .where(group_workflows: { group_id: id, folder_id: nil })
   end
 
+  # Direct members by email, accounts loaded for display.
+  def memberships_by_email
+    user_groups.eager_load(:user).merge(User.order(:email))
+  end
+
+  # Parent groups whose members reach this group's workflows too, root first,
+  # each with its direct member count. Membership covers subgroups, so these
+  # people are not listed as members, but the page says they have access.
+  def inherited_access
+    above = ancestors.reverse
+    counts = UserGroup.where(group_id: above.map(&:id)).group(:group_id).count
+    above.filter_map { |group| [group, counts[group.id]] if counts[group.id] }
+  end
+
   private
 
   def was_global?

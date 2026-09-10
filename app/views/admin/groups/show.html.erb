@@ -23,7 +23,7 @@
   <% else %>
     <%= render "subgroups", group: @group, subgroups: @subgroups,
           member_counts: @member_counts, workflow_counts: @workflow_counts %>
-    <%# Members card (Task 5) %>
+    <%= render "members", group: @group %>
   <% end %>
 
   <%# Folders card (Task 6) %>

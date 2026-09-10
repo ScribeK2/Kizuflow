@@ -1,0 +1,35 @@
+<%# locals: (group:, query: "", candidates: User.none) %>
+<%# Direct members only (spec Q15); access through a parent group is a line, not
+    rows. admin/memberships/changed replaces this section whole. %>
+<% memberships = group.memberships_by_email %>
+<% inherited = group.inherited_access %>
+<section id="group-members" class="card mb-4" aria-labelledby="group-members-heading">
+  <div class="card__body">
+    <h2 id="group-members-heading" class="admin-card__heading">Members</h2>
+
+    <% if inherited.any? %>
+      <p class="form-hint mb-3">
+        People in a parent group see this group's workflows too:
+        <%= to_sentence(inherited.map { |parent, count| link_to("#{pluralize(count, 'member')} of #{parent.name}", admin_group_path(parent)) }) %>.
+      </p>
+    <% end %>
+
+    <% if memberships.any? %>
+      <ul class="admin-group__list mb-4" role="list">
+        <% memberships.each do |membership| %>
+          <li class="admin-group__item">
+            <%= link_to membership.user.email, admin_user_path(membership.user), class: "admin-group__name" %>
+            <span class="admin-group__meta"><%= membership.user.role.capitalize %></span>
+            <%= button_to "Remove", admin_group_membership_path(group, membership), method: :delete,
+                  params: { q: query }, class: "btn btn--plain btn--sm",
+                  aria: { label: "Remove #{membership.user.email} from #{group.name}" } %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="form-hint mb-4">No members yet. Find people below to add them.</p>
+    <% end %>
+
+    <%= render "admin/groups/member_search", group:, query:, candidates: %>
+  </div>
+</section>

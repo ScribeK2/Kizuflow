@@ -6,6 +6,7 @@ module AdminHelper
     "admin/dashboard" => :overview,
     "admin/users" => :users,
     "admin/groups" => :groups,
+    "admin/memberships" => :groups,
     "admin/folders" => :groups,
     "admin/analytics" => :analytics,
     "admin/data_health" => :data_health,
