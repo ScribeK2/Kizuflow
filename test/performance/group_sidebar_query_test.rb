@@ -32,7 +32,7 @@ class GroupSidebarQueryTest < ActiveSupport::TestCase
   end
 
   test "sidebar group rendering simulation uses bounded queries" do
-    root_groups = Group.where(parent_id: nil).includes(:children).order(:position, :name).to_a
+    root_groups = Group.where(parent_id: nil).includes(:children).order(:name).to_a
     all_sidebar_groups = root_groups + root_groups.flat_map(&:children)
 
     # Simulate what the sidebar partial does for each group

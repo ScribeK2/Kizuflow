@@ -54,7 +54,9 @@ class TurnUncategorizedIntoGlobal < ActiveRecord::Migration[8.1]
     end
 
     group = uncategorized || global
-    return MigrationGroup.create!(name: "Global", description: DESCRIPTION, position: 0) unless group
+    # No position: 20260910130000 drops that column, and this migration's test
+    # runs it against the schema as it is now.
+    return MigrationGroup.create!(name: "Global", description: DESCRIPTION) unless group
 
     if MigrationGroup.exists?(parent_id: group.id)
       raise "Group ##{group.id} (#{group.name}) has subgroups, and Global may not. Move them, then migrate."
