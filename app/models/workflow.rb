@@ -207,17 +207,29 @@ class Workflow < ApplicationRecord
     self.draft_expires_at = 7.days.from_now if draft?
   end
 
-  # Determine if graph structure validation should run
-  # Only validate graph structure when publishing, not during draft saves.
-  # This allows incremental workflow building without requiring all steps
-  # to be connected before saving.
+  # Only while publishing. A draft, or a live workflow mid-edit, saves with
+  # unconnected steps; the builder's health panel says what is still missing.
   def should_validate_graph_structure?
-    published? || @validate_graph_now
+    publishing?
   end
 
-  # Force graph validation on next save (for explicit validation requests)
-  def validate_graph_now!
-    @validate_graph_now = true
+  # The save WorkflowPublisher makes to go live runs inside this, and so does
+  # every WorkflowSetPublisher member, since it publishes through
+  # WorkflowPublisher. The checks that describe publish readiness key on
+  # publishing?, not published?: published? says a workflow is live, and a live
+  # workflow is edited in place, so keying on it refused its title and Details
+  # saves whenever an edit was half-done. Nothing a run reads was protected by
+  # that: the runner reads live steps, and a step save never validates the
+  # workflow.
+  def while_publishing
+    @publishing = true
+    yield
+  ensure
+    @publishing = false
+  end
+
+  def publishing?
+    @publishing == true
   end
 
   # Class method to cleanup expired drafts
@@ -521,10 +533,11 @@ class Workflow < ApplicationRecord
       # title in the builder and the autosave went red, with the health panel
       # reading clean because it only ever flagged a *blank* target.
       #
-      # Publishing still enforces it. WorkflowPublisher assigns status before
-      # validating, so `draft?` is already false by the time this runs and the
-      # branch fires — which is what makes a bundle publish leaf-first.
-      if published? && !target_workflow.published? && !publishing_alongside?(target_workflow.id)
+      # Publishing still enforces it: WorkflowPublisher saves inside
+      # while_publishing, which is what makes a bundle publish leaf-first. It
+      # keyed on published? until 2026-09-10, which also refused a live
+      # workflow's renames once it gained a Sub-Flow into a draft.
+      if publishing? && !target_workflow.published? && !publishing_alongside?(target_workflow.id)
         errors.add(:steps, "Step #{step.position + 1}: Target workflow '#{target_workflow.title}' is not published")
       end
 

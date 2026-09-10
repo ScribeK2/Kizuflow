@@ -24,6 +24,11 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     file_in_global(@workflow)
   end
 
+  test "the publish signal ends with the publish" do
+    assert_predicate WorkflowPublisher.publish(@workflow, @user), :success?
+    assert_not @workflow.publishing?
+  end
+
   test "publishes a workflow and creates a version" do
     result = WorkflowPublisher.publish(@workflow, @user)
 

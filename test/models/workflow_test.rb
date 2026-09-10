@@ -646,11 +646,12 @@ class WorkflowTest < ActiveSupport::TestCase
     Transition.create!(step: call, target_step: done, position: 0)
     source.update!(start_step: call)
 
-    source.status = "published"
-    assert_not source.valid?, "without the set, a published workflow may not point at a draft"
+    source.while_publishing do
+      assert_not source.valid?, "without the set, a publish may not point at a draft"
 
-    source.publishing_alongside = Set[target.id]
-    assert_predicate source, :valid?, source.errors.full_messages.join(" | ")
+      source.publishing_alongside = Set[target.id]
+      assert_predicate source, :valid?, source.errors.full_messages.join(" | ")
+    end
   end
 
   test "publishing_alongside is nil by default and changes nothing" do
@@ -665,9 +666,10 @@ class WorkflowTest < ActiveSupport::TestCase
     source.update!(start_step: call)
 
     assert_nil source.publishing_alongside
-    source.status = "published"
-    assert_not source.valid?
-    assert(source.errors[:steps].any? { |e| e.include?("is not published") })
+    source.while_publishing do
+      assert_not source.valid?
+      assert(source.errors[:steps].any? { |e| e.include?("is not published") })
+    end
   end
 
   test "publishing_alongside does not excuse a blank or self-referencing target" do
@@ -678,9 +680,26 @@ class WorkflowTest < ActiveSupport::TestCase
     # No start_step assignment: a self-referencing workflow cannot be saved at
     # all, which is the point. We only need #valid? to run the validation.
     wf.publishing_alongside = Set[wf.id]
-    wf.status = "published"
-    wf.valid?
+    wf.while_publishing { wf.valid? }
     assert(wf.errors[:steps].any? { |e| e.include?("cannot reference itself") },
            "the set excuses only the published-target rule, nothing else")
+  end
+
+  # Between publishes a live workflow can gain a Sub-Flow into a draft; that
+  # rule belongs to the next publish, not to a rename.
+  test "a published workflow pointing at a draft saves until it is republished" do
+    target = Workflow.create!(title: "Live Target", user: @user, status: "draft")
+    Steps::Resolve.create!(workflow: target, position: 0, title: "Done", resolution_type: "success")
+    source = Workflow.create!(title: "Live Source", user: @user, status: "draft")
+    call = Steps::SubFlow.create!(workflow: source, position: 0, title: "Call Target",
+                                  sub_flow_workflow_id: target.id)
+    done = Steps::Resolve.create!(workflow: source, position: 1, title: "Done",
+                                  resolution_type: "success")
+    Transition.create!(step: call, target_step: done, position: 0)
+    source.update!(start_step: call)
+    source.update_column(:status, "published")
+
+    source.reload.title = "Live Source renamed"
+    assert_predicate source, :valid?, source.errors.full_messages.join(" | ")
   end
 end

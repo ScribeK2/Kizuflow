@@ -36,7 +36,8 @@ class WorkflowPublisher
 
     Workflow.transaction do
       version = unchanged_version(steps, metadata) || create_version!(steps, metadata)
-      @workflow.update!(published_version: version, status: "published")
+      # The publish-readiness checks on Workflow run only inside this block.
+      @workflow.while_publishing { @workflow.update!(published_version: version, status: "published") }
       release_old_snapshots!
     end
 

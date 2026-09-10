@@ -101,17 +101,18 @@ class WorkflowValidationTest < ActiveSupport::TestCase
   # Graph validation on publish
   # ---------------------------------------------------------------------------
 
-  test "published workflow with disconnected steps is invalid" do
+  test "a disconnected graph is invalid while publishing" do
     wf = create_workflow("Graph Validation", status: "draft")
     q = add_question(wf, "Start", position: 0)
     add_resolve(wf, "End", position: 1)
     # No transition linking q -> r — they are disconnected
     wf.update!(start_step: q)
 
-    # Force graph validation via validate_graph_now!
-    wf.validate_graph_now!
-    assert_not wf.valid?, "Disconnected graph should be invalid"
-    assert_predicate wf.errors[:steps], :any?, "Should have step errors for disconnected graph"
+    wf.while_publishing do
+      assert_not wf.valid?, "Disconnected graph should be invalid"
+      assert_predicate wf.errors[:steps], :any?, "Should have step errors for disconnected graph"
+    end
+    assert_predicate wf, :valid?, "outside a publish the same draft saves"
   end
 
   test "published workflow with connected graph is valid" do
@@ -125,15 +126,20 @@ class WorkflowValidationTest < ActiveSupport::TestCase
     assert_predicate wf, :valid?, "Connected graph should be valid: #{wf.errors.full_messages.join(', ')}"
   end
 
-  test "validate_graph_now! forces validation on draft" do
-    wf = create_workflow("Force Validate Draft", status: "draft")
-    q = add_question(wf, "Orphan", position: 0)
-    add_resolve(wf, "End", position: 1)
-    wf.update_column(:start_step_id, q.id)
+  # A live workflow is edited in place, so between publishes it is as half-built
+  # as a draft, and its title and Details must still save. Keying the graph
+  # check on published? refused them; the runner reads live steps and a step
+  # save never validates the workflow, so the refusal protected no run.
+  test "a published workflow with an unconnected step still saves" do
+    wf = create_workflow("Live Edit")
+    q = add_question(wf, "Start", position: 0)
+    r = add_resolve(wf, "End", position: 1)
+    link(q, r)
+    wf.update!(start_step: q)
+    add_question(wf, "Half-added", position: 2)
 
-    wf.reload
-    wf.validate_graph_now!
-    assert_not wf.valid?, "validate_graph_now! should force graph validation on draft"
+    wf.reload.title = "Live Edit renamed"
+    assert_predicate wf, :valid?, wf.errors.full_messages.join(", ")
   end
 
   # ---------------------------------------------------------------------------
