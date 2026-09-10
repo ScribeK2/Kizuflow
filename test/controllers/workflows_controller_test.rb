@@ -195,6 +195,25 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, @workflow.steps.count
   end
 
+  # The builder saves over JSON and Turbo Streams; an HTML update comes from a
+  # form without JavaScript or a hand-made request. Its error branch rendered
+  # :edit, which has no template.
+  test "an HTML update that fails validation returns to the builder and says why" do
+    patch workflow_path(@workflow), params: { workflow: { title: "" } }
+
+    assert_redirected_to workflow_path(@workflow, edit: true)
+    assert_match "Title can't be blank", flash[:alert]
+    assert_predicate @workflow.reload.title, :present?
+  end
+
+  test "an HTML update from a stale page returns to the builder with the conflict" do
+    patch workflow_path(@workflow), params: { workflow: { title: "Stale Edit", lock_version: @workflow.lock_version + 5 } }
+
+    assert_redirected_to workflow_path(@workflow, edit: true)
+    assert_match "modified by another user", flash[:alert]
+    assert_not_equal "Stale Edit", @workflow.reload.title
+  end
+
   test "should destroy workflow" do
     assert_difference("Workflow.count", -1) do
       delete workflow_path(@workflow)

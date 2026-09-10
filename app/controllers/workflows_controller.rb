@@ -185,7 +185,10 @@ class WorkflowsController < ApplicationController
         ), status: status
       end
       format.json { render json: { status: "error", errors: @workflow.errors.full_messages }, status: status }
-      format.html { render :edit, status: status }
+      format.html do
+        alert = @conflict_detected ? flash.now[:alert] : "Couldn't save: #{@workflow.errors.full_messages.to_sentence}."
+        redirect_to workflow_path(@workflow, edit: true), alert:, status: :see_other
+      end
     end
   end
 
