@@ -8,55 +8,6 @@
 }
 
 /* ============================================================================
-   Variable Autocomplete Dropdown
-   ============================================================================ */
-
-.variable-autocomplete-dropdown {
-  position: absolute;
-  z-index: var(--z-dropdown);
-  background: var(--color-canvas);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  max-height: 12rem;
-  overflow-y: auto;
-  min-width: 12rem;
-}
-
-.variable-autocomplete-dropdown__item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: var(--text-sm);
-  color: var(--color-ink);
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.variable-autocomplete-dropdown__item:hover,
-.variable-autocomplete-dropdown__item.is-highlighted {
-  background: var(--color-canvas-raised);
-}
-
-/* Variable item (JS-generated inside autocomplete dropdown) */
-.variable-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: var(--text-sm);
-  color: var(--color-ink);
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.variable-item:hover,
-.variable-item.is-selected {
-  background: var(--color-canvas-raised);
-}
-
-/* ============================================================================
    Btn Spinner (SVG-based loading spinner inside buttons)
    ============================================================================ */
 

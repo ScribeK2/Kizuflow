@@ -5,8 +5,8 @@
 <div class="form-group">
   <%= form.label :question, "Question Text", class: "form-label" %>
   <%= form.text_field :question, class: "form-input", required: true,
-      placeholder: "Question text (type {{ to see available variables)",
-      data: { action: "input->inline-autosave#schedule", variable_autocomplete_target: "input" } %>
+      placeholder: "Question text. Use {{variable_name}} for earlier answers",
+      data: { action: "input->inline-autosave#schedule" } %>
 </div>
 
 <div class="form-group" data-controller="question-form">

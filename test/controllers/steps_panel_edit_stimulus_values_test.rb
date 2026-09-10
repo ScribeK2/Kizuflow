@@ -48,6 +48,19 @@ class StepsPanelEditStimulusValuesTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # variable_autocomplete_controller.js lost its mount in March and was deleted
+  # (Q75). The placeholder still promised the dropdown it opened.
+  test "the question step panel doesn't promise a variable dropdown" do
+    step = Steps::Question.create!(workflow: @workflow, position: 0, title: "Caller name?")
+
+    get panel_edit_workflow_step_path(@workflow, step)
+
+    assert_response :success
+    assert_select "input[placeholder=?]", "Question text. Use {{variable_name}} for earlier answers"
+    assert_no_match "to see available variables", response.body
+    assert_no_match "variable-autocomplete-target", response.body
+  end
+
   test "the transitions editor carries sentence targets and variables JSON, not a raw custom field" do
     earlier = Steps::Question.create!(
       workflow: @workflow, position: 0, title: "Already verified?",
