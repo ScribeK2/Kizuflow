@@ -69,6 +69,7 @@ class Admin::GroupHubTest < ActionDispatch::IntegrationTest
     assert_select "section[aria-labelledby=group-subgroups-heading]", 0
     assert_select "section[aria-labelledby=group-danger-heading]", 0
     assert_match "It can't be renamed, moved or deleted", response.body
+    assert_select ".page-header-section__ident", text: /\A\s*0 workflows ·/, message: "Global has no subgroups to include"
   end
 
   test "a refused delete returns to the group's page" do
