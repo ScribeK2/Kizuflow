@@ -155,6 +155,29 @@ module Admin
       assert_match(/individual runs/i, flash[:alert])
     end
 
+    # Stage 5 fixes (Q5): outcomes are plain text beside hued bars, Busiest Hours
+    # ranks by length not colour, card subtitles are not empty-state copy, and the
+    # range hint no longer pushes Purpose out of line with Date Range.
+    test "outcomes read as text, busiest hours are one colour, subtitles and filters line up" do
+      Scenario.create!(workflow: @workflow, user: @admin, inputs: {}, purpose: "live", status: "completed",
+                       outcome: "completed", started_at: 1.day.ago, completed_at: 1.day.ago + 30.seconds,
+                       duration_seconds: 30)
+      sign_in @admin
+
+      get admin_analytics_path
+
+      assert_response :success
+      assert_select "#outcome-breakdown td", text: "Completed"
+      assert_select "#outcome-breakdown .badge", 0
+      assert_select "#outcome-breakdown .analytics-bar--completed", 1
+      assert_select "#busiest-hours .analytics-bar", minimum: 1
+      assert_select "#busiest-hours .analytics-bar:not(.analytics-bar--default)", 0
+      assert_select ".card__header .empty-state__text", 0
+      assert_select ".card__header .analytics-card__subtitle", 2
+      assert_select "form.card > p.form-hint", 1
+      assert_select "form.card > div.flex p.form-hint", 0
+    end
+
     test "admin can access analytics page" do
       sign_in @admin
       get admin_analytics_path

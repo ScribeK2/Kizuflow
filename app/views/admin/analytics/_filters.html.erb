@@ -16,23 +16,6 @@
           </button>
         <% end %>
       </div>
-      <%# "All time" is a different SOURCE, not a wider window on the same one:
-          runs are deleted at the retention horizon, so it reads the daily rollups
-          instead. The seam is explicit rather than stitched — a blended view would
-          be exact for recent ranges and quietly partial for older ones, which is
-          the failure this replaced. %>
-      <p class="form-hint mt-2">
-        <% if @rollup_mode %>
-          Daily totals, kept indefinitely<%= " since #{l(@rollup_earliest_day, format: :long)}" if @rollup_earliest_day %>.
-          Individual runs are deleted after <%= Scenario.live_retention_days %> days, so
-          per-agent, per-step and time-of-day views are unavailable here.
-        <% else %>
-          Individual runs, with every filter. They are deleted after
-          <%= Scenario.live_retention_days %> days (live) and
-          <%= Scenario.simulation_retention_days %> days (simulation) &mdash; choose
-          &ldquo;All time&rdquo; for daily totals reaching further back.
-        <% end %>
-      </p>
     </div>
 
     <%# Everything below narrows individual runs. The all-time view holds daily
@@ -96,4 +79,24 @@
     <%= hidden_field_tag :purpose, current_purpose, data: { analytics_filters_target: "purposeField" } %>
     <%= hidden_field_tag :tab, params[:tab] || "0", data: { analytics_filters_target: "tabField" } %>
   </div>
+
+  <%# "All time" is a different SOURCE, not a wider window on the same one:
+      runs are deleted at the retention horizon, so it reads the daily rollups
+      instead. The seam is explicit rather than stitched — a blended view would
+      be exact for recent ranges and quietly partial for older ones, which is
+      the failure this replaced. The hint sits under the whole row: inside the
+      Date Range column it made that column taller, and items-end dropped every
+      control beside it to the hint's baseline. %>
+  <p class="form-hint mt-3">
+    <% if @rollup_mode %>
+      Daily totals, kept indefinitely<%= " since #{l(@rollup_earliest_day, format: :long)}" if @rollup_earliest_day %>.
+      Individual runs are deleted after <%= Scenario.live_retention_days %> days, so
+      per-agent, per-step and time-of-day views are unavailable here.
+    <% else %>
+      Individual runs, with every filter. They are deleted after
+      <%= Scenario.live_retention_days %> days (live) and
+      <%= Scenario.simulation_retention_days %> days (simulation) &mdash; choose
+      &ldquo;All time&rdquo; for daily totals reaching further back.
+    <% end %>
+  </p>
 <% end %>

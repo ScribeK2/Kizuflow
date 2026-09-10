@@ -4,7 +4,7 @@
     <div class="card__header">
       <div>
         <h3>Drop-off Points</h3>
-        <p class="empty-state__text">Steps where scenarios were abandoned most frequently.</p>
+        <p class="analytics-card__subtitle">Steps where scenarios were abandoned most frequently.</p>
       </div>
     </div>
     <% if @dropoff_points.any? %>
@@ -39,11 +39,11 @@
   </div>
 
   <%# Busiest Hours %>
-  <div class="card">
+  <div class="card" id="busiest-hours">
     <div class="card__header flex items-center justify-between">
       <div>
         <h3>Busiest Hours</h3>
-        <p class="empty-state__text">Scenario runs grouped by hour of day.</p>
+        <p class="analytics-card__subtitle">Scenario runs grouped by hour of day.</p>
       </div>
       <span class="badge">
         Times in <%= Time.zone.name %>
@@ -71,8 +71,9 @@
                 <td>
                   <div class="flex items-center gap-3">
                     <div class="analytics-bar-track">
-                      <div class="analytics-bar <%= bar_pct >= 80 ? 'analytics-bar--resolved' : bar_pct >= 40 ? 'analytics-bar--default' : 'analytics-bar--muted' %>"
-                           style="width: <%= bar_pct %>%"></div>
+                      <%# One colour: the bar's length already ranks the hours, and a
+                          teal "busiest" bar borrowed the Resolve hue to say it again. %>
+                      <div class="analytics-bar analytics-bar--default" style="width: <%= bar_pct %>%"></div>
                     </div>
                     <span class="tabular-nums font-medium w-8 text-right"><%= number_with_delimiter(count) %></span>
                   </div>

@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-6">
   <%# Outcome Breakdown %>
-  <div class="card">
+  <div class="card" id="outcome-breakdown">
     <div class="card__header">
       <h3>Outcome Breakdown</h3>
     </div>
@@ -17,14 +17,9 @@
           <tbody>
             <% @outcome_breakdown.each do |outcome, count| %>
               <% pct = @total_runs > 0 ? (count.to_f / @total_runs * 100).round(1) : 0 %>
+              <%# The bar carries the outcome's hue; the label is plain text, since a
+                  pill here would make every row an exception. %>
               <%
-                badge_mod = case outcome
-                  when "resolved" then "badge--resolve"
-                  when "completed" then "badge--published"
-                  when "escalated" then "badge--escalate"
-                  when "error" then "badge--alert"
-                  else ""
-                end
                 bar_class = case outcome
                   when "resolved" then "analytics-bar--resolved"
                   when "completed" then "analytics-bar--completed"
@@ -34,11 +29,7 @@
                 end
               %>
               <tr>
-                <td>
-                  <span class="badge <%= badge_mod %>">
-                    <%= outcome&.capitalize || "Unknown" %>
-                  </span>
-                </td>
+                <td><%= outcome&.capitalize || "Unknown" %></td>
                 <td><%= number_with_delimiter(count) %></td>
                 <td>
                   <div class="flex items-center gap-3">

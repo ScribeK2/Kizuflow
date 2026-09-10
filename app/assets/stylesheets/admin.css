@@ -171,6 +171,14 @@
 .analytics-bar--error      { --step-hue: var(--hue-escalate); background: var(--step-dot); }
 .analytics-bar--muted      { background: var(--color-ink-muted); }
 
+/* A card header's second line. It borrowed .empty-state__text, which is copy
+   for a panel with nothing in it. */
+.analytics-card__subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
 /* ============================================================================
    Admin Filter Toolbar
    ============================================================================ */
