@@ -39,9 +39,19 @@ class Admin::MembershipsControllerTest < ActionDispatch::IntegrationTest
     listed = members.css("section > .card__body > .admin-group__list .admin-group__name").map { it.text.strip }
     offered = members.css("turbo-frame#group-member-search .admin-group__name").map { it.text.strip }
     assert_equal [@ada.email], listed
-    assert_equal @tag, members.at_css("turbo-frame#group-member-search input[name=q]")["value"]
+    assert_equal @tag, members.at_css("input[name=q]")["value"]
     assert_equal [@bob.email], offered
     assert_match "Added #{@ada.email} to #{@group.name}.", stream_content("flash", action: "update").text
+  end
+
+  # The field sits outside the frame it fills, so an answer never replaces the
+  # input someone is typing in (spec Q63).
+  test "the search field sits outside its results and submits into them as you type" do
+    get admin_group_path(@group)
+
+    assert_select "#group-members form[data-turbo-frame=group-member-search][data-controller=debounced-submit] " \
+                  "input[name=q][data-action=?]", "input->debounced-submit#submit"
+    assert_select "turbo-frame#group-member-search input[name=q]", 0
   end
 
   test "Add without Turbo returns to the group page with the flash" do

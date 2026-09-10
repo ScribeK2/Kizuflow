@@ -30,6 +30,17 @@
       <p class="form-hint mb-4">No members yet. Find people below to add them.</p>
     <% end %>
 
+    <%# The field sits outside the frame it fills, so answering as you type never
+        replaces the input being typed in (spec Q63). Search stays for Enter and
+        for anyone without JavaScript. %>
+    <%= form_with url: admin_group_memberships_path(group), method: :get, class: "admin-group__search",
+          data: { controller: "debounced-submit", turbo_frame: "group-member-search" } do |form| %>
+      <%= form.search_field :q, value: query, class: "form-input form-input--sm",
+            placeholder: "Find people by email or name", autocomplete: "off",
+            aria: { label: "Find people to add to #{group.name}" },
+            data: { action: "input->debounced-submit#submit" } %>
+      <%= form.submit "Search", name: nil, class: "btn btn--secondary btn--sm" %>
+    <% end %>
     <%= render "admin/groups/member_search", group:, query:, candidates: %>
   </div>
 </section>

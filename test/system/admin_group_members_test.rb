@@ -25,9 +25,9 @@ class AdminGroupMembersTest < ApplicationSystemTestCase
   test "adding from the search keeps it open, and removing needs no confirm" do
     visit admin_group_path(@group)
 
-    find("#{RESULTS} input[name=q]").set("#{@tag}@")
-    click_on "Search"
+    find("#group-members input[name=q]").set("#{@tag}@")
     assert_selector "#{RESULTS} .admin-group__name", text: @bob.email
+    assert_equal "q", page.evaluate_script("document.activeElement.name"), "typing keeps the field focused"
 
     find("#{RESULTS} li", text: @ada.email).click_on("Add")
 
