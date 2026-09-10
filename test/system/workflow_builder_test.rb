@@ -401,6 +401,47 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     end
   end
 
+  # "+ Add Option" built its inputs with the wizard's names,
+  # workflow[steps][][options][], which StepsController never reads, and no
+  # option input asked for an autosave. An option added in the panel was
+  # dropped even when another field's save carried the form along.
+  test "an option added to a question in the builder is saved" do
+    question = question_with_options([{ "label" => "Phone", "value" => "phone" }])
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[options][][label]", with: "Phone", wait: 5
+      click_button "+ Add Option"
+      all("input[name='step[options][][label]']").last.set("Email")
+      all("input[name='step[options][][value]']").last.set("email")
+    end
+
+    assert_eventually(timeout: 10) do
+      question.reload.options == [{ "label" => "Phone", "value" => "phone" }, { "label" => "Email", "value" => "email" }]
+    end
+  end
+
+  test "removing a question option in the builder is saved" do
+    question = question_with_options([{ "label" => "Phone", "value" => "phone" }, { "label" => "Email", "value" => "email" }])
+
+    visit_builder_in_edit_mode
+    step_row(question.uuid).click
+
+    within "turbo-frame#builder-panel" do
+      assert_field "step[options][][label]", with: "Email", wait: 5
+      # The remove button only shows while its row is hovered (forms.css).
+      row = find_field("step[options][][label]", with: "Email").ancestor(".option-item")
+      row.hover
+      row.find("button[title='Remove option']").click
+    end
+
+    assert_eventually(timeout: 10) do
+      question.reload.options == [{ "label" => "Phone", "value" => "phone" }]
+    end
+  end
+
   test "a large workflow renders every step row" do
     # The deleted version of this asserted a 5 second wall-clock budget. That is
     # the kind of timing assertion that fails for reasons unrelated to the code,
@@ -466,6 +507,16 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
   def visit_builder_in_edit_mode
     visit workflow_path(@workflow, edit: true)
     assert_selector "[data-builder-mode-value='edit']", wait: 5
+  end
+
+  def question_with_options(options)
+    # The Question text field is `required`, and requestSubmit() refuses a form
+    # with an empty required field, so without it no autosave would ever post.
+    question = Steps::Question.create!(workflow: @workflow, title: "Contact channel?", position: 1,
+                                       question: "How did they reach us?", answer_type: "multiple_choice", options:)
+    Transition.create!(step: question, target_step: @resolve, position: 0)
+    @workflow.update!(start_step: question)
+    question
   end
 
   def step_row(uuid)

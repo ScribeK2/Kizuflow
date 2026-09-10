@@ -45,8 +45,14 @@ export default class extends Controller {
   }
 
   handleReorder() {
-    // Trigger input event to update preview
-    this.element.dispatchEvent(new CustomEvent('input', { bubbles: true }))
+    this.optionsChanged()
+  }
+
+  // Adding, removing or moving an option changes what the form posts without
+  // anyone typing, so tell the step panel's autosave (via the options
+  // container's input action) the way a keystroke would.
+  optionsChanged() {
+    this.optionsListTarget.dispatchEvent(new Event("input", { bubbles: true }))
   }
 
   handleAnswerTypeChange(event, isInitial = false) {
@@ -142,12 +148,12 @@ export default class extends Controller {
       <div class="option-item">
         <span class="drag-handle" title="Drag to reorder">☰</span>
         <input type="text"
-               name="workflow[steps][][options][][label]"
+               name="step[options][][label]"
                placeholder="Option label"
                class="form-input flex-1"
                data-step-form-target="field">
         <input type="text"
-               name="workflow[steps][][options][][value]"
+               name="step[options][][value]"
                placeholder="Option value"
                class="form-input flex-1"
                data-step-form-target="field">
@@ -163,27 +169,29 @@ export default class extends Controller {
     `
     
     this.optionsListTarget.insertAdjacentHTML('beforeend', optionHtml)
-    
+
     // Reinitialize Sortable after adding new element
     if (this.sortable) {
       this.sortable.destroy()
     }
     this.initializeSortable()
+    this.optionsChanged()
   }
 
   removeOption(event) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     const optionDiv = event.target.closest('.option-item')
     if (optionDiv) {
       optionDiv.remove()
-      
+
       // Reinitialize Sortable after removing element
       if (this.sortable) {
         this.sortable.destroy()
       }
       this.initializeSortable()
+      this.optionsChanged()
     }
   }
 }
