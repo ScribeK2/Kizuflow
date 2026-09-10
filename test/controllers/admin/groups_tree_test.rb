@@ -29,10 +29,10 @@ class Admin::GroupsTreeTest < ActionDispatch::IntegrationTest
     assert_empty grand_row.css("button.group-tree__toggle")
   end
 
-  test "Global comes first, then names ignoring case, whatever the old positions say" do
+  test "Global comes first, then names ignoring case" do
     global = global_group
-    zebra = Group.create!(name: "Zebra #{SecureRandom.hex(3)}", position: 0)
-    aardvark = Group.create!(name: "aardvark #{SecureRandom.hex(3)}", position: 99)
+    zebra = Group.create!(name: "Zebra #{SecureRandom.hex(3)}")
+    aardvark = Group.create!(name: "aardvark #{SecureRandom.hex(3)}")
 
     get admin_groups_path
 

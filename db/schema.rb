@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_130000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -81,10 +81,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_120000) do
     t.text "description"
     t.string "name", null: false
     t.integer "parent_id"
-    t.integer "position"
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_groups_on_name"
-    t.index ["parent_id", "position"], name: "index_groups_on_parent_id_and_position"
     t.index ["parent_id"], name: "index_groups_on_parent_id"
   end
 

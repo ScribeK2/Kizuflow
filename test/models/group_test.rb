@@ -262,6 +262,11 @@ class GroupTest < ActiveSupport::TestCase
     assert_includes level6.errors[:parent_id], "maximum depth of 5 levels exceeded"
   end
 
+  # Groups sort by name everywhere (spec Q33, Q60). The column outlived its field.
+  test "groups have no position column" do
+    assert_not_includes Group.column_names, "position"
+  end
+
   # Permission methods
   test "can_be_viewed_by? should return true for admin" do
     admin = User.create!(
@@ -371,11 +376,11 @@ class GroupTest < ActiveSupport::TestCase
     assert_operator ids.index(mid.id), :<, ids.index(leaf.id)
   end
 
-  test "tree_nodes puts Global first, then orders siblings by name ignoring case and position" do
+  test "tree_nodes puts Global first, then orders siblings by name ignoring case" do
     parent = Group.create!(name: "Order Parent #{SecureRandom.hex(3)}")
-    zed = Group.create!(name: "zed", parent: parent, position: -5)
-    alpha = Group.create!(name: "Alpha", parent: parent, position: 9)
-    beta = Group.create!(name: "beta", parent: parent, position: 0)
+    zed = Group.create!(name: "zed", parent: parent)
+    alpha = Group.create!(name: "Alpha", parent: parent)
+    beta = Group.create!(name: "beta", parent: parent)
     global = global_group
     aardvark = Group.create!(name: "Aardvark #{SecureRandom.hex(3)}")
 

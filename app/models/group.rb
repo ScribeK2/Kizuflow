@@ -215,8 +215,8 @@ class Group < ApplicationRecord
   # hundreds of department groups cannot afford.
   #
   # Siblings sort by name ignoring case, Global first among the roots (spec Q33,
-  # Q50). A byte-order sort put "WSO" before "Web Support". The position column
-  # is ignored everywhere and nothing edits it (Stage 4b dropped the field).
+  # Q50). A byte-order sort put "WSO" before "Web Support". Groups have no
+  # position column.
   #
   # within: the ids to emit. Paths still come from the whole tree, so an editor
   # who reaches only "Support / Tier 2" sees that path rather than a bare name.

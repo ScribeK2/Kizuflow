@@ -78,7 +78,7 @@ class Admin::GroupsController < Admin::BaseController
     redirect_to admin_group_path(@group), alert: "Global can't be renamed or moved."
   end
 
-  # No position: groups sort by name everywhere (spec Q33). The column stays.
+  # Groups sort by name everywhere (spec Q33); there is no position column.
   def group_params
     params.expect(group: %i[name description parent_id])
   end

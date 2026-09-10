@@ -1,6 +1,6 @@
 <%# locals: (group:, parent_options:) %>
 <%# One form for new and edit (spec Q40). No Position field: groups sort by name
-    everywhere (Q33), and the column is left in the table, unedited. %>
+    everywhere (Q33). %>
 <% cancel_path = if group.persisted?
                    admin_group_path(group)
                  elsif group.parent

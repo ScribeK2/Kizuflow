@@ -43,7 +43,6 @@ class Admin::GroupFormTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_group_path(@team)
     assert_equal "Form Team Renamed", @team.reload.name
-    assert_nil @team.position
   end
 
   # shared/_error_messages renders a position: fixed .flash, which inside a form

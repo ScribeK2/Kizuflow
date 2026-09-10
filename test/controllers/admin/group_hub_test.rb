@@ -24,8 +24,8 @@ class Admin::GroupHubTest < ActionDispatch::IntegrationTest
   end
 
   test "subgroups list by name ignoring case, with their counts" do
-    Group.create!(name: "Zulu", parent: @dept, position: 0)
-    alpha = Group.create!(name: "alpha", parent: @dept, position: 9)
+    Group.create!(name: "Zulu", parent: @dept)
+    alpha = Group.create!(name: "alpha", parent: @dept)
     UserGroup.create!(user: person, group: alpha)
 
     get admin_group_path(@dept)
