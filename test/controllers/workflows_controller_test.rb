@@ -49,6 +49,16 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # Global replaced the Public flag; the list says which workflows everyone can see.
+  test "index marks a Global workflow with a Global badge, and only that one" do
+    get workflows_path
+
+    public_row = css_select("li.wf-list-item").find { it.text.include?(@public_workflow.title) }
+    own_row = css_select("li.wf-list-item").find { it.text.include?(@workflow.title) }
+    assert(public_row.css(".badge").any? { it.text.strip == "Global" })
+    assert_not(own_row.css(".badge").any? { it.text.strip == "Global" })
+  end
+
   test "index title opens the builder in edit for the owner" do
     get workflows_path
 
