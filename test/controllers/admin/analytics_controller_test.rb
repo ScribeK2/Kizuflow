@@ -178,6 +178,22 @@ module Admin
       assert_select "form.card > div.flex p.form-hint", 0
     end
 
+    # A run with no outcome is still going, not "Unknown" (spec Q66), and a
+    # handoff is a sub-flow that doesn't return, so it takes that hue.
+    test "a run still going reads In progress, and a handoff gets its own bar" do
+      Scenario.create!(workflow: @workflow, user: @admin, purpose: "live", status: "active",
+                       started_at: 1.hour.ago, execution_path: [], results: {}, inputs: {})
+      Scenario.create!(workflow: @workflow, user: @admin, purpose: "live", status: "completed", outcome: "transferred",
+                       started_at: 1.hour.ago, completed_at: 50.minutes.ago, execution_path: [], results: {}, inputs: {})
+      sign_in @admin
+
+      get admin_analytics_path(workflow_id: @workflow.id)
+
+      assert_select "#outcome-breakdown td", text: "In progress"
+      assert_select "#outcome-breakdown td", text: "Unknown", count: 0
+      assert_select "#outcome-breakdown .analytics-bar--transferred", 1
+    end
+
     test "admin can access analytics page" do
       sign_in @admin
       get admin_analytics_path

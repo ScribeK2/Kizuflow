@@ -1,0 +1,19 @@
+require "test_helper"
+
+class AnalyticsHelperTest < ActionView::TestCase
+  include AnalyticsHelper
+
+  test "a run with no outcome yet is in progress, live or rolled up" do
+    assert_equal "In progress", analytics_outcome_label(nil)
+    assert_equal "In progress", analytics_outcome_label(ScenarioRollup::PENDING)
+    assert_equal "Transferred", analytics_outcome_label("transferred")
+  end
+
+  test "each ending has its bar colour" do
+    assert_equal "analytics-bar--resolved", analytics_outcome_bar_class("resolved")
+    assert_equal "analytics-bar--transferred", analytics_outcome_bar_class("transferred")
+    assert_equal "analytics-bar--muted", analytics_outcome_bar_class("abandoned")
+    assert_equal "analytics-bar--muted", analytics_outcome_bar_class(nil)
+    assert_equal "analytics-bar--muted", analytics_outcome_bar_class(ScenarioRollup::PENDING)
+  end
+end

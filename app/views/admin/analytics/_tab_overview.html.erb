@@ -19,17 +19,9 @@
               <% pct = @total_runs > 0 ? (count.to_f / @total_runs * 100).round(1) : 0 %>
               <%# The bar carries the outcome's hue; the label is plain text, since a
                   pill here would make every row an exception. %>
-              <%
-                bar_class = case outcome
-                  when "resolved" then "analytics-bar--resolved"
-                  when "completed" then "analytics-bar--completed"
-                  when "escalated" then "analytics-bar--escalated"
-                  when "error" then "analytics-bar--error"
-                  else "analytics-bar--default"
-                end
-              %>
+              <% bar_class = analytics_outcome_bar_class(outcome) %>
               <tr>
-                <td><%= outcome&.capitalize || "Unknown" %></td>
+                <td><%= analytics_outcome_label(outcome) %></td>
                 <td><%= number_with_delimiter(count) %></td>
                 <td>
                   <div class="flex items-center gap-3">
