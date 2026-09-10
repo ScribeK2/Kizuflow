@@ -109,6 +109,12 @@ class Scenario < ApplicationRecord
   OUTCOMES = %w[completed resolved escalated abandoned error transferred].freeze
   validates :outcome, inclusion: { in: OUTCOMES }, allow_nil: true
 
+  # The endings Analytics' completion rate counts (spec Q72, Q73): resolving,
+  # escalating and handing off are all endings a workflow is built to reach.
+  # "transferred" stays its own outcome, so reporting can still tell a handoff
+  # from a completion. Abandoned and error are finished but not completed.
+  COMPLETED_OUTCOMES = %w[completed resolved escalated transferred].freeze
+
   # Cleanup scopes
   scope :terminal, -> { where(status: TERMINAL_STATUSES) }
 

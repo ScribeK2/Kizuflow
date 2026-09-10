@@ -194,6 +194,60 @@ module Admin
       assert_select "#outcome-breakdown .analytics-bar--transferred", 1
     end
 
+    def record_run(outcome:, status: "completed", user: @admin)
+      Scenario.create!(workflow: @workflow, user: user, purpose: "live", status: status, outcome: outcome,
+                       started_at: 1.day.ago, completed_at: (1.day.ago + 30.seconds if outcome),
+                       execution_path: [], results: {}, inputs: {})
+    end
+
+    # A run still going has not failed to complete (spec Q67, Q71), and escalating
+    # or handing off are endings a workflow is built to reach (Q72, Q73).
+    test "rates count only finished runs, and escalated and handed-off runs count as completed" do
+      record_run(outcome: "resolved")
+      record_run(outcome: "escalated")
+      record_run(outcome: "transferred")
+      record_run(outcome: "abandoned")
+      record_run(outcome: nil, status: "active")
+      sign_in @admin
+
+      get admin_analytics_path(workflow_id: @workflow.id)
+
+      cells = css_select(".stat-cell").index_by { it.at_css(".stat-cell__label").text.strip }
+      assert_equal "5", cells["Total Runs"].at_css(".stat-cell__value").text.strip
+      assert_equal "75.0%", cells["Completion Rate"].at_css(".stat-cell__value").text.strip
+      assert_equal "25.0%", cells["Escalation Rate"].at_css(".stat-cell__value").text.strip
+      assert_match "of 4 finished runs", cells["Completion Rate"].text
+
+      usage = css_select("#workflow-usage tbody tr").first.css("td").map { it.text.strip }
+      assert_equal ["5", "75.0%"], usage[1, 2]
+      assert_equal "25.0%", usage[4]
+
+      agent = css_select("#agent-performance tbody tr").first.css("td").map { it.text.strip }
+      assert_equal "3", agent[2], "resolved, escalated and transferred"
+    end
+
+    test "a workflow with no finished runs shows a dash, not 0%" do
+      record_run(outcome: nil, status: "active")
+      sign_in @admin
+
+      get admin_analytics_path(workflow_id: @workflow.id)
+
+      usage = css_select("#workflow-usage tbody tr").first.css("td").map { it.text.strip }
+      assert_equal "—", usage[2]
+    end
+
+    test "the all-time view leaves pending runs out of the rates" do
+      rolled_up_day(400.days.ago.to_date, outcome: "resolved", count: 2)
+      rolled_up_day(400.days.ago.to_date, outcome: ScenarioRollup::PENDING, count: 2)
+      sign_in @admin
+
+      get admin_analytics_path(range: "all")
+
+      cells = css_select(".stat-cell").index_by { it.at_css(".stat-cell__label").text.strip }
+      assert_equal "100.0%", cells["Completion Rate"].at_css(".stat-cell__value").text.strip
+      assert_match "of 2 finished runs", cells["Completion Rate"].text
+    end
+
     test "admin can access analytics page" do
       sign_in @admin
       get admin_analytics_path

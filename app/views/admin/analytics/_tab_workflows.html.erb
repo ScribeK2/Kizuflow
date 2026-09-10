@@ -1,4 +1,4 @@
-<div class="card">
+<div class="card" id="workflow-usage">
   <div class="card__header">
     <h3>Workflow Usage</h3>
   </div>
@@ -18,17 +18,20 @@
         <tbody>
           <% @workflow_stats.each do |row| %>
             <% total = row.total_runs.to_i %>
+            <%# Rates over finished runs, as the headline does (spec Q71); a
+                workflow with none yet has no rate, not a 0% one. %>
+            <% finished = row.finished_runs.to_i %>
             <tr>
               <td class="font-medium">
                 <%= link_to row.workflow_title, workflow_path(row.workflow_id) %>
               </td>
               <td><%= number_with_delimiter(total) %></td>
-              <td><%= total > 0 ? "#{(row.completed_count.to_f / total * 100).round(1)}%" : "0%" %></td>
+              <td><%= finished.positive? ? "#{(row.completed_count.to_f / finished * 100).round(1)}%" : "—" %></td>
               <td>
                 <% avg = row.avg_duration.to_i %>
                 <%= avg > 60 ? "#{avg / 60}m #{avg % 60}s" : "#{avg}s" %>
               </td>
-              <td><%= total > 0 ? "#{(row.escalated_count.to_f / total * 100).round(1)}%" : "0%" %></td>
+              <td><%= finished.positive? ? "#{(row.escalated_count.to_f / finished * 100).round(1)}%" : "—" %></td>
               <td><%= row.last_run ? time_ago_in_words(row.last_run) + " ago" : "Never" %></td>
             </tr>
           <% end %>

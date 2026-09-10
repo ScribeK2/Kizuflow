@@ -18,13 +18,15 @@ module Admin
       @date_range = parse_date_range
       @base_scope = build_base_scope
 
-      # Stat cards
+      # Stat cards. Rates are over runs that have ended (spec Q67, Q71): a run
+      # still going has not failed to complete.
       @total_runs = @base_scope.count
-      @completed_count = @base_scope.where(outcome: %w[completed resolved escalated]).count
-      @completion_rate = @total_runs.positive? ? (@completed_count.to_f / @total_runs * 100).round(1) : 0
+      @finished_runs = @base_scope.where.not(outcome: nil).count
+      @completed_count = @base_scope.where(outcome: Scenario::COMPLETED_OUTCOMES).count
+      @completion_rate = percentage(@completed_count, @finished_runs)
       @avg_duration = @base_scope.where.not(duration_seconds: nil).average(:duration_seconds)&.round || 0
       @escalated_count = @base_scope.where(outcome: "escalated").count
-      @escalation_rate = @total_runs.positive? ? (@escalated_count.to_f / @total_runs * 100).round(1) : 0
+      @escalation_rate = percentage(@escalated_count, @finished_runs)
 
       # Overview tab
       @outcome_breakdown = @base_scope.group(:outcome).count
@@ -76,10 +78,11 @@ module Admin
 
       totals = scope.group(:outcome).sum(:runs_count)
       @total_runs = totals.values.sum
-      @completed_count = totals.slice("completed", "resolved", "escalated").values.sum
+      @finished_runs = @total_runs - totals.fetch(ScenarioRollup::PENDING, 0)
+      @completed_count = totals.slice(*Scenario::COMPLETED_OUTCOMES).values.sum
       @escalated_count = totals.fetch("escalated", 0)
-      @completion_rate = percentage(@completed_count, @total_runs)
-      @escalation_rate = percentage(@escalated_count, @total_runs)
+      @completion_rate = percentage(@completed_count, @finished_runs)
+      @escalation_rate = percentage(@escalated_count, @finished_runs)
       @avg_duration = scope.average_duration_seconds
       @outcome_breakdown = totals
 
@@ -125,7 +128,10 @@ module Admin
           "workflows.id as workflow_id",
           "workflows.title as workflow_title",
           "SUM(scenario_rollups.runs_count) as total_runs",
-          "SUM(CASE WHEN scenario_rollups.outcome IN ('completed','resolved','escalated') " \
+          "SUM(CASE WHEN scenario_rollups.outcome <> 'pending' " \
+          "THEN scenario_rollups.runs_count ELSE 0 END) as finished_runs",
+          # In step with Scenario::COMPLETED_OUTCOMES; literal so nothing is interpolated.
+          "SUM(CASE WHEN scenario_rollups.outcome IN ('completed','resolved','escalated','transferred') " \
           "THEN scenario_rollups.runs_count ELSE 0 END) as completed_count",
           "CASE WHEN SUM(scenario_rollups.duration_count) > 0 " \
           "THEN SUM(scenario_rollups.duration_sum_seconds) * 1.0 / SUM(scenario_rollups.duration_count) " \
@@ -225,7 +231,10 @@ module Admin
           "workflows.id as workflow_id",
           "workflows.title as workflow_title",
           "COUNT(*) as total_runs",
-          "SUM(CASE WHEN scenarios.outcome IN ('completed','resolved','escalated') THEN 1 ELSE 0 END) as completed_count",
+          "SUM(CASE WHEN scenarios.outcome IS NOT NULL THEN 1 ELSE 0 END) as finished_runs",
+          # In step with Scenario::COMPLETED_OUTCOMES; literal so nothing is interpolated.
+          "SUM(CASE WHEN scenarios.outcome IN ('completed','resolved','escalated','transferred') " \
+          "THEN 1 ELSE 0 END) as completed_count",
           "AVG(scenarios.duration_seconds) as avg_duration",
           "SUM(CASE WHEN scenarios.outcome = 'escalated' THEN 1 ELSE 0 END) as escalated_count",
           "MAX(scenarios.started_at) as last_run"
@@ -242,7 +251,9 @@ module Admin
           "users.email as user_email",
           "users.display_name as user_display_name",
           "COUNT(*) as total_runs",
-          "SUM(CASE WHEN scenarios.outcome IN ('completed','resolved') THEN 1 ELSE 0 END) as completed_count",
+          # In step with Scenario::COMPLETED_OUTCOMES; literal so nothing is interpolated.
+          "SUM(CASE WHEN scenarios.outcome IN ('completed','resolved','escalated','transferred') " \
+          "THEN 1 ELSE 0 END) as completed_count",
           "SUM(CASE WHEN scenarios.outcome = 'escalated' THEN 1 ELSE 0 END) as escalated_count",
           "AVG(scenarios.duration_seconds) as avg_duration",
           "MAX(scenarios.started_at) as last_active"

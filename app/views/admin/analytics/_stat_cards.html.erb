@@ -13,6 +13,8 @@
       <div class="stat-cell__bar" aria-hidden="true">
         <span style="width: <%= @completion_rate %>%"></span>
       </div>
+      <%# Over finished runs: a run still going has not failed to complete (spec Q67). %>
+      <span class="stat-cell__detail">of <%= pluralize(number_with_delimiter(@finished_runs), "finished run") %></span>
     </div>
 
     <div class="stat-cell">
@@ -25,6 +27,7 @@
     <div class="stat-cell">
       <span class="stat-cell__label">Escalation Rate</span>
       <p class="stat-cell__value"><%= @escalation_rate %>%</p>
+      <span class="stat-cell__detail">of <%= pluralize(number_with_delimiter(@finished_runs), "finished run") %></span>
     </div>
   </div>
 </div>
