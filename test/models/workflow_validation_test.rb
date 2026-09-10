@@ -146,6 +146,27 @@ class WorkflowValidationTest < ActiveSupport::TestCase
   # SubFlow validations
   # ---------------------------------------------------------------------------
 
+  # A Sub-Flow added from the step picker has no target yet. Refusing every
+  # workflow save until one was picked lost renames and Details edits.
+  test "a workflow with an untargeted sub-flow saves" do
+    wf = create_workflow("Untargeted", status: "draft")
+    Steps::SubFlow.create!(workflow: wf, title: "Hand to billing", position: 0)
+
+    wf.reload.title = "Untargeted renamed"
+    assert_predicate wf, :valid?, wf.errors.full_messages.join(", ")
+  end
+
+  test "an untargeted sub-flow is refused while publishing" do
+    wf = create_workflow("Untargeted Publish", status: "draft")
+    Steps::SubFlow.create!(workflow: wf, title: "Hand to billing", position: 0)
+
+    wf.reload.while_publishing do
+      assert_not wf.valid?
+      assert(wf.errors[:steps].any? { |e| e.include?("requires a target workflow") },
+             "expected a blank-target error, got #{wf.errors[:steps].inspect}")
+    end
+  end
+
   test "subflow step pointing to nonexistent workflow is invalid" do
     wf = create_workflow("SubFlow Missing Target")
     Steps::SubFlow.create!(

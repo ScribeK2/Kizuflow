@@ -479,6 +479,22 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     assert_eventually(timeout: 10) { form.reload.title == "Collect callback details" && form.fields.empty? }
   end
 
+  # A Sub-Flow added from the picker has no target yet, and until one was picked
+  # every workflow save was refused: the header said "Save failed" and the new
+  # title was gone after a reload.
+  test "the workflow still renames while a new sub-flow has no target" do
+    visit_builder_in_edit_mode
+    click_on "Add a step"
+    click_on "Sub-Flow"
+    within("#steps-list") { assert_selector step_row_selector_for("Steps::SubFlow"), wait: 5 }
+
+    title = find("input[placeholder='Workflow title...']")
+    title.set("Renamed with a sub-flow pending")
+    title.send_keys(:tab)
+
+    assert_eventually(timeout: 10) { @workflow.reload.title == "Renamed with a sub-flow pending" }
+  end
+
   test "a large workflow renders every step row" do
     # The deleted version of this asserted a 5 second wall-clock budget. That is
     # the kind of timing assertion that fails for reasons unrelated to the code,

@@ -24,6 +24,23 @@ class WorkflowPublisherTest < ActiveSupport::TestCase
     file_in_global(@workflow)
   end
 
+  # Nothing pinned this until 2026-09-10, and it is the only thing between an
+  # untargeted Sub-Flow and a live workflow once saves stop refusing it.
+  test "refuses to publish a workflow whose sub-flow has no target" do
+    sub_flow = Steps::SubFlow.create!(workflow: @workflow, position: 2, title: "Hand to billing")
+    Transition.find_by(step: @q_step, target_step: @r_step).update!(position: 1)
+    Transition.create!(step: @q_step, target_step: sub_flow, position: 0)
+    Transition.create!(step: sub_flow, target_step: @r_step, position: 0)
+
+    result = nil
+    assert_no_difference "WorkflowVersion.count" do
+      result = WorkflowPublisher.publish(@workflow.reload, @user)
+    end
+
+    assert_not result.success?
+    assert_includes result.error, "requires a target workflow"
+  end
+
   test "the publish signal ends with the publish" do
     assert_predicate WorkflowPublisher.publish(@workflow, @user), :success?
     assert_not @workflow.publishing?

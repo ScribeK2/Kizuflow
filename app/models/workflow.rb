@@ -515,7 +515,10 @@ class Workflow < ApplicationRecord
 
     sf_steps.each do |step|
       if step.sub_flow_workflow_id.blank?
-        errors.add(:steps, "Step #{step.position + 1}: Sub-flow step requires a target workflow")
+        # Publish-time only. A Sub-Flow added from the step picker starts with no
+        # target, and refusing every save until one was picked lost the author's
+        # title and Details edits. :subflow_target_required warns in the builder.
+        errors.add(:steps, "Step #{step.position + 1}: Sub-flow step requires a target workflow") if publishing?
         next
       end
 
