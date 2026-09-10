@@ -33,6 +33,19 @@ class NarrowViewportTest < ApplicationSystemTestCase
     end
   end
 
+  test "Workflows with a nested group selected fits a phone" do
+    top = Group.create!(name: "wf-system-test-Customer Experience")
+    middle = Group.create!(name: "wf-system-test-Phone Support", parent: top)
+    leaf = Group.create!(name: "wf-system-test-Tier 2 Escalations", parent: middle)
+
+    visit workflows_path(group_id: leaf.id)
+    assert_selector ".wf-breadcrumb", text: "Tier 2 Escalations"
+
+    assert_phone_width
+    assert_no_horizontal_scroll "Workflows with a group selected"
+    assert_selector ".wf-page-header__actions", text: "New Workflow"
+  end
+
   private
 
   def assert_phone_width

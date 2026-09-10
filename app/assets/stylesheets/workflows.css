@@ -165,9 +165,17 @@
 .workflows-header,
 .wf-page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+}
+
+/* The title and breadcrumb take the row; when the actions no longer fit beside
+   them they wrap underneath instead of pushing the page sideways. */
+.wf-page-header__main {
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 
 .workflows-header__actions,
@@ -605,6 +613,7 @@
 .breadcrumb,
 .wf-breadcrumb {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-sm);
