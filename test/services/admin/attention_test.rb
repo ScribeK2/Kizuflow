@@ -7,6 +7,9 @@ module Admin
 
     setup do
       SmtpSetting.delete_all
+      # Fixture workflows persist in the test database, published and in no
+      # group; left alone they would be a no-audience item in every count here.
+      Workflow.where(id: Workflow.published_without_audience.select(:id)).update_all(status: "draft")
       User.create!(email: "attn-#{SecureRandom.hex(4)}@example.com", password: "password123!",
                    password_confirmation: "password123!", role: "regular")
     end
@@ -51,6 +54,21 @@ module Admin
 
       assert_equal 0, attention.count
       assert_not attention.any?
+    end
+
+    test "published workflows with no audience are one item, listed newest first" do
+      owner = User.create!(email: "attn-owner-#{SecureRandom.hex(4)}@example.com", password: "password123!",
+                           password_confirmation: "password123!", role: "editor")
+      older = Workflow.create!(title: "Older Forgotten", user: owner, updated_at: 2.days.ago)
+      newer = Workflow.create!(title: "Newer Forgotten", user: owner)
+      Workflow.create!(title: "Still a Draft", user: owner, status: "draft")
+      file_in_global(Workflow.create!(title: "Chosen", user: owner))
+
+      result = attention
+
+      assert_equal 2, result.no_audience_count
+      assert_equal [newer, older], result.no_audience_workflows.to_a
+      assert_equal 2, result.count, "users waiting for a group, and workflows waiting for an audience"
     end
   end
 end

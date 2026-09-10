@@ -13,6 +13,7 @@ class WorkflowsController < ApplicationController
     @status_filter          = filter.status_filter
     @sort_by                = filter.sort_by
     @search_query           = filter.search_query
+    @audience_filter        = filter.audience_filter
     @workflows              = filter.workflows
     @selected_group         = filter.selected_group
     @selected_ancestor_ids  = filter.selected_ancestor_ids

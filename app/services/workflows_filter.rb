@@ -9,6 +9,9 @@ class WorkflowsFilter
   PER_PAGE_OPTIONS = [6, 12, 24].freeze
   DEFAULT_PER_PAGE = 24
 
+  # Admin-only: published workflows filed in no group. The Overview links here.
+  NO_AUDIENCE = "none".freeze
+
   def initialize(user:, params:)
     @user = user
     @params = params
@@ -17,6 +20,7 @@ class WorkflowsFilter
 
   def call
     build_base_scope
+    apply_audience_filter
     apply_search
     apply_sort
     apply_group_filter
@@ -36,6 +40,10 @@ class WorkflowsFilter
 
   def search_query
     @params[:search]
+  end
+
+  def audience_filter
+    @params[:audience] == NO_AUDIENCE && @user.admin? ? NO_AUDIENCE : nil
   end
 
   def per_page_size = per_page
@@ -69,6 +77,12 @@ class WorkflowsFilter
                  end
 
     @workflows = @workflows.includes(:user, group_workflows: :group)
+  end
+
+  def apply_audience_filter
+    return unless audience_filter
+
+    @workflows = @workflows.where(id: Workflow.published_without_audience.select(:id))
   end
 
   def apply_search

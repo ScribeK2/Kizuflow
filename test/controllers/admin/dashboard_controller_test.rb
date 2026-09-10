@@ -20,6 +20,9 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
       password_confirmation: "password123!",
       role: "user"
     )
+    # Fixture workflows persist in the test database, published and in no group;
+    # left alone they would be a no-audience item on every Overview here.
+    Workflow.where(id: Workflow.published_without_audience.select(:id)).update_all(status: "draft")
   end
 
   test "admin should be able to access admin dashboard" do

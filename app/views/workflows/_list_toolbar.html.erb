@@ -8,6 +8,7 @@
         class: "wf-toolbar__search", data: { controller: "workflow-search" } do |form| %>
     <%= hidden_field_tag :group_id, params[:group_id] if params[:group_id].present? %>
     <%= hidden_field_tag :status, params[:status] if params[:status].present? %>
+    <%= hidden_field_tag :audience, params[:audience] if params[:audience].present? %>
     <%= hidden_field_tag :per_page, params[:per_page] if params[:per_page].present? %>
     <span class="wf-toolbar__search-icon" aria-hidden="true">
       <%= icon "magnifying-glass", class: "icon icon--sm" %>
@@ -28,7 +29,7 @@
     <% filter_tabs.each do |tab| %>
       <% active = @status_filter == tab[:key] %>
       <%= link_to tab[:label],
-            workflows_path(status: tab[:key], search: params[:search], group_id: params[:group_id], sort: params[:sort], per_page: params[:per_page]),
+            workflows_path(status: tab[:key], search: params[:search], group_id: params[:group_id], sort: params[:sort], per_page: params[:per_page], audience: params[:audience]),
             class: "wf-status-tabs__tab #{'is-active' if active}",
             aria: { current: ("true" if active) },
             data: { turbo_action: "replace" } %>
@@ -52,7 +53,7 @@
           class="form-select wf-toolbar__sort"
           aria-label="Sort workflows">
     <% sort_options.each do |opt| %>
-      <option value="<%= workflows_path(sort: opt[:key], status: params[:status], search: params[:search], group_id: params[:group_id], per_page: params[:per_page]) %>"
+      <option value="<%= workflows_path(sort: opt[:key], status: params[:status], search: params[:search], group_id: params[:group_id], per_page: params[:per_page], audience: params[:audience]) %>"
               <%= "selected" if @sort_by == opt[:key] %>>
         <%= opt[:label] %>
       </option>

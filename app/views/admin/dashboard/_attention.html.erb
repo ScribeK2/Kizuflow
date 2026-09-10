@@ -32,6 +32,31 @@
         </div>
       <% end %>
 
+      <% if attention.no_audience_count.positive? %>
+        <div class="list-row" id="attention-no-audience">
+          <span class="list-row__icon" aria-hidden="true"><%= icon "eye-slash", class: "icon icon--sm" %></span>
+          <div class="list-row__body">
+            <div class="list-row__title">
+              <%= pluralize(attention.no_audience_count, "published workflow") %>
+              <%= attention.no_audience_count == 1 ? "has" : "have" %> no audience
+            </div>
+            <p class="list-row__sub">Only admins and each workflow's owner can see these. Choose groups, or Global, in each one's Details.</p>
+            <ul class="admin-attention__people">
+              <% attention.no_audience_workflows.each do |workflow| %>
+                <li>
+                  <%= link_to workflow.title, workflow_path(workflow, edit: true) %>
+                  <span class="admin-attention__meta">by <%= workflow.user.email %></span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+          <div class="list-row__actions">
+            <%= link_to "View all", workflows_path(audience: WorkflowsFilter::NO_AUDIENCE),
+                  class: "btn btn--secondary btn--sm" %>
+          </div>
+        </div>
+      <% end %>
+
       <% if attention.email_unconfigured? %>
         <div class="list-row" id="attention-email">
           <span class="list-row__icon" aria-hidden="true"><%= icon "envelope", class: "icon icon--sm" %></span>

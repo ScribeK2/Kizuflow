@@ -146,6 +146,11 @@ class Workflow < ApplicationRecord
     user.editor? ? filed.or(published.where(user: user)) : filed
   }
 
+  # Published and filed in no group: only admins and the owner can see these
+  # (spec Q47). The admin Overview counts them, because a forgotten choice is
+  # invisible to the person who made it.
+  scope :published_without_audience, -> { published.where.missing(:group_workflows) }
+
   # Filter workflows by group (includes workflows in descendant groups)
   # If group is nil, returns workflows without groups (for backward compatibility)
   #

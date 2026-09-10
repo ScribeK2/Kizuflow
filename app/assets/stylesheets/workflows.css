@@ -1416,4 +1416,11 @@
 .workflow-node--clickable:hover .step-card__inner {
   box-shadow: var(--shadow-lg);
 }
+
+/* The admin-only no-audience list (/workflows?audience=none) says what it is. */
+.wf-audience-note {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
 }
