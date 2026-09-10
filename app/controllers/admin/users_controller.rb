@@ -10,6 +10,11 @@ class Admin::UsersController < Admin::BaseController
     @all_groups = Group.order(:name)
   end
 
+  def show
+    @user = User.find(params[:id])
+    @group_nodes = Group.tree_nodes
+  end
+
   def update
     @user = User.find(params[:id])
     if @user.update(user_params)
@@ -23,26 +28,29 @@ class Admin::UsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_role = params[:role]
 
+    # Made from the users table row or from the user page; return to whichever.
+    # With no Referer (tests, a hand-built request) this is the index.
+    #
     # Same self-guard as reset_password below: the list sorts newest-first, so a
     # freshly created admin's own row is the first one on the page, and the
     # select auto-submits on change with no confirmation.
     if @user == current_user
       Rails.logger.warn "[ADMIN SECURITY] #{current_user.email} attempted to change their own role"
-      redirect_to admin_users_path,
-                  alert: 'You cannot change your own role. Ask another administrator to do it.'
+      redirect_back_or_to admin_users_path,
+                          alert: 'You cannot change your own role. Ask another administrator to do it.'
       return
     end
 
     unless User::ASSIGNABLE_ROLES.include?(new_role)
-      redirect_to admin_users_path, alert: 'Invalid role specified.'
+      redirect_back_or_to admin_users_path, alert: 'Invalid role specified.'
       return
     end
 
     if @user.update(role: new_role)
-      redirect_to admin_users_path, notice: "User #{@user.email} role updated to #{new_role.capitalize}."
+      redirect_back_or_to admin_users_path, notice: "User #{@user.email} role updated to #{new_role.capitalize}."
     else
-      redirect_to admin_users_path,
-                  alert: "Failed to update #{@user.email}: #{@user.errors.full_messages.join(', ')}"
+      redirect_back_or_to admin_users_path,
+                          alert: "Failed to update #{@user.email}: #{@user.errors.full_messages.join(', ')}"
     end
   end
 
@@ -60,28 +68,28 @@ class Admin::UsersController < Admin::BaseController
       @user.user_groups.create!(group_id: group_id)
     end
 
-    redirect_to admin_users_path, notice: "Groups updated for #{@user.email}."
+    redirect_to admin_user_path(@user), notice: "Groups updated for #{@user.email}."
   end
 
   def deactivate
     @user = User.find(params[:id])
 
     if @user == current_user
-      redirect_to admin_users_path,
+      redirect_to admin_user_path(@user),
                   alert: 'You cannot deactivate your own account. Ask another administrator to do it.'
       return
     end
 
     @user.deactivate!
     Rails.logger.info "[ADMIN ACTION] #{current_user.email} deactivated #{@user.email} (ID: #{@user.id})"
-    redirect_to admin_users_path, notice: "#{@user.email} was deactivated and can no longer sign in."
+    redirect_to admin_user_path(@user), notice: "#{@user.email} was deactivated and can no longer sign in."
   end
 
   def reactivate
     @user = User.find(params[:id])
     @user.reactivate!
     Rails.logger.info "[ADMIN ACTION] #{current_user.email} reactivated #{@user.email} (ID: #{@user.id})"
-    redirect_to admin_users_path, notice: "#{@user.email} was reactivated and can sign in again."
+    redirect_to admin_user_path(@user), notice: "#{@user.email} was reactivated and can sign in again."
   end
 
   def reset_password

@@ -489,4 +489,55 @@ td.bulk-select-column {
   color: var(--color-ink-muted);
 }
 
+/* ============================================================================
+   User Page (admin/users/show)
+   ============================================================================ */
+
+.admin-user__title {
+  overflow-wrap: anywhere;
+}
+
+.admin-user__heading {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.admin-user__heading--danger {
+  color: var(--color-negative);
+}
+
+.admin-user__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.admin-user__details dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.admin-user__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.admin-user__danger {
+  border-color: var(--color-negative);
+}
+
+.admin-user__password {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  user-select: all;
+}
+
 }

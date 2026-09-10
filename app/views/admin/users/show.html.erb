@@ -1,0 +1,160 @@
+<% self_view = @user == current_user %>
+<% last_active = @user.last_active_at %>
+<div class="page-content page-narrow">
+  <div class="page-header-section">
+    <%= link_to admin_users_path, class: "page-back" do %>
+      <%= icon "chevron-left", class: "icon icon--xs" %>
+      Users
+    <% end %>
+    <div class="flex items-center gap-3 flex-wrap">
+      <h1 class="page-header-section__title admin-user__title"><%= @user.email %></h1>
+      <%# Two different states, two labels: an admin offboarding someone, and
+          Devise locking them out after failed sign-ins (which clears itself). %>
+      <% if @user.deactivated? %>
+        <span class="badge badge--alert">Deactivated</span>
+      <% elsif @user.access_locked? %>
+        <span class="badge badge--warning" title="Locked by failed sign-in attempts">Locked out</span>
+      <% end %>
+    </div>
+    <% if @user.display_name.present? %>
+      <p class="page-header-section__ident"><%= @user.display_name %></p>
+    <% end %>
+  </div>
+
+  <section class="card mb-4" aria-labelledby="user-details-heading">
+    <div class="card__body">
+      <h2 id="user-details-heading" class="admin-user__heading">Details</h2>
+      <dl class="admin-user__details">
+        <div>
+          <dt class="form-label">Role</dt>
+          <dd>
+            <% if self_view %>
+              <%= @user.role.capitalize %>
+            <% else %>
+              <%= form_with url: update_role_admin_user_path(@user), method: :patch,
+                    data: { turbo: false, controller: "auto-submit" } do |form| %>
+                <%= form.select :role, options_for_select(User::ROLE_OPTIONS, @user.role), {},
+                      { class: "form-select form-select--sm", "aria-label": "Role for #{@user.email}",
+                        data: { action: "change->auto-submit#submit" } } %>
+              <% end %>
+            <% end %>
+          </dd>
+        </div>
+        <div>
+          <dt class="form-label">Joined</dt>
+          <dd><%= time_ago_in_words(@user.created_at) %> ago</dd>
+        </div>
+        <div>
+          <dt class="form-label">Workflows owned</dt>
+          <dd id="user-workflows-owned"><%= number_with_delimiter(@user.workflows.count) %></dd>
+        </div>
+        <div>
+          <dt class="form-label">Last active</dt>
+          <dd id="user-last-active">
+            <%= last_active ? "#{time_ago_in_words(last_active)} ago" : "Has not run a workflow yet" %>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="card mb-4" aria-labelledby="user-groups-heading">
+    <div class="card__body">
+      <h2 id="user-groups-heading" class="admin-user__heading">Groups</h2>
+      <p class="form-hint mb-3">
+        <% if @user.admin? %>
+          Administrators see every workflow whatever their groups.
+        <% else %>
+          A Regular or Editor account sees public workflows and the workflows in these groups. Membership of a group covers its subgroups.
+        <% end %>
+      </p>
+      <%= form_with url: update_groups_admin_user_path(@user), method: :patch do %>
+        <%= render "admin/group_picker", nodes: @group_nodes, field_name: "group_ids[]", selected_ids: @user.group_ids %>
+        <div class="admin-user__actions">
+          <%= submit_tag "Save groups", class: "btn btn--primary" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <% if self_view %>
+    <p class="form-hint">This is your account. Another administrator must change your role, reset your password or deactivate you.</p>
+  <% else %>
+    <div data-controller="password-reset" data-password-reset-url-value="<%= reset_password_admin_user_path(@user) %>">
+      <section class="card mb-4" aria-labelledby="user-password-heading">
+        <div class="card__body">
+          <h2 id="user-password-heading" class="admin-user__heading">Password</h2>
+          <div class="flex items-center justify-between gap-4 flex-wrap">
+            <p class="text-sm">Generate a temporary password to give <%= @user.email %> directly. It works straight away and is shown once.</p>
+            <button type="button" class="btn btn--secondary" data-action="password-reset#open">Reset password</button>
+          </div>
+        </div>
+      </section>
+
+      <dialog class="dialog" aria-labelledby="reset-password-title"
+              data-password-reset-target="dialog"
+              data-action="click->password-reset#backdropClose close->password-reset#forget">
+        <div class="dialog__header">
+          <h2 id="reset-password-title" class="dialog__title">Reset password</h2>
+          <button type="button" class="dialog__close" data-action="password-reset#close">
+            <span class="sr-only">Close</span>
+            <%= icon "x-mark", class: "icon" %>
+          </button>
+        </div>
+
+        <div class="dialog__body">
+          <div data-password-reset-target="confirmStep">
+            <p class="text-sm">
+              Generate a temporary password for <strong><%= @user.email %></strong>? Their current
+              password stops working, and they can sign in with the new one immediately.
+            </p>
+          </div>
+
+          <div class="is-hidden" data-password-reset-target="resultStep">
+            <div class="admin-info-box admin-info-box--info">
+              <div>
+                <p class="font-semibold">Temporary password</p>
+                <p class="admin-user__password" data-password-reset-target="password"></p>
+                <p class="text-xs mt-2">Give it to them directly; they should change it after signing in. This action is logged.</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="form-error is-hidden" role="alert" data-password-reset-target="error"></p>
+        </div>
+
+        <div class="dialog__footer">
+          <div class="flex gap-2" data-password-reset-target="confirmActions">
+            <button type="button" class="btn btn--plain" data-action="password-reset#close">Cancel</button>
+            <button type="button" class="btn btn--primary" data-password-reset-target="generateButton"
+                    data-action="password-reset#generate" autofocus>Generate password</button>
+          </div>
+          <div class="flex gap-2 is-hidden" data-password-reset-target="resultActions">
+            <button type="button" class="btn btn--secondary" data-password-reset-target="copyButton"
+                    data-action="password-reset#copy">Copy password</button>
+            <button type="button" class="btn btn--primary" data-action="password-reset#close">Done</button>
+          </div>
+        </div>
+      </dialog>
+    </div>
+
+    <section class="card admin-user__danger" aria-labelledby="user-danger-heading">
+      <div class="card__body">
+        <h2 id="user-danger-heading" class="admin-user__heading admin-user__heading--danger">Danger zone</h2>
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <% if @user.deactivated? %>
+            <p class="text-sm">Deactivated <%= time_ago_in_words(@user.deactivated_at) %> ago. They cannot sign in until reactivated.</p>
+            <%= button_to "Reactivate", reactivate_admin_user_path(@user), method: :patch,
+                  class: "btn btn--secondary",
+                  form: { data: { turbo_confirm: "Let #{@user.email} sign in again?" } } %>
+          <% else %>
+            <p class="text-sm">Deactivating ends their session and stops them signing in. Their workflows stay where they are.</p>
+            <%= button_to "Deactivate", deactivate_admin_user_path(@user), method: :patch,
+                  class: "btn btn--negative",
+                  form: { data: { turbo_confirm: "Deactivate #{@user.email}? They will not be able to sign in until an administrator reactivates them." } } %>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+</div>

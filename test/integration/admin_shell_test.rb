@@ -12,6 +12,7 @@ class AdminShellTest < ActionDispatch::IntegrationTest
     {
       admin_root_path => "Overview",
       admin_users_path => "Users",
+      admin_user_path(@admin) => "Users",
       admin_groups_path => "Groups",
       admin_group_path(group) => "Groups",
       admin_group_folders_path(group) => "Groups",

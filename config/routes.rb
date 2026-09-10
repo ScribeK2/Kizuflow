@@ -93,7 +93,7 @@ Rails.application.routes.draw do
   # Admin namespace
   namespace :admin do
     root to: 'dashboard#index'
-    resources :users, only: %i[index update] do
+    resources :users, only: %i[index show update] do
       collection do
         patch :bulk_assign_groups
         patch :bulk_update_role

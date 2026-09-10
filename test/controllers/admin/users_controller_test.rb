@@ -70,7 +70,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to admin_users_path
+    assert_redirected_to admin_user_path(@user)
     @user.reload
 
     assert_includes @user.groups.map(&:id), group1.id
@@ -536,7 +536,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     patch reactivate_admin_user_path(@user)
 
-    assert_redirected_to admin_users_path
+    assert_redirected_to admin_user_path(@user)
     assert_not_predicate @user.reload, :deactivated?
   end
 

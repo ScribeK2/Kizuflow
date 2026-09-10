@@ -95,4 +95,21 @@
 .dialog.is-hidden {
   display: none;
 }
+
+/* Native <dialog class="dialog">, opened with showModal(). The UA gives a dialog
+   padding and system colours of its own; the component already sets border and
+   background, so reset the rest, and paint the backdrop the top layer draws. */
+dialog.dialog {
+  /* .dialog's width: 100% overrides the UA inset, which left a phone-width
+     dialog touching both screen edges. Width, not max-width, so the --sm and
+     --lg modifiers still cap it. */
+  width: calc(100% - 2 * var(--space-4));
+  margin: auto;
+  padding: 0;
+  color: var(--color-ink);
+}
+
+dialog.dialog::backdrop {
+  background: var(--color-backdrop);
+}
 }

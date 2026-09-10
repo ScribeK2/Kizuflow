@@ -170,6 +170,13 @@ class User < ApplicationRecord
     display_name.presence || email
   end
 
+  # When this person last started a run — simulation or live. There is no
+  # sign-in tracking (:trackable is off), and for an agent a run is the activity
+  # that matters.
+  def last_active_at
+    scenarios.maximum(:created_at)
+  end
+
   # Avatar display helpers
   def avatar_initial
     display_label[0].upcase

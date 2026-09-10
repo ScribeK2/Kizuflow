@@ -554,4 +554,20 @@ class UserTest < ActiveSupport::TestCase
     assert_not_includes ids, deactivated.id, "a deactivated account cannot sign in, so is waiting on nobody"
     assert_not_includes ids, grouped.id
   end
+
+  test "last_active_at is when the user last started a run, of any purpose" do
+    user = User.create!(email: "active-#{SecureRandom.hex(4)}@example.com", password: "password123!",
+                        password_confirmation: "password123!")
+    assert_nil user.last_active_at
+
+    workflow = Workflow.create!(title: "Active WF #{SecureRandom.hex(3)}", user: user)
+    travel_to 3.days.ago do
+      Scenario.create!(workflow: workflow, user: user, purpose: "live", status: "completed",
+                       started_at: Time.current, execution_path: [], results: {}, inputs: {})
+    end
+    latest = Scenario.create!(workflow: workflow, user: user, purpose: "simulation", status: "active",
+                              started_at: Time.current, execution_path: [], results: {}, inputs: {})
+
+    assert_in_delta latest.created_at, user.last_active_at, 1.second
+  end
 end
