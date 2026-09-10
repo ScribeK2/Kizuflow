@@ -22,7 +22,8 @@
     <p class="form-hint mb-4">Everyone signed in sees the published workflows in Global. It can't be renamed, moved or deleted, and it has no members or subgroups.</p>
   <% else %>
     <%= render "subgroups", group: @group, subgroups: @subgroups,
-          member_counts: @member_counts, workflow_counts: @workflow_counts %>
+          member_counts: @member_counts, workflow_counts: @workflow_counts,
+          accepts_subgroups: @group.accepts_subgroups? %>
     <%= render "members", group: @group %>
   <% end %>
 

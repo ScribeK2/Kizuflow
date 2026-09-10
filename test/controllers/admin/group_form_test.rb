@@ -27,6 +27,17 @@ class Admin::GroupFormTest < ActionDispatch::IntegrationTest
     assert_select "select[name='group[parent_id]'] option[selected][value=?]", @dept.id.to_s
   end
 
+  test "the parent select leaves out groups too deep to take a new group" do
+    deep = Group.create!(name: "Form Deep", parent: @tier)
+    deeper = Group.create!(name: "Form Deeper", parent: deep)
+
+    get new_admin_group_path
+
+    values = css_select("select[name='group[parent_id]'] option").pluck("value")
+    assert_includes values, deep.id.to_s
+    assert_not_includes values, deeper.id.to_s
+  end
+
   test "the new subgroup form preselects its parent" do
     get new_admin_group_path(parent_id: @team.id)
 

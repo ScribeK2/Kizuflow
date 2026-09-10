@@ -37,6 +37,21 @@ class Admin::GroupHubTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_admin_group_path(parent_id: @dept.id), text: /Add Subgroup/
   end
 
+  test "a group at the depth limit hides Add Subgroup and says why" do
+    chain = [@dept]
+    4.times { |i| chain << Group.create!(name: "Hub Level #{i + 2}", parent: chain.last) }
+
+    get admin_group_path(chain[4])
+
+    assert_select "a[href=?]", new_admin_group_path(parent_id: chain[4].id), 0
+    assert_select "section[aria-labelledby=group-subgroups-heading] .form-hint",
+                  text: "Groups nest up to 5 levels; this one is at the limit."
+
+    get admin_group_path(chain[3])
+
+    assert_select "a[href=?]", new_admin_group_path(parent_id: chain[3].id), text: /Add Subgroup/
+  end
+
   test "an empty group offers Delete, and the confirm names its members and folders" do
     UserGroup.create!(user: person, group: @dept)
     2.times { |i| Folder.create!(name: "Hub Folder #{i}", group: @dept) }

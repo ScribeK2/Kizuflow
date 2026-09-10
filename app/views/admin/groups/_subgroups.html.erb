@@ -1,13 +1,19 @@
-<%# locals: (group:, subgroups:, member_counts:, workflow_counts:) %>
+<%# locals: (group:, subgroups:, member_counts:, workflow_counts:, accepts_subgroups:) %>
 <section class="card mb-4" aria-labelledby="group-subgroups-heading">
   <div class="card__body">
     <div class="admin-group__header">
       <h2 id="group-subgroups-heading" class="admin-card__heading">Subgroups</h2>
-      <%= link_to new_admin_group_path(parent_id: group.id), class: "btn btn--secondary btn--sm" do %>
-        <%= icon "plus", class: "icon icon--sm" %>
-        Add Subgroup
+      <% if accepts_subgroups %>
+        <%= link_to new_admin_group_path(parent_id: group.id), class: "btn btn--secondary btn--sm" do %>
+          <%= icon "plus", class: "icon icon--sm" %>
+          Add Subgroup
+        <% end %>
       <% end %>
     </div>
+    <%# At the limit the save would be refused, so say so instead of offering it (spec Q61). %>
+    <% unless accepts_subgroups %>
+      <p class="form-hint mb-3">Groups nest up to <%= Group::MAX_DEPTH %> levels; this one is at the limit.</p>
+    <% end %>
     <% if subgroups.any? %>
       <ul class="admin-group__list" role="list">
         <% subgroups.each do |subgroup| %>

@@ -267,6 +267,50 @@ class GroupTest < ActiveSupport::TestCase
     assert_not_includes Group.column_names, "position"
   end
 
+  test "a move that would push the moved group's subgroups past 5 levels is refused, naming the level" do
+    chain = [Group.create!(name: "Move Chain 1")]
+    3.times { |i| chain << Group.create!(name: "Move Chain #{i + 2}", parent: chain.last) }
+    top = Group.create!(name: "Move Top")
+    mid = Group.create!(name: "Move Mid", parent: top)
+    Group.create!(name: "Move Low", parent: mid)
+
+    top.parent = chain.last
+
+    assert_not top.valid?
+    assert_includes top.errors[:parent_id],
+                    "maximum depth of 5 levels exceeded: its deepest subgroup would be at level 7"
+  end
+
+  test "a group already too deep can still be renamed, and keeps its parent as an option" do
+    chain = [Group.create!(name: "Deep 1")]
+    4.times { |i| chain << Group.create!(name: "Deep #{i + 2}", parent: chain.last) }
+    too_deep = Group.new(name: "Deep 6", parent: chain.last)
+    too_deep.save!(validate: false)
+
+    too_deep.name = "Deep Six"
+
+    assert_predicate too_deep, :valid?
+    assert_includes Group.parent_options_for(too_deep).map(&:id), chain.last.id,
+                    "an edit form must not silently move it to the top level"
+  end
+
+  test "parent options leave out groups too deep to take the group and everything under it" do
+    chain = [Group.create!(name: "Opt 1 #{SecureRandom.hex(3)}")]
+    4.times { |i| chain << Group.create!(name: "Opt #{i + 2}", parent: chain.last) }
+
+    new_ids = Group.parent_options_for(Group.new).map(&:id)
+    assert_includes new_ids, chain[3].id
+    assert_not_includes new_ids, chain[4].id, "a 5th-level group can't take a child"
+    assert_predicate chain[3], :accepts_subgroups?
+    assert_not chain[4].accepts_subgroups?
+
+    mover = Group.create!(name: "Opt Mover #{SecureRandom.hex(3)}")
+    Group.create!(name: "Opt Mover Child", parent: mover)
+    mover_ids = Group.parent_options_for(mover).map(&:id)
+    assert_includes mover_ids, chain[2].id
+    assert_not_includes mover_ids, chain[3].id, "its child would land at level 6"
+  end
+
   # Permission methods
   test "can_be_viewed_by? should return true for admin" do
     admin = User.create!(

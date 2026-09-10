@@ -5,6 +5,9 @@ class Group < ApplicationRecord
   # almost no one. Only a ROOT group by this name is Global.
   GLOBAL_NAME = "Global".freeze
 
+  # Levels a group tree may have: a root and four below it.
+  MAX_DEPTH = 5
+
   # Associations
   belongs_to :parent, class_name: 'Group', optional: true
   has_many :children, class_name: 'Group', foreign_key: 'parent_id', inverse_of: :parent, dependent: :nullify
@@ -52,6 +55,23 @@ class Group < ApplicationRecord
     return 0 if root?
 
     parent.depth + 1
+  end
+
+  # Levels below this group in the saved tree: 0 for a leaf.
+  def subtree_height
+    return 0 if new_record?
+
+    ids = descendant_ids
+    return 0 if ids.empty?
+
+    depths = Group.tree_nodes.to_h { [it.id, it.depth] }
+    ids.filter_map { depths[it] }.max.to_i - depths.fetch(id, 0)
+  end
+
+  # Whether a subgroup could be created here. The group page hides Add Subgroup
+  # at the limit rather than offering a save that is refused (spec Q61).
+  def accepts_subgroups?
+    !global? && depth + 1 < MAX_DEPTH
   end
 
   # Get all ancestor groups (parent, grandparent, etc.) up to the root
@@ -286,10 +306,18 @@ class Group < ApplicationRecord
   end
 
   # Where a group may sit: under any group except itself and its subgroups (a
-  # cycle) and Global (which has none), each with its full path (spec Q40).
+  # cycle), Global (which has none), and groups too deep to take it and all it
+  # carries (MAX_DEPTH), each with its full path (spec Q40, Q61). Its current
+  # parent always stays, so editing an already-too-deep group can't silently
+  # move it to the top level.
   def self.parent_options_for(group)
     excluded = group&.persisted? ? [group.id, *group.descendant_ids].to_set : Set.new
-    tree_nodes.reject { |node| node.global? || excluded.include?(node.id) }
+    height = group ? group.subtree_height : 0
+    tree_nodes.reject do |node|
+      next false if group && node.id == group.parent_id
+
+      node.global? || excluded.include?(node.id) || node.depth + 1 + height >= MAX_DEPTH
+    end
   end
 
   # Generate a full path string showing the hierarchy
@@ -472,19 +500,23 @@ class Group < ApplicationRecord
     end
   end
 
-  # Validation to enforce maximum depth limit (prevents infinite nesting)
-  # Default maximum depth is 5 levels (configurable)
+  # Groups nest up to MAX_DEPTH levels. Checked when a group is created or moved,
+  # and a move checks the whole subtree it carries: checking only the moved group
+  # let a three-level subtree land under a fourth-level group, its lowest group at
+  # level 7 (spec Q62). A group already too deep can still be renamed.
   def max_depth_allowed
-    # Allow up to 5 levels deep (configurable)
-    max_depth = 5
-    current_depth = if parent_id && parent.persisted?
-                      parent.depth + 1
-                    else
-                      parent_id ? 1 : 0
-                    end
+    return unless new_record? || will_save_change_to_parent_id?
 
-    return unless current_depth >= max_depth
+    own_depth = if parent_id && parent&.persisted?
+                  parent.depth + 1
+                else
+                  parent_id ? 1 : 0
+                end
+    deepest = own_depth + subtree_height
+    return if deepest < MAX_DEPTH
 
-    errors.add(:parent_id, "maximum depth of #{max_depth} levels exceeded")
+    message = "maximum depth of #{MAX_DEPTH} levels exceeded"
+    message += ": its deepest subgroup would be at level #{deepest + 1}" if deepest > own_depth
+    errors.add(:parent_id, message)
   end
 end
