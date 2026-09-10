@@ -327,8 +327,7 @@ is not one until a rule exists; check `getComputedStyle`, not the markup.
 
 | Class | Use when | Visual |
 |-------|----------|--------|
-| `.dialog-overlay` | Modal backdrop | Fixed, black 40% opacity, blur |
-| `.dialog` | Modal container | Centered, white bg, shadow-xl, radius-xl |
+| `.dialog` | Modal container — always on a native `<dialog>` | Centred by `showModal()`, canvas bg, hairline border, shadow-lg, radius-lg; `::backdrop` is `--color-backdrop` |
 | `.dialog--sm` | Small modal (confirm) | max-width 24rem |
 | `.dialog--lg` | Large modal (forms) | max-width 48rem |
 | `.dialog__header` | Title bar | Flex, border-bottom |
@@ -342,6 +341,26 @@ and never did — its only mount was the `<nav>`, coordinating the nav menu agai
 the search dialog, so removing the menu left it with one dialog and nothing to
 close. Prefer `showModal()`, which makes Escape and backdrop-click native, over
 reintroducing a coordinator.
+
+**A native dialog is `<dialog class="dialog">` opened with `showModal()`.**
+`dialogs.css` resets the UA dialog's padding and colour, keeps a gutter at phone
+width, and paints `::backdrop` with `--color-backdrop`; the
+`.dialog__header/body/footer` anatomy is unchanged. Close with `dialog.close()`,
+and treat a click whose `target` is the `<dialog>` itself as a backdrop click.
+
+**Close it on `turbo:before-cache`.** Turbo snapshots the page as you leave, and
+an open dialog comes back on Back/Forward as a non-modal `<dialog open>` — no
+backdrop, the page behind it live — still showing whatever it held. The password
+reset dialog came back with the temporary password in it. Test it with
+`assert_no_selector "dialog[open]", visible: :all`: a restored dialog fades in
+from opacity 0, which Selenium reports as not displayed, so a visible-only
+assertion passes with the fix removed.
+
+The admin Users screens are the worked examples: `admin/users/show` (a two-step
+password reset) and the bulk dialogs in `admin/users/index`. The old pattern — a
+`.dialog-overlay` div toggled with `.is-hidden`, driven by `modal_controller.js`
+— was deleted in Stage 3 once nothing rendered it. Every dialog is a native
+`<dialog>`.
 
 ### Dropdowns (`dropdowns.css`)
 
@@ -491,6 +510,7 @@ so `.tab-bar` drops into any existing tablist with no JS change.
 | Pagination | `.pagination-bar`, `.pagination`, `.pagination__item`, `.is-active` | `pagination.css` | `.pagination-bar` is a three-zone grid: summary left, numbered nav centred, page-size right |
 | Admin sidebar | `.admin-shell`, `__main`, `.admin-nav`, `__list`, `__link`, `__label`, `__divider`, `__count` | `admin.css` | Second-level nav for admin pages (see § Navigation). Current is `[aria-current="page"]`: primary-soft fill + primary text + weight — a different channel from hover. `__count` is a `.badge--warning`, rendered only when something needs attention, and counts *kinds* of problem, not affected records |
 | Needs attention | `.list-section.admin-attention` + `.list-row`, `.admin-attention__people`, `__meta`, `__clear` | `lists.css`, `admin.css` | The admin Overview. One row per kind of problem, each naming the problem, its cost in one line, and a secondary link to where it is fixed — no filled button. Rows align to the top, since one can list ten people. Nothing waiting renders one line (`__clear`), not an empty section |
+| Group picker | `.group-picker`, `__search`, `__filter`, `__list`, `__option`, `__label`, `__name`, `__path`, `__empty` | `admin.css` | `render "admin/group_picker", nodes: Group.tree_nodes, field_name:, selected_ids:`. Every group as a checkbox, indented by depth, with its full path; `group-picker` filters by any part of the path. Flat rather than an expandable tree — at hundreds of department groups typing beats expanding. Costs one query however many groups exist; never build paths with `Group#full_path` in a loop |
 | Icons | `.icon`, `.icon--xs/sm/lg/xl` | `icons.css` | Inline-flex sizing (0.75 to 2rem) |
 | Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — a class styled only in a sheet that layout does not load matches nothing at all. (It used to *also* fall back to raw browser chrome; `reset.css` now neutralises button background, border and padding, so that half is closed — see § The unstyled-button trap) |
 

@@ -1,17 +1,6 @@
 @layer components {
 /* dialogs.css — Dialog and modal components */
 
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: oklch(0 0 0 / 0.5);
-  padding: 1rem;
-}
-
 .dialog {
   background: var(--color-canvas);
   border: 1px solid var(--color-border);
@@ -32,10 +21,9 @@
   }
 }
 
-/* Use flex layout only when dialog is open — preserves native
-   dialog:not([open]) { display: none } behavior */
-.dialog[open],
-.dialog:not(dialog) {
+/* Flex layout only for an open native dialog — a closed <dialog> keeps the UA's
+   dialog:not([open]) { display: none } */
+.dialog[open] {
   display: flex;
   flex-direction: column;
 }
@@ -90,10 +78,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
-}
-
-.dialog.is-hidden {
-  display: none;
 }
 
 /* Native <dialog class="dialog">, opened with showModal(). The UA gives a dialog

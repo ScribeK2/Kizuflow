@@ -54,6 +54,7 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Overview"
     assert_select "#attention-awaiting-groups", text: /#{Regexp.escape(@user.email)}/
     assert_select "#attention-awaiting-groups", text: /#{Regexp.escape(@editor.email)}/
+    assert_select "#attention-awaiting-groups a[href=?]", admin_user_path(@user), text: @user.email
     assert_select "#attention-awaiting-groups a", text: @admin.email, count: 0
     assert_select "#attention-awaiting-groups a[href=?]",
                   admin_users_path(group: Admin::UsersFilter::AWAITING_GROUPS), text: "View all"

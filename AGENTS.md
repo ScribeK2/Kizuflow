@@ -138,6 +138,17 @@ on a live sub-flow, and an unused instance writes no rollup days. The stalled
 check relies on Solid Queue keeping finished jobs for a day and switches itself
 off if that is shortened. There is no admin Workflows section: `/workflows`
 already gives an admin every workflow and delete.
+**Users** are a table plus a page per user (`/admin/users/:id`). The table row is
+email (linking out of its Turbo Frame with `data-turbo-frame="_top"`), the inline
+role select, groups and joined; everything else — groups, password reset,
+deactivation, workflows owned, last active (newest run, since `:trackable` is
+off) — is on the user page. `update_groups`/`deactivate`/`reactivate` return
+there; `update_role` uses `redirect_back_or_to` because both surfaces call it.
+Group paths come from `Group.tree_nodes` / `Group.paths_by_id` (one query for the
+whole tree) and every group picker is `admin/_group_picker`; `Group#full_path`
+queries ancestors per call and must not be used in a loop. Every Users dialog is
+a native `<dialog>` that closes on `turbo:before-cache` — see UIGUIDE § Dialogs
+for why, and for the `visible: :all` trap in testing it.
 
 **Key concern:** `RunnerShell` (`app/controllers/concerns/runner_shell.rb`) — the
 run itself, shared by `ScenariosController` and `PlayerController`. It owns where

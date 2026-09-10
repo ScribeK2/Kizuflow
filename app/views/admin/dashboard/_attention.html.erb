@@ -19,7 +19,7 @@
             <ul class="admin-attention__people">
               <% attention.awaiting_groups.each do |user| %>
                 <li>
-                  <%= link_to user.email, admin_users_path(q: user.email) %>
+                  <%= link_to user.email, admin_user_path(user) %>
                   <span class="admin-attention__meta">joined <%= time_ago_in_words(user.created_at) %> ago</span>
                 </li>
               <% end %>
