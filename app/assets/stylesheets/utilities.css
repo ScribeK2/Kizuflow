@@ -156,7 +156,6 @@
 
 /* is-open — toggleable open state (dropdowns, panels) */
 .dropdown__menu:not(.is-hidden) { display: block; }
-.step-selector__dropdown:not(.is-hidden) { display: block; }
 
 /* is-dragover — file drop zone active state */
 .is-dragover {
