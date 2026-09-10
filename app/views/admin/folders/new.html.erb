@@ -1,4 +1,9 @@
-<div class="page-content">
-  <h1 class="mb-4">New Folder in <%= @group.name %></h1>
+<div class="page-content page-narrow">
+  <div class="page-header-section">
+    <%= render "admin/breadcrumb",
+          trail: admin_group_trail(@group, include_self: true) + [["Folders", admin_group_folders_path(@group)]],
+          current: "New folder" %>
+    <h1 class="page-header-section__title">New Folder</h1>
+  </div>
   <%= render "admin/folders/form", folder: @folder, group: @group %>
 </div>

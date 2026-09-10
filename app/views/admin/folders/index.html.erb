@@ -1,17 +1,11 @@
 <div class="page-content">
   <div class="page-header-section flex items-center justify-between gap-4 flex-wrap">
     <div>
+      <%= render "admin/breadcrumb", trail: admin_group_trail(@group, include_self: true), current: "Folders" %>
       <h1 class="page-header-section__title">Folders in <%= @group.name %></h1>
       <p class="page-header-section__subtitle">Organize workflows into folders within this group.</p>
     </div>
-    <div class="flex gap-2">
-      <%= link_to admin_groups_path, class: "btn btn--secondary" do %>
-        Back to Groups
-      <% end %>
-      <%= link_to new_admin_group_folder_path(@group), class: "btn btn--primary" do %>
-        New Folder
-      <% end %>
-    </div>
+    <%= link_to "New Folder", new_admin_group_folder_path(@group), class: "btn btn--primary" %>
   </div>
 
   <% if @folders.any? %>

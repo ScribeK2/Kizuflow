@@ -797,4 +797,12 @@ td.bulk-select-column {
   color: var(--color-ink-subtle);
 }
 
+/* The breadcrumb leads the header here (above the title), where on /workflows it
+   trails it — so it takes the space below itself instead of above. */
+.admin-breadcrumb {
+  flex-wrap: wrap;
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+}
+
 }

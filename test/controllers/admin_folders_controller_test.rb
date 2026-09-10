@@ -106,4 +106,15 @@ class Admin::FoldersControllerTest < ActionDispatch::IntegrationTest
     get admin_group_folders_path(@group)
     assert_redirected_to root_path
   end
+
+  test "folder pages carry the group's breadcrumb and a real page header" do
+    get admin_group_folders_path(@group)
+    assert_select "nav.wf-breadcrumb a", text: @group.name
+    assert_select "nav.wf-breadcrumb [aria-current=page]", text: "Folders"
+    assert_no_match(/Back to Groups/, response.body)
+
+    get new_admin_group_folder_path(@group)
+    assert_select "h1.page-header-section__title", text: "New Folder"
+    assert_select "nav.wf-breadcrumb a", text: "Folders"
+  end
 end

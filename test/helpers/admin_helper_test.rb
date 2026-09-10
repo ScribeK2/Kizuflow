@@ -36,4 +36,23 @@ class AdminHelperTest < ActionView::TestCase
     self.controller_path = "workflows"
     assert_nil admin_section
   end
+
+  test "admin_group_trail runs from Groups through every ancestor, root first" do
+    root = Group.create!(name: "Trail Root #{SecureRandom.hex(3)}")
+    mid = Group.create!(name: "Trail Mid", parent: root)
+    leaf = Group.create!(name: "Trail Leaf", parent: mid)
+
+    assert_equal [["Groups", admin_groups_path], [root.name, admin_group_path(root)], ["Trail Mid", admin_group_path(mid)]],
+                 admin_group_trail(leaf)
+    assert_equal ["Trail Leaf", admin_group_path(leaf)], admin_group_trail(leaf, include_self: true).last
+    assert_equal [["Groups", admin_groups_path]], admin_group_trail(nil)
+  end
+
+  test "admin_group_trail keeps the saved name while an edit is invalid" do
+    group = Group.create!(name: "Saved Name #{SecureRandom.hex(3)}")
+    saved = group.name
+    group.name = ""
+
+    assert_equal saved, admin_group_trail(group, include_self: true).last.first
+  end
 end

@@ -1,42 +1,17 @@
 <div class="page-content">
-  <!-- Breadcrumb -->
-  <nav class="mb-4">
-    <ol class="flex items-center gap-2 text-sm">
-      <li><%= link_to "Admin", admin_root_path %></li>
-      <li><span>/</span></li>
-      <li><%= link_to "Groups", admin_groups_path %></li>
-      <li><span>/</span></li>
-      <li class="font-medium"><%= @group.name %></li>
-    </ol>
-  </nav>
-
-  <!-- Header Section -->
   <div class="page-header-section flex items-center justify-between gap-4 flex-wrap">
     <div>
+      <%= render "admin/breadcrumb", trail: admin_group_trail(@group), current: @group.name %>
       <h1 class="page-header-section__title"><%= @group.name %></h1>
       <% if @group.description.present? %>
         <p class="page-header-section__subtitle"><%= @group.description %></p>
       <% end %>
-      <div class="flex items-center gap-4 text-sm mt-2">
-        <span>Path: <%= @group.full_path %></span>
-        <span>&bull;</span>
-        <span><%= pluralize(@group.workflows_count(include_descendants: true), 'workflow') %></span>
-        <% if @group.parent.present? %>
-          <span>&bull;</span>
-          <span>Parent: <%= link_to @group.parent.name, admin_group_path(@group.parent) %></span>
-        <% end %>
-      </div>
+      <p class="page-header-section__ident"><%= pluralize(@group.workflows_count(include_descendants: true), "workflow") %></p>
     </div>
-    <div class="flex gap-2">
-      <%= link_to admin_groups_path, class: "btn btn--secondary flex items-center gap-2" do %>
-        <%= icon "arrow-left", class: "icon icon--sm" %>
-        Back to Groups
-      <% end %>
-      <%= link_to edit_admin_group_path(@group), class: "btn btn--secondary flex items-center gap-2" do %>
-        <%= icon "pencil-square", class: "icon icon--sm" %>
-        Edit Group
-      <% end %>
-    </div>
+    <%= link_to edit_admin_group_path(@group), class: "btn btn--secondary flex items-center gap-2" do %>
+      <%= icon "pencil-square", class: "icon icon--sm" %>
+      Edit Group
+    <% end %>
   </div>
 
   <!-- Workflows in this Group -->

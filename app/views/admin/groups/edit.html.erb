@@ -1,18 +1,6 @@
-<div class="page-content">
-  <!-- Breadcrumb -->
-  <nav class="mb-4">
-    <ol class="flex items-center gap-2 text-sm">
-      <li><%= link_to "Admin", admin_root_path %></li>
-      <li><span>/</span></li>
-      <li><%= link_to "Groups", admin_groups_path %></li>
-      <li><span>/</span></li>
-      <li><%= link_to @group.name, admin_group_path(@group) %></li>
-      <li><span>/</span></li>
-      <li class="font-medium">Edit</li>
-    </ol>
-  </nav>
-
-  <div class="mb-4">
+<div class="page-content page-narrow">
+  <div class="page-header-section">
+    <%= render "admin/breadcrumb", trail: admin_group_trail(@group, include_self: true), current: "Edit" %>
     <h1 class="page-header-section__title">Edit Group</h1>
     <p class="page-header-section__subtitle">Modify group details.</p>
   </div>

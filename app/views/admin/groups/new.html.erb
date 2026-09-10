@@ -1,16 +1,7 @@
-<div class="page-content">
-  <!-- Breadcrumb -->
-  <nav class="mb-4">
-    <ol class="flex items-center gap-2 text-sm">
-      <li><%= link_to "Admin", admin_root_path %></li>
-      <li><span>/</span></li>
-      <li><%= link_to "Groups", admin_groups_path %></li>
-      <li><span>/</span></li>
-      <li class="font-medium">New Group</li>
-    </ol>
-  </nav>
-
-  <div class="mb-4">
+<div class="page-content page-narrow">
+  <div class="page-header-section">
+    <%= render "admin/breadcrumb", trail: admin_group_trail(@group.parent, include_self: true),
+          current: @group.parent ? "New subgroup" : "New group" %>
     <h1 class="page-header-section__title">New Group</h1>
     <p class="page-header-section__subtitle">Create a new group for organizing workflows.</p>
   </div>

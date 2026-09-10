@@ -22,6 +22,21 @@ module AdminHelper
     "page" if admin_section == section
   end
 
+  # Groups, then each ancestor (root first), then optionally the group itself,
+  # as [label, path] pairs for admin/breadcrumb. A persisted group shows its
+  # SAVED name, so a failed edit that blanked the field does not blank the crumb.
+  def admin_group_trail(group, include_self: false)
+    trail = [["Groups", admin_groups_path]]
+    return trail if group.nil?
+
+    trail += group.ancestors.reverse.map { |ancestor| [ancestor.name, admin_group_path(ancestor)] }
+    if include_self
+      name = group.persisted? ? group.attribute_in_database(:name) : group.name
+      trail << [name, admin_group_path(group)]
+    end
+    trail
+  end
+
   # A clickable column header for an admin table.
   #
   #   sortable_column_header("Email", :email, current_sort: @sort, frame: "users-table")

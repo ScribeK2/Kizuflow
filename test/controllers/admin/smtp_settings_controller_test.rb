@@ -138,4 +138,12 @@ class Admin::SmtpSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Test failed/, flash[:alert])
     assert_match(/Errno::ECONNREFUSED|Connection refused/, flash[:alert])
   end
+
+  test "the email form is one narrow column, not a page-main inside page-main" do
+    sign_in @admin
+    get admin_smtp_setting_path
+
+    assert_select "main.page-main .page-main", 0
+    assert_select ".page-narrow form"
+  end
 end

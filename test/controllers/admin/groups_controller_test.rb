@@ -160,4 +160,32 @@ class Admin::GroupsControllerTest < ActionDispatch::IntegrationTest
     # Parent should still have no parent_id (update failed)
     assert_nil parent.reload.parent_id
   end
+
+  test "a group's breadcrumb names each parent group, root first, with no list markers" do
+    sign_in @admin
+    root = Group.create!(name: "Crumb Root #{SecureRandom.hex(3)}")
+    mid = Group.create!(name: "Crumb Mid", parent: root)
+    leaf = Group.create!(name: "Crumb Leaf", parent: mid)
+
+    get admin_group_path(leaf)
+
+    assert_response :success
+    assert_select "nav.wf-breadcrumb ol", 0
+    crumbs = css_select("nav.wf-breadcrumb a").map { it.text.strip }
+    assert_equal ["Groups", root.name, "Crumb Mid"], crumbs
+    assert_select "nav.wf-breadcrumb [aria-current=page]", text: "Crumb Leaf"
+    assert_no_match(/Back to Groups/, response.body)
+  end
+
+  test "the new and edit group forms sit in the narrow column under a breadcrumb" do
+    sign_in @admin
+    group = Group.create!(name: "Form Crumb #{SecureRandom.hex(3)}")
+
+    get new_admin_group_path(parent_id: group.id)
+    assert_select ".page-narrow nav.wf-breadcrumb a", text: group.name
+    assert_select ".page-narrow nav.wf-breadcrumb [aria-current=page]", text: "New subgroup"
+
+    get edit_admin_group_path(group)
+    assert_select ".page-narrow nav.wf-breadcrumb [aria-current=page]", text: "Edit"
+  end
 end

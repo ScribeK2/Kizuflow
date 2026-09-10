@@ -1,0 +1,11 @@
+<%# locals: (trail:, current:) %>
+<%# Where this page sits. Replaces an <ol> whose list numbers painted over the
+    link text (reset.css strips markers only for [role="list"]) and the
+    "Back to Groups" buttons that sat beside it. %>
+<nav class="wf-breadcrumb admin-breadcrumb" aria-label="Breadcrumb">
+  <% trail.each do |label, path| %>
+    <%= link_to label, path, class: "breadcrumb__link" %>
+    <span aria-hidden="true">/</span>
+  <% end %>
+  <span class="breadcrumb__current" aria-current="page"><%= current %></span>
+</nav>
