@@ -29,11 +29,15 @@
         <div class="table-wrap">
           <table class="table" style="table-layout: fixed;" data-admin-users-target="table">
             <colgroup>
+              <%# Widths sized for the admin sidebar, which leaves the table ~980px.
+                  Actions is the auto remainder and holds three buttons (~290px with
+                  padding) until Stage 3 replaces it; at the old 26/12/14/8/12 split
+                  Deactivate ran past the card edge, by 49px in bulk mode. %>
               <col class="bulk-select-column" style="width: 3rem;">
-              <col style="width: 26%;">
+              <col style="width: 24%;">
               <col style="width: 12%;">
-              <col style="width: 14%;">
-              <col style="width: 8%;">
+              <col style="width: 10%;">
+              <col style="width: 7%;">
               <col style="width: 12%;">
               <col>
             </colgroup>

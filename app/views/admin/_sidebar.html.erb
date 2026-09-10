@@ -1,0 +1,29 @@
+<%# The admin sections as labelled links — never a menu (UIGUIDE § Navigation).
+    Ordered by how often an admin needs them; the divider sets apart the pages
+    you open when something is wrong. Below 1024px the list is a row that scrolls
+    sideways. %>
+<nav class="admin-nav" aria-label="Admin sections">
+  <ul class="admin-nav__list">
+    <% [
+      [:overview, "Overview", admin_root_path, "home"],
+      [:users, "Users", admin_users_path, "users"],
+      [:groups, "Groups", admin_groups_path, "rectangle-group"],
+      [:analytics, "Analytics", admin_analytics_path, "chart-bar"],
+      :divider,
+      [:data_health, "Data Health", admin_data_health_path, "circle-stack"],
+      [:email, "Email", admin_smtp_setting_path, "envelope"]
+    ].each do |item| %>
+      <% if item == :divider %>
+        <li class="admin-nav__divider" aria-hidden="true"></li>
+      <% else %>
+        <% section, label, path, icon_name = item %>
+        <li>
+          <%= link_to path, class: "admin-nav__link", aria: { current: admin_nav_current(section) } do %>
+            <%= icon icon_name, class: "icon icon--sm" %>
+            <span class="admin-nav__label"><%= label %></span>
+          <% end %>
+        </li>
+      <% end %>
+    <% end %>
+  </ul>
+</nav>

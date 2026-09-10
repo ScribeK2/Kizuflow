@@ -769,4 +769,97 @@ td.bulk-select-column {
   display: table-cell;
 }
 
+/* ============================================================================
+   Admin Shell — section sidebar beside the page (layouts/admin)
+   ============================================================================ */
+
+.admin-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.admin-shell__main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Forms and settings are a narrow column, but beside a sidebar a centred
+   column floats in the middle of nowhere — pin it to the sidebar edge. */
+.admin-shell__main .page-narrow {
+  margin-inline: 0;
+}
+
+.admin-nav__list {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.admin-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-subtle);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.admin-nav__link:hover {
+  background: var(--color-canvas-alt);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+/* Current is a different channel from hover, not a darker hover: primary text,
+   heavier weight and the primary-soft fill (UIGUIDE § Navigation). */
+.admin-nav__link[aria-current="page"] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+.admin-nav__divider {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 1px;
+  margin-inline: var(--space-1);
+  background: var(--color-border);
+}
+
+@media (min-width: 1024px) {
+  .admin-shell {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .admin-nav {
+    flex-shrink: 0;
+    width: 13rem;
+    position: sticky;
+    top: calc(4rem + var(--space-8));
+  }
+
+  .admin-nav__list {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .admin-nav__divider {
+    width: auto;
+    height: 1px;
+    margin: var(--space-2) var(--space-3);
+  }
+}
+
 }

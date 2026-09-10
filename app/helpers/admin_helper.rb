@@ -1,4 +1,27 @@
 module AdminHelper
+  # Which sidebar item the current admin page belongs to. Section-level, like
+  # NavHelper: folders light Groups because a folder lives inside a group. Add a
+  # controller here when you add an admin surface — absence lights nothing.
+  ADMIN_SECTIONS = {
+    "admin/dashboard" => :overview,
+    "admin/users" => :users,
+    "admin/groups" => :groups,
+    "admin/folders" => :groups,
+    "admin/analytics" => :analytics,
+    "admin/data_health" => :data_health,
+    "admin/smtp_settings" => :email
+  }.freeze
+
+  def admin_section
+    ADMIN_SECTIONS[controller_path]
+  end
+
+  # For `aria: { current: admin_nav_current(:users) }` — nil renders no
+  # attribute, and the CSS keys the current state off [aria-current="page"].
+  def admin_nav_current(section)
+    "page" if admin_section == section
+  end
+
   # A clickable column header for an admin table.
   #
   #   sortable_column_header("Email", :email, current_sort: @sort, frame: "users-table")

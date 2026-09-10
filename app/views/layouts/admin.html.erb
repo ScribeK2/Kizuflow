@@ -1,0 +1,12 @@
+<%# Admin pages sit inside the application layout with a section sidebar beside
+    them. Nested rather than copied, so the top bar, flash messages and theme
+    bootstrapping stay defined in one place. %>
+<% content_for :content do %>
+  <div class="admin-shell">
+    <%= render "admin/sidebar" %>
+    <div class="admin-shell__main">
+      <%= yield %>
+    </div>
+  </div>
+<% end %>
+<%= render template: "layouts/application" %>

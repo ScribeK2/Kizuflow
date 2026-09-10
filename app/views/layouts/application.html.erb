@@ -181,7 +181,9 @@
       <%= render "shared/flash_messages" %>
 
       <main class="page-main">
-        <%= yield %>
+        <%# A nested layout (layouts/admin) fills :content and renders this one;
+            every other page yields straight through. %>
+        <%= content_for?(:content) ? yield(:content) : yield %>
       </main>
     </div>
   </body>
