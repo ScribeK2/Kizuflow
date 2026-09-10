@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Filters admin/_group_picker by any part of each group's full path.
+// Filters shared/_group_picker by any part of each group's full path.
 // data-path is lowercased server-side, so this only lowercases the term.
 export default class extends Controller {
   static targets = ["filter", "option", "empty"]

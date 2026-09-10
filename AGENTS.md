@@ -175,6 +175,31 @@ queries ancestors per call and must not be used in a loop. Every Users dialog is
 a native `<dialog>` that closes on `turbo:before-cache` — see UIGUIDE § Dialogs
 for why, and for the `visible: :all` trap in testing it.
 
+**Groups** are a tree plus a page per group (`/admin/groups/:id`). The tree renders
+flat, depth-first rows from `Group.tree_nodes`, each carrying its ancestor ids, and
+`group_tree_controller.js` shows and hides them by set lookup:
+- it starts collapsed to the roots;
+- a filter matches any part of a path and opens the groups above a match;
+- nothing is remembered.
+
+Row counts come from `Group.member_counts` (direct) and
+`Group.workflow_counts_including_subgroups`, each equal to what its link lists, and
+tested that way (`test/models/group_counts_test.rb`).
+
+A group's page is its department hub:
+- subgroups by name;
+- direct members, through `Admin::MembershipsController`: a search in a turbo-frame
+  that stays open after Add, and Remove with no confirm;
+- folders: add by name, rename in place, drag, delete. There are no folder pages
+  any more;
+- a workflow count linking to `/workflows?group_id=`;
+- a delete refused while subgroups or workflows remain, with the page saying so
+  instead of offering the button.
+
+Members and folders answer with Turbo Streams that replace their card and update
+`#flash` in the application layout. Global's page has only Folders. Groups sort by
+name ignoring case everywhere; `groups.position` is ignored and has no field.
+
 **Key concern:** `RunnerShell` (`app/controllers/concerns/runner_shell.rb`) — the
 run itself, shared by `ScenariosController` and `PlayerController`. It owns where
 a GET belongs (`runner_step_redirect`), which step is open

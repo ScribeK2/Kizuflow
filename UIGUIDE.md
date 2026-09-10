@@ -418,6 +418,12 @@ uses it. There were three copies before, and the Player's had drifted into a bar
 `<div class="flash flash--alert">` with no `.flash__body`, so flashes on the
 surface agents live in rendered as unstyled ink text over the page.
 
+**In-page changes report through `#flash`.** The application layout wraps the
+flash render in `<div id="flash">`, so a Turbo Stream response can set
+`flash.now` and `turbo_stream.update "flash", partial: "shared/flash_messages"`.
+The group page's members and folders cards do this. `.flash` is fixed-position, so
+the wrapper takes no space.
+
 **Why bottom-right.** The header is 4rem tall, so the old `top: 5rem` put the
 toast on the page's top-right action zone — and a flash usually reports on the
 very action whose button it covered (a failed publish hid Publish and Export).
@@ -513,6 +519,9 @@ so `.tab-bar` drops into any existing tablist with no JS change.
 | Admin sidebar | `.admin-shell`, `__main`, `.admin-nav`, `__list`, `__link`, `__label`, `__divider`, `__count` | `admin.css` | Second-level nav for admin pages (see § Navigation). Current is `[aria-current="page"]`: primary-soft fill + primary text + weight — a different channel from hover. `__count` is a `.badge--warning`, rendered only when something needs attention, and counts *kinds* of problem, not affected records |
 | Needs attention | `.list-section.admin-attention` + `.list-row`, `.admin-attention__people`, `__meta`, `__clear` | `lists.css`, `admin.css` | The admin Overview. One row per kind of problem, each naming the problem, its cost in one line, and a secondary link to where it is fixed — no filled button. Rows align to the top, since one can list ten people. Nothing waiting renders one line (`__clear`), not an empty section |
 | Group picker | `.group-picker`, `__global`, `__hint`, `__search`, `__filter`, `__list`, `__option`, `__label`, `__name`, `__path`, `__empty` | `forms.css` | `render "shared/group_picker", nodes: Group.tree_nodes, field_name:, selected_ids:, input_data: {}`. Every group as a checkbox, indented by depth, with its full path; `group-picker` filters by any part of the path. Flat rather than an expandable tree — at hundreds of department groups typing beats expanding. Costs one query however many groups exist; never build paths with `Group#full_path` in a loop. Global (when in `nodes`) renders on its own row above the list and outside the filter. Membership pickers pass `Group.assignable_tree_nodes`, which omits it; the builder's Details panel passes `tree_nodes(within:)` and its autosave action as `input_data` |
+| Group tree | `.group-tree`, `__toolbar`, `__filter`, `__list`, `__row`, `__toggle`, `__spacer`, `__label`, `__name`, `__path`, `__count`, `__empty` | `admin.css` | The admin groups index. Flat depth-first rows with `--tree-depth` set inline and `data-ancestors`; `group-tree` hides a row unless every ancestor is expanded, and while filtering shows matches (with `__path`) plus the groups above them. Toggle state is `aria-expanded`, which also rotates the chevron. Counts are plain text, never pills |
+| Admin cards | `.admin-card__heading`, `__heading--danger`, `__action-row`, `.admin-card--danger` | `admin.css` | Shared by the user page and the group page: a card heading, a sentence beside its one action (wraps once the sentence would squeeze below 16rem), and the danger card's red hairline |
+| Group page | `.admin-group__header`, `__title`, `__list`, `__item`, `__name`, `__meta`, `__search`, `.admin-folders__handle`, `__rename` | `admin.css` | `admin/groups/show`: hairline-divided rows inside a card — subgroups, members, folders — each name, a muted meta line and at most one plain or secondary action. No filled button on the page; Delete Group is outlined `.btn--negative` |
 | Icons | `.icon`, `.icon--xs/sm/lg/xl` | `icons.css` | Inline-flex sizing (0.75 to 2rem) |
 | Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — a class styled only in a sheet that layout does not load matches nothing at all. (It used to *also* fall back to raw browser chrome; `reset.css` now neutralises button background, border and padding, so that half is closed — see § The unstyled-button trap) |
 
@@ -562,6 +571,7 @@ These are the most-used controllers. Wire them via `data-controller` on the appr
 | `step-warnings` | Async health check, inline warning icons, popover | On builder container, auto-fetches after saves |
 | `scenario-step` | Player step interactions | On step card, handles auto-advance |
 | `tabs` | Tab switching | `click->tabs#select` |
+| `inline-rename` | Rename in place: Enter or blur saves once, Escape reverts | On the one-field form; `input` target with `keydown.enter->inline-rename#commit blur->inline-rename#commit keydown.esc->inline-rename#revert` |
 
 ---
 
@@ -864,7 +874,7 @@ For page types not covered by a recipe, read these exemplary views. They demonst
 | `transitions.css` | modules | Transition editor |
 | `dashboard.css` | modules | Dashboard shell: `.dashboard-*`, `.stat-panel`/`.stat-cell` |
 | `auth.css` | modules | Login/signup pages |
-| `admin.css` | modules | Admin shell (section sidebar), needs-attention list, breadcrumb spacing, users filter/bulk bar, group tree, analytics bars. Tokens only — `test/stylesheets/admin_css_audit_test.rb` refuses literal colours and theme blocks |
+| `admin.css` | modules | Admin shell (section sidebar), needs-attention list, breadcrumb spacing, users filter/bulk bar, group tree, user and group pages, analytics bars. Tokens only — `test/stylesheets/admin_css_audit_test.rb` refuses literal colours and theme blocks |
 | `utilities.css` | utilities | Layout utilities (.flex, .gap-*, .mb-*, .text-*) |
 | `animations.css` | utilities | Keyframes (fadeIn, slideIn, scaleIn, shimmer) |
 | `print.css` | utilities | Print styles |
