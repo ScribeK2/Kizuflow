@@ -48,6 +48,14 @@ class User < ApplicationRecord
     joins(:user_groups).where(user_groups: { group_id: group_id }).distinct
   }
 
+  # Accounts that can sign in and see almost nothing. A Regular or Editor user
+  # with no group sees only public workflows (Workflow.visible_to), so each one is
+  # waiting on an administrator. Admins see everything regardless, and a
+  # deactivated account cannot sign in, so neither belongs here.
+  scope :awaiting_groups, lambda {
+    where(role: %w[regular editor], deactivated_at: nil).where.missing(:user_groups)
+  }
+
   # Sortable columns for the admin users table. Every column gets both
   # directions by construction — the previous case statement had role_asc with
   # no role_desc, and reached created_at_desc only by falling through `else`,

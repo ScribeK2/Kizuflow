@@ -20,8 +20,11 @@
       {},
       { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
 
+    <%# "Waiting for a group" is User.awaiting_groups, not a group — the Overview's
+        "View all" link lands on it. %>
     <%= form.select :group,
-      options_for_select([["All Groups", ""]] + @all_groups.map { |g| [g.name, g.id] }, params[:group]),
+      options_for_select([["All Groups", ""], ["Waiting for a group", Admin::UsersFilter::AWAITING_GROUPS]] +
+                         @all_groups.map { |g| [g.name, g.id] }, params[:group]),
       {},
       { class: "form-select", data: { action: "change->admin-users-filter#filter" } } %>
 
@@ -49,7 +52,11 @@
         </span>
       <% end %>
       <% if params[:group].present? %>
-        <% group_name = @all_groups.find { |g| g.id.to_s == params[:group].to_s }&.name || "Unknown" %>
+        <% group_name = if params[:group].to_s == Admin::UsersFilter::AWAITING_GROUPS
+                          "Waiting for a group"
+                        else
+                          @all_groups.find { |g| g.id.to_s == params[:group].to_s }&.name || "Unknown"
+                        end %>
         <span class="admin-filter-pill">
           Group: <%= group_name %>
           <%= link_to admin_users_path(filter_params_without(:group)), class: "admin-filter-pill__remove", data: { turbo_frame: "users-table" } do %>

@@ -1,5 +1,9 @@
 module Admin
   class UsersFilter
+    # The group param value that lists User.awaiting_groups instead of one
+    # group's members. The Overview's "View all" link lands here.
+    AWAITING_GROUPS = "none".freeze
+
     attr_reader :params, :total_count
 
     def initialize(params:, scope: User.all)
@@ -38,7 +42,13 @@ module Admin
     end
 
     def apply_group_filter
-      @scope = @scope.by_group(params[:group]) if params[:group].present?
+      return if params[:group].blank?
+
+      @scope = if params[:group].to_s == AWAITING_GROUPS
+                 @scope.awaiting_groups
+               else
+                 @scope.by_group(params[:group])
+               end
     end
 
     def apply_sort

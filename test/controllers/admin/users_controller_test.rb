@@ -774,4 +774,14 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_predicate @user, :regular?
   end
+
+  test "the group filter offers Waiting for a group and keeps it selected" do
+    sign_in @admin
+    get admin_users_path(group: Admin::UsersFilter::AWAITING_GROUPS)
+
+    assert_response :success
+    assert_select "select[name=group] option[selected][value=?]", Admin::UsersFilter::AWAITING_GROUPS,
+                  text: "Waiting for a group"
+    assert_select ".admin-filter-pill", text: /Waiting for a group/
+  end
 end

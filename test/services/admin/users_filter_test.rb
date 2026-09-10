@@ -75,5 +75,14 @@ module Admin
       emails = filter.users.map(&:email)
       assert_equal emails, emails.sort
     end
+
+    test "the awaiting-groups value lists User.awaiting_groups, not a group's members" do
+      filter = Admin::UsersFilter.new(params: { group: Admin::UsersFilter::AWAITING_GROUPS, per_page: 100 }).call
+      ids = filter.users.map(&:id)
+
+      assert_includes ids, @regular.id
+      assert_not_includes ids, @editor.id, "the editor has a group"
+      assert_not_includes ids, @admin.id
+    end
   end
 end

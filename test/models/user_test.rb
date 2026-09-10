@@ -533,4 +533,25 @@ class UserTest < ActiveSupport::TestCase
       assert_no_match(/DROP TABLE/i, sql, "#{bad.inspect} leaked into the SQL")
     end
   end
+
+  test "awaiting_groups is Regular and Editor accounts with no group, never admins or deactivated" do
+    make = lambda do |role, **attrs|
+      User.create!(email: "await-#{role}-#{SecureRandom.hex(4)}@example.com", password: "password123!",
+                   password_confirmation: "password123!", role: role, **attrs)
+    end
+    regular = make.call("regular")
+    editor = make.call("editor")
+    admin = make.call("admin")
+    deactivated = make.call("regular", deactivated_at: 1.day.ago)
+    grouped = make.call("regular")
+    UserGroup.create!(user: grouped, group: Group.create!(name: "Await #{SecureRandom.hex(3)}"))
+
+    ids = User.awaiting_groups.pluck(:id)
+
+    assert_includes ids, regular.id
+    assert_includes ids, editor.id
+    assert_not_includes ids, admin.id, "admins see every workflow without a group"
+    assert_not_includes ids, deactivated.id, "a deactivated account cannot sign in, so is waiting on nobody"
+    assert_not_includes ids, grouped.id
+  end
 end
