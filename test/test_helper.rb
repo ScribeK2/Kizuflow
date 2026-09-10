@@ -50,4 +50,17 @@ module GlobalGroupHelper
   end
 end
 
-ActiveSupport.on_load(:active_support_test_case) { include GlobalGroupHelper }
+# Counts the SQL a block asks for, leaving out schema lookups. Compare a page at
+# two sizes: equal counts mean nothing is queried per row. Query-cache hits
+# count: in a test the cache can survive between requests while the data is
+# unchanged, so skipping them made the smaller page look like one query.
+module QueryCountHelper
+  def count_queries(&)
+    count = 0
+    counter = ->(*, payload) { count += 1 unless payload[:name] == "SCHEMA" }
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &)
+    count
+  end
+end
+
+ActiveSupport.on_load(:active_support_test_case) { include GlobalGroupHelper, QueryCountHelper }

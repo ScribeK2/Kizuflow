@@ -1,11 +1,8 @@
 <div class="page-content">
-  <!-- Header Section -->
   <div class="page-header-section flex items-center justify-between gap-4 flex-wrap">
     <div>
-      <h1 class="page-header-section__title">Group Management</h1>
-      <p class="page-header-section__subtitle">
-        Organize workflows into hierarchical groups and subgroups.
-      </p>
+      <h1 class="page-header-section__title">Groups</h1>
+      <p class="page-header-section__subtitle">Departments and teams. The groups someone belongs to decide which workflows they see.</p>
     </div>
     <%= link_to new_admin_group_path, class: "btn btn--primary flex items-center gap-2" do %>
       <%= icon "plus", class: "icon icon--sm" %>
@@ -13,28 +10,33 @@
     <% end %>
   </div>
 
-  <!-- Groups Tree -->
-  <% if @groups.any? %>
-    <div class="card">
-      <div class="card__body">
-        <ul class="group-tree" data-controller="group-tree">
-          <% @groups.each do |group| %>
-            <%= render partial: "admin/groups/tree_node", locals: { group: group, level: 0 } %>
-          <% end %>
-        </ul>
+  <% if @nodes.any? %>
+    <%# Rows are flat and depth-first so the controller can show and hide them by
+        ancestor id; nesting lists would make the filter walk the DOM. %>
+    <div class="card group-tree" data-controller="group-tree">
+      <div class="group-tree__toolbar">
+        <input type="search" class="form-input form-input--sm group-tree__filter"
+               placeholder="Filter by name or path" aria-label="Filter groups" autocomplete="off"
+               data-group-tree-target="filter"
+               data-action="input->group-tree#filter keydown.enter->group-tree#ignoreEnter">
+        <button type="button" class="btn btn--plain btn--sm" data-action="group-tree#expandAll">Expand All</button>
+        <button type="button" class="btn btn--plain btn--sm" data-action="group-tree#collapseAll">Collapse All</button>
       </div>
+      <ul class="group-tree__list" role="list">
+        <% admin_group_tree_rows(@nodes).each do |node, ancestor_ids| %>
+          <%= render "admin/groups/tree_row", node:, ancestor_ids:,
+                has_children: @parent_ids.include?(node.id),
+                members: @member_counts.fetch(node.id, 0),
+                workflows: @workflow_counts.fetch(node.id, 0) %>
+        <% end %>
+      </ul>
+      <p class="group-tree__empty is-hidden" data-group-tree-target="empty">No group matches that filter.</p>
     </div>
   <% else %>
     <div class="empty-state">
-      <%= icon "lock-closed", class: "empty-state__icon" %>
-      <h3 class="empty-state__title">No groups</h3>
-      <p class="empty-state__text">Get started by creating a new group.</p>
-      <div class="mt-4">
-        <%= link_to new_admin_group_path, class: "btn btn--secondary flex items-center gap-2" do %>
-          <%= icon "plus", class: "icon icon--sm" %>
-          New Group
-        <% end %>
-      </div>
+      <%= icon "user-group", class: "empty-state__icon" %>
+      <h3 class="empty-state__title">No groups yet</h3>
+      <p class="empty-state__text">Groups you create appear here as a tree, with their members and workflows counted.</p>
     </div>
   <% end %>
 </div>

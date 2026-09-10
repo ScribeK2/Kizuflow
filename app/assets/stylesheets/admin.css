@@ -29,38 +29,118 @@
 }
 
 /* ============================================================================
-   Group Tree (admin groups index)
+   Group Tree (admin/groups/index)
    ============================================================================ */
 
-.group-tree {
-  list-style: none;
-  padding: 0;
+.group-tree__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.group-tree__filter {
+  flex: 1 1 16rem;
+}
+
+.group-tree__list {
   margin: 0;
-}
-
-.group-tree__node {
-  list-style: none;
-}
-
-.group-tree__indent {
-  list-style: none;
   padding: 0;
-  margin: 0;
+  list-style: none;
 }
 
-.group-toggle {
+/* --tree-depth is set per row in the markup; each level indents one step. */
+.group-tree__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding-block: var(--space-2);
+  padding-inline: calc(var(--space-4) + var(--tree-depth, 0) * var(--space-6)) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.group-tree__row:last-child {
+  border-bottom: 0;
+}
+
+.group-tree__row:hover {
+  background: var(--color-canvas-alt);
+}
+
+.group-tree__toggle,
+.group-tree__spacer {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.group-tree__toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
+  border-radius: var(--radius);
+  background: transparent;
   color: var(--color-ink-subtle);
-  transition: color 0.15s ease, transform 0.2s ease;
+  cursor: pointer;
 }
 
-.group-toggle:hover {
+.group-tree__toggle:hover {
+  background: var(--color-canvas-alt);
   color: var(--color-ink);
+}
+
+.group-tree__toggle .icon {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.group-tree__toggle[aria-expanded="true"] .icon {
+  transform: rotate(90deg);
+}
+
+.group-tree__label {
+  display: flex;
+  flex: 1 1 10rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.group-tree__name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.group-tree__name:hover {
+  color: var(--color-primary-text-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.group-tree__path {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.group-tree__count {
+  flex-shrink: 0;
+  min-width: 7rem;
+  text-align: end;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.group-tree__empty {
+  margin: 0;
+  padding: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
 }
 
 /* ============================================================================

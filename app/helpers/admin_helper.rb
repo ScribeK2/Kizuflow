@@ -37,6 +37,18 @@ module AdminHelper
     trail
   end
 
+  # Each tree node with the ids of the groups above it, root first. tree_nodes
+  # is depth-first, so a node's ancestors are the trail cut to its depth.
+  def admin_group_tree_rows(nodes)
+    trail = []
+    nodes.map do |node|
+      trail = trail.first(node.depth)
+      ancestors = trail.dup
+      trail << node.id
+      [node, ancestors]
+    end
+  end
+
   # A clickable column header for an admin table.
   #
   #   sortable_column_header("Email", :email, current_sort: @sort, frame: "users-table")

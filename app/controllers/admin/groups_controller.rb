@@ -2,7 +2,10 @@ class Admin::GroupsController < Admin::BaseController
   before_action :set_group, only: %i[show edit update destroy]
 
   def index
-    @groups = Group.roots.includes(:children, :workflows).order(:position, :name)
+    @nodes = Group.tree_nodes
+    @member_counts = Group.member_counts
+    @workflow_counts = Group.workflow_counts_including_subgroups
+    @parent_ids = @nodes.filter_map(&:parent_id).to_set
   end
 
   def show

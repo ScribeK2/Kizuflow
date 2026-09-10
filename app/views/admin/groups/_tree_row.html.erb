@@ -1,0 +1,24 @@
+<%# locals: (node:, ancestor_ids:, has_children:, members:, workflows:) %>
+<li class="group-tree__row<%= " is-hidden" unless node.depth.zero? %>"
+    style="--tree-depth: <%= node.depth %>;"
+    data-group-tree-target="row"
+    data-id="<%= node.id %>"
+    data-ancestors="<%= ancestor_ids.join(" ") %>"
+    data-path="<%= node.path.downcase %>">
+  <% if has_children %>
+    <button type="button" class="group-tree__toggle" aria-expanded="false"
+            aria-label="Subgroups of <%= node.name %>" data-action="group-tree#toggle">
+      <%= icon "chevron-right", class: "icon icon--sm" %>
+    </button>
+  <% else %>
+    <span class="group-tree__spacer" aria-hidden="true"></span>
+  <% end %>
+  <div class="group-tree__label">
+    <%= link_to node.name, admin_group_path(node.id), class: "group-tree__name" %>
+    <%# Shown only while filtering, so a match deep in the tree says where it lives. %>
+    <span class="group-tree__path is-hidden"><%= node.path %></span>
+  </div>
+  <%# Global has no members: everyone signed in is its audience (Stage 4a). %>
+  <span class="group-tree__count"><%= node.global? ? "Everyone signed in" : pluralize(members, "member") %></span>
+  <span class="group-tree__count"><%= pluralize(workflows, "workflow") %></span>
+</li>
