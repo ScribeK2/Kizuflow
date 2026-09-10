@@ -139,11 +139,21 @@ class Admin::SmtpSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Errno::ECONNREFUSED|Connection refused/, flash[:alert])
   end
 
-  test "the email form is one narrow column, not a page-main inside page-main" do
+  test "the email form is one narrow card: source and switch first, three subheadings, one Save (Q56, Q57)" do
     sign_in @admin
     get admin_smtp_setting_path
 
     assert_select "main.page-main .page-main", 0
-    assert_select ".page-narrow form"
+    assert_select ".page-narrow form.card[action=?]", admin_smtp_setting_path, 1
+    assert_select "form.card .admin-email__source input[type=checkbox][name=?]", "smtp_setting[enabled]"
+    assert_select "form.card .admin-email__source", text: /These settings are not in use/
+    subheadings = css_select("form.card .admin-email__subheading").map { it.text.strip }
+    assert_equal %w[Server Credentials Delivery], subheadings
+    assert_select "form.card input[type=submit]", 1
+    assert_select "form.card input[type=submit][value=?]", "Save Settings"
+
+    names = css_select("form.card input, form.card select").pluck("name")
+    assert_operator names.index("smtp_setting[enabled]"), :<, names.index("smtp_setting[address]"),
+                    "Use these settings sits at the top, not under Delivery"
   end
 end

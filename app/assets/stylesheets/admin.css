@@ -843,4 +843,56 @@ a.admin-group__name:hover {
   color: var(--color-ink);
 }
 
+/* ============================================================================
+   Email (admin/smtp_settings)
+   ============================================================================ */
+
+/* One card: the source line and its switch, then Server / Credentials /
+   Delivery under small subheadings, divided by hairlines (Q57). It was three
+   cards and a Save button floating between them. */
+.admin-email__section + .admin-email__section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.admin-email__source {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-email__source > p {
+  margin: 0;
+  color: var(--color-ink-subtle);
+}
+
+.admin-email__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.admin-email__subheading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-ink-muted);
+}
+
+.admin-email__section > .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.admin-email__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
 }
