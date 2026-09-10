@@ -58,7 +58,8 @@ module AdminHelper
     held << pluralize(workflows, "workflow") if workflows.positive?
     return if held.empty?
 
-    "It still holds #{held.to_sentence}. Move them elsewhere before deleting the group."
+    what = subgroups + workflows == 1 ? "it" : "them"
+    "It still holds #{held.to_sentence}. Move #{what} elsewhere before deleting the group."
   end
 
   # The confirm names what deleting takes with it: memberships and folders.

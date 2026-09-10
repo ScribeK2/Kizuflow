@@ -657,6 +657,13 @@ a.admin-group__name:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* A row's one action stays at the row's end. At phone width the row wraps, and
+   without this Remove and Delete dropped to the start of the next line, where
+   they read as belonging to the row below. */
+.admin-group__item > form:last-child {
+  margin-inline-start: auto;
+}
+
 .admin-group__search {
   display: flex;
   flex-wrap: wrap;

@@ -21,9 +21,19 @@ class AdminHelperTest < ActionView::TestCase
     end
   end
 
-  test "folders light Groups, because a folder belongs to a group" do
-    self.controller_path = "admin/folders"
+  # Folders have no pages any more (Stage 4b), so they light nothing; the member
+  # search renders inside a group's page and must keep Groups lit.
+  test "the member search lights Groups, because it is part of a group's page" do
+    self.controller_path = "admin/memberships"
     assert_equal :groups, admin_section
+  end
+
+  test "the delete blocker names what the group still holds, in the right number" do
+    assert_equal "It still holds 1 subgroup. Move it elsewhere before deleting the group.",
+                 admin_group_delete_blocker(subgroups: 1, workflows: 0)
+    assert_equal "It still holds 2 subgroups and 1 workflow. Move them elsewhere before deleting the group.",
+                 admin_group_delete_blocker(subgroups: 2, workflows: 1)
+    assert_nil admin_group_delete_blocker(subgroups: 0, workflows: 0)
   end
 
   test "admin_nav_current marks only the current section" do
