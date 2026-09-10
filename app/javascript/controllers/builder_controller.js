@@ -112,14 +112,22 @@ export default class extends Controller {
         "Accept": "application/json"
       },
       body: JSON.stringify({ workflow: { title } })
-    }).then(response => {
+    }).then(async response => {
       const statusEl = document.getElementById("autosave-status")
-      if (statusEl) {
-        statusEl.textContent = response.ok ? "Saved" : "Save failed"
-        statusEl.className = response.ok
-          ? "builder__autosave builder__autosave--saved"
-          : "builder__autosave builder__autosave--error"
+      if (!statusEl) return
+
+      if (response.ok) {
+        statusEl.textContent = "Saved"
+        statusEl.className = "builder__autosave builder__autosave--saved"
+        return
       }
+
+      // The JSON error body carries the reason. Details shows it through its
+      // Turbo Stream partial; a bare "Save failed" here left the author guessing.
+      const body = await response.json().catch(() => ({}))
+      const reason = Array.isArray(body.errors) ? body.errors[0] : null
+      statusEl.textContent = reason ? `Save failed — ${reason}` : "Save failed"
+      statusEl.className = "builder__autosave builder__autosave--error"
     })
   }
 

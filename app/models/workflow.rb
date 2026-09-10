@@ -514,17 +514,22 @@ class Workflow < ApplicationRecord
     target_workflows = Workflow.where(id: target_ids).index_by(&:id)
 
     sf_steps.each do |step|
+      # Named by title, quoted the way GraphValidator names a step. These said
+      # "Step #{position + 1}", and builder steps start at position 1, so a
+      # workflow's only step was called "Step 2".
+      label = "Sub-flow step '#{step.title.presence || 'Untitled'}'"
+
       if step.sub_flow_workflow_id.blank?
         # Publish-time only. A Sub-Flow added from the step picker starts with no
         # target, and refusing every save until one was picked lost the author's
         # title and Details edits. :subflow_target_required warns in the builder.
-        errors.add(:steps, "Step #{step.position + 1}: Sub-flow step requires a target workflow") if publishing?
+        errors.add(:steps, "#{label} requires a target workflow") if publishing?
         next
       end
 
       target_workflow = target_workflows[step.sub_flow_workflow_id]
       unless target_workflow
-        errors.add(:steps, "Step #{step.position + 1}: Target workflow #{step.sub_flow_workflow_id} does not exist")
+        errors.add(:steps, "#{label}: target workflow #{step.sub_flow_workflow_id} does not exist")
         next
       end
 
@@ -541,11 +546,11 @@ class Workflow < ApplicationRecord
       # keyed on published? until 2026-09-10, which also refused a live
       # workflow's renames once it gained a Sub-Flow into a draft.
       if publishing? && !target_workflow.published? && !publishing_alongside?(target_workflow.id)
-        errors.add(:steps, "Step #{step.position + 1}: Target workflow '#{target_workflow.title}' is not published")
+        errors.add(:steps, "#{label}: target workflow '#{target_workflow.title}' is not published")
       end
 
       if step.sub_flow_workflow_id == id
-        errors.add(:steps, "Step #{step.position + 1}: Sub-flow cannot reference itself")
+        errors.add(:steps, "#{label} cannot reference itself")
       end
     end
   end

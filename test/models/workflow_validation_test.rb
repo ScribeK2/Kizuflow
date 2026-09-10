@@ -167,6 +167,19 @@ class WorkflowValidationTest < ActiveSupport::TestCase
     end
   end
 
+  # The messages said "Step #{position + 1}", and builder steps start at
+  # position 1, so a workflow's only step was called "Step 2".
+  test "sub-flow errors name the step by its title" do
+    wf = create_workflow("Named", status: "draft")
+    Steps::SubFlow.create!(workflow: wf, title: "Hand to billing", position: 1)
+
+    wf.reload.while_publishing { wf.valid? }
+
+    # Quoted the way GraphValidator names a step ("Step 'X' has no path ...").
+    assert_includes wf.errors[:steps], "Sub-flow step 'Hand to billing' requires a target workflow"
+    assert(wf.errors[:steps].none? { |e| e.start_with?("Step 2") }, "got #{wf.errors[:steps].join(' | ')}")
+  end
+
   test "subflow step pointing to nonexistent workflow is invalid" do
     wf = create_workflow("SubFlow Missing Target")
     Steps::SubFlow.create!(

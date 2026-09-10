@@ -499,6 +499,17 @@ class WorkflowBuilderTest < ApplicationSystemTestCase
     assert_eventually(timeout: 10) { @workflow.reload.title == "Renamed with a sub-flow pending" }
   end
 
+  # The Details panel shows the server's reason through its Turbo Stream; the
+  # header title saves through fetch and overwrote it with a bare "Save failed".
+  test "a refused title save says why in the header" do
+    visit_builder_in_edit_mode
+    title = find("input[placeholder='Workflow title...']")
+    title.set("x" * 256)
+    title.send_keys(:tab)
+
+    assert_selector "#autosave-status", text: "Save failed — Title is too long (maximum is 255 characters)", wait: 10
+  end
+
   test "a large workflow renders every step row" do
     # The deleted version of this asserted a 5 second wall-clock budget. That is
     # the kind of timing assertion that fails for reasons unrelated to the code,
