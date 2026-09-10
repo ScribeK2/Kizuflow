@@ -136,7 +136,7 @@
     <div class="dialog__body">
       <p class="text-sm mb-2">Replaces the groups of every selected user.</p>
       <p class="text-sm font-medium mb-3" data-admin-users-target="selectedCount">No users selected</p>
-      <%= render "admin/group_picker", nodes: @group_nodes, field_name: "group_ids[]" %>
+      <%= render "shared/group_picker", nodes: @group_nodes, field_name: "group_ids[]" %>
     </div>
 
     <div class="dialog__footer">

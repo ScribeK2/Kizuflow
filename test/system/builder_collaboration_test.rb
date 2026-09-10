@@ -106,16 +106,4 @@ class BuilderCollaborationTest < ApplicationSystemTestCase
     visit workflow_path(@workflow, edit: true)
     assert_selector "[data-builder-mode-value='edit']", wait: 5
   end
-
-  def assert_eventually(timeout: 5, interval: 0.2)
-    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
-    loop do
-      return if yield
-
-      if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
-        flunk "condition never became true within #{timeout}s"
-      end
-      sleep interval
-    end
-  end
 end

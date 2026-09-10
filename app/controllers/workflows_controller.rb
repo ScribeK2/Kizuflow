@@ -81,12 +81,12 @@ class WorkflowsController < ApplicationController
     @workflow = current_user.workflows.build(workflow_params)
 
     if @workflow.save
-      @workflow.replace_groups!(params[:workflow][:group_ids]) if params[:workflow][:group_ids].present?
+      if params[:workflow][:group_ids].present?
+        @workflow.replace_groups!(Group.assignable_ids_for(current_user, params[:workflow][:group_ids], current_ids: []))
+      end
 
       redirect_to @workflow, notice: "Workflow was successfully created."
     else
-      # Eager load groups to prevent N+1 queries
-      @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
       render :new, status: :unprocessable_content
     end
   end
@@ -106,10 +106,12 @@ class WorkflowsController < ApplicationController
         end
 
         if @workflow.update(permitted_params)
-          if params[:workflow][:group_ids].present?
-            @workflow.replace_groups!(params[:workflow][:group_ids])
-          elsif params[:workflow].key?(:group_ids)
-            @workflow.replace_groups!([])
+          # The Details form always sends group_ids (a blank sentinel first), so
+          # a key with nothing ticked means "no groups", not "not submitted".
+          if params[:workflow].key?(:group_ids)
+            @workflow.replace_groups!(
+              Group.assignable_ids_for(current_user, params[:workflow][:group_ids], current_ids: @workflow.group_ids)
+            )
           end
 
           respond_to do |format|
@@ -172,8 +174,6 @@ class WorkflowsController < ApplicationController
   end
 
   def render_update_error(status:)
-    @accessible_groups = Group.visible_to(current_user).includes(:children).order(:name)
-    @selected_group_ids = @workflow.group_ids
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(

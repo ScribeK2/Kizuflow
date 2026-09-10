@@ -4,7 +4,7 @@
   Local variables:
   - workflow: Workflow object
   - readonly: boolean (default false)
-  - accessible_groups: Group collection
+  - group_nodes: Array<Group::TreeNode>
 %>
 <% readonly = local_assigns.fetch(:readonly, false) %>
 <turbo-frame id="builder-panel"
@@ -27,8 +27,8 @@
         <div><%= workflow.description %></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Groups</label>
-        <p><%= workflow.groups.map(&:name).join(", ").presence || "None" %></p>
+        <label class="form-label">Who Can See This</label>
+        <p><%= workflow.groups.map(&:name).join(", ").presence || "Nobody yet — only its owner and admins" %></p>
       </div>
     <% else %>
       <%= form_with model: workflow, url: workflow_path(workflow), method: :patch,
@@ -41,10 +41,15 @@
         </div>
 
         <div class="form-group">
-          <%= render "workflows/group_selector",
-              workflow: workflow,
-              accessible_groups: accessible_groups,
-              selected_group_ids: workflow.group_ids %>
+          <span class="form-label">Who Can See This</span>
+          <p class="form-hint">People in a ticked group, and its subgroups, can see this once it is published. Tick Global for everyone signed in.</p>
+          <%# Sentinel: the key is always sent, so an empty choice reads as "no groups". %>
+          <input type="hidden" name="workflow[group_ids][]" value="">
+          <%= render "shared/group_picker",
+                nodes: group_nodes,
+                field_name: "workflow[group_ids][]",
+                selected_ids: workflow.group_ids,
+                input_data: { action: "change->inline-autosave#schedule" } %>
         </div>
 
         <div class="form-group">

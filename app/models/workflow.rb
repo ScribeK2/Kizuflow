@@ -408,12 +408,22 @@ class Workflow < ApplicationRecord
     sample_vars
   end
 
-  # Deduplicate group assignment — replace all groups atomically.
+  # Leave the workflow in exactly these groups. A group it stays in keeps its
+  # row — and the folder filed on that row. The builder autosaves every field
+  # together, so this runs on every description edit; destroying and recreating
+  # the rows quietly unfiled the workflow from its folders.
+  #
+  # Primary: the current primary while it is still chosen, else the first
+  # chosen group that is not Global, else Global. Global as primary would badge
+  # a department's workflow "Global" and put Global first in its export.
   def replace_groups!(group_ids)
-    ids = Array(group_ids).compact_blank.uniq
-    group_workflows.destroy_all
-    ids.each_with_index do |group_id, index|
-      group_workflows.create!(group_id: group_id, is_primary: index.zero?)
+    ids = Array(group_ids).compact_blank.map(&:to_i).uniq
+
+    transaction do
+      group_workflows.where.not(group_id: ids).destroy_all
+      kept = group_workflows.reload.map(&:group_id)
+      (ids - kept).each { group_workflows.create!(group_id: it, is_primary: false) }
+      reassign_primary_group!(ids)
     end
   end
 
@@ -424,6 +434,19 @@ class Workflow < ApplicationRecord
   end
 
   private
+
+  def reassign_primary_group!(ids)
+    rows = group_workflows.includes(:group).to_a.index_by(&:group_id)
+    return if rows.empty?
+
+    primary = rows.values.find(&:is_primary?) ||
+              ids.filter_map { rows[it] }.find { !it.group.global? } ||
+              rows.values.first
+    rows.each_value do |row|
+      should_be = row == primary
+      row.update!(is_primary: should_be) if row.is_primary? != should_be
+    end
+  end
 
   def first_option_value(opts)
     if opts.present? && opts.is_a?(Array) && opts.first

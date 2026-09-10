@@ -443,4 +443,96 @@
   color: var(--color-ink-muted);
 }
 
+/* ============================================================================
+   Group Picker (shared/_group_picker) — every group with its full path
+   ============================================================================ */
+
+.group-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.group-picker__search {
+  position: relative;
+}
+
+.group-picker__search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+
+.group-picker__filter {
+  padding-left: 2.25rem;
+}
+
+.group-picker__list {
+  max-height: 20rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  background: var(--color-canvas-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* --depth is set per option; indentation is the only layout it drives. */
+.group-picker__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-inline-start: calc(var(--space-3) + var(--depth, 0) * var(--space-5));
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.group-picker__label:hover {
+  background: var(--color-canvas-alt);
+}
+
+.group-picker__name {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.group-picker__path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+/* Global's own row (spec Q50). Above the list and outside the filter: it is the
+   answer "everyone", not one group among many, and its own bordered box is the
+   divider between the two. */
+.group-picker__global {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-canvas-raised);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.group-picker__global:hover {
+  background: var(--color-canvas-alt);
+}
+
+.group-picker__hint {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
 }

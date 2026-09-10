@@ -31,10 +31,6 @@
         <%= form.rich_text_area :description %>
       </div>
 
-      <% if @accessible_groups&.any? %>
-        <%= render partial: "workflows/group_selector", locals: { selected_group_ids: [] } %>
-      <% end %>
-
       <%= form.hidden_field :graph_mode, value: true %>
 
       <div data-controller="workflow-builder" id="workflow-builder-container" data-workflow-builder-graph-mode-value="false" data-workflow-builder-debug-value="<%= Rails.env.development? %>">

@@ -173,6 +173,17 @@ class Group < ApplicationRecord
     (accessible_group_ids_for(user) + [global_id]).compact.uniq
   end
 
+  # The groups a save may leave a workflow in. An admin's choice stands. Anyone
+  # else may add or remove only groups they reach; a group they don't reach
+  # stays exactly as it was, since the picker never showed it to them.
+  def self.assignable_ids_for(user, requested_ids, current_ids:)
+    requested = Array(requested_ids).compact_blank.map(&:to_i).uniq
+    return requested if user&.admin?
+
+    reachable = reachable_ids_for(user)
+    (requested & reachable) + (current_ids.map(&:to_i) - reachable)
+  end
+
   # Get ancestor IDs for a group using a single efficient approach
   # @param group_id [Integer] The group ID to find ancestors for
   # @return [Array<Integer>] Array of ancestor group IDs, ordered from immediate parent to root

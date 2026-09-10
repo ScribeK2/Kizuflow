@@ -414,6 +414,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create workflow with group assignment" do
     group = Group.create!(name: "Test Group")
+    # An editor may file only into groups they reach (Group.assignable_ids_for).
+    UserGroup.create!(user: @editor, group: group)
 
     sign_in @editor
     assert_difference("Workflow.count", 1) do
@@ -437,6 +439,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     group2 = Group.create!(name: "Group 2")
 
     GroupWorkflow.create!(group: group1, workflow: @workflow, is_primary: true)
+    # An editor may add or remove only groups they reach (Group.assignable_ids_for).
+    [group1, group2].each { UserGroup.create!(user: @editor, group: it) }
 
     sign_in @editor
     patch workflow_path(@workflow), params: {

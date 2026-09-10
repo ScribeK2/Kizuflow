@@ -83,7 +83,7 @@ The unified builder lives at `workflows/:id` — one URL for both viewing and ed
 - `_step_list.html.erb` / `_step_row.html.erb` — compact step rows with SortableJS drag-and-drop
 - `steps/_panel_edit.html.erb` — step editor loaded via Turbo Frame into the panel
 - `_flow_diagram_panel.html.erb` — read-only BFS flow diagram in the panel
-- `_settings_panel.html.erb` — workflow metadata (description, groups, public toggle)
+- `_settings_panel.html.erb` — workflow metadata (description, who can see it, tags, sharing)
 - `_health_panel.html.erb` — health validation results (errors, warnings, passing checks with Fix buttons)
 - `_empty_state.html.erb` — shown when no steps; includes template archetype cards
 
@@ -145,7 +145,7 @@ deactivation, workflows owned, last active (newest run, since `:trackable` is
 off) — is on the user page. `update_groups`/`deactivate`/`reactivate` return
 there; `update_role` uses `redirect_back_or_to` because both surfaces call it.
 Group paths come from `Group.tree_nodes` / `Group.paths_by_id` (one query for the
-whole tree) and every group picker is `admin/_group_picker`; `Group#full_path`
+whole tree) and every group picker is `shared/_group_picker`; `Group#full_path`
 queries ancestors per call and must not be used in a loop. Every Users dialog is
 a native `<dialog>` that closes on `turbo:before-cache` — see UIGUIDE § Dialogs
 for why, and for the `visible: :all` trap in testing it.
