@@ -122,6 +122,23 @@ The unified builder lives at `workflows/:id` — one URL for both viewing and ed
 - `Workflows::ExecutionsController` — start landing page (`new`) + scenario creation (`create`)
 - Plus existing: `Exports`, `Imports`, `Shares`, `Publishings`, `Taggings`, `Pins`
 
+**Admin area.** Every `Admin::` controller inherits `Admin::BaseController`, which
+overrides `resolve_layout` to `"admin"` — a nested layout adding the section
+sidebar inside the application layout (`content_for :content`). `/admin` is the
+**Overview**: only what waits on an administrator, from `Admin::Attention`, which
+gathers three model questions — `User.awaiting_groups` (Regular/Editor, not
+deactivated, no group, so they see only public workflows), `SmtpSetting.unconfigured?`
+(production only, where no relay means Rails' default of SMTP to localhost:25)
+and `JobHealth`. It is built once per request and feeds the sidebar's count too,
+so the two cannot disagree; the count is kinds of problem, not records.
+**`JobHealth` reads Solid Queue's own tables** (failed executions; recurring
+tasks with no run in 26 hours, or a run nothing picked up) because both
+inferences from app data false-alarm: a run's clock stops while its parent waits
+on a live sub-flow, and an unused instance writes no rollup days. The stalled
+check relies on Solid Queue keeping finished jobs for a day and switches itself
+off if that is shortened. There is no admin Workflows section: `/workflows`
+already gives an admin every workflow and delete.
+
 **Key concern:** `RunnerShell` (`app/controllers/concerns/runner_shell.rb`) — the
 run itself, shared by `ScenariosController` and `PlayerController`. It owns where
 a GET belongs (`runner_step_redirect`), which step is open
@@ -250,7 +267,8 @@ unexpected `answer_type` rendered radio cards with no way to submit.
   pinned the destinations to the right edge next to the theme toggle and avatar,
   where a place reads as a setting. `/admin` was reachable **only** through that
   chevron, which is why eight admin pages carried a "Back to Dashboard" control;
-  six of those are gone now that the bar holds the destination
+  six went when the bar gained the destination, and the rest when admin got its
+  own section sidebar (`layouts/admin`, `AdminHelper::ADMIN_SECTIONS`)
 - `NavHelper` owns which controller lights which item (`NAV_SECTIONS`,
   `nav_section`, `nav_current`). It is section-level: `scenarios`, `steps` and
   `workflow_versions` light Workflows, and every `admin/*` page lights Admin.

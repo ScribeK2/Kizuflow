@@ -448,6 +448,25 @@ icon with it and leaving the bar with no identity at all.
 header's only one — it uses `showModal()`, so Escape and backdrop-click are
 native and it needs no coordinator.
 
+**Admin has a second level: a section sidebar.** Admin pages render through
+`layouts/admin`, which fills `:content` with `.admin-shell` (sidebar + page) and
+renders the application layout, so the top bar still lights Admin. The sidebar
+lists Overview · Users · Groups · Analytics │ Data Health · Email as labelled
+links — ordered by use, the divider setting apart the pages you open when
+something is wrong. Below 1024px it is a row that scrolls sideways, for the same
+reason the top bar never collapses into a menu. Which item is current is
+`AdminHelper::ADMIN_SECTIONS`; **add an admin controller to it when you add an
+admin surface.** It replaced a dashboard of six buttons that left every other
+admin page a dead end. Sub-pages inside a section (a group, its folders, its
+forms) say where they sit with a parent-group breadcrumb (`admin/_breadcrumb`,
+on `.wf-breadcrumb`), never a "Back to X" button.
+
+**The sidebar takes ~13rem, so a wide admin table has ~980px, not ~1216px.**
+When the Users table first gained the sidebar, a check for buttons wrapping onto
+a second line passed while Deactivate ran 49px past the card edge in bulk mode.
+Measure an admin table against its container's edge, not by looking for line
+breaks.
+
 ### Tabs (`tabs.css`, `workflows.css`)
 
 Two components, two different jobs. Do not conflate them.
@@ -470,6 +489,8 @@ so `.tab-bar` drops into any existing tablist with no JS change.
 | Tooltips | `.tooltip`, `.tooltip--bottom` | `tooltips.css` | Absolute, spring easing entrance |
 | Skeletons | `.skeleton`, `.skeleton--text`, `--heading`, `--card` | `skeleton.css` | Shimmer animation, use for loading states |
 | Pagination | `.pagination-bar`, `.pagination`, `.pagination__item`, `.is-active` | `pagination.css` | `.pagination-bar` is a three-zone grid: summary left, numbered nav centred, page-size right |
+| Admin sidebar | `.admin-shell`, `__main`, `.admin-nav`, `__list`, `__link`, `__label`, `__divider`, `__count` | `admin.css` | Second-level nav for admin pages (see § Navigation). Current is `[aria-current="page"]`: primary-soft fill + primary text + weight — a different channel from hover. `__count` is a `.badge--warning`, rendered only when something needs attention, and counts *kinds* of problem, not affected records |
+| Needs attention | `.list-section.admin-attention` + `.list-row`, `.admin-attention__people`, `__meta`, `__clear` | `lists.css`, `admin.css` | The admin Overview. One row per kind of problem, each naming the problem, its cost in one line, and a secondary link to where it is fixed — no filled button. Rows align to the top, since one can list ten people. Nothing waiting renders one line (`__clear`), not an empty section |
 | Icons | `.icon`, `.icon--xs/sm/lg/xl` | `icons.css` | Inline-flex sizing (0.75 to 2rem) |
 | Dark mode toggle | `.dark-mode-toggle` | `buttons.css` | Circular icon button in a header. Lives in components, not `navigation.css`, because the Player's layout renders it without loading the nav module — a class styled only in a sheet that layout does not load matches nothing at all. (It used to *also* fall back to raw browser chrome; `reset.css` now neutralises button background, border and padding, so that half is closed — see § The unstyled-button trap) |
 
@@ -821,7 +842,7 @@ For page types not covered by a recipe, read these exemplary views. They demonst
 | `transitions.css` | modules | Transition editor |
 | `dashboard.css` | modules | Dashboard shell: `.dashboard-*`, `.stat-panel`/`.stat-cell` |
 | `auth.css` | modules | Login/signup pages |
-| `admin.css` | modules | Admin panel |
+| `admin.css` | modules | Admin shell (section sidebar), needs-attention list, breadcrumb spacing, users filter/bulk bar, group tree, analytics bars. Tokens only — `test/stylesheets/admin_css_audit_test.rb` refuses literal colours and theme blocks |
 | `utilities.css` | utilities | Layout utilities (.flex, .gap-*, .mb-*, .text-*) |
 | `animations.css` | utilities | Keyframes (fadeIn, slideIn, scaleIn, shimmer) |
 | `print.css` | utilities | Print styles |
