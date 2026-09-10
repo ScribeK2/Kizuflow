@@ -79,6 +79,13 @@ module AdminHelper
       "still in this group, in no folder."
   end
 
+  # "CleanupDraftsJob" -> "Cleanup drafts". A recurring command has no class.
+  def admin_job_name(class_name)
+    return "Command" if class_name.blank?
+
+    class_name.demodulize.delete_suffix("Job").underscore.humanize
+  end
+
   # A clickable column header for an admin table.
   #
   #   sortable_column_header("Email", :email, current_sort: @sort, frame: "users-table")

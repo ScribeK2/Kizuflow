@@ -118,5 +118,8 @@ Rails.application.routes.draw do
     get "analytics", to: "analytics#index", as: :analytics
     get "data_health", to: "data_health#index", as: :data_health
     post "data_health/cleanup_drafts", to: "data_health#cleanup_drafts", as: :data_health_cleanup_drafts
+    resources :failed_jobs, only: :destroy, path: "data_health/failed_jobs" do
+      resource :retry, only: :create, module: :failed_jobs
+    end
   end
 end
