@@ -70,6 +70,7 @@ class WorkflowImporter
       tags: workflow_data[:tags]
     )
     placement_result = placement.resolve
+    warnings.concat(placement_result.warnings.pluck(:message))
 
     unless placement_result.valid?
       return failure(placement_result.errors.pluck(:message), warnings:)

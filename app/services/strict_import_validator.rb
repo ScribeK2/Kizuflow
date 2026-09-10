@@ -208,8 +208,12 @@ class StrictImportValidator
       tags: workflow["tags"] || []
     )
 
-    placement.resolve.errors.each do |error|
+    resolved = placement.resolve
+    resolved.errors.each do |error|
       add_error("#{path}.#{error[:path]}", error[:code], error[:value], error[:message])
+    end
+    resolved.warnings.each do |warning|
+      add_warning("#{path}.#{warning[:path]}", warning[:code], warning[:value], warning[:message])
     end
 
     placement

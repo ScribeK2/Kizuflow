@@ -251,4 +251,35 @@ class WorkflowPlacementTest < ActiveSupport::TestCase
     assert_equal [@child.id], workflow.reload.groups.map(&:id)
     assert_equal [existing_tag.id], workflow.tags.map(&:id)
   end
+
+  # Spec Q49. A file exported before Stage 4a names Uncategorized. Filing it into
+  # Global would show it to everyone, which Uncategorized never meant.
+  test "a group named Uncategorized, which no longer exists, is dropped with a warning" do
+    placement = WorkflowPlacement.new(user: @user, groups: ["Uncategorized", "#{@root.name} / #{@child.name}"])
+
+    result = placement.resolve
+
+    assert_predicate result, :valid?
+    assert_equal [@child.id], result.group_ids
+    assert_equal ["retired_group"], result.warnings.pluck(:code)
+    assert_equal "groups[0]", result.warnings.first[:path]
+  end
+
+  test "a real group named Uncategorized still resolves" do
+    real = Group.create!(name: "Uncategorized")
+    UserGroup.create!(user: @user, group: real)
+
+    result = WorkflowPlacement.new(user: @user, groups: ["Uncategorized"]).resolve
+
+    assert_equal [real.id], result.group_ids
+    assert_empty result.warnings
+  end
+
+  test "Global resolves like any other group" do
+    global = global_group
+
+    result = WorkflowPlacement.new(user: @user, groups: [Group::GLOBAL_NAME]).resolve
+
+    assert_equal [global.id], result.group_ids
+  end
 end

@@ -17,7 +17,14 @@ class WorkflowPlacement
 
   PATH_SEPARATOR = "/".freeze
 
-  Result = Data.define(:group_ids, :folder_id, :tag_names, :errors) do
+  # Uncategorized became Global in Stage 4a. A file exported before then names
+  # it, and filing that workflow into Global would show it to everyone signed
+  # in, which "Uncategorized" never meant (spec Q49). So the name is dropped
+  # with a warning and the workflow waits, with no audience, for someone to
+  # choose one — WorkflowPublisher will not publish it until they do.
+  RETIRED_GROUP_NAME = "Uncategorized".freeze
+
+  Result = Data.define(:group_ids, :folder_id, :tag_names, :errors, :warnings) do
     def valid? = errors.empty?
   end
 
@@ -37,16 +44,14 @@ class WorkflowPlacement
   # to groups, folder and tags alike, so each write below is guarded on the
   # placement actually having named something for it.
   #
-  # The folder guard has a wrinkle replace_groups! creates on its own:
-  # replace_groups! destroys and recreates every group_workflows row for the
-  # workflow, including the primary one that carries folder_id, so naming
-  # groups without naming a folder would otherwise drop an existing folder as
-  # a side effect even when nothing "said" to. We carry the old folder_id
-  # forward — but only when the new primary group is the same group that
-  # already held it. Folder belongs_to :group, so a folder that belonged to
-  # the old primary group is not a valid folder under a different one; when
-  # the primary group changes, dropping the folder isn't silence being
-  # violated, it's the folder no longer applying.
+  # replace_groups! keeps the row of a group the workflow stays in, folder and
+  # all, so naming the same primary group keeps its folder by itself. The
+  # carry-over below still covers a file that names a group without naming a
+  # folder: the old folder_id is written onto the primary row only when the new
+  # primary group is the same group that already held it. Folder belongs_to
+  # :group, so a folder that belonged to the old primary group is not a valid
+  # folder under a different one; when the primary group changes, dropping the
+  # folder isn't silence being violated, it's the folder no longer applying.
   def apply!(workflow)
     result = resolve
     raise InvalidPlacement, result.errors.pluck(:message).join(", ") unless result.valid?
@@ -67,20 +72,28 @@ class WorkflowPlacement
 
   def build_result
     errors = []
+    warnings = []
     group_ids = []
 
     @groups.each_with_index do |path, index|
       group = find_group(path)
 
+      if group.nil? && retired_group?(path)
+        warnings << finding("groups[#{index}]", "retired_group", path,
+                            "\"Uncategorized\" is no longer a group, so this workflow arrives without it. " \
+                            "Choose who can see it before publishing.")
+        next
+      end
+
       if group.nil?
-        errors << error("groups[#{index}]", "unknown_group", path,
-                        "No group exists at path #{display(path)}.")
+        errors << finding("groups[#{index}]", "unknown_group", path,
+                          "No group exists at path #{display(path)}.")
         next
       end
 
       unless permitted?(group)
-        errors << error("groups[#{index}]", "group_not_permitted", path,
-                        "You do not have access to the group #{display(path)}.")
+        errors << finding("groups[#{index}]", "group_not_permitted", path,
+                          "You do not have access to the group #{display(path)}.")
         next
       end
 
@@ -91,7 +104,8 @@ class WorkflowPlacement
       group_ids: group_ids.uniq,
       folder_id: resolve_folder_id(group_ids.first, errors),
       tag_names: normalized_tag_names,
-      errors:
+      errors:,
+      warnings:
     )
   end
 
@@ -126,6 +140,13 @@ class WorkflowPlacement
     matches.one? ? matches.first : nil
   end
 
+  # Only a lone segment: a path through a real group that happens to hold an
+  # "Uncategorized" child is an ordinary unknown path, not the retired group.
+  def retired_group?(path)
+    segs = segments(path).map { |name| name.to_s.strip }.compact_blank
+    segs.one? && segs.first.casecmp?(RETIRED_GROUP_NAME)
+  end
+
   def walk_from_root(segs)
     segs.reduce(nil) do |parent, name|
       match = Group.find_by(name: name, parent_id: parent&.id)
@@ -155,16 +176,16 @@ class WorkflowPlacement
     return nil if @folder.blank?
 
     if primary_group_id.nil?
-      errors << error("folder", "unknown_folder", @folder,
-                      "A folder needs a group: name a group before naming a folder.")
+      errors << finding("folder", "unknown_folder", @folder,
+                        "A folder needs a group: name a group before naming a folder.")
       return nil
     end
 
     folder = Folder.find_by(name: @folder, group_id: primary_group_id)
 
     if folder.nil?
-      errors << error("folder", "unknown_folder", @folder,
-                      "No folder named #{@folder} exists in the primary group.")
+      errors << finding("folder", "unknown_folder", @folder,
+                        "No folder named #{@folder} exists in the primary group.")
       return nil
     end
 
@@ -183,7 +204,8 @@ class WorkflowPlacement
     @tags.map { |name| name.to_s.strip }.compact_blank.uniq(&:downcase)
   end
 
-  def error(path, code, value, message)
+  # An error or a warning; both carry the same shape so a report can show either.
+  def finding(path, code, value, message)
     { path:, code:, message:, value: }
   end
 end

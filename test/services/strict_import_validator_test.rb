@@ -484,6 +484,18 @@ class StrictImportValidatorTest < ActiveSupport::TestCase
     assert_equal "workflows[0].groups[0]", error[:path]
   end
 
+  test "an Uncategorized group is a warning on the strict report, not an error" do
+    report = StrictImportValidator.new(user: @user, content: {
+      schema_version: "1",
+      workflows: [{ title: "Old Export", groups: ["Uncategorized"], steps: [resolve_step] }]
+    }.to_json).validate
+
+    assert_predicate report, :valid?, report.errors.inspect
+    warning = report.warnings.find { |w| w[:code] == "retired_group" }
+    assert_not_nil warning
+    assert_equal "workflows[0].groups[0]", warning[:path]
+  end
+
   test "a nested group named by itself is accepted on the strict report" do
     child = Group.create!(name: "Strict Nested #{SecureRandom.hex(3)}", parent: @group)
     report = StrictImportValidator.new(user: @user, content: {

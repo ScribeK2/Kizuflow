@@ -231,6 +231,20 @@ class WorkflowImporterTest < ActiveSupport::TestCase
     assert_equal [child.id], result.workflow.groups.map(&:id)
   end
 
+  test "a lenient import naming Uncategorized arrives with no group and says so" do
+    json_data = {
+      title: "Old Lenient Export",
+      groups: ["Uncategorized"],
+      steps: [{ id: "z", type: "resolve", title: "Done", resolution_type: "success" }]
+    }.to_json
+
+    result = WorkflowImporter.new(@user, format: :json, content: json_data).call
+
+    assert_predicate result, :success?
+    assert_empty result.workflow.groups
+    assert_match(/Uncategorized/, result.warnings.join("\n"))
+  end
+
   # Two unknown groups, and a linear-format step list (which the parser
   # always flags with a "Converted from linear format to Graph Mode"
   # warning), are the probe: the pre-build `resolve` returns one distinct
